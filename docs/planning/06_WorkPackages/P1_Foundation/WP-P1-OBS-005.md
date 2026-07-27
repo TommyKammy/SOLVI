@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P1-OBS-005: Log/Metric/Trace
@@ -136,4 +136,4 @@ Evidenceは`evidence/WP-P1-OBS-005/<YYYYMMDD-HHMM>/`へ保存し、Command・Env
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `8ada7b7` | Done | `evidence/WP-P1-OBS-005/20260727-1531/verification.md` | トレース疎通7/7、全951テスト通過。**重要な発見**: OpenTelemetryの自動計装が tsx/ESM 環境で無言で無効になっていた(SDKは起動するがスパンが0件、エラーもログも出ない)。実スタックへの疎通確認スクリプトを書いていたため発覚。HTTPハンドラで明示的にスパンを張る方式へ変更し、自動計装には依存しない構成にした。 |
