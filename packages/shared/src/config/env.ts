@@ -31,6 +31,13 @@ const databaseSchema = z.object({
 
 const storageSchema = z.object({
   S3_ENDPOINT: nonEmpty('S3_ENDPOINT'),
+  /**
+   * ブラウザへ渡す署名付きURLの接続先。未設定なら `S3_ENDPOINT` を使う。
+   *
+   * コンテナ内から見た名前(`http://minio:9000`)でブラウザ向けURLを
+   * 署名すると、ブラウザは名前を解決できない。分けて指定する。
+   */
+  S3_PUBLIC_ENDPOINT: z.string().optional(),
   S3_REGION: nonEmpty('S3_REGION'),
   S3_BUCKET_ATTACHMENTS: nonEmpty('S3_BUCKET_ATTACHMENTS'),
   S3_BUCKET_AUDIT_ANCHOR: nonEmpty('S3_BUCKET_AUDIT_ANCHOR'),

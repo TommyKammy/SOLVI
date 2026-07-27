@@ -22,7 +22,20 @@ export interface SignedUrl {
 }
 
 export interface ObjectStorageConfig {
+  /** サーバ自身が使う接続先。コンテナ内では `http://minio:9000` のような内部名になる。 */
   endpoint: string;
+  /**
+   * ブラウザへ渡す署名付きURLの接続先。省略時は `endpoint` を使う。
+   *
+   * **これを分ける必要がある。** サーバはコンテナ内部の名前で到達するが、
+   * ブラウザはその名前を解決できない。本番でも同じで、アプリはVPC内の
+   * エンドポイントを、ブラウザは公開URLを使うことが多い。
+   *
+   * SigV4 はホスト名を署名対象に含むため、**渡す相手が使うホストで署名する**
+   * 必要がある。内部名で署名したURLをブラウザへ渡すと、名前解決に成功しても
+   * 署名が合わない。
+   */
+  publicEndpoint?: string;
   bucket: string;
   accessKey: string;
   secretKey: string;
@@ -72,6 +85,11 @@ export interface ObjectStorage {
 export class S3CompatibleStorage implements ObjectStorage {
   constructor(private readonly config: ObjectStorageConfig) {}
 
+  /** ブラウザへ渡すURLの接続先。 */
+  private get publicEndpoint(): string {
+    return this.config.publicEndpoint ?? this.config.endpoint;
+  }
+
   presignGet(key: string, ttlSeconds: number, downloadFileName: string): SignedUrl {
     // ブラウザでの実行を避けるため、常に添付としてダウンロードさせる。
     // HTMLやSVGがインライン表示されると、同一オリジンでのスクリプト実行につながる。
@@ -94,7 +112,9 @@ export class S3CompatibleStorage implements ObjectStorage {
    * 長い有効期間に意味が無い。
    */
   async getObject(key: string): Promise<Buffer> {
-    const signed = this.presignGet(key, 60, 'object');
+    // **サーバ自身の接続先で署名する。** ブラウザ向けの公開エンドポイントは
+    // サーバから到達できないことがある(逆も同じ)。
+    const signed = this.presign('GET', key, 60, {}, undefined, this.config.endpoint);
     const response = await fetch(signed.url);
     if (!response.ok) {
       throw new Error(`オブジェクトを取得できません: ${response.status}`);
@@ -129,6 +149,8 @@ export class S3CompatibleStorage implements ObjectStorage {
     requestedTtl: number,
     extraQuery: Record<string, string>,
     contentType?: string,
+    /** 署名対象のホスト。省略時はブラウザ向けの公開エンドポイント。 */
+    endpointOverride?: string,
   ): SignedUrl {
     // 呼び出し側が上限を超える値を渡しても、ここで切り詰める。
     // 「設定ミスで長い署名が出回る」経路を残さない。
@@ -139,7 +161,8 @@ export class S3CompatibleStorage implements ObjectStorage {
     const dateStamp = amzDate.slice(0, 8);
     const credentialScope = `${dateStamp}/${this.config.region}/s3/aws4_request`;
 
-    const host = new URL(this.config.endpoint).host;
+    const endpoint = endpointOverride ?? this.publicEndpoint;
+    const host = new URL(endpoint).host;
     const canonicalUri = `/${this.config.bucket}/${key
       .split('/')
       .map((segment) => S3CompatibleStorage.uriEncode(segment))
@@ -185,7 +208,7 @@ export class S3CompatibleStorage implements ObjectStorage {
     const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
 
     return {
-      url: `${this.config.endpoint}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`,
+      url: `${endpoint}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`,
       expiresAt: new Date(now.getTime() + ttlSeconds * 1000),
       ttlSeconds,
     };

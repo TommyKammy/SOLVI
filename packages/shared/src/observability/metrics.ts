@@ -22,6 +22,7 @@ interface Instruments {
   outboxLag: Histogram;
   domainEvents: Counter;
   authzDenials: Counter;
+  attachmentScans: Counter;
 }
 
 function getInstruments(): Instruments {
@@ -44,6 +45,10 @@ function getInstruments(): Instruments {
     }),
     authzDenials: m.createCounter('solvi.authz.denials', {
       description: '認可拒否の発生数。急増は攻撃または権限設定の誤りを示す',
+    }),
+    attachmentScans: m.createCounter('solvi.attachment.scans', {
+      description:
+        '添付のスキャン結果。deferred の継続はスキャナ障害を示し、添付が開けない状態になる',
     }),
   };
   return instruments;
@@ -96,6 +101,17 @@ export function recordOutboxLag(eventType: string, lagSeconds: number): void {
 /** 業務イベント。ticket.created / ticket.transitioned など。 */
 export function recordDomainEvent(eventType: string, outcome: 'success' | 'failure'): void {
   getInstruments().domainEvents.add(1, { 'event.type': eventType, outcome });
+}
+
+/**
+ * 添付のスキャン結果 (WP-P2-SCAN-011)。
+ *
+ * `deferred` が積み上がるのはスキャナ障害の兆候である。
+ * **画面は正常に見えるが、添付が誰も開けない状態になる。**
+ * 利用者からは「ファイルが壊れている」としか見えず、発見が遅れる。
+ */
+export function recordAttachmentScan(outcome: 'clean' | 'infected' | 'deferred'): void {
+  getInstruments().attachmentScans.add(1, { outcome });
 }
 
 /**

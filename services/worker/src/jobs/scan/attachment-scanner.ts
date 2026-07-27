@@ -1,5 +1,11 @@
 import type pg from 'pg';
-import { ClamAvScanner, withSpan, type Logger, type ObjectStorage } from '@solvi/shared';
+import {
+  ClamAvScanner,
+  withSpan,
+  recordAttachmentScan,
+  type Logger,
+  type ObjectStorage,
+} from '@solvi/shared';
 
 /**
  * 添付ファイルのウイルススキャン (WP-P2-SCAN-011 / OQ-011 / FR-TKT-005)。
@@ -67,6 +73,7 @@ export class AttachmentScanner {
     for (const row of rows) {
       const outcome = await this.scanOne(row);
       summary[outcome] += 1;
+      recordAttachmentScan(outcome);
     }
     return summary;
   }

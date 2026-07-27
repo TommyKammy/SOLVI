@@ -398,3 +398,37 @@ fieldset.visibility .choice .note {
 .filters .field {
   min-width: 12rem;
 }
+
+/* 添付 (WP-P2-SCAN-011) */
+.attachments {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.attachment {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+.attachment.internal {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
+.attachment .meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+/* スキャン未完了のファイル名。リンクに見せない —
+   押しても開かないものをリンクにすると、壊れていると思われる。 */
+.file-name-disabled {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}

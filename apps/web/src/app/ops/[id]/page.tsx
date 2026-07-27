@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { api } from '../../../lib/api';
 import { CommentThread } from '../../../components/CommentThread';
 import { CommentForm } from '../../../components/CommentForm';
+import { AttachmentList } from '../../../components/AttachmentList';
+import { AttachmentForm } from '../../../components/AttachmentForm';
 import {
   stateLabel,
   kindLabel,
@@ -44,7 +46,7 @@ export default async function OpsWorkspace({
     notFound();
   }
 
-  const { ticket, comments, availableActions } = result.data;
+  const { ticket, comments, attachments, availableActions } = result.data;
 
   async function postComment(formData: FormData): Promise<void> {
     'use server';
@@ -147,6 +149,10 @@ export default async function OpsWorkspace({
 
       <h2>依頼内容</h2>
       <div className="body-text">{ticket.body}</div>
+
+      <h2>添付ファイル</h2>
+      <AttachmentList attachments={attachments} />
+      <AttachmentForm ticketId={id} canChooseVisibility />
 
       <h2>やり取り</h2>
       <CommentThread comments={comments} currentUserId={session.data.userId} />

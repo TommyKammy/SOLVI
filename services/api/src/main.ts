@@ -100,6 +100,8 @@ async function bootstrap(): Promise<void> {
     denialRecorder,
     storage: new S3CompatibleStorage({
       endpoint: env.S3_ENDPOINT,
+      // ブラウザへ渡す署名付きURLは、ブラウザから到達できるホストで署名する
+      ...(env.S3_PUBLIC_ENDPOINT ? { publicEndpoint: env.S3_PUBLIC_ENDPOINT } : {}),
       bucket: env.S3_BUCKET_ATTACHMENTS,
       accessKey: env.S3_ACCESS_KEY,
       secretKey: env.S3_SECRET_KEY,
@@ -182,6 +184,26 @@ async function bootstrap(): Promise<void> {
         params.id ?? '',
         await readJsonBody(req),
       );
+      return result.body;
+    })
+    .get('/tickets/:id/attachments', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.listAttachments(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/tickets/:id/attachments', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.requestUpload(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .get('/attachments/:id/download', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.createDownloadUrl(authenticated, params.id ?? '');
       return result.body;
     })
     .post('/tickets/:id/assignee', async (req, _res, params) => {

@@ -1,7 +1,11 @@
 import type pg from 'pg';
 import { Problems, recordDomainEvent, allowedTransitionsFrom } from '@solvi/shared';
 import { TicketService } from './ticket.service.js';
-import { CollaborationService, type TicketComment } from './collaboration.service.js';
+import {
+  CollaborationService,
+  type TicketComment,
+  type TicketAttachment,
+} from './collaboration.service.js';
 import type { ObjectStorage } from '@solvi/shared';
 import type { PoolDenialRecorder } from '../../common/audit/denial-recorder.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
@@ -67,6 +71,26 @@ function toCommentView(comment: TicketComment): Record<string, unknown> {
     visibility: comment.visibility,
     body: comment.body,
     createdAt: comment.createdAt.toISOString(),
+  };
+}
+
+/**
+ * 添付の表示用。
+ *
+ * **保管キーを返さない。** 実体の場所が分かると、署名の不備を突く試行の
+ * 出発点になる。ダウンロードは毎回サーバへ問い合わせて署名を発行する。
+ */
+function toAttachmentView(attachment: TicketAttachment): Record<string, unknown> {
+  return {
+    id: attachment.id,
+    fileName: attachment.fileName,
+    sizeBytes: attachment.sizeBytes,
+    visibility: attachment.visibility,
+    scanStatus: attachment.scanStatus,
+    createdAt: attachment.createdAt.toISOString(),
+    // 「開けるかどうか」を明示する。画面が scanStatus を解釈して
+    // 判断すると、状態が増えたときに画面ごとに判断が分かれる。
+    downloadable: attachment.scanStatus === 'clean',
   };
 }
 
@@ -136,7 +160,8 @@ export class CollaborationController {
     const result = await this.run(auth, async ({ tickets, collab }) => {
       const ticket = await tickets.findById(auth.authz, ticketId);
       const comments = await collab.listComments(auth.authz, ticketId);
-      return { ticket, comments };
+      const attachments = await collab.listAttachments(auth.authz, ticketId);
+      return { ticket, comments, attachments };
     });
 
     return {
@@ -158,8 +183,64 @@ export class CollaborationController {
           resolvedAt: result.ticket.resolvedAt?.toISOString() ?? null,
         },
         comments: result.comments.map(toCommentView),
+        attachments: result.attachments.map(toAttachmentView),
         availableActions: toActions(result.ticket.state),
       },
+    };
+  }
+
+  async listAttachments(auth: AuthenticatedRequest, ticketId: string) {
+    const attachments = await this.run(auth, ({ collab }) =>
+      collab.listAttachments(auth.authz, ticketId),
+    );
+    return { status: 200, body: { items: attachments.map(toAttachmentView) } };
+  }
+
+  /**
+   * アップロードURLの発行。
+   *
+   * ブラウザは**ここで受け取った署名付きURLへ直接 PUT する**。
+   * アプリを経由させると、大きなファイルでプロセスが詰まり、
+   * 同時に何人かが送っただけで他のリクエストが待たされる。
+   *
+   * 検証(拡張子・MIME・サイズ)はURLを出す前に行う。
+   * 出してしまってから拒否しても、実体は既に保存されている。
+   */
+  async requestUpload(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
+    const input = parseUploadRequest(body);
+    const ticketRecord = await this.run(auth, ({ collab }) =>
+      collab.createAttachment(auth.authz, {
+        ticketId,
+        fileName: input.fileName,
+        contentType: input.contentType,
+        sizeBytes: input.sizeBytes,
+        visibility: input.visibility,
+      }),
+    );
+
+    return {
+      status: 201,
+      body: {
+        attachmentId: ticketRecord.attachmentId,
+        uploadUrl: ticketRecord.uploadUrl.url,
+        expiresAt: ticketRecord.uploadUrl.expiresAt.toISOString(),
+      },
+    };
+  }
+
+  /**
+   * ダウンロードURLの発行。
+   *
+   * `scan_status` が `clean` でなければサービス層がURLを出さない。
+   * **「画面に出さない」ではなく「URLが存在しない」**状態を保つ。
+   */
+  async createDownloadUrl(auth: AuthenticatedRequest, attachmentId: string) {
+    const signed = await this.run(auth, ({ collab }) =>
+      collab.createDownloadUrl(auth.authz, attachmentId),
+    );
+    return {
+      status: 200,
+      body: { url: signed.url, expiresAt: signed.expiresAt.toISOString() },
     };
   }
 
@@ -214,6 +295,42 @@ function parseCommentBody(body: unknown): { visibility: 'public' | 'internal'; b
 
   if (errors.length > 0) throw Problems.validation(errors);
   return { visibility: visibility as 'public' | 'internal', body: text };
+}
+
+function parseUploadRequest(body: unknown): {
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  visibility: 'public' | 'internal';
+} {
+  const errors: Array<{ field: string; message: string }> = [];
+  const record = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>;
+
+  const fileName = typeof record.fileName === 'string' ? record.fileName.trim() : '';
+  if (fileName.length === 0) {
+    errors.push({ field: 'fileName', message: 'ファイルを選んでください' });
+  } else if (fileName.length > 255) {
+    errors.push({ field: 'fileName', message: 'ファイル名が長すぎます' });
+  }
+
+  const contentType = typeof record.contentType === 'string' ? record.contentType : '';
+  const sizeBytes = Number(record.sizeBytes);
+  if (!Number.isInteger(sizeBytes) || sizeBytes <= 0) {
+    errors.push({ field: 'sizeBytes', message: 'ファイルの大きさを取得できませんでした' });
+  }
+
+  const visibility = String(record.visibility ?? 'public');
+  if (!VISIBILITIES.has(visibility)) {
+    errors.push({ field: 'visibility', message: '公開範囲を選んでください' });
+  }
+
+  if (errors.length > 0) throw Problems.validation(errors);
+  return {
+    fileName,
+    contentType,
+    sizeBytes,
+    visibility: visibility as 'public' | 'internal',
+  };
 }
 
 function parseTransitionBody(body: unknown): { to: string; reason: string } {

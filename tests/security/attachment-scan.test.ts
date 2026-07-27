@@ -42,6 +42,9 @@ let pool: pg.Pool;
 let admin: pg.Client;
 let storage: S3CompatibleStorage;
 let scanner: AttachmentScanner;
+/** このファイルが自前で用意するチケット。他ファイルの残存データに依存しない。 */
+let fixtureTicketId: string;
+let fixtureUserId: string;
 const logger = createLogger({ service: 'test', level: 'error', env: 'test', sink: () => {} });
 
 /** 添付行と実体を用意する。 */
@@ -57,15 +60,12 @@ async function putAttachment(content: Buffer, fileName: string): Promise<string>
   });
   if (!uploaded.ok) throw new Error(`アップロードに失敗しました: ${uploaded.status}`);
 
-  const { rows: tickets } = await admin.query('SELECT id, requester_id FROM ticket LIMIT 1');
-  if (tickets.length === 0) throw new Error('テスト用のチケットがありません');
-
   await admin.query(
     `INSERT INTO ticket_attachment
        (id, organization_id, ticket_id, uploaded_by, file_name, content_type,
         size_bytes, storage_key, scan_status)
      VALUES ($1, $2, $3, $4, $5, 'application/octet-stream', $6, $7, 'pending')`,
-    [id, ORG_A, tickets[0].id, tickets[0].requester_id, fileName, content.length, storageKey],
+    [id, ORG_A, fixtureTicketId, fixtureUserId, fileName, content.length, storageKey],
   );
   return id;
 }
@@ -114,8 +114,34 @@ afterAll(async () => {
   await pool?.end();
 });
 
+/**
+ * テスト用のチケットを毎回作り直す。
+ *
+ * 他のテストファイルが `cleanBusinessData` で全チケットを消すため、
+ * 「既にあるチケットを1件借りる」作りにすると、単体では通るのに
+ * 全体実行では落ちる(実際に落ちた)。
+ */
 beforeEach(async () => {
   await admin.query('DELETE FROM ticket_attachment');
+  await admin.query("DELETE FROM ticket WHERE subject = 'スキャンテスト用'");
+  await admin.query("DELETE FROM app_user WHERE primary_email = 'scan-fixture@example.test'");
+
+  fixtureUserId = uuidv7();
+  await admin.query(
+    `INSERT INTO app_user (id, primary_email, display_name, status, created_via)
+     VALUES ($1, 'scan-fixture@example.test', 'scan fixture', 'active', 'admin')`,
+    [fixtureUserId],
+  );
+
+  fixtureTicketId = uuidv7();
+  await admin.query(
+    `INSERT INTO ticket
+       (id, organization_id, number, kind, state, subject, body,
+        requester_id, impact, urgency, priority)
+     VALUES ($1, $2, $3, 'incident', 'new', 'スキャンテスト用', '本文',
+             $4, 'low', 'low', 'low')`,
+    [fixtureTicketId, ORG_A, `SCAN-${Date.now()}`, fixtureUserId],
+  );
 });
 
 describe('検出能力の実証 (OQ-011)', () => {
@@ -178,14 +204,13 @@ describe('判定できない場合に clean を安売りしない', () => {
 
   it('**実体が存在しないとき pending のまま残る**', async () => {
     const id = uuidv7();
-    const { rows: tickets } = await admin.query('SELECT id, requester_id FROM ticket LIMIT 1');
     await admin.query(
       `INSERT INTO ticket_attachment
          (id, organization_id, ticket_id, uploaded_by, file_name, content_type,
           size_bytes, storage_key, scan_status)
        VALUES ($1, $2, $3, $4, 'ghost.txt', 'application/octet-stream', 10,
                'attachments/test/does-not-exist', 'pending')`,
-      [id, ORG_A, tickets[0].id, tickets[0].requester_id],
+      [id, ORG_A, fixtureTicketId, fixtureUserId],
     );
 
     const summary = await runWithContext(newContext(), () => scanner.scanPending());

@@ -113,9 +113,21 @@ export interface AvailableAction {
   label: string;
 }
 
+export interface AttachmentView {
+  id: string;
+  fileName: string;
+  sizeBytes: number;
+  visibility: 'public' | 'internal';
+  scanStatus: 'pending' | 'clean' | 'infected';
+  createdAt: string;
+  /** 開けるかどうか。画面が scanStatus を解釈して判断しない。 */
+  downloadable: boolean;
+}
+
 export interface WorkspaceView {
   ticket: TicketView & { requesterId: string; assigneeId: string | null };
   comments: CommentView[];
+  attachments: AttachmentView[];
   availableActions: AvailableAction[];
 }
 
@@ -160,6 +172,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  listAttachments: (id: string) =>
+    call<{ items: AttachmentView[] }>(`/tickets/${encodeURIComponent(id)}/attachments`),
+
+  requestUpload: (
+    id: string,
+    body: { fileName: string; contentType: string; sizeBytes: number; visibility: string },
+  ) =>
+    call<{ attachmentId: string; uploadUrl: string; expiresAt: string }>(
+      `/tickets/${encodeURIComponent(id)}/attachments`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  downloadUrl: (attachmentId: string) =>
+    call<{ url: string; expiresAt: string }>(
+      `/attachments/${encodeURIComponent(attachmentId)}/download`,
+    ),
 
   assign: (id: string, assigneeId: string | null) =>
     call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {

@@ -108,6 +108,7 @@ CPU使用率やメモリ使用量はここに入れない。それらは原因�
 | `SolviErrorBudgetBurnSlow` | 継続的なエラー増加 | ticket |
 | `SolviLatencyP95Degraded` | 応答遅延(p95 > 1.5秒) | ticket |
 | `SolviOutboxLagHigh` | 非同期処理の滞留 | ticket |
+| `SolviAttachmentScanStalled` | 添付のスキャンが判定できていない | ticket |
 | `SolviAuthzDenialSpike` | 認可拒否の急増 | ticket |
 | `SolviTargetDown` | メトリクスが取得できない | page |
 | `SolviNoTraffic` | 15分間リクエストが0件 | ticket |
@@ -183,6 +184,17 @@ node tools/synthetic_check.mjs --once
 2. 失敗して止まっているイベントがないか
    `SELECT event_type, count(*) FROM outbox_event WHERE failed_at IS NOT NULL GROUP BY 1;`
 3. 特定イベント型だけ詰まっている場合、そのハンドラの障害を疑う
+
+### 添付スキャンの滞留
+
+1. ClamAV が動いているか(`docker compose ps clamav`)
+2. 署名DBが読み込まれているか(`clamdcheck.sh`)
+3. 滞留している件数と理由を確認する
+   `SELECT scan_last_error, count(*) FROM ticket_attachment WHERE scan_status = 'pending' GROUP BY 1;`
+
+**判定できなかったものを `clean` にしてはいけない。** 滞留は「使いにくい」だけだが、
+誤った `clean` は社内へのマルウェア配布経路になる。
+復旧後は自動で再試行される(試行上限に達したものは手動で `scan_attempts` を戻す)。
 
 ### 認可拒否の急増
 
