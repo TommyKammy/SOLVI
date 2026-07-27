@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 254 |
 | Markdown | 246 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,693,476 bytes |
+| 合計サイズ | 6,695,612 bytes |
 
 ## ファイル一覧
 
@@ -166,7 +166,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPSUI-010.md` | 7694 | `ba4fabcc25ca9bc7abc4efad8c6035587b6744e6483902826affb9cab76750e6` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8379 | `25553e787c59678870df301ebf7a037ba1670525d6dd5429ac9032407448822a` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 8362 | `55c6c1429c0507de44847849fbb904ae461859a2605cd303d70306fc8b23b4d1` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SCAN-011.md` | 8808 | `4a8b2ebb1f0093cdc1e12c5d38b480af62819ae500f9522010f4ea5f4994c38b` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SCAN-011.md` | 10944 | `44bf5dec6057fb078287d95f989d6610300ddb6f0b4424a3f4a68c0501930183` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 8519 | `95e707373ed383a3aabcd88f883129eb080e6c58c81dcfb52852673ac1f693bf` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLO-008.md` | 9192 | `d11e4f86eece5b042ad3848a24afa33849ec57c7c1f3e8817bb45f7e1b96e2d6` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 8356 | `dd50e0d5e4fa5ee259be3f912d09830af9570d5b6fdb7f3a9d1c89e13d35ac59` |
