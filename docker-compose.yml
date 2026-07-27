@@ -53,6 +53,12 @@ services:
       DATABASE_URL: postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       METRICS_PORT: 9464
+      # **コンテナ内の待受ポートは固定する。**
+      # `.env` の API_PORT は「ホスト側で公開するポート」であり、
+      # 同じ値をコンテナ内の待受にも使うと、公開ポートを変えた瞬間に
+      # ヘルスチェック(コンテナ内の 3001 を叩く)が通らなくなる。
+      # 実際、隔離環境で公開ポートをずらしたら api が unhealthy になった。
+      API_PORT: 3001
       # 検証段階のローカル認証を有効化する(ADR-0019)。
       # 本番構成(NODE_ENV=production)ではプロセスが起動を拒否する。
       AUTH_LOCAL_ENABLED: 'true'
@@ -96,6 +102,8 @@ services:
       DATABASE_URL: postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       METRICS_PORT: 9464
+      # コンテナ内の待受は固定(api と同じ理由)
+      WORKER_PORT: 3002
       # 検証段階のローカル認証を有効化する(ADR-0019)。
       # 本番構成(NODE_ENV=production)ではプロセスが起動を拒否する。
       AUTH_LOCAL_ENABLED: 'true'
@@ -327,6 +335,8 @@ services:
       NODE_ENV: development
       API_BASE_URL: http://api:3001
       WEB_BASE_URL: http://localhost:3000
+      # コンテナ内の待受は固定(api と同じ理由)
+      PORT: 3000
       SESSION_COOKIE_SECURE: 'false'
     ports:
       - '${WEB_PORT:-3000}:3000'
