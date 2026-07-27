@@ -10,6 +10,7 @@ import {
   runWithContext,
   ClamAvScanner,
   S3CompatibleStorage,
+  recordScannerSignatureAge,
   type WorkerEnv,
 } from '@solvi/shared';
 import pg from 'pg';
@@ -109,6 +110,37 @@ async function bootstrap(): Promise<void> {
       )
     : undefined;
 
+  // ウイルス定義の鮮度を観測する。
+  //
+  // **古い定義で動いていてもスキャンは成功し clean が返る。**
+  // 外から見ないと、検知できていないことに気付けない。
+  const clamHost = env.CLAMAV_HOST;
+  const checkSignatures = clamHost
+    ? async (): Promise<void> => {
+        const info = await new ClamAvScanner({
+          host: clamHost,
+          port: env.CLAMAV_PORT,
+        }).signatureInfo();
+        if (!info) {
+          logger.warn('scanner signature version unavailable', {
+            message: 'スキャナへ問い合わせできません。定義の鮮度を確認できません',
+          });
+          return;
+        }
+        recordScannerSignatureAge(info.builtAt);
+        logger.debug('scanner signatures', {
+          message: `version=${info.signatureVersion} builtAt=${info.builtAt.toISOString()}`,
+        });
+      }
+    : undefined;
+
+  if (checkSignatures) {
+    void checkSignatures();
+  }
+  const signatureTimer = checkSignatures
+    ? setInterval(() => void checkSignatures(), 10 * 60 * 1000)
+    : undefined;
+
   if (!attachmentScanner) {
     logger.warn('attachment scanning is disabled', {
       message: 'CLAMAV_HOST が未設定です。添付は pending のまま残り、ダウンロードできません',
@@ -139,6 +171,7 @@ async function bootstrap(): Promise<void> {
     logger.info('shutting down', { message: signal });
     clearInterval(loopTimer);
     clearInterval(healthTimer);
+    if (signatureTimer) clearInterval(signatureTimer);
     await scanPool.end().catch(() => undefined);
     server.close();
     await pool.end();

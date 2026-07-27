@@ -296,6 +296,15 @@ services:
       # 起動のたびに署名DBを取りに行くと、オフラインで動かなくなる。
       # イメージ同梱のDBで起動し、更新は freshclam の定期実行に任せる。
       CLAMAV_NO_FRESHCLAMD: 'false'
+      #
+      # **freshclam が更新しても clamd が読み直すとは限らない。**
+      # 実測では、daily.cvd が新しくなっても clamd は古い定義を報告し続け、
+      # RELOAD コマンドでも直らなかった(再起動で解消)。
+      # そのとき clamdcheck.sh も SelfCheck も「OK」と言う。
+      #
+      # したがって「更新されているはず」に頼らず、worker が定期的に
+      # clamd へ VERSION を問い合わせて定義の古さをメトリクスにしている
+      # (SolviScannerSignaturesStale)。→ docs/ops/slo.md#ウイルス定義が古い
     volumes:
       - clamavdb:/var/lib/clamav
     ports:

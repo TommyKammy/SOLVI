@@ -109,6 +109,7 @@ CPU使用率やメモリ使用量はここに入れない。それらは原因�
 | `SolviLatencyP95Degraded` | 応答遅延(p95 > 1.5秒) | ticket |
 | `SolviOutboxLagHigh` | 非同期処理の滞留 | ticket |
 | `SolviAttachmentScanStalled` | 添付のスキャンが判定できていない | ticket |
+| `SolviScannerSignaturesStale` | ウイルス定義が古い(見逃していても気付けない) | ticket |
 | `SolviAuthzDenialSpike` | 認可拒否の急増 | ticket |
 | `SolviTargetDown` | メトリクスが取得できない | page |
 | `SolviNoTraffic` | 15分間リクエストが0件 | ticket |
@@ -195,6 +196,59 @@ node tools/synthetic_check.mjs --once
 **判定できなかったものを `clean` にしてはいけない。** 滞留は「使いにくい」だけだが、
 誤った `clean` は社内へのマルウェア配布経路になる。
 復旧後は自動で再試行される(試行上限に達したものは手動で `scan_attempts` を戻す)。
+
+### ウイルス定義が古い
+
+**このアラートは「壊れている」ようには見えない状態を捕まえる。**
+スキャンは成功し、`clean` が返り、`clamdcheck.sh` も SelfCheck も「OK」と言う。
+古い定義で見逃しているだけである。
+
+1. **スキャナが実際に読み込んでいる定義を確認する**
+
+   ```bash
+   docker compose exec clamav clamdscan --version
+   ```
+
+   `ClamAV 1.4.3/28074/Mon Jul 27 06:25:14 2026` の 2番目が定義バージョン、
+   3番目がビルド日時である。
+
+2. **ディスク上の定義と比べる**
+
+   ```bash
+   docker compose exec clamav sigtool --info /var/lib/clamav/daily.cvd
+   ```
+
+   ここが食い違っていたら、**freshclam は更新できているが clamd が
+   読み直していない**。これが最も気付きにくい形である。
+   ファイルの日時は新しいので、外から見ると更新できているように見える。
+
+3. **原因別の対処**
+
+   | 状況 | 対処 |
+   |---|---|
+   | ディスクも古い | freshclam が更新できていない。ネットワーク到達性を確認する |
+   | ディスクは新しいが clamd が古い | **clamd を再起動する**(下記) |
+
+   `RELOAD` コマンドでは直らないことを実測で確認している。
+
+   ```bash
+   docker compose restart clamav
+   ```
+
+   再起動後、手順1で定義が更新されたことを必ず確認する。
+
+4. **古い定義で受け取った添付を洗い出す**
+
+   定義が古かった期間に `clean` と判定された添付は、
+   **見逃しの可能性がある**。必要なら再スキャンする。
+
+   ```sql
+   UPDATE ticket_attachment
+      SET scan_status = 'pending', scan_attempts = 0
+    WHERE scan_status = 'clean' AND scanned_at BETWEEN $1 AND $2;
+   ```
+
+   再スキャンの間、その添付は開けなくなる。利用者への影響を判断してから実行する。
 
 ### 認可拒否の急増
 

@@ -65,6 +65,48 @@ export function parseClamResponse(raw: string): ScanVerdict {
   return { status: 'error', reason: `解釈できない応答: ${line}` };
 }
 
+/**
+ * スキャナが**実際に読み込んでいる**定義の情報。
+ *
+ * ディスク上のファイル日時ではなく、clamd が報告する値を使う。
+ * この2つは食い違うことがある — freshclam が新しい定義を落としても、
+ * clamd が読み直さなければ**古い定義のまま動き続ける**。
+ * そのとき `clamdcheck.sh` も SelfCheck も「OK」と言う。
+ * 「使っている定義は何か」を直接聞かないと分からない。
+ */
+export interface SignatureInfo {
+  /** ClamAV エンジンのバージョン */
+  engine: string;
+  /** 定義のバージョン番号 */
+  signatureVersion: number;
+  /** 定義のビルド日時 */
+  builtAt: Date;
+}
+
+/**
+ * `VERSION` の応答を解釈する。
+ *
+ * 形式: `ClamAV 1.4.3/28074/Mon Jul 27 06:25:14 2026`
+ *
+ * **解釈できない形式は null を返す。** 「読めなかったから新しいことにする」と
+ * すると、応答形式が変わった日に鮮度の監視が黙って止まる。
+ */
+export function parseVersionResponse(raw: string): SignatureInfo | null {
+  const line = raw.trim().replace(/\0+$/, '');
+  const parts = line.split('/');
+  if (parts.length < 3) return null;
+
+  const engine = (parts[0] ?? '').replace(/^ClamAV\s+/, '').trim();
+  const signatureVersion = Number(parts[1]);
+  const builtAt = new Date((parts[2] ?? '').trim());
+
+  if (engine.length === 0) return null;
+  if (!Number.isInteger(signatureVersion)) return null;
+  if (Number.isNaN(builtAt.getTime())) return null;
+
+  return { engine, signatureVersion, builtAt };
+}
+
 export class ClamAvScanner {
   private readonly timeoutMs: number;
   private readonly maxBytes: number;
@@ -122,6 +164,42 @@ export class ClamAvScanner {
       socket.on('error', (error) =>
         finish({ status: 'error', reason: `スキャナへ接続できません: ${error.message}` }),
       );
+    });
+  }
+
+  /**
+   * スキャナが読み込んでいる定義の情報を取得する。
+   *
+   * **これを定期的に見ないと、古い定義で動いていることに気付けない。**
+   * 検知できていないことは検知できない。
+   */
+  async signatureInfo(): Promise<SignatureInfo | null> {
+    const raw = await this.command('VERSION');
+    return raw === null ? null : parseVersionResponse(raw);
+  }
+
+  /** clamd へコマンドを送り、応答文字列を返す。到達できなければ null。 */
+  private async command(name: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      const socket = net.createConnection({
+        host: this.options.host,
+        port: this.options.port,
+      });
+      let response = '';
+      let settled = false;
+      const done = (value: string | null): void => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        resolve(value);
+      };
+      socket.setTimeout(10_000, () => done(null));
+      socket.on('connect', () => socket.write(`z${name}\0`));
+      socket.on('data', (chunk) => {
+        response += chunk.toString('utf8');
+      });
+      socket.on('end', () => done(response));
+      socket.on('error', () => done(null));
     });
   }
 
