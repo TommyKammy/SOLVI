@@ -14,6 +14,8 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- citext: メールアドレスの大文字小文字を区別しない比較のため
 CREATE EXTENSION IF NOT EXISTS citext;
+-- pg_trgm: 件名の部分一致検索(全文検索はWP-P2-SEARCH-006で別途)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 DO $$
 BEGIN
