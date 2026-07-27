@@ -37,6 +37,8 @@ export const AUDIT_EVENT_TYPES = [
   'ticket.linked',
   'ticket.unlinked',
   'ticket.merged',
+  'notification.sent',
+  'notification.failed',
   'ticket.comment.added',
   'ticket.attachment.added',
   'ticket.attachment.downloaded',
