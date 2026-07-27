@@ -16,7 +16,7 @@ phase: "P2"
 workstream: "PORTAL"
 risk: "medium"
 story_points: 8
-depends_on: ["WP-P2-TKT-001", "WP-P1-IDM-003"]
+depends_on: ["WP-P2-TKT-001", "WP-P1-IDM-009"]
 requirement_ids: ["BR-001", "FR-TKT-001", "NFR-UX-001", "NFR-UX-003"]
 aliases: ["WP-P2-PORTAL-002"]
 ---
@@ -41,7 +41,7 @@ aliases: ["WP-P2-PORTAL-002"]
 ## 3. Dependencies
 
 - [[WP-P2-TKT-001]]
-- [[WP-P1-IDM-003]]
+- [[WP-P1-IDM-009]](認証。[[ADR-0019_Local_Authentication_For_Development]]により外部IdPを待たない)
 
 ## 4. Scope / Allowed Paths
 

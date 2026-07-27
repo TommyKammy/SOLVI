@@ -23,20 +23,36 @@ implementation_status: "not-started"
 | Risk | high |
 | Story Points | 8 |
 | Suggested Owner | Backend + Security Reviewer |
-| Parallelizable | No(DATA-002後) |
-| Gate | Gate 1 |
+| Parallelizable | No(ローカル検証完了後) |
+| Gate | **Gate D**(外部ID連携) |
+
+> [!warning] 着手前提が変わった (2026-07-27 / [[ADR-0019_Local_Authentication_For_Development]])
+> 本WPは **Gate 1 から Gate D へ移した**。テナントを入手した時点ではなく、
+> **ローカル環境・ローカルアカウントで基本機能の検証を終えた時点**で着手する。
+>
+> 順序を逆にすると、認証の問題と業務機能の問題が同時に発生し、切り分けができなくなる。
+>
+> 着手前提は [[04.22_Gate_Definitions]] Gate D の GD-0a〜GD-0c。
+> セッション生涯管理は [[WP-P1-IDM-009]] で実装済みとなるため、
+> **本WPの残作業はIDトークンの検証とセッション発行の接続部分だけ**である。
 
 ## 1. Purpose
 
-Okta OIDCによるログインを実装し、IdP側の無効化がSOLVIのセッションへ15分以内に反映される状態を作る。
+外部IdP(Okta / Entra ID)のOIDCによるログインを実装し、
+[[WP-P1-IDM-009]] が用意したセッション基盤へ接続する。
+IdP側の無効化がSOLVIのセッションへ15分以内に反映される状態を作る。
 
 ## 2. Requirement IDs
 
-`FR-IDM-001`, `FR-IDM-002`, `FR-IDM-008`
+`FR-IDM-001`, `FR-IDM-002`
+
+`FR-IDM-008`(セッション失効)の**仕組み**は [[WP-P1-IDM-009]] が実装する。
+本WPで確認するのは「IdP側の無効化がその仕組みを起動するか」だけである。
 
 ## 3. Dependencies
 
-[[WP-P1-DATA-002]]
+- [[WP-P1-DATA-002]]
+- **[[WP-P1-IDM-009]]**(セッション基盤。これが無いと接続先が無い)
 
 ## 4. Scope / Allowed Paths
 
@@ -48,15 +64,17 @@ Okta OIDCによるログインを実装し、IdP側の無効化がSOLVIのセッ
 
 - Entra OIDC(Phase 4)
 - SCIM(Phase 5)
-- ローカルパスワード認証(ADR-0004で不採用)
+- セッション生涯管理の実装 → [[WP-P1-IDM-009]] で完了済み
+- ローカルパスワード認証の**本番利用**([[ADR-0004_External_Identity_OIDC]]で不採用。
+  検証段階に限った例外が [[ADR-0019_Local_Authentication_For_Development]])
 
 ## 6. Deliverables
 
 - Authorization Code + PKCEフロー
 - IDトークン検証(issuer/audience/state/nonce/exp)
 - identity linkとJITユーザ作成
-- セッション管理と失効機構
-- ログイン監査イベント
+- ローカルアカウントの破棄(GD-5)
+- ログイン監査イベント(`auth_method: oidc`)
 
 ## 7. Acceptance Criteria
 

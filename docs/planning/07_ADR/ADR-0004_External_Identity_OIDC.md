@@ -22,6 +22,10 @@ implementation_status: "not-started"
 
 - Supersedes: なし
 - Superseded by: なし
+- **Amended by: [[ADR-0019_Local_Authentication_For_Development]]**(2026-07-27)
+  — 検証段階に限りローカルアカウント認証を許可する。
+  **本ADRの決定(実利用の認証はOIDCに限定)は変更されていない。**
+  変わったのは外部IdPへ接続する時期だけである。
 
 ## Context
 
