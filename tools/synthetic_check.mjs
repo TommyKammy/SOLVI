@@ -19,6 +19,16 @@
 import http from 'node:http';
 
 const API_BASE = process.env.SYNTHETIC_API_BASE ?? 'http://api:3001';
+/**
+ * 合成監視用のアカウント。
+ *
+ * **専用のアカウントを使う。** 実在の利用者の資格情報を使い回すと、
+ * その人が退職・無効化された瞬間に監視が落ちる。しかも原因が
+ * 「監視の設定」であることに気付くまで時間がかかる。
+ */
+const SYNTHETIC_EMAIL = process.env.SYNTHETIC_EMAIL;
+const SYNTHETIC_PASSWORD = process.env.SYNTHETIC_PASSWORD;
+const SYNTHETIC_ORG = process.env.SYNTHETIC_ORG;
 const WEB_BASE = process.env.SYNTHETIC_WEB_BASE ?? 'http://web:3000';
 const PORT = Number(process.env.SYNTHETIC_PORT ?? 9465);
 const INTERVAL_MS = Number(process.env.SYNTHETIC_INTERVAL_MS ?? 60_000);
@@ -68,17 +78,88 @@ const CHECKS = [
  * **成功として扱わない。** 「導線が確認できていない」ことを
  * 明示的に記録し、監視できているつもりになるのを防ぐ。
  */
-const SKIPPED = [
-  {
-    name: 'login',
-    reason: 'WP-P1-IDM-003 (OIDC) 未実装のため、ログイン導線を外部から実行できない',
-  },
-  {
-    name: 'ticket_create',
-    reason:
-      'チケット作成APIは認証済みセッションを必要とし、WP-P1-IDM-003 未実装のため外部から実行できない',
-  },
-];
+/**
+ * 資格情報が設定されていない場合に実行できないチェック。
+ *
+ * **成功として扱わない。** 「導線が確認できていない」ことを明示的に記録し、
+ * 監視できているつもりになるのを防ぐ。
+ */
+const SKIPPED = credentialsConfigured()
+  ? []
+  : [
+      {
+        name: 'login',
+        reason: 'SYNTHETIC_EMAIL / SYNTHETIC_PASSWORD / SYNTHETIC_ORG が未設定',
+      },
+      {
+        name: 'ticket_create',
+        reason: 'ログインできないため実行できない(同上)',
+      },
+    ];
+
+function credentialsConfigured() {
+  return Boolean(SYNTHETIC_EMAIL && SYNTHETIC_PASSWORD && SYNTHETIC_ORG);
+}
+
+if (credentialsConfigured()) {
+  CHECKS.push(
+    {
+      // 認証が通らなければ、他が健全でも誰も業務を進められない。
+      name: 'login',
+      run: async () => {
+        const res = await fetchWithTimeout(API_BASE + '/auth/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: SYNTHETIC_EMAIL,
+            password: SYNTHETIC_PASSWORD,
+            organizationId: SYNTHETIC_ORG,
+          }),
+        });
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        if (!res.headers.get('set-cookie')) throw new Error('セッションCookieが発行されない');
+      },
+    },
+    {
+      // SOLVIの存在理由そのもの。ここが通らなければ何も受け付けられていない。
+      name: 'ticket_create',
+      run: async () => {
+        const login = await fetchWithTimeout(API_BASE + '/auth/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: SYNTHETIC_EMAIL,
+            password: SYNTHETIC_PASSWORD,
+            organizationId: SYNTHETIC_ORG,
+          }),
+        });
+        if (!login.ok) throw new Error(`login status ${login.status}`);
+        const cookie = (login.headers.get('set-cookie') ?? '').split(';')[0];
+
+        const created = await fetchWithTimeout(API_BASE + '/tickets', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', cookie },
+          body: JSON.stringify({
+            kind: 'request',
+            // **合成監視であることが一目で分かる件名にする。**
+            // 実際の問い合わせと混ざると、担当者が対応してしまう。
+            subject: '[合成監視] 定期疎通確認 — 対応不要',
+            body: '合成監視が自動生成した確認用のチケットです。対応は不要です。',
+            impact: 'low',
+            urgency: 'low',
+          }),
+        });
+        if (created.status !== 201) throw new Error(`status ${created.status}`);
+
+        // 後片付けとしてログアウトし、セッションを溜めない。
+        await fetchWithTimeout(API_BASE + '/auth/logout', {
+          method: 'POST',
+          headers: { cookie },
+        }).catch(() => undefined);
+      },
+    },
+  );
+}
 
 /** @returns {Promise<Result[]>} */
 async function runAll() {

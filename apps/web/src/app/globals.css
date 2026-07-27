@@ -1,0 +1,294 @@
+/*
+ * SOLVI Portal のスタイル (WP-P2-PORTAL-002)
+ *
+ * 方針は3つ。
+ *   1. **色だけで状態を伝えない。** 色覚特性や白黒印刷で情報が消える。
+ *      状態には必ず文言を添える(11.10 の「色だけでStatus伝達」は対象外)
+ *   2. **フォーカスを必ず見せる。** キーボードだけで操作する利用者にとって、
+ *      いまどこにいるか分からない画面は使えない
+ *   3. **コントラスト比 4.5:1 以上**(WCAG 2.2 AA)
+ */
+
+:root {
+  --bg: #ffffff;
+  --surface: #f7f8fa;
+  --border: #d2d6dc;
+  /* #595f6b on #ffffff = 6.4:1 */
+  --text-muted: #595f6b;
+  /* #1f2430 on #ffffff = 14.6:1 */
+  --text: #1f2430;
+  /* #1b4fd8 on #ffffff = 6.5:1 */
+  --accent: #1b4fd8;
+  /* #a3241f on #ffffff = 6.5:1 */
+  --danger: #a3241f;
+  --danger-bg: #fdf2f1;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Hiragino Sans',
+    'Noto Sans JP',
+    sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+}
+
+/* キーボード操作でいまどこにいるかを必ず示す。
+   outline: none を書かないこと。書いた瞬間にキーボード利用者が迷子になる。 */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 本文へ飛ぶリンク。毎回ヘッダを読み上げさせない。 */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  z-index: 10;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+.shell {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+header.site {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+header.site .inner {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+header.site a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+header.site a:hover {
+  text-decoration: underline;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 1.5rem 0 0.5rem;
+}
+h2 {
+  font-size: 1.2rem;
+  margin: 2rem 0 0.75rem;
+}
+p.lead {
+  color: var(--text-muted);
+  margin-top: 0;
+}
+
+/* 主要な2つの行動。カードは1行に2枚だが、狭い画面では縦積みにする。 */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+.action-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  background: var(--bg);
+}
+.action-card:hover {
+  border-color: var(--accent);
+}
+.action-card .title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--accent);
+}
+.action-card .desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+form.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 40rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.field label {
+  font-weight: 600;
+}
+.field .hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+input[type='text'],
+input[type='email'],
+input[type='password'],
+textarea,
+select {
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+}
+textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+/* 誤りのある項目は、枠線の色**と**文言の両方で示す。
+   色だけだと、色覚特性のある利用者にはどこが誤りか分からない。 */
+[aria-invalid='true'] {
+  border-color: var(--danger);
+  border-width: 2px;
+}
+.field-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* エラー要約。送信直後にここへフォーカスを移し、
+   何が起きたかを最初に読み上げさせる。 */
+.error-summary {
+  border: 2px solid var(--danger);
+  background: var(--danger-bg);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+.error-summary h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: var(--danger);
+}
+.error-summary ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.error-summary a {
+  color: var(--danger);
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  align-self: flex-start;
+}
+button:hover {
+  filter: brightness(0.92);
+}
+button[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+table.tickets {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+table.tickets th,
+table.tickets td {
+  text-align: left;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.tickets th {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* 状態は「色 + 文言」で示す。文言だけでも意味が通る。 */
+.state {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+dl.detail {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.5rem;
+  margin: 1rem 0;
+}
+dl.detail dt {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+dl.detail dd {
+  margin: 0;
+}
+
+.body-text {
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.empty {
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
