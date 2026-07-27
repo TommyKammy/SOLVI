@@ -95,6 +95,19 @@ export class Database {
     return this.pool.query<R>(sql, params);
   }
 
+  /**
+   * 認証層のためのプール参照。
+   *
+   * **業務データには使わない。** 認証は組織コンテキストが確立する前に走るため、
+   * `withOrgTransaction` を通せない(組織を決めるにはセッションが要り、
+   * セッションを引くには組織が要る、という循環になる)。
+   * 触ってよいのは `session` / `local_credential` / `app_user` / `role_binding` に限る
+   * (WP-P1-IDM-009 / ADR-0019)。
+   */
+  authPool(): pg.Pool {
+    return this.pool;
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

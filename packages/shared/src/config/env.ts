@@ -44,6 +44,62 @@ export const apiEnvSchema = baseSchema
   .extend({
     API_PORT: z.coerce.number().int().positive().default(3001),
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET は32文字以上にしてください'),
+
+    /**
+     * ローカルアカウント認証の有効化 (ADR-0019)。
+     *
+     * **既定は無効。** 明示的に有効化しない限り認証経路そのものが存在しない。
+     * 「うっかり有効なまま」を防ぐには、既定値を安全側に置くのが最も確実である。
+     */
+    AUTH_LOCAL_ENABLED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+
+    /** Cookie に Secure を付けるか。ローカルHTTP開発では false。 */
+    SESSION_COOKIE_SECURE: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+
+    /** ログイン失敗の許容回数。超えるとロックアウトする。 */
+    AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(100).default(5),
+
+    /** ロックアウトの継続時間(秒)。 */
+    AUTH_LOCKOUT_SECONDS: z.coerce.number().int().min(1).default(900),
+  })
+  .superRefine((env, ctx) => {
+    // -----------------------------------------------------------------------
+    // 脅威 T-25: ローカル認証の本番混入
+    //
+    // 警告ではなく**起動拒否**にする。警告は無視されるが、起動失敗は無視できない。
+    //
+    // 「本番では設定しない運用にする」は対策として弱い。設定は人が書くもので、
+    // 人は間違える。間違えたときに動いてしまう設計が問題なのであって、
+    // 間違えないよう気を付けることは対策ではない。
+    // -----------------------------------------------------------------------
+    if (env.NODE_ENV === 'production' && env.AUTH_LOCAL_ENABLED) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['AUTH_LOCAL_ENABLED'],
+        message:
+          'AUTH_LOCAL_ENABLED は本番環境で有効にできません。' +
+          'ローカルアカウント認証は検証段階限定です(ADR-0019 / 脅威 T-25)。' +
+          '本番の認証は外部IdPのOIDCに限定されます(ADR-0004)。',
+      });
+    }
+
+    // HTTPS でない経路に Secure なしでセッションCookieを流すのは、
+    // 本番では盗聴によるセッション窃取に直結する。
+    if (env.NODE_ENV === 'production' && !env.SESSION_COOKIE_SECURE) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['SESSION_COOKIE_SECURE'],
+        message:
+          'SESSION_COOKIE_SECURE は本番環境で false にできません。' +
+          'HTTPS以外の経路にセッションCookieが流れます。',
+      });
+    }
   });
 
 export const workerEnvSchema = baseSchema
