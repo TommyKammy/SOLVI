@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 249 |
 | Markdown | 241 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,577,986 bytes |
+| 合計サイズ | 6,579,429 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 2857 | `25131244b6c9a8d39aa3df1b54b2423ae3e3816e874a5728861ca90b0e6c0b4c` |
-| `00_Index/00.8_Status_Dashboard.md` | 2860 | `151f0fe60b2e8f9a7abb53b128ea71e95a2164003b2599b5e4cd47fcdbb60fc7` |
+| `00_Index/00.8_Status_Dashboard.md` | 2935 | `8cc360ce24011e7ede5ff717ae8a0512e9b50a0b111d54c3658ccab9d30af53d` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -71,7 +71,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `02_Architecture/02.14_Threat_Model.md` | 7194 | `7bf66ab4a6585d5cd0bff38c140df466ac5cbcb2724c8f869c0ce9ceb2516475` |
 | `02_Architecture/02.15_Backup_DR_and_Continuity.md` | 1603 | `5565e28769667b59f66de344a0f6343d7ad7f84c0efd42a2a5a04fa8bf61a000` |
 | `02_Architecture/02.16_Executor_Command_Contract.md` | 7323 | `01cdede8fe573c599ae9b3a521e1b02242a639d2ed7af2a697cc02232ea7255c` |
-| `02_Architecture/02.17_Audit_Event_Catalog.md` | 5483 | `37dc492fa7c3340bf1f6201b4b47baa44399575c5809fd66c18a2e1d512f6f4d` |
+| `02_Architecture/02.17_Audit_Event_Catalog.md` | 6403 | `5a41cc17f8290d0eab937115cf4a31810dc209ff915d4e33aab294ebbed80c75` |
 | `02_Architecture/02.18_Organization_Data_Model_and_RLS.md` | 5554 | `acd8791d43a4ba948de78d0f05965cecee25a8605763fc872087660941a32e0e` |
 | `02_Architecture/02.1_Architecture_Overview.md` | 6829 | `9a657b74dcc84bdec5987c2fa81b279f4d19d602dfc2a6b216e1e6074cbf73ce` |
 | `02_Architecture/02.2_System_Context.md` | 1618 | `dee50b22a0410b93302a4cd272bdb41c7961c9bb648c9929c957179ecce363de` |
@@ -165,7 +165,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 2813 | `15fbd9c1427a531571ae42317907381fe66e5a8c7adae22c17667bb4b9d1f6ca` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 2757 | `9ad13721756b9174f7f5f78613c60941145d76c55092a246d484409f757dea4a` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLO-008.md` | 4691 | `9b139e12a6f9af4c045b69fccd54d0c809e126d653b3847f92f1a9b14e4a4b9b` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 7908 | `37fd3dee9215a6487f6a9a2d48c3b63685342d011de9add4ac2df211d98f3136` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 8356 | `dd50e0d5e4fa5ee259be3f912d09830af9570d5b6fdb7f3a9d1c89e13d35ac59` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2801 | `03d48931d82108cdb9bc6c036e6696285620df7a00907f8f299f492427edb4f0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-LINK-003.md` | 2680 | `698b45699928c6ecd0bbc51cc653d82aa09564026cad7c70afd05e2035ed9557` |

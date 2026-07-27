@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P2-TKT-001: Ticket DomainとState Machine
@@ -160,4 +160,4 @@ Migration の down でテーブルを削除できる。まだ利用者データ�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `1b8839e` | Done | `evidence/WP-P2-TKT-001/20260727-1124/verification.md` | 遷移表704組合せを全件検証(許可20/拒否684)。採番の並行20件で重複0件。全793テスト通過。**設計変更1件**: 拒否イベントは業務トランザクションがロールバックされると消えるため、`PoolDenialRecorder`で独立接続へ記録する構成に変更した。成功時の監査は同一トランザクションのまま。 |
