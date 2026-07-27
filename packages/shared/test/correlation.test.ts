@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { correlationIdFromHeader, runWithContext, getContext, newContext } from '../src/correlation/context.js';
+import {
+  correlationIdFromHeader,
+  runWithContext,
+  getContext,
+  newContext,
+} from '../src/correlation/context.js';
 
 describe('相関ID (NFR-OPS-003)', () => {
   it('妥当な形式のヘッダはそのまま使う', () => {

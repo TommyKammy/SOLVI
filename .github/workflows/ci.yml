@@ -1,0 +1,149 @@
+name: CI
+
+# 品質ゲート(WP-P1-CI-006 / Gate 1 G1-6)。
+# AGENTS.md の規律を機械的に強制する。警告のみで通過するジョブを作らない。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22.12'
+
+jobs:
+  static:
+    name: 静的検査
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Format
+        run: npm run format:check
+      - name: Typecheck
+        run: npm run typecheck
+
+  unit:
+    name: 単体テスト
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - name: skipされたテストの検出
+        # 失敗するテストをskipしてゲートを通す行為を防ぐ(AGENTS.md §4)。
+        # 意図的なskipは理由と再有効化期限をコード内に書き、この検査を更新すること。
+        run: node tools/check_no_skipped_tests.mjs
+
+  database:
+    name: DB・認可・監査
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.6-alpine@sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef
+        env:
+          POSTGRES_DB: solvi
+          POSTGRES_USER: solvi_owner
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U solvi_owner -d solvi"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi
+      DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
+      POSTGRES_APP_PASSWORD: ci-only-password
+      POSTGRES_EXECUTOR_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: マイグレーション適用
+        run: npm run db:migrate
+      - name: ロールのパスワード設定
+        run: node tools/bootstrap_roles.mjs
+      - name: 合成データ投入
+        run: npm run db:seed
+
+      - name: RLS設定と接続ロール権限の検査
+        run: npm run check:rls
+
+      - name: 越境・認可・監査テスト
+        run: npm run test:security
+
+      - name: マイグレーション down/up 往復
+        # 巻き戻せないマイグレーションを本番へ持ち込まない
+        run: |
+          npm run db:rollback
+          npm run db:migrate
+          npm run db:status
+
+  supply-chain:
+    name: 供給網
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: 依存の脆弱性(Critical/High で失敗)
+        run: npm audit --audit-level=high
+
+      - name: lockfile が最新であること
+        # package.json だけ更新して lockfile を置き去りにすると、
+        # CI と本番で違うバージョンが入る
+        run: git diff --exit-code package-lock.json
+
+      - name: コンテナイメージの digest 固定
+        run: npm run check:images
+
+      - name: Secret スキャン
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  architecture:
+    name: アーキテクチャ境界
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: 禁止依存の検査
+        # ADR-0001/0006/0007 の境界。壊れたら即座に落とす。
+        run: npm run check:architecture
+      - name: 計画文書とWPの整合
+        run: npm run check:paths
+      - name: AIサービスの境界
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest services/ai-advisor/tests -q

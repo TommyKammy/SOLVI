@@ -10,11 +10,9 @@ import { z } from 'zod';
 
 const nonEmpty = (label: string) => z.string().min(1, `${label} が未設定です`);
 
-const postgresUrl = z
-  .string()
-  .refine((v) => /^postgres(ql)?:\/\/[^:]+:[^@]+@[^/]+\/.+/.test(v), {
-    message: 'DATABASE_URL の形式が不正です (postgres://user:password@host:port/db)',
-  });
+const postgresUrl = z.string().refine((v) => /^postgres(ql)?:\/\/[^:]+:[^@]+@[^/]+\/.+/.test(v), {
+  message: 'DATABASE_URL の形式が不正です (postgres://user:password@host:port/db)',
+});
 
 const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -44,9 +42,12 @@ export const apiEnvSchema = baseSchema
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET は32文字以上にしてください'),
   });
 
-export const workerEnvSchema = baseSchema.merge(databaseSchema).merge(storageSchema).extend({
-  WORKER_PORT: z.coerce.number().int().positive().default(3002),
-});
+export const workerEnvSchema = baseSchema
+  .merge(databaseSchema)
+  .merge(storageSchema)
+  .extend({
+    WORKER_PORT: z.coerce.number().int().positive().default(3002),
+  });
 
 /**
  * Executor は Core とは別の資格情報で動く(ADR-0006)。

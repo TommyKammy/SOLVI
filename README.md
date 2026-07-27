@@ -31,33 +31,33 @@ curl -fsS http://localhost:3001/readyz
 
 ## 主なコマンド
 
-| コマンド | 内容 |
-|---|---|
-| `npm run up` / `npm run down` | ローカルスタックの起動 / 破棄 |
-| `npm run db:migrate` / `db:rollback` / `db:status` | マイグレーション |
-| `npm run db:seed` | 開発用の合成データ投入 |
-| `npm run typecheck` / `lint` / `test` | 静的検査とテスト |
-| `npm run test:security` | 越境・認可・監査の防御テスト |
-| `npm run check:rls` | 全テーブルのRLS設定と接続ロール権限の検査 |
-| `npm run check:requirements` | 計画文書の要求⇔WP⇔ADR整合検査 |
-| `npm run check:images` | コンテナイメージのdigest固定検査 |
+| コマンド                                           | 内容                                      |
+| -------------------------------------------------- | ----------------------------------------- |
+| `npm run up` / `npm run down`                      | ローカルスタックの起動 / 破棄             |
+| `npm run db:migrate` / `db:rollback` / `db:status` | マイグレーション                          |
+| `npm run db:seed`                                  | 開発用の合成データ投入                    |
+| `npm run typecheck` / `lint` / `test`              | 静的検査とテスト                          |
+| `npm run test:security`                            | 越境・認可・監査の防御テスト              |
+| `npm run check:rls`                                | 全テーブルのRLS設定と接続ロール権限の検査 |
+| `npm run check:requirements`                       | 計画文書の要求⇔WP⇔ADR整合検査             |
+| `npm run check:images`                             | コンテナイメージのdigest固定検査          |
 
 ## 構成
 
-| パス | 内容 |
-|---|---|
-| `apps/web` | SOLVI Portal / Ops(Next.js) |
-| `services/api` | Core API(NestJS)。業務ロジックと認可 |
-| `services/worker` | Outbox配送とWorkflow |
-| `services/executor` | SOLVI Run。特権操作のみを実行する分離サービス |
-| `services/ai-advisor` | SOLVI Assist(FastAPI)。advisory-only |
-| `packages/shared` | 共有の型・スキーマ・ユーティリティ |
-| `packages/connectors` | Okta / Microsoft Graph アダプタ |
-| `db/migrations` | SQLマイグレーション |
-| `tests/` | unit / integration / security / e2e |
-| `tools/` | マイグレーション、検査スクリプト |
-| `infra/` | 監視・バックアップ・デプロイ定義 |
-| `docs/planning/` | 計画の正本(Obsidian Vault) |
+| パス                  | 内容                                          |
+| --------------------- | --------------------------------------------- |
+| `apps/web`            | SOLVI Portal / Ops(Next.js)                   |
+| `services/api`        | Core API(NestJS)。業務ロジックと認可          |
+| `services/worker`     | Outbox配送とWorkflow                          |
+| `services/executor`   | SOLVI Run。特権操作のみを実行する分離サービス |
+| `services/ai-advisor` | SOLVI Assist(FastAPI)。advisory-only          |
+| `packages/shared`     | 共有の型・スキーマ・ユーティリティ            |
+| `packages/connectors` | Okta / Microsoft Graph アダプタ               |
+| `db/migrations`       | SQLマイグレーション                           |
+| `tests/`              | unit / integration / security / e2e           |
+| `tools/`              | マイグレーション、検査スクリプト              |
+| `infra/`              | 監視・バックアップ・デプロイ定義              |
+| `docs/planning/`      | 計画の正本(Obsidian Vault)                    |
 
 ## 開発の進め方
 

@@ -27,13 +27,19 @@ describe('環境変数の検証 (fail closed)', () => {
 
   it('SESSION_SECRET が短いと失敗する', () => {
     expect(() =>
-      loadEnv(apiEnvSchema, 'api', { ...validApiEnv, SESSION_SECRET: 'short' } as NodeJS.ProcessEnv),
+      loadEnv(apiEnvSchema, 'api', {
+        ...validApiEnv,
+        SESSION_SECRET: 'short',
+      } as NodeJS.ProcessEnv),
     ).toThrow(EnvValidationError);
   });
 
   it('エラーメッセージに値そのものを含めない', () => {
     try {
-      loadEnv(apiEnvSchema, 'api', { ...validApiEnv, DATABASE_URL: 'postgres://u:SUPERSECRET@h/d?x' } as NodeJS.ProcessEnv);
+      loadEnv(apiEnvSchema, 'api', {
+        ...validApiEnv,
+        DATABASE_URL: 'postgres://u:SUPERSECRET@h/d?x',
+      } as NodeJS.ProcessEnv);
     } catch (error) {
       expect(String((error as Error).message)).not.toContain('SUPERSECRET');
       return;

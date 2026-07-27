@@ -52,7 +52,9 @@ for (const [name, port] of [
   try {
     const res = await fetchJson(`http://localhost:${port}/readyz`);
     const parsed = JSON.parse(res.body);
-    const hasPostgres = parsed.dependencies?.some((d) => d.name === 'postgres' && d.status === 'up');
+    const hasPostgres = parsed.dependencies?.some(
+      (d) => d.name === 'postgres' && d.status === 'up',
+    );
     record(`${name} readyz が postgres を確認`, res.status === 200 && hasPostgres);
   } catch (error) {
     record(`${name} readyz`, false, error.message);

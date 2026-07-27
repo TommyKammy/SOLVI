@@ -20,7 +20,7 @@
     "lint": "eslint . --max-warnings=0",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
     "test": "npm run test --workspaces --if-present",
-    "test:unit": "npm run test:unit --workspaces --if-present",
+    "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:security": "vitest run tests/security",
     "db:migrate": "node tools/migrate.mjs up",
@@ -31,10 +31,12 @@
     "check:requirements": "python3 tools/check_requirements.py",
     "check:paths": "node tools/check_allowed_paths.mjs",
     "check:images": "node tools/check_image_pinning.mjs",
-    "check:all": "npm run check:paths && npm run check:images && npm run check:requirements",
+    "check:all": "npm run check:paths && npm run check:architecture && npm run check:images && npm run check:skips",
     "up": "docker compose up -d --wait",
     "down": "docker compose down -v",
-    "logs": "docker compose logs -f"
+    "logs": "docker compose logs -f",
+    "check:architecture": "node tools/check_architecture.mjs",
+    "check:skips": "node tools/check_no_skipped_tests.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

@@ -66,7 +66,9 @@ console.log(`checked ${checked} image references`);
 if (problems.length > 0) {
   console.error(`\ndigest 固定されていないイメージ参照: ${problems.length}件`);
   for (const p of problems) console.error(`  - ${p}`);
-  console.error('\n`docker image inspect <ref> --format "{{index .RepoDigests 0}}"` で digest を取得し、');
+  console.error(
+    '\n`docker image inspect <ref> --format "{{index .RepoDigests 0}}"` で digest を取得し、',
+  );
   console.error('`image:tag@sha256:...` の形式で固定してください。');
   process.exit(1);
 }
