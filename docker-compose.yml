@@ -52,9 +52,11 @@ services:
       # コンテナ内からはサービス名で接続する(.env のホスト向け設定を上書き)
       DATABASE_URL: postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_PORT: 9464
       S3_ENDPOINT: http://minio:9000
     ports:
       - '${API_PORT:-3001}:3001'
+      - '${API_METRICS_PORT:-9464}:9464'   # Prometheus スクレイプ
     volumes:
       - ./services/api:/app/services/api
       - ./packages:/app/packages
@@ -86,6 +88,7 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_PORT: 9464
       S3_ENDPOINT: http://minio:9000
     ports:
       - '${WORKER_PORT:-3002}:3002'
@@ -121,6 +124,7 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgres://${POSTGRES_EXECUTOR_USER}:${POSTGRES_EXECUTOR_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_PORT: 9464
     expose:
       - '3003'
     volumes:
@@ -184,6 +188,77 @@ services:
       timeout: 3s
       retries: 20
 
+  # ---------------------------------------------------------------------------
+  # 監視 (WP-P2-SLO-008)
+  #
+  # Prometheus は pull 型。SOLVI 側が落ちていれば「スクレイプできない」こと
+  # 自体が障害の証拠になる。push 型だと、送らなくなったのか送るものが無いのか
+  # 区別できない。
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      # ローカル/パイロット規模の保持期間。SLOの月次判定に足りる長さにする。
+      - '--storage.tsdb.retention.time=35d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts:/etc/prometheus/alerts:ro
+      - promdata:/prometheus
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:9090/-/healthy']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanagerdata:/alertmanager
+    ports:
+      - '${ALERTMANAGER_PORT:-9093}:9093'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:9093/-/healthy']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # 合成監視 — 利用者と同じ経路で外から叩く (WP-P2-SLO-008)
+  synthetic:
+    image: node:22.12-alpine@sha256:51eff88af6dff26f59316b6e356188ffa2c422bd3c3b76f2556a2e7e89d080bd
+    working_dir: /app
+    command: ['node', 'tools/synthetic_check.mjs']
+    environment:
+      SYNTHETIC_API_BASE: http://api:3001
+      SYNTHETIC_WEB_BASE: http://web:3000
+      SYNTHETIC_PORT: 9465
+    volumes:
+      - ./tools:/app/tools:ro
+    depends_on:
+      api: { condition: service_healthy }
+
+  # アラート到達の証跡を残す受信先 (WP-P2-SLO-008)
+  alert-sink:
+    image: node:22.12-alpine@sha256:51eff88af6dff26f59316b6e356188ffa2c422bd3c3b76f2556a2e7e89d080bd
+    working_dir: /app
+    command: ['node', 'tools/alert_sink.mjs']
+    environment:
+      ALERT_SINK_PORT: 9466
+      ALERT_SINK_LOG: /var/log/solvi/alerts.jsonl
+    volumes:
+      - ./tools:/app/tools:ro
+      - alertlog:/var/log/solvi
+    ports:
+      - '${ALERT_SINK_PORT:-9466}:9466'
+
   web:
     build:
       context: .
@@ -206,6 +281,9 @@ services:
 volumes:
   pgdata:
   miniodata:
+  promdata:
+  alertmanagerdata:
+  alertlog:
 
 networks:
   # 既定ネットワーク(default)には ai-advisor を参加させない。

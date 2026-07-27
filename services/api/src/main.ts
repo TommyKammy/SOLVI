@@ -32,6 +32,7 @@ async function bootstrap(): Promise<void> {
     serviceVersion: SERVICE_VERSION,
     environment: env.NODE_ENV,
     otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT || undefined,
+    metricsPort: env.METRICS_PORT,
   });
 
   const logger = createLogger({
