@@ -5,3 +5,4 @@ export * from './correlation/context.js';
 export * from './errors/problem.js';
 export * from './ticket/state-machine.js';
 export * from './ticket/priority.js';
+export * from './attachment/validation.js';
