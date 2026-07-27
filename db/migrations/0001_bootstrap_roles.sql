@@ -12,6 +12,8 @@
 -- アプリ側で uuid v7 を生成し、DBは uuid 型として受ける。
 -- gen_random_uuid() はフォールバック用途にのみ使用する。
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- citext: メールアドレスの大文字小文字を区別しない比較のため
+CREATE EXTENSION IF NOT EXISTS citext;
 
 DO $$
 BEGIN
