@@ -11,7 +11,11 @@
  * 後者は**応答形式が変わった日に検疫が素通りする**。
  */
 import { describe, it, expect } from 'vitest';
-import { parseClamResponse, ClamAvScanner } from '../../packages/shared/src/scan/clamav.js';
+import {
+  parseClamResponse,
+  parseVersionResponse,
+  ClamAvScanner,
+} from '../../packages/shared/src/scan/clamav.js';
 
 describe('応答の解釈', () => {
   it('OK を clean と判定する', () => {
@@ -84,5 +88,37 @@ describe('スキャナへ到達できない場合', () => {
   it('ping が失敗しても例外を投げない', async () => {
     const scanner = new ClamAvScanner({ host: '127.0.0.1', port: 1 });
     expect(await scanner.ping()).toBe(false);
+  });
+});
+
+describe('定義バージョンの解釈', () => {
+  it('VERSION の応答から定義の情報を取り出す', () => {
+    const info = parseVersionResponse('ClamAV 1.4.3/28074/Mon Jul 27 06:25:14 2026');
+    expect(info).not.toBeNull();
+    expect(info!.engine).toBe('1.4.3');
+    expect(info!.signatureVersion).toBe(28074);
+    expect(info!.builtAt.getUTCFullYear()).toBe(2026);
+    expect(info!.builtAt.getUTCMonth()).toBe(6); // 7月
+  });
+
+  it('末尾のヌル文字を許容する', () => {
+    expect(parseVersionResponse('ClamAV 1.4.3/28074/Mon Jul 27 06:25:14 2026\0')).not.toBeNull();
+  });
+
+  it.each([
+    ['空文字', ''],
+    ['区切りが足りない', 'ClamAV 1.4.3'],
+    ['バージョンが数値でない', 'ClamAV 1.4.3/abc/Mon Jul 27 06:25:14 2026'],
+    ['日時が解釈できない', 'ClamAV 1.4.3/28074/not-a-date'],
+    ['形式が変わった', 'version=1.4.3 signatures=28074'],
+  ])('**%s は null を返す**(新しいことにしない)', (_label, raw) => {
+    // 「読めなかったから新しいことにする」とすると、
+    // 応答形式が変わった日に鮮度の監視が黙って止まる。
+    expect(parseVersionResponse(raw)).toBeNull();
+  });
+
+  it('スキャナへ到達できないとき null を返す', async () => {
+    const scanner = new ClamAvScanner({ host: '127.0.0.1', port: 1 });
+    expect(await scanner.signatureInfo()).toBeNull();
   });
 });

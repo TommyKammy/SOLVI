@@ -37,7 +37,8 @@
     "logs": "docker compose logs -f",
     "check:architecture": "node tools/check_architecture.mjs",
     "check:skips": "node tools/check_no_skipped_tests.mjs",
-    "check:a11y": "node tools/check_accessibility.mjs"
+    "check:a11y": "node tools/check_accessibility.mjs",
+    "check:scanner": "node tools/check_scanner_freshness.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

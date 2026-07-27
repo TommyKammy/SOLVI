@@ -140,6 +140,7 @@ const EXPECTED_ALERTS = [
   'SolviNoTraffic',
   'SolviSyntheticCheckFailing',
   'SolviAttachmentScanStalled',
+  'SolviScannerSignaturesStale',
 ];
 
 for (const name of EXPECTED_ALERTS) {

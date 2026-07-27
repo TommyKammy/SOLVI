@@ -104,6 +104,44 @@ export function recordDomainEvent(eventType: string, outcome: 'success' | 'failu
 }
 
 /**
+ * スキャナが読み込んでいる定義の古さ(秒)。
+ *
+ * **ディスク上のファイル日時ではなく、スキャナが報告する値を使う。**
+ * freshclam が新しい定義を落としても clamd が読み直さなければ、
+ * ファイルは新しいのに**古い定義のまま動き続ける**。
+ * そのとき `clamdcheck.sh` も SelfCheck も「OK」と言う。
+ *
+ * 古い定義で動いていても、スキャンは成功し `clean` が返る。
+ * **検知できていないことは検知できない** — だからこの値を外から見る。
+ */
+let signatureAgeSeconds: number | undefined;
+
+export function recordScannerSignatureAge(builtAt: Date, now = new Date()): void {
+  signatureAgeSeconds = Math.max(0, (now.getTime() - builtAt.getTime()) / 1000);
+  ensureSignatureAgeGauge();
+}
+
+let signatureGaugeRegistered = false;
+
+function ensureSignatureAgeGauge(): void {
+  if (signatureGaugeRegistered) return;
+  signatureGaugeRegistered = true;
+  meter()
+    .createObservableGauge('solvi.scanner.signature_age', {
+      description: 'スキャナが読み込んでいるウイルス定義の古さ。古いまま動いても検知はできない',
+      unit: 's',
+    })
+    .addCallback((result) => {
+      if (signatureAgeSeconds !== undefined) result.observe(signatureAgeSeconds);
+    });
+}
+
+/** テスト用。観測値を初期化する。 */
+export function resetScannerSignatureAge(): void {
+  signatureAgeSeconds = undefined;
+}
+
+/**
  * 添付のスキャン結果 (WP-P2-SCAN-011)。
  *
  * `deferred` が積み上がるのはスキャナ障害の兆候である。
