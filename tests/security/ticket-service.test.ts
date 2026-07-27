@@ -10,6 +10,7 @@ import pg from 'pg';
 import { TicketService } from '../../services/api/src/modules/ticket/ticket.service.js';
 import type { AuthzContext, Principal } from '../../services/api/src/common/authz/authz.js';
 import { runWithContext, newContext } from '@solvi/shared';
+import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
@@ -82,11 +83,8 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await admin.query('DELETE FROM ticket');
-  await admin.query('DELETE FROM ticket_number_counter');
-  await admin.query('ALTER TABLE audit_event DISABLE TRIGGER audit_event_no_delete');
-  await admin.query("DELETE FROM audit_event WHERE target_type = 'ticket'");
-  await admin.query('ALTER TABLE audit_event ENABLE TRIGGER audit_event_no_delete');
+  await cleanBusinessData(admin);
+  await cleanAuditData(admin, "target_type = 'ticket'");
 });
 
 describe('チケットの作成', () => {

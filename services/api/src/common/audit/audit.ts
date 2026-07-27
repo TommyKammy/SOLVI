@@ -33,6 +33,9 @@ export const AUDIT_EVENT_TYPES = [
   // Phase 2(WP-P2-TKT-001)
   'ticket.created',
   'ticket.transitioned',
+  'ticket.comment.added',
+  'ticket.attachment.added',
+  'ticket.attachment.downloaded',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];

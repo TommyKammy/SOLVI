@@ -13,6 +13,7 @@ import {
   verifyAnchor,
 } from '../../services/worker/src/jobs/audit-anchor/anchor.js';
 import { runWithContext, newContext } from '@solvi/shared';
+import { cleanAuditData } from '../support/cleanup.js';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
 const ORG_B = '00000000-0000-4000-9000-000000000002';
@@ -51,13 +52,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  // 各テストの前に当日のテストデータを片付ける(admin権限でも消せないため、トリガを一時無効化)
-  await admin.query('ALTER TABLE audit_event DISABLE TRIGGER audit_event_no_delete');
-  await admin.query("DELETE FROM audit_event WHERE event_type = 'config.changed'");
-  await admin.query('ALTER TABLE audit_event ENABLE TRIGGER audit_event_no_delete');
-  await admin.query('ALTER TABLE audit_anchor DISABLE TRIGGER audit_anchor_no_delete');
-  await admin.query('DELETE FROM audit_anchor');
-  await admin.query('ALTER TABLE audit_anchor ENABLE TRIGGER audit_anchor_no_delete');
+  await cleanAuditData(admin, "event_type = 'config.changed'");
 });
 
 const sampleEvent = (organizationId: string | null = ORG_A) =>
