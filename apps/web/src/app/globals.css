@@ -432,3 +432,53 @@ fieldset.visibility .choice .note {
   color: var(--text-muted);
   text-decoration: line-through;
 }
+
+/* 一覧の絞り込み (WP-P2-OPSUI-010) */
+.filters {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.filter-group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 9rem;
+}
+.filter-group legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-bottom: 0.35rem;
+}
+.filter-group .choice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+}
+.filter-group .choice label {
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+.filter-actions button {
+  align-self: auto;
+}
+/* 絞り込み中であることを本文でも示す。件数だけだと、
+   絞り込んでいることを忘れて「件数が減った」と誤解される。 */
+.filter-notice {
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}

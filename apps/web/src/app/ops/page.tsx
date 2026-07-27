@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { api } from '../../lib/api';
 import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../lib/labels';
+import { TicketFilters } from '../../components/TicketFilters';
 
 /**
  * 担当者向けチケット一覧 (WP-P2-OPSUI-010)。
@@ -14,7 +15,25 @@ import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../lib/
 
 export const dynamic = 'force-dynamic';
 
-export default async function OpsQueue() {
+export default async function OpsQueue({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+
+  // 絞り込み条件を URLSearchParams へ組み直す。
+  // 画面が組み立てた条件をそのままAPIへ渡し、応答の appliedFilter と
+  // 突き合わせられるようにする。
+  const filter = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (!['state', 'kind', 'priority', 'assignment'].includes(key)) continue;
+    for (const v of Array.isArray(value) ? value : value ? [value] : []) {
+      filter.append(key, v);
+    }
+  }
+  const filtering = [...filter.keys()].length > 0;
+
   const session = await api.me();
   if (!session.ok) redirect('/login');
 
@@ -35,19 +54,33 @@ export default async function OpsQueue() {
     );
   }
 
-  const tickets = await api.listTickets(50);
+  const tickets = await api.listTickets(50, filter);
 
   return (
     <main id="main" className="shell">
       <h1>対応待ちの一覧</h1>
       <p className="lead">組織全体の問い合わせを、受付が新しい順に表示しています。</p>
 
+      <TicketFilters applied={filter} />
+
+      {filtering && (
+        // **絞り込み中であることを本文で示す。** 件数だけだと、
+        // 絞り込んでいることを忘れて「件数が減った」と誤解される。
+        <p className="filter-notice" role="status">
+          絞り込み中です。すべて表示するには「条件を解除」を押してください。
+        </p>
+      )}
+
       {!tickets.ok ? (
         <p className="empty" role="status">
           一覧を取得できませんでした。時間をおいて再度お試しください。
         </p>
       ) : tickets.data.items.length === 0 ? (
-        <p className="empty">対応待ちの問い合わせはありません。</p>
+        <p className="empty">
+          {filtering
+            ? '条件に合う問い合わせはありません。条件を緩めてお試しください。'
+            : '対応待ちの問い合わせはありません。'}
+        </p>
       ) : (
         <table className="tickets">
           <caption style={{ textAlign: 'left', paddingBottom: '0.5rem' }}>

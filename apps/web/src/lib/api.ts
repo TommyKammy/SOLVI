@@ -151,8 +151,16 @@ export const api = {
     urgency: string;
   }) => call<TicketView>('/tickets', { method: 'POST', body: JSON.stringify(body) }),
 
-  listTickets: (limit = 10) =>
-    call<{ items: TicketView[]; total: number; scope: string }>(`/tickets?limit=${limit}`),
+  listTickets: (limit = 10, filter?: URLSearchParams) => {
+    const query = new URLSearchParams(filter);
+    query.set('limit', String(limit));
+    return call<{
+      items: TicketView[];
+      total: number;
+      scope: string;
+      appliedFilter: Record<string, unknown>;
+    }>(`/tickets?${query.toString()}`);
+  },
 
   getTicket: (id: string) => call<TicketView>(`/tickets/${encodeURIComponent(id)}`),
 
