@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P2-OPS-003: Ticket一覧・フィルタ・担当割当
@@ -156,4 +156,4 @@ Migration の down で割当履歴テーブルを削除できる。`ticket.assig
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `2dc7206` | Done | `evidence/WP-P2-OPS-003/20260727-1505/verification.md` | 全876テスト通過。認可をWHERE句へ組込み、件数も同条件で算出。1万件でp95 7.9ms(目標1500ms、ローカル計測のため本番再計測が必要)。**バグ2件を発見・修正**: (a) JS Dateのマイクロ秒切り捨てでカーソルが機能せず2ページ目以降が0件だった → `created_at::text`で持ち回る (b) 件数クエリにカーソル条件が混入しtotalが減っていた → カーソル前のWHEREを件数用に保持。 |
