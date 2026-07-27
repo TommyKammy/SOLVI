@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1
+#
+# Node系サービス(api / worker / executor)共通のDockerfile。
+# サービスごとに複製せず SERVICE 引数で切り替える ― 複製すると片方だけ更新される事故が起きる。
+#
+# ベースイメージは digest 固定(AGENTS.md §1.14 / NFR-SEC-008)。
+# 更新はレビュー対象のPRで行い、tag のみの参照へ戻さないこと。
+
+FROM node:22.12-alpine@sha256:51eff88af6dff26f59316b6e356188ffa2c422bd3c3b76f2556a2e7e89d080bd AS base
+WORKDIR /app
+ARG SERVICE
+ENV SERVICE=${SERVICE}
+
+FROM base AS deps
+COPY package.json package-lock.json* ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/connectors/package.json packages/connectors/
+COPY services/api/package.json services/api/
+COPY services/worker/package.json services/worker/
+COPY services/executor/package.json services/executor/
+COPY apps/web/package.json apps/web/
+RUN npm install --workspaces --include-workspace-root
+
+FROM deps AS dev
+ENV NODE_ENV=development
+COPY tsconfig.base.json ./
+COPY packages ./packages
+COPY services/${SERVICE} ./services/${SERVICE}
+WORKDIR /app/services/${SERVICE}
+CMD ["npm", "run", "dev"]
+
+FROM deps AS build
+COPY tsconfig.base.json ./
+COPY packages ./packages
+COPY services/${SERVICE} ./services/${SERVICE}
+RUN npm run build --workspace=@solvi/shared \
+ && npm run build --workspace=@solvi/${SERVICE}
+
+FROM base AS production
+ENV NODE_ENV=production
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/packages ./packages
+COPY --from=build --chown=node:node /app/services/${SERVICE} ./services/${SERVICE}
+WORKDIR /app/services/${SERVICE}
+USER node
+CMD ["node", "dist/main.js"]

@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -15,12 +16,21 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    languageOptions: {
+      globals: { ...globals.node },
+    },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/no-explicit-any': 'error',
-      // AGENTS.md §4: no silent test skipping
-      'no-console': 'off',
       eqeqeq: ['error', 'always'],
     },
+  },
+  {
+    // ツールスクリプトはCLIとして直接実行するためconsole出力が正当
+    files: ['tools/**/*.mjs'],
+    rules: { 'no-console': 'off' },
   },
 );
