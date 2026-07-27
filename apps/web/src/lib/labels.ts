@@ -57,3 +57,14 @@ export function formatDateTime(iso: string): string {
     timeZone: 'Asia/Tokyo',
   }).format(date);
 }
+
+/**
+ * 絞り込みの選択肢。
+ *
+ * **状態を全部並べない。** 担当者が日常的に使うのは「対応が要るもの」の
+ * 絞り込みであり、`merged` や `cancelled` を毎回目にする必要はない。
+ * 選択肢が多いと、結局どれも使われなくなる。
+ */
+export const FILTERABLE_STATES = ['new', 'assigned', 'in_progress', 'pending', 'resolved'] as const;
+
+export const FILTERABLE_PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;

@@ -42,6 +42,83 @@ function toPortalView(ticket: Ticket): Record<string, unknown> {
 }
 
 const KINDS = new Set(['incident', 'request']);
+
+/**
+ * 絞り込みに使える値。**許可する値を列挙する**(拒否リストにしない)。
+ *
+ * 知らない値を無視すると、利用者は「絞り込んだつもりで絞り込めていない」
+ * 状態に気付けない。明示的に拒否する。
+ */
+const STATES = new Set([
+  'new',
+  'assigned',
+  'in_progress',
+  'pending',
+  'resolved',
+  'closed',
+  'cancelled',
+  'merged',
+]);
+const PRIORITIES = new Set(['low', 'medium', 'high', 'critical']);
+
+/**
+ * 絞り込み条件の解釈。
+ *
+ * 複数指定は同じキーを繰り返す(`?state=new&state=assigned`)。
+ * カンマ区切りにすると、値そのものにカンマを含む項目を足したときに壊れる。
+ */
+function parseFilter(
+  query: URLSearchParams,
+  currentUserId: string,
+): {
+  state?: string[];
+  kind?: string[];
+  priority?: string[];
+  assigneeId?: string | null;
+  unassignedOnly?: boolean;
+} {
+  const errors: Array<{ field: string; message: string }> = [];
+
+  const pick = (name: string, allowed: ReadonlySet<string>): string[] | undefined => {
+    const values = query.getAll(name).filter((v) => v.length > 0);
+    if (values.length === 0) return undefined;
+    const invalid = values.filter((v) => !allowed.has(v));
+    if (invalid.length > 0) {
+      errors.push({ field: name, message: `指定できない値です: ${invalid.join(', ')}` });
+      return undefined;
+    }
+    return values;
+  };
+
+  const state = pick('state', STATES);
+  const kind = pick('kind', KINDS);
+  const priority = pick('priority', PRIORITIES);
+
+  // 担当の絞り込みは3通り。「自分」「未割当」「指定なし」。
+  // 任意の利用者IDを受け付けない — 他人の担当分を名指しで引く必要は無く、
+  // 受け付ければ在籍者のIDを総当たりする経路になる。
+  const assignment = query.get('assignment');
+  let assigneeId: string | null | undefined;
+  let unassignedOnly: boolean | undefined;
+
+  if (assignment === 'mine') {
+    assigneeId = currentUserId;
+  } else if (assignment === 'unassigned') {
+    unassignedOnly = true;
+  } else if (assignment !== null && assignment.length > 0) {
+    errors.push({ field: 'assignment', message: '指定できない値です' });
+  }
+
+  if (errors.length > 0) throw Problems.validation(errors);
+
+  return {
+    ...(state ? { state } : {}),
+    ...(kind ? { kind } : {}),
+    ...(priority ? { priority } : {}),
+    ...(assigneeId !== undefined ? { assigneeId } : {}),
+    ...(unassignedOnly !== undefined ? { unassignedOnly } : {}),
+  };
+}
 const IMPACTS = new Set(['low', 'medium', 'high']);
 const URGENCIES = new Set(['low', 'medium', 'high']);
 
@@ -145,8 +222,11 @@ export class TicketController {
       throw Problems.validation([{ field: 'limit', message: '1〜100の範囲で指定してください' }]);
     }
 
+    const filter = parseFilter(query, auth.userId);
+
     const result = await this.run(auth, (service) =>
       service.list(auth.authz, {
+        ...(Object.keys(filter).length > 0 ? { filter: filter as never } : {}),
         ...(limit !== undefined ? { limit } : {}),
         // カーソルはサーバが返した文字列をそのまま受け取る。
         // クライアントで組み立てさせない(マイクロ秒が落ちてページが空になる)。
@@ -170,6 +250,9 @@ export class TicketController {
         // どの範囲が見えているかを明示する。依頼者は自分の分だけ、
         // 担当者は組織全体。画面側で「全件が見えている」と誤解させない。
         scope: result.scope,
+        // **絞り込みが効いていることを応答で示す。** 画面が送った条件と
+        // 突き合わせられないと、「絞り込んだつもりで全件を見ている」に気付けない。
+        appliedFilter: filter,
       },
     };
   }
