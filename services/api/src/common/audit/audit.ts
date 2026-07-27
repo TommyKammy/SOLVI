@@ -30,6 +30,9 @@ export const AUDIT_EVENT_TYPES = [
   'config.changed',
   // 組織切替(02.18 §3 / 脅威 T-20)
   'platform.org_context.switched',
+  // Phase 2(WP-P2-TKT-001)
+  'ticket.created',
+  'ticket.transitioned',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
