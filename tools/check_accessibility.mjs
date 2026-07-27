@@ -82,12 +82,29 @@ async function main() {
     { name: 'Portalトップ', path: '/', requiresAuth: true },
     { name: '起票フォーム(障害)', path: '/tickets/new?kind=incident', requiresAuth: true },
     { name: '起票フォーム(依頼)', path: '/tickets/new?kind=request', requiresAuth: true },
+    { name: '対応待ちの一覧(担当者)', path: '/ops', requiresAuth: true },
     {
       name: '起票フォーム(エラー表示)',
       path: '/tickets/new?kind=incident&error=1&field=subject:%E4%BB%B6%E5%90%8D%E3%82%92%E5%85%A5%E5%8A%9B%E3%81%97%E3%81%A6%E3%81%8F%E3%81%A0%E3%81%95%E3%81%84',
       requiresAuth: true,
     },
   ];
+
+  // 担当者の作業画面は実チケットが必要なため、パスを実行時に決める。
+  // 「画面が無いから検査しない」にすると、最も操作の多い画面が
+  // 検査対象から外れることになる。
+  if (authenticated && process.env.A11Y_TICKET_ID) {
+    screens.push({
+      name: '担当者の作業画面',
+      path: `/ops/${process.env.A11Y_TICKET_ID}`,
+      requiresAuth: true,
+    });
+    screens.push({
+      name: '問い合わせ詳細(依頼者)',
+      path: `/tickets/${process.env.A11Y_TICKET_ID}`,
+      requiresAuth: true,
+    });
+  }
 
   let totalViolations = 0;
   let checked = 0;

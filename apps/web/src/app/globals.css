@@ -292,3 +292,109 @@ dl.detail dd {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * コメント欄 (WP-P2-OPSUI-010)
+ *
+ * 内部メモと公開コメントを**視覚的に強く区別する**。
+ * 担当者が誤って内部メモへ依頼者向けの返信を書く、あるいはその逆が起きると、
+ * 一方は「返事が来ない」、もう一方は「見せてはいけないものを見せた」になる。
+ * 後者は取り返しがつかない。
+ *
+ * 区別は色だけに頼らない。左の太い罫線・ラベル・背景の3つで示す。
+ * ------------------------------------------------------------------------- */
+
+.comments {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comment {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  background: var(--bg);
+}
+
+.comment .meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.comment .body {
+  white-space: pre-wrap;
+}
+
+/* 内部メモ。依頼者には**そもそも届かない**が、担当者の画面では
+   ひと目で分かる必要がある。 */
+.comment.internal {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.comment .visibility-label {
+  font-weight: 700;
+}
+.comment.internal .visibility-label {
+  color: var(--danger);
+}
+
+/* 投稿フォームの公開範囲選択。選択中の状態が背景色でも分かるようにする。 */
+fieldset.visibility {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+fieldset.visibility legend {
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+fieldset.visibility .choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+}
+fieldset.visibility .choice label {
+  font-weight: 500;
+}
+fieldset.visibility .choice .note {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* 担当者の操作。行動が並ぶので、押し間違いを減らすため間隔を取る。 */
+.actions-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.actions-row form {
+  margin: 0;
+}
+.actions-row button {
+  align-self: auto;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 1rem 0;
+}
+.filters .field {
+  min-width: 12rem;
+}

@@ -99,6 +99,26 @@ export interface SessionView {
   roles: Array<{ roleCode: string; organizationId: string | null }>;
 }
 
+export interface CommentView {
+  id: string;
+  authorId: string;
+  visibility: 'public' | 'internal';
+  body: string;
+  createdAt: string;
+}
+
+export interface AvailableAction {
+  to: string;
+  reason: string;
+  label: string;
+}
+
+export interface WorkspaceView {
+  ticket: TicketView & { requesterId: string; assigneeId: string | null };
+  comments: CommentView[];
+  availableActions: AvailableAction[];
+}
+
 export const api = {
   login: (body: { email: string; password: string; organizationId?: string }) =>
     call<{ userId: string }>('/auth/login', {
@@ -123,4 +143,27 @@ export const api = {
     call<{ items: TicketView[]; total: number; scope: string }>(`/tickets?limit=${limit}`),
 
   getTicket: (id: string) => call<TicketView>(`/tickets/${encodeURIComponent(id)}`),
+
+  workspace: (id: string) => call<WorkspaceView>(`/tickets/${encodeURIComponent(id)}/workspace`),
+
+  listComments: (id: string) =>
+    call<{ items: CommentView[] }>(`/tickets/${encodeURIComponent(id)}/comments`),
+
+  addComment: (id: string, body: { visibility: string; body: string }) =>
+    call<CommentView>(`/tickets/${encodeURIComponent(id)}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  transition: (id: string, body: { to: string; reason: string }) =>
+    call<{ state: string }>(`/tickets/${encodeURIComponent(id)}/transitions`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  assign: (id: string, assigneeId: string | null) =>
+    call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {
+      method: 'POST',
+      body: JSON.stringify({ assigneeId }),
+    }),
 };
