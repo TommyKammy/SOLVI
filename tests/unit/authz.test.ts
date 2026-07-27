@@ -47,7 +47,9 @@ describe('effectiveRoles', () => {
 
   it('platformスコープのロールはどの組織の文脈でも有効', () => {
     const p = principal({
-      bindings: [{ roleCode: 'platform_admin', organizationId: null, validFrom: past, validUntil: null }],
+      bindings: [
+        { roleCode: 'platform_admin', organizationId: null, validFrom: past, validUntil: null },
+      ],
     });
     expect(effectiveRoles(ctx(p, ORG_A)).has('platform_admin')).toBe(true);
     expect(effectiveRoles(ctx(p, ORG_B)).has('platform_admin')).toBe(true);
@@ -101,7 +103,9 @@ describe('effectiveRoles', () => {
 describe('requireRole', () => {
   it('権限がなければ403を投げる', () => {
     const p = principal({
-      bindings: [{ roleCode: 'requester', organizationId: ORG_A, validFrom: past, validUntil: null }],
+      bindings: [
+        { roleCode: 'requester', organizationId: ORG_A, validFrom: past, validUntil: null },
+      ],
     });
     expect(() => requireRole(ctx(p), 'org_admin')).toThrow();
     expect(() => requireRole(ctx(p), 'requester')).not.toThrow();
@@ -120,7 +124,11 @@ describe('オブジェクトレベル認可 (NFR-SEC-006)', () => {
 
   it('組織が違えばロールがあってもアクセス不可', () => {
     expect(
-      canAccess(ctx(agent, ORG_A), { organizationId: ORG_B }, { ...policy, organizationWide: [...policy.organizationWide] }),
+      canAccess(
+        ctx(agent, ORG_A),
+        { organizationId: ORG_B },
+        { ...policy, organizationWide: [...policy.organizationWide] },
+      ),
     ).toBe(false);
   });
 
@@ -173,7 +181,9 @@ describe('オブジェクトレベル認可 (NFR-SEC-006)', () => {
 describe('組織の切替 (脅威 T-20)', () => {
   it('platformロールがなければ切替できない', () => {
     const p = principal({
-      bindings: [{ roleCode: 'org_admin', organizationId: ORG_A, validFrom: past, validUntil: null }],
+      bindings: [
+        { roleCode: 'org_admin', organizationId: ORG_A, validFrom: past, validUntil: null },
+      ],
     });
     expect(() => assertCanSwitchOrganization(p, now)).toThrow();
   });

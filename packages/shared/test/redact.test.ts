@@ -31,9 +31,7 @@ describe('ログのredaction (NFR-SEC-004 / 脅威 T-22)', () => {
   });
 
   it('秘密鍵のPEMヘッダを落とす', () => {
-    expect(
-      scrubFreeText('-----BEGIN RSA PRIVATE KEY-----\nMIIEow...'),
-    ).toBe(REDACTED);
+    expect(scrubFreeText('-----BEGIN RSA PRIVATE KEY-----\nMIIEow...')).toBe(REDACTED);
   });
 
   it('深いネストは打ち切る(構造ごとログへ流し込むのを防ぐ)', () => {
@@ -50,7 +48,12 @@ describe('ログのredaction (NFR-SEC-004 / 脅威 T-22)', () => {
 describe('Logger', () => {
   const capture = () => {
     const lines: string[] = [];
-    const logger = new Logger({ service: 'test', level: 'info', env: 'test', sink: (l) => lines.push(l) });
+    const logger = new Logger({
+      service: 'test',
+      level: 'info',
+      env: 'test',
+      sink: (l) => lines.push(l),
+    });
     return { lines, logger };
   };
 
@@ -69,7 +72,12 @@ describe('Logger', () => {
 
   it('本番ではスタックトレースを出さない', () => {
     const lines: string[] = [];
-    const logger = new Logger({ service: 'test', level: 'info', env: 'production', sink: (l) => lines.push(l) });
+    const logger = new Logger({
+      service: 'test',
+      level: 'info',
+      env: 'production',
+      sink: (l) => lines.push(l),
+    });
     logger.error('failed', new Error('boom'));
     expect(JSON.parse(lines[0]!).stack).toBeUndefined();
   });

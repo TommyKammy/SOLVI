@@ -80,9 +80,10 @@ describe('監査イベントの記録', () => {
     const eventId = await runWithContext(newContext(), () =>
       asOrg(ORG_A, (c) => recordAuditEvent(c, sampleEvent())),
     );
-    const { rows } = await admin.query('SELECT event_type, outcome FROM audit_event WHERE event_id = $1', [
-      eventId,
-    ]);
+    const { rows } = await admin.query(
+      'SELECT event_type, outcome FROM audit_event WHERE event_id = $1',
+      [eventId],
+    );
     expect(rows[0]).toMatchObject({ event_type: 'config.changed', outcome: 'success' });
   });
 
@@ -152,18 +153,20 @@ describe('append-only の強制 (ADR-0009 / Gate 1 G1-4)', () => {
     await expect(
       admin.query("UPDATE audit_event SET outcome = 'failure' WHERE event_id = $1", [eventId]),
     ).rejects.toThrow(/append-only/);
-    await expect(admin.query('DELETE FROM audit_event WHERE event_id = $1', [eventId])).rejects.toThrow(
-      /append-only/,
-    );
+    await expect(
+      admin.query('DELETE FROM audit_event WHERE event_id = $1', [eventId]),
+    ).rejects.toThrow(/append-only/);
   });
 });
 
 describe('監査の組織境界', () => {
   it('他組織の監査イベントが見えない', async () => {
-    await runWithContext(newContext(), () => asOrg(ORG_B, (c) => recordAuditEvent(c, sampleEvent(ORG_B))));
+    await runWithContext(newContext(), () =>
+      asOrg(ORG_B, (c) => recordAuditEvent(c, sampleEvent(ORG_B))),
+    );
     const visibleFromA = await asOrg(ORG_A, async (c) => {
       const { rows } = await c.query(
-        "SELECT count(*)::int AS n FROM audit_event WHERE organization_id = $1",
+        'SELECT count(*)::int AS n FROM audit_event WHERE organization_id = $1',
         [ORG_B],
       );
       return rows[0].n;
@@ -205,7 +208,9 @@ describe('日次アンカーと改ざん検知 (Gate 1 G1-5)', () => {
   const today = new Date().toISOString().slice(0, 10);
 
   it('アンカーを作成して照合できる', async () => {
-    await runWithContext(newContext(), () => asOrg(ORG_A, (c) => recordAuditEvent(c, sampleEvent())));
+    await runWithContext(newContext(), () =>
+      asOrg(ORG_A, (c) => recordAuditEvent(c, sampleEvent())),
+    );
 
     const result = await computeDailyRoot(admin, today);
     expect(result.eventCount).toBeGreaterThan(0);
@@ -254,13 +259,22 @@ describe('日次アンカーと改ざん検知 (Gate 1 G1-5)', () => {
     await persistAnchor(admin, await computeDailyRoot(admin, today), null);
     const second = await persistAnchor(
       admin,
-      { anchorDate: today, eventCount: 0, rootHash: 'f'.repeat(64), firstEventId: null, lastEventId: null },
+      {
+        anchorDate: today,
+        eventCount: 0,
+        rootHash: 'f'.repeat(64),
+        firstEventId: null,
+        lastEventId: null,
+      },
       null,
     );
     expect(second).toBe('already_exists');
     // UPDATE も拒否される
     await expect(
-      admin.query("UPDATE audit_anchor SET root_hash = $1 WHERE anchor_date = $2", ['0'.repeat(64), today]),
+      admin.query('UPDATE audit_anchor SET root_hash = $1 WHERE anchor_date = $2', [
+        '0'.repeat(64),
+        today,
+      ]),
     ).rejects.toThrow(/append-only/);
   });
 

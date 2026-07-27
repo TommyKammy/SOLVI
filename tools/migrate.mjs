@@ -66,7 +66,9 @@ async function ensureTable(client) {
 }
 
 async function applied(client) {
-  const { rows } = await client.query('SELECT version, name, checksum, applied_at FROM schema_migration ORDER BY version');
+  const { rows } = await client.query(
+    'SELECT version, name, checksum, applied_at FROM schema_migration ORDER BY version',
+  );
   return rows;
 }
 

@@ -28,7 +28,10 @@ async function asOrg<T>(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('SELECT set_config($1, $2, true)', ['app.current_org', organizationId ?? '']);
+    await client.query('SELECT set_config($1, $2, true)', [
+      'app.current_org',
+      organizationId ?? '',
+    ]);
     const result = await fn(client);
     await client.query('ROLLBACK'); // テストは状態を残さない
     return result;
@@ -130,7 +133,9 @@ describe('書き込みの越境', () => {
     await expect(
       asOrg(ORG_A, async (c) => {
         const { rows: users } = await c.query('SELECT id FROM app_user LIMIT 1');
-        const { rows: roles } = await c.query("SELECT id, scope FROM role WHERE code = 'requester'");
+        const { rows: roles } = await c.query(
+          "SELECT id, scope FROM role WHERE code = 'requester'",
+        );
         return c.query(
           `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source)
            VALUES (gen_random_uuid(), $1, $2, $3, $4, 'manual')`,

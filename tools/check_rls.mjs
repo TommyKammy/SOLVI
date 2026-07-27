@@ -56,7 +56,8 @@ try {
       continue;
     }
     if (role.rolsuper) problems.push(`${name} が SUPERUSER です`);
-    if (role.rolbypassrls) problems.push(`${name} が BYPASSRLS を持っています(RLSが無効化されます)`);
+    if (role.rolbypassrls)
+      problems.push(`${name} が BYPASSRLS を持っています(RLSが無効化されます)`);
     if (role.rolcreaterole) problems.push(`${name} が CREATEROLE を持っています(権限昇格の経路)`);
   }
 
@@ -97,7 +98,8 @@ try {
       );
       continue;
     }
-    if (excused) notes.push(`${t.table_name}: 非組織スコープ — ${NON_ORG_SCOPED.get(t.table_name)}`);
+    if (excused)
+      notes.push(`${t.table_name}: 非組織スコープ — ${NON_ORG_SCOPED.get(t.table_name)}`);
 
     // schema_migration 以外はすべて RLS を要求する
     if (t.table_name === 'schema_migration') continue;
@@ -116,7 +118,9 @@ try {
   for (const t of tables) {
     if (t.table_name === 'schema_migration') continue;
     if (!withPolicy.has(t.table_name))
-      problems.push(`テーブル ${t.table_name} に RLS ポリシーがありません(RLS有効=全行不可視のまま)`);
+      problems.push(
+        `テーブル ${t.table_name} に RLS ポリシーがありません(RLS有効=全行不可視のまま)`,
+      );
   }
 
   // ---- 5. 実際に組織コンテキストなしで 0 行になるか ----

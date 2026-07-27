@@ -68,7 +68,10 @@ export class Database {
         context.organizationId ?? '',
       ]);
       if (context.actorId) {
-        await client.query('SELECT set_config($1, $2, true)', ['app.current_actor', context.actorId]);
+        await client.query('SELECT set_config($1, $2, true)', [
+          'app.current_actor',
+          context.actorId,
+        ]);
       }
       const result = await fn(client);
       await client.query('COMMIT');
