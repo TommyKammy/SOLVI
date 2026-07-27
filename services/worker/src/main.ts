@@ -4,6 +4,8 @@ import {
   loadEnv,
   createLogger,
   EnvValidationError,
+  startTracing,
+  stopTracing,
   newContext,
   runWithContext,
   type WorkerEnv,
@@ -30,6 +32,14 @@ async function bootstrap(): Promise<void> {
     }
     throw error;
   }
+
+  // 計装は他の初期化より先に行う
+  startTracing({
+    serviceName: 'solvi-worker',
+    serviceVersion: SERVICE_VERSION,
+    environment: env.NODE_ENV,
+    otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT || undefined,
+  });
 
   const logger = createLogger({ service: 'worker', level: env.LOG_LEVEL, env: env.NODE_ENV });
   const pool = new pg.Pool({ connectionString: env.DATABASE_URL, max: 5 });
@@ -84,6 +94,7 @@ async function bootstrap(): Promise<void> {
     clearInterval(healthTimer);
     server.close();
     await pool.end();
+    await stopTracing();
     process.exit(0);
   };
   process.on('SIGTERM', () => void shutdown('SIGTERM'));

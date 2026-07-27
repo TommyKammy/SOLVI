@@ -1,4 +1,5 @@
 import { redactLogRecord } from './redact.js';
+import { currentTraceId } from '../observability/tracing.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -60,12 +61,16 @@ export class Logger {
 
   private write(level: LogLevel, message: string, fields: LogContext): void {
     if (LEVEL_ORDER[level] < LEVEL_ORDER[this.options.level]) return;
+    // trace id をログへ載せ、ログからトレースへ辿れるようにする。
+    // トレースが有効でない場合は付けない(全ゼロのIDは検索を汚すだけ)。
+    const traceId = currentTraceId();
     const record = redactLogRecord({
       timestamp: new Date().toISOString(),
       level,
       message,
       service: this.options.service,
       env: this.options.env,
+      ...(traceId ? { traceId } : {}),
       ...this.context,
       ...fields,
     });
