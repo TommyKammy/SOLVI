@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P1-AUD-004: Append-only Audit基盤とアンカー
@@ -149,4 +149,4 @@ Evidenceは`evidence/WP-P1-AUD-004/<YYYYMMDD-HHMM>/`へ保存し、Command・Env
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `036b0cd` | Done | `evidence/WP-P1-AUD-004/20260727-1020/verification.md` | 監査テスト18/18。append-onlyを権限REVOKE+トリガの二層で強制し、**owner権限でも**UPDATE/DELETEが拒否されることを確認。日次アンカーで改ざん(UPDATE/DELETE)を両方ともmismatch検出。uuid v7に単調カウンタを実装(順序が崩れると連鎖ハッシュが非決定的になり改ざん検知が壊れるため)。 |

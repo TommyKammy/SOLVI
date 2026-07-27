@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 249 |
 | Markdown | 241 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,567,070 bytes |
+| 合計サイズ | 6,577,986 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 2857 | `25131244b6c9a8d39aa3df1b54b2423ae3e3816e874a5728861ca90b0e6c0b4c` |
-| `00_Index/00.8_Status_Dashboard.md` | 2360 | `288748ccc07246a19f733cc9edd59e41500bf0f767af6eb58c2a92eea7a55c24` |
+| `00_Index/00.8_Status_Dashboard.md` | 2860 | `151f0fe60b2e8f9a7abb53b128ea71e95a2164003b2599b5e4cd47fcdbb60fc7` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -146,18 +146,18 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
 | `06_WorkPackages/P0_Planning/WP-P0-ARCH-002.md` | 4958 | `c20abf4249c479976407e052ba6f1d0d18b8f1f37a78c6254cc2bcc50717990b` |
-| `06_WorkPackages/P0_Planning/WP-P0-DEV-005.md` | 5345 | `4ac09ec54771600a013466f32233a05c6357ea03b6aaee670cb02db75b0e2e10` |
+| `06_WorkPackages/P0_Planning/WP-P0-DEV-005.md` | 5669 | `a5bd71bfa911e00655a9aa7c66467bf98a76a4099aa4a5093306317655ffe552` |
 | `06_WorkPackages/P0_Planning/WP-P0-GOV-001.md` | 5309 | `72fc49db24f6208d42c8a7e4ad9202a2d378a9b6c501d11a1b08b0a4df640941` |
 | `06_WorkPackages/P0_Planning/WP-P0-REQ-004.md` | 4916 | `01383a3c678df43e3a87ea306707462a7e2234953a9b8d831f7771b5b32c556e` |
 | `06_WorkPackages/P0_Planning/WP-P0-SEC-003.md` | 5017 | `68fca8643f2a825dabf35483f597d82236bbe255bfe2ac0b67e2e56451c1cdd6` |
 | `06_WorkPackages/P0_Planning/WP-P0-UX-006.md` | 5243 | `340909f8e7546e8e950ac5b5a35590acfdc416ba10812e1343b6f501fcd02334` |
-| `06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md` | 6251 | `91922d997c0840a858fa738522342d3f272e6045327f09ce75417faca975d6d3` |
+| `06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md` | 6687 | `d61937be5f1410be40580c7700e36ae8705ce96ce161455b9210b74f164ba981` |
 | `06_WorkPackages/P1_Foundation/WP-P1-BCK-007.md` | 5471 | `61493fa17ca2b89d91f474eeff1d36c4838c52c56c500865fafae054e84cf3e2` |
-| `06_WorkPackages/P1_Foundation/WP-P1-CI-006.md` | 5476 | `65ab0f915401b496a5bd5550b9b8a4d4a733a3f4bc268d541ef0445c9ccd1c36` |
-| `06_WorkPackages/P1_Foundation/WP-P1-DATA-002.md` | 6293 | `7425b92a374ba681c9e1f5476a0a74ad1bfb992a893e9a5f172ed942a424860a` |
+| `06_WorkPackages/P1_Foundation/WP-P1-CI-006.md` | 5859 | `6a68748540858a38a582d61c29c219526931aa8cdf8603307f8caa4b1404af30` |
+| `06_WorkPackages/P1_Foundation/WP-P1-DATA-002.md` | 6760 | `2159688b128334cf880d4fc6d7694988bf3ba2b312df9eda139d797d82679906` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-003.md` | 5949 | `2c36a5f776bd9830b2b28a0ead59d3599f33b25884bcd4c22e9b2d2f09b9c028` |
 | `06_WorkPackages/P1_Foundation/WP-P1-OBS-005.md` | 5053 | `7464456434dbb1bd04ff145f08bb67a3a1d7f7789929db503e1705a8a1763a2c` |
-| `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 5567 | `55781f1e12fd88064691be05ebf0ae255f48f85658c74b790cafa76e9f8efb5d` |
+| `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 5923 | `b2e7f5917cbaa40a58580bf9c23c8ac461d790057581b59dafc62b38b73eafe8` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 2768 | `31b842caf7890596716085726dd772bb4758a47e1a1835f49b98bb332d6a003f` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-GATE-007.md` | 2867 | `3670d724f8a0c2d8b260ea410e3e05e5fb48db8a3268b951b9597411815d1f13` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 2719 | `c69dc3a91f0001414475dc8be3486252295d637c74bc50ec11332d46f0d2a4b3` |
@@ -165,7 +165,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 2813 | `15fbd9c1427a531571ae42317907381fe66e5a8c7adae22c17667bb4b9d1f6ca` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 2757 | `9ad13721756b9174f7f5f78613c60941145d76c55092a246d484409f757dea4a` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLO-008.md` | 4691 | `9b139e12a6f9af4c045b69fccd54d0c809e126d653b3847f92f1a9b14e4a4b9b` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 2768 | `b209520fecd77e871df12b2dc444ae8fe4daa328bac63efa7ad70a212ba745fb` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 7908 | `37fd3dee9215a6487f6a9a2d48c3b63685342d011de9add4ac2df211d98f3136` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2801 | `03d48931d82108cdb9bc6c036e6696285620df7a00907f8f299f492427edb4f0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-LINK-003.md` | 2680 | `698b45699928c6ecd0bbc51cc653d82aa09564026cad7c70afd05e2035ed9557` |
@@ -277,8 +277,8 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.13_Vault_Validation_Report.md` | 4685 | `507aa4d3fc393c09c9b2c3ee82f83c99394c76d6b7cbe724ccd8661632355383` |
 | `99_Project_Files/99.1_Project_Charter.md` | 1618 | `d5ab4c80b5cf2c59f0a3ab2197a922e6c3fc5ba8eb846ec3af9821dbc06cb6ca` |
 | `99_Project_Files/99.2_Assumptions_and_Constraints.md` | 1372 | `83af0468573706bd83a680c4e733e0040f93d2a714945d418ef6111a4eea2022` |
-| `99_Project_Files/99.3_Risk_Register.md` | 1679 | `0cc17e984fd2ec545dc406d6bee6735675528427d985806e251bc05b3af28ced` |
-| `99_Project_Files/99.4_Decision_Log.md` | 1325 | `b605d76ada9360639318bfb96de6cf8305da73d79fb40f6646d1dfda880a843c` |
+| `99_Project_Files/99.3_Risk_Register.md` | 2652 | `89379a0103d2629390332ee025f05fb21d4efb1fc5772aa6ca60ff407339994f` |
+| `99_Project_Files/99.4_Decision_Log.md` | 3662 | `42a26239c819cf3abafe591b4ac8f990e97855c7dc3708b1ad73bff1aaadc43e` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
 | `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |

@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P1-PLAT-001: MonorepoとLocal基盤
@@ -147,4 +147,4 @@ Evidenceは`evidence/WP-P1-PLAT-001/<YYYYMMDD-HHMM>/`へ保存し、Command・En
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `97e1b97` | Done | `evidence/WP-P1-PLAT-001/20260727-1008/verification.md` | 5サービス起動・healthz/readyz分離・マイグレーション基盤(up/down往復)。境界検証13/13(Executor非公開、AI→Executor/DB/API到達不可、相関ID、problem+json)。Secret一覧と環境別サイジングを`docs/`へ作成(ADR-0016/0018のFollow-up消化)。 |

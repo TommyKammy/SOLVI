@@ -1,17 +1,17 @@
 ---
 project: SOLVI
-doc_id: 'ROOT-AGENTS'
-title: 'SOLVI Codex Development Rules'
-category: 'ROOT'
-type: 'agent-instruction'
-status: 'accepted'
-version: '0.2.0'
-created: '2026-07-27'
-updated: '2026-07-27'
-owner: 'SOLVI Product Team'
-tags: ['codex', 'security']
+doc_id: "ROOT-AGENTS"
+title: "SOLVI Codex Development Rules"
+category: "ROOT"
+type: "agent-instruction"
+status: "accepted"
+version: "0.2.0"
+created: "2026-07-27"
+updated: "2026-07-27"
+owner: "SOLVI Product Team"
+tags: ["codex", "security"]
 source_of_truth: true
-implementation_status: 'not-started'
+implementation_status: "not-started"
 ---
 
 # SOLVI Codex Development Rules

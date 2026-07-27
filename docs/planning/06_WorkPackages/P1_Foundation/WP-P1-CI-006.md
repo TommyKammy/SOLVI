@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "in-progress"
 ---
 
 # WP-P1-CI-006: CI Quality GateとClean-host
@@ -65,7 +65,7 @@ implementation_status: "not-started"
 - [ ] secret scanが有効で、テスト用の疑似Secretをコミットした場合にCIが失敗する(実証テスト)
 - [ ] 依存脆弱性scanでCritical/Highが検出された場合にCIが失敗する
 - [ ] 禁止依存検査(WP-P0-ARCH-002の成果物)が動作し、違反時に失敗する
-- [ ] `tools/check_rls.py`と`tools/check_requirements.py`がCIで実行される
+- [ ] `tools/check_rls.mjs`と`tools/check_requirements.py`がCIで実行される
 - [ ] Dockerfileのイメージ参照がすべてdigest固定であることを検査する
 - [ ] クリーンホスト検証がCIまたは手順書で再現でき、所要時間が記録されている
 
@@ -140,4 +140,4 @@ CIの各ジョブは失敗理由が一目でわかるようにする。警告の
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `1b7002a` | Partially done | `evidence/WP-P1-CI-006/20260727-1023/verification.md` | ワークフロー5ジョブを定義し、禁止依存検査・skip検査を新規実装。意図的な違反を3種注入して検出を実証済み。**未完了**: GitHub Actions上での実行(リモートリポジトリ未作成)。Gate 1のG1-6判定前に実PRでの動作確認が必要。 |

@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P1-DATA-002: Organization/User/Role schemaとRLS
@@ -44,7 +44,7 @@ implementation_status: "not-started"
 - `services/api/src/modules/identity/`
 - `services/api/src/common/authz/`
 - `tests/security/`
-- `tools/check_rls.py`
+- `tools/check_rls.mjs`
 
 ## 5. Out of Scope
 
@@ -128,7 +128,7 @@ Migrationのdownでスキーマを戻す。RLS設定はスキーマと同一Migr
 3. リクエストごとに`SET LOCAL app.current_org`を行うミドルウェアを実装する(接続プール利用時の漏れに注意)。
 4. オブジェクトレベル認可の共通機構(リソース取得時に所有者・ロールを検証、存在秘匿は404)を実装する。
 5. **越境テストをルーティング定義から自動生成**する仕組みを作る。手書きのテストリストにしない。
-6. `tools/check_rls.py`(全テーブルのRLS有効性・接続ロール権限を検査)を作成し、CIで実行できるようにする。
+6. `tools/check_rls.mjs`(全テーブルのRLS有効性・接続ロール権限を検査)を作成し、CIで実行できるようにする。
 
 重要: RLSは安全網であり主たる認可ではない。アプリケーション層の認可を省略しないこと。
 ```
@@ -147,4 +147,4 @@ Migrationのdownでスキーマを戻す。RLS設定はスキーマと同一Migr
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `4cf1bb3` | Done | `evidence/WP-P1-DATA-002/20260727-1015/verification.md` | 越境テスト18/18、認可単体15/15、RLS検査 問題0件、Migration up/down往復成功。**逸脱1件**: §4のAllowed Pathを`tools/check_rls.py`→`tools/check_rls.mjs`へ変更。DB接続に`pg`を用いるためNode実装が自然で、他のDBツール(migrate/seed/bootstrap_roles)と実装言語を揃えた。本WPの§4と§11を同じ変更で更新済み(2026-07-27 承認)。 |

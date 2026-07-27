@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P0-DEV-005: Repository・AGENTS・Issue規約
@@ -139,4 +139,4 @@ Evidenceは`evidence/WP-P0-DEV-005/<YYYYMMDD-HHMM>/`へ保存し、Command・Env
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `c5c9731` | Done | `evidence/`(構造検査はCIで再現可) | モノレポ構造・AGENTS配置・CODEOWNERS・PR/Issueテンプレート。Allowed Paths検査(18WP/66パス)を`tools/check_allowed_paths.mjs`として実装し全件一致。GitHub Issue化とリモートリポジトリ作成は未実施(ローカルgitのみ)。 |
