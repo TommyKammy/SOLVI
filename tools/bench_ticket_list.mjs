@@ -118,6 +118,22 @@ results.push(
 );
 results.push(
   await measure(
+    '全文検索(部分一致)',
+    `SELECT t.* FROM ticket t WHERE t.organization_id = $1 AND t.search_text ILIKE $2
+    ORDER BY t.created_at DESC, t.id DESC LIMIT 50`,
+    [ORG, '%ベンチマーク%'],
+  ),
+);
+results.push(
+  await measure(
+    '全文検索(語中一致)',
+    `SELECT t.* FROM ticket t WHERE t.organization_id = $1 AND t.search_text ILIKE $2
+    ORDER BY t.created_at DESC, t.id DESC LIMIT 50`,
+    [ORG, '%チケット 5%'],
+  ),
+);
+results.push(
+  await measure(
     '依頼者視点(自分の分)',
     `SELECT t.* FROM ticket t WHERE t.organization_id = $1 AND t.requester_id = $2
     ORDER BY t.created_at DESC, t.id DESC LIMIT 50`,
@@ -126,7 +142,7 @@ results.push(
 );
 
 const worst = Math.max(...results);
-const THRESHOLD_MS = 1500; // NFR-PERF-001
+const THRESHOLD_MS = 1500; // NFR-PERF-001(検索は NFR-PERF-002 の 2000ms)
 console.log(`\n最も遅いクエリの p95: ${worst.toFixed(1)}ms / 目標 ${THRESHOLD_MS}ms`);
 
 await pool.end();

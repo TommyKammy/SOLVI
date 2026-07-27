@@ -1,11 +1,17 @@
 import type pg from 'pg';
 import {
+  applyClockAction,
   canTransition,
+  clockActionFor,
   derivePriority,
+  evaluateSla,
   Problems,
   type Impact,
+  DEFAULT_SLA_TARGETS,
   type Priority,
   type TicketState,
+  type SlaClockState,
+  type SlaStatus,
   type TransitionReason,
   type Urgency,
 } from '@solvi/shared';
@@ -46,6 +52,9 @@ export interface Ticket {
   resolvedAt: Date | null;
   closedAt: Date | null;
   createdAt: Date;
+  /** SLAクロック。停止中は startedAt が null(FR-TKT-008)。 */
+  slaClock: SlaClockState;
+  firstRespondedAt: Date | null;
 }
 
 /**
@@ -100,6 +109,11 @@ function toTicket(row: Record<string, unknown>): Ticket {
     resolvedAt: (row.resolved_at as Date | null) ?? null,
     closedAt: (row.closed_at as Date | null) ?? null,
     createdAt: row.created_at as Date,
+    slaClock: {
+      startedAt: (row.sla_clock_started_at as Date | null) ?? null,
+      elapsedSeconds: Number(row.sla_elapsed_seconds ?? 0),
+    },
+    firstRespondedAt: (row.first_responded_at as Date | null) ?? null,
   };
 }
 
@@ -143,8 +157,8 @@ export class TicketService {
     const { rows } = await this.client.query(
       `INSERT INTO ticket
          (id, organization_id, number, kind, state, subject, body,
-          requester_id, impact, urgency, priority)
-       VALUES ($1, $2, $3, $4, 'new', $5, $6, $7, $8, $9, $10)
+          requester_id, impact, urgency, priority, sla_clock_started_at)
+       VALUES ($1, $2, $3, $4, 'new', $5, $6, $7, $8, $9, $10, now())
        RETURNING *`,
       [
         id,
@@ -248,6 +262,12 @@ export class TicketService {
       throw Problems.invalidTransition(ticket.state, input.to);
     }
 
+    // SLAクロックの更新。停止・再開の条件は状態機械の slaClock を唯一の根拠とする
+    // (ここで独自の条件分岐を書くと遷移表と挙動が食い違う / FR-TKT-008)。
+    const now = ctx.now ?? new Date();
+    const action = clockActionFor(ticket.state, input.to, input.reason);
+    const nextClock = action ? applyClockAction(ticket.slaClock, action, now) : ticket.slaClock;
+
     const { rows: updated } = await this.client.query(
       `UPDATE ticket
           SET state = $2,
@@ -255,11 +275,17 @@ export class TicketService {
                 WHEN $2 IN ('resolved', 'closed') THEN COALESCE(resolved_at, now())
                 ELSE NULL
               END,
-              closed_at = CASE WHEN $2 = 'closed' THEN COALESCE(closed_at, now()) ELSE NULL END
+              closed_at = CASE WHEN $2 = 'closed' THEN COALESCE(closed_at, now()) ELSE NULL END,
+              sla_clock_started_at = $3,
+              sla_elapsed_seconds = $4
         WHERE id = $1
         RETURNING *`,
-      [ticket.id, input.to],
+      [ticket.id, input.to, nextClock.startedAt, nextClock.elapsedSeconds],
     );
+
+    // SLA判定は記録のみ。**超過しても遷移は止めない**(WP-P2-SEARCH-006 §6)。
+    // SLAは計測指標であり統制ではない。
+    await this.refreshSlaBreach(ctx, toTicket(updated[0]!), now);
 
     await recordAuditEvent(this.client, {
       eventType: 'ticket.transitioned',
@@ -392,6 +418,65 @@ export class TicketService {
       nextCursor,
       scope: visibilityScope(ctx),
     };
+  }
+
+  /** 組織のSLAポリシーを取得する。未設定なら既定値を使う。 */
+  private async slaTargetFor(
+    ctx: AuthzContext,
+    priority: Priority,
+  ): Promise<{ responseTargetMinutes: number; resolutionTargetMinutes: number }> {
+    const { rows } = await this.client.query<{
+      response_target_minutes: number;
+      resolution_target_minutes: number;
+    }>(
+      'SELECT response_target_minutes, resolution_target_minutes FROM sla_policy WHERE organization_id = $1 AND priority = $2',
+      [ctx.organizationId, priority],
+    );
+    if (rows.length === 0) return DEFAULT_SLA_TARGETS[priority];
+    return {
+      responseTargetMinutes: rows[0]!.response_target_minutes,
+      resolutionTargetMinutes: rows[0]!.resolution_target_minutes,
+    };
+  }
+
+  /** SLAの判定結果を記録する。遷移を止めることはしない。 */
+  private async refreshSlaBreach(ctx: AuthzContext, ticket: Ticket, now: Date): Promise<void> {
+    const status = evaluateSla({
+      clock: ticket.slaClock,
+      target: await this.slaTargetFor(ctx, ticket.priority),
+      firstRespondedAt: ticket.firstRespondedAt,
+      createdAt: ticket.createdAt,
+      resolvedAt: ticket.resolvedAt,
+      now,
+    });
+    await this.client.query(
+      'UPDATE ticket SET response_sla_breached = $2, resolution_sla_breached = $3 WHERE id = $1',
+      [ticket.id, status.responseBreached, status.resolutionBreached],
+    );
+  }
+
+  /** 現時点のSLA状況。一覧・詳細の表示に使う。 */
+  async slaStatus(ctx: AuthzContext, ticketId: string, now = new Date()): Promise<SlaStatus> {
+    const ticket = await this.findById(ctx, ticketId);
+    return evaluateSla({
+      clock: ticket.slaClock,
+      target: await this.slaTargetFor(ctx, ticket.priority),
+      firstRespondedAt: ticket.firstRespondedAt,
+      createdAt: ticket.createdAt,
+      resolvedAt: ticket.resolvedAt,
+      now,
+    });
+  }
+
+  /**
+   * 初回応答の記録(FR-TKT-008の応答SLA)。
+   * 担当者の公開コメントで初めて呼ばれる。2回目以降は何もしない。
+   */
+  async recordFirstResponse(ctx: AuthzContext, ticketId: string, at = new Date()): Promise<void> {
+    await this.client.query(
+      'UPDATE ticket SET first_responded_at = $2 WHERE id = $1 AND first_responded_at IS NULL',
+      [ticketId, at],
+    );
   }
 
   /**

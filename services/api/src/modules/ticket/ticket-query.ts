@@ -148,11 +148,12 @@ function filterClauses(filter: TicketFilter | undefined, params: unknown[]): str
   if (filter.keyword) {
     const keyword = filter.keyword.trim();
     if (keyword.length > 0) {
-      // 番号は前方一致、件名は部分一致。値はパラメータとして渡す。
-      params.push(`${keyword}%`);
-      const numberParam = params.length;
-      params.push(`%${keyword}%`);
-      clauses.push(`(t.number ILIKE $${numberParam} OR t.subject ILIKE $${params.length})`);
+      // 番号・件名・本文をまとめた生成列(search_text)に対する部分一致。
+      // 値は常にパラメータとして渡す。ILIKE のワイルドカードとして解釈される
+      // % と _ はエスケープし、利用者の入力が検索範囲を広げないようにする。
+      const escaped = keyword.replace(/([%_\\])/g, '\\$1');
+      params.push(`%${escaped}%`);
+      clauses.push(`t.search_text ILIKE $${params.length}`);
     }
   }
   return clauses;
