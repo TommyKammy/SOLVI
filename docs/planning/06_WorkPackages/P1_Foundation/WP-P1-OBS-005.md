@@ -137,3 +137,19 @@ Evidenceは`evidence/WP-P1-OBS-005/<YYYYMMDD-HHMM>/`へ保存し、Command・Env
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-07-27 | Claude (Codex) | `8ada7b7` | Done | `evidence/WP-P1-OBS-005/20260727-1531/verification.md` | トレース疎通7/7、全951テスト通過。**重要な発見**: OpenTelemetryの自動計装が tsx/ESM 環境で無言で無効になっていた(SDKは起動するがスパンが0件、エラーもログも出ない)。実スタックへの疎通確認スクリプトを書いていたため発覚。HTTPハンドラで明示的にスパンを張る方式へ変更し、自動計装には依存しない構成にした。 |
+
+### 後日判明した実装欠陥 (2026-07-27 / [[WP-P2-SLO-008]] で修正)
+
+> [!bug] メトリクスは一度も記録されていなかった
+> `NodeSDK` に `metricReader` を渡していなかったため MeterProvider が生成されず、
+> `metrics.getMeter()` は `NoopMeterProvider` を返していた。
+> `recordHttpRequest()` `recordOutboxLag()` `recordAuthzDenial()` の呼び出しは
+> **すべて黙って捨てられていた。例外も警告も出ない。**
+>
+> 単体テストは自前のインメモリリーダーを立てるため、全て緑のままだった。
+> 上記のトレースの欠陥とまったく同じ形であり、**同じ教訓を2度学び損ねた**ことになる。
+> 「計器を定義した」ことと「本番の経路で出ている」ことは別の主張である。
+>
+> 修正: [[WP-P2-SLO-008]] で `PrometheusExporter` を接続し、`METRICS_PORT` で有効化。
+> 本番経路の確認を `tools/verify_slo_pipeline.mjs` として常設した。
+> → [[99.4_Decision_Log]] DL-009
