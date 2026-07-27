@@ -17,6 +17,7 @@ import {
   requireRole,
   type AuthzContext,
 } from '../../common/authz/authz.js';
+import { buildListQuery, visibilityScope, type ListOptions, type Cursor } from './ticket-query.js';
 
 /**
  * チケットのアプリケーションサービス。
@@ -275,6 +276,122 @@ export class TicketService {
     });
 
     return toTicket(updated[0]!);
+  }
+
+  /**
+   * 担当者の割当(FR-TKT-003)。
+   *
+   * 割当先が同一Organizationに所属していることを必ず検証する。
+   * 他組織のユーザを担当者にできると、そのユーザ経由でチケットの内容が読める。
+   *
+   * @param assigneeId null を渡すと割当解除
+   */
+  async assign(ctx: AuthzContext, ticketId: string, assigneeId: string | null): Promise<Ticket> {
+    requireRole(ctx, 'agent', 'org_admin', 'platform_admin');
+
+    const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1 FOR UPDATE', [
+      ticketId,
+    ]);
+    if (rows.length === 0) throw Problems.notFound('チケット');
+    const ticket = toTicket(rows[0]!);
+
+    if (assigneeId !== null) {
+      // 所属の検証。RLSにより他組織のrole_bindingは見えないため、
+      // 「見つからない = この組織に所属していない」と判定できる。
+      const { rows: members } = await this.client.query(
+        `SELECT 1 FROM role_binding
+          WHERE user_id = $1
+            AND organization_id = $2
+            AND valid_from <= now()
+            AND (valid_until IS NULL OR valid_until > now())
+          LIMIT 1`,
+        [assigneeId, ctx.organizationId],
+      );
+      if (members.length === 0) {
+        await this.denialRecorder.record(ctx.organizationId, {
+          eventType: 'authz.access.denied',
+          organizationId: ctx.organizationId,
+          actorType: 'user',
+          actorId: ctx.principal.userId,
+          targetType: 'ticket',
+          targetId: ticketId,
+          action: 'assign',
+          outcome: 'denied',
+          policyDecision: { rule: 'assignee_membership', detail: '割当先が組織に所属していません' },
+        });
+        throw Problems.validation([
+          { field: 'assigneeId', message: '指定された担当者はこの組織に所属していません' },
+        ]);
+      }
+    }
+
+    if (ticket.assigneeId === assigneeId) {
+      // 同じ相手への再割当は履歴として意味がない。無変更で返す。
+      return ticket;
+    }
+
+    const { rows: updated } = await this.client.query(
+      'UPDATE ticket SET assignee_id = $2 WHERE id = $1 RETURNING *',
+      [ticketId, assigneeId],
+    );
+
+    await this.client.query(
+      `INSERT INTO ticket_assignment
+         (id, organization_id, ticket_id, assignee_id, previous_assignee_id, assigned_by)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [uuidv7(), ctx.organizationId, ticketId, assigneeId, ticket.assigneeId, ctx.principal.userId],
+    );
+
+    await recordAuditEvent(this.client, {
+      eventType: 'ticket.assigned',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      subjectUserId: assigneeId,
+      targetType: 'ticket',
+      targetId: ticketId,
+      action: assigneeId === null ? 'unassign' : 'assign',
+      outcome: 'success',
+      beforeState: { assigneeId: ticket.assigneeId },
+      afterState: { assigneeId },
+    });
+
+    return toTicket(updated[0]!);
+  }
+
+  /**
+   * 一覧(FR-TKT-006)。
+   *
+   * 認可条件は WHERE 句に含まれる(ticket-query.ts)。
+   * 取得後のフィルタにすると、条件の書き忘れが大量漏えいに直結する。
+   * 件数も同じ条件で数え、権限外の件数を漏らさない。
+   */
+  async list(
+    ctx: AuthzContext,
+    options: ListOptions = {},
+  ): Promise<{ items: Ticket[]; total: number; nextCursor: Cursor | null; scope: string }> {
+    const query = buildListQuery(ctx, options);
+    const [listResult, countResult] = await Promise.all([
+      this.client.query(query.sql, query.params),
+      this.client.query<{ total: number }>(query.countSql, query.countParams),
+    ]);
+
+    const items = listResult.rows.map(toTicket);
+    // limit 件ちょうど返ったときのみ次ページがあり得る。
+    // カーソルの時刻は DB が返した文字列をそのまま使う(Date を経由すると
+    // マイクロ秒が失われ、次ページが空になる)。
+    const lastRow = listResult.rows[listResult.rows.length - 1];
+    const nextCursor =
+      items.length === query.limit && lastRow
+        ? { createdAt: lastRow.cursor_created_at as string, id: lastRow.id as string }
+        : null;
+
+    return {
+      items,
+      total: countResult.rows[0]!.total,
+      nextCursor,
+      scope: visibilityScope(ctx),
+    };
   }
 
   /**

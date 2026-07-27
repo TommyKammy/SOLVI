@@ -33,6 +33,7 @@ export const AUDIT_EVENT_TYPES = [
   // Phase 2(WP-P2-TKT-001)
   'ticket.created',
   'ticket.transitioned',
+  'ticket.assigned',
   'ticket.comment.added',
   'ticket.attachment.added',
   'ticket.attachment.downloaded',
