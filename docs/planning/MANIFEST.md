@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 252 |
-| Markdown | 244 |
+| 対象ファイル | 253 |
+| Markdown | 245 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,674,696 bytes |
+| 合計サイズ | 6,682,538 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3924 | `113a54bfa1de526d972c016d200f8f16dbfcd788cc2a733d85644f83d01a1887` |
-| `00_Index/00.8_Status_Dashboard.md` | 4044 | `a37d971664b90dd8265f8284db47d5629e7c88092d0f44cbe6fc864957f380a5` |
+| `00_Index/00.8_Status_Dashboard.md` | 4192 | `631dbe993828ac5bc7ee14b505fe8d6e6191c3fc002c86bcdc8cd5c8f6a4695b` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -163,6 +163,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-GATE-007.md` | 6043 | `e7fb73a5b1c72e3b3f6d19ac23d0173a2021b19e6c65b7cda9cb4147e002d570` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 11863 | `165ee414f36795a2d1974d3ec01093a15d5d0fda16992ca30a2dafde209e9322` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7688 | `8282ff4467c97035370ebc0da15cc818b09450ccf58fcd2fc0d75387c1a2746c` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPSUI-010.md` | 7694 | `ba4fabcc25ca9bc7abc4efad8c6035587b6744e6483902826affb9cab76750e6` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8379 | `25553e787c59678870df301ebf7a037ba1670525d6dd5429ac9032407448822a` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 8362 | `55c6c1429c0507de44847849fbb904ae461859a2605cd303d70306fc8b23b4d1` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 8519 | `95e707373ed383a3aabcd88f883129eb080e6c58c81dcfb52852673ac1f693bf` |
