@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnp.*
+# build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+# env & secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!**/testdata/*.key
+secrets/
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+# test & coverage
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+# evidence artifacts (large logs are stored externally; only summaries are committed)
+evidence/**/raw/
+# os / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

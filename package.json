@@ -1,0 +1,49 @@
+{
+  "name": "solvi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SOLVI — AI-native IT service management platform",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "services/api",
+    "services/worker",
+    "services/executor",
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "test": "npm run test --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspaces --if-present",
+    "test:integration": "npm run test:integration --workspaces --if-present",
+    "test:security": "npm run test:security --workspaces --if-present",
+    "db:migrate": "node tools/migrate.mjs up",
+    "db:rollback": "node tools/migrate.mjs down",
+    "db:status": "node tools/migrate.mjs status",
+    "db:seed": "node tools/seed.mjs",
+    "check:rls": "node tools/check_rls.mjs",
+    "check:requirements": "python3 tools/check_requirements.py",
+    "check:paths": "node tools/check_allowed_paths.mjs",
+    "check:images": "node tools/check_image_pinning.mjs",
+    "check:all": "npm run check:paths && npm run check:images && npm run check:requirements",
+    "up": "docker compose up -d --wait",
+    "down": "docker compose down -v",
+    "logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^3.0.2"
+  }
+}

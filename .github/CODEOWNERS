@@ -1,0 +1,14 @@
+# セキュリティに関わる領域は人間のレビューを必須にする(AGENTS.md §1.16)
+/services/executor/                 @security-reviewer
+/services/api/src/common/authz/     @security-reviewer
+/services/api/src/common/audit/     @security-reviewer
+/services/api/src/modules/audit/    @security-reviewer
+/services/api/src/modules/auth/     @security-reviewer
+/services/api/src/modules/identity/ @security-reviewer
+/packages/connectors/               @security-reviewer
+/db/migrations/                     @security-reviewer @tech-lead
+/tests/security/                    @security-reviewer
+/.github/workflows/                 @tech-lead
+/infra/                             @tech-lead
+/AGENTS.md                          @tech-lead @security-reviewer
+/docs/planning/07_ADR/              @tech-lead @security-reviewer
