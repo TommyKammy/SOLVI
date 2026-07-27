@@ -23,6 +23,11 @@ aliases: ["WP-P4-WF-003"]
 
 # Workflow RunとTransactional Outbox
 
+> [!note] スコープ変更(2026-07-27 / DL-007)
+> Transactional Outbox の**基盤**(`outbox_event`テーブル、ディスパッチャ、リトライ、失敗記録)は
+> [[WP-P2-NTF-005]] で実装済みです。本WPはその上に Workflow Run の状態機械・Command発行・
+> 補償処理を載せる範囲になります。着手時に見積り(13pt)を再評価してください。
+
 > [!warning] この文書は骨子のみ(status: draft)
 > 実装根拠に使用できません(AGENTS.md §0)。**該当Phase開始2週間前**までに実体化します。
 > 現時点で確定している内容は、リンク先の`baseline`文書を参照してください。
