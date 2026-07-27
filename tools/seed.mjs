@@ -113,9 +113,49 @@ try {
     [id(9602), leaverId, roleByCode.get('requester').id, 'org', ORGS[0].id],
   );
 
+  // ---------------------------------------------------------------------------
+  // SLAの目標値
+  //
+  // **これが無いとSLAの判定基準が存在しない。** テーブルはマイグレーションが
+  // 作るが中身は入らないため、新規構築した環境では目標値が空になる。
+  // 画面もAPIも動くが、期限が「無い」状態になる — 動いているように見えて
+  // 機能していない、という形になる。
+  //
+  // 暦時間(24時間)での目標値。営業時間・祝日の考慮は Gate A 後に判断する。
+  //
+  // > [!warning] **これは開発用の既定値であり、業務側の合意を経ていない。**
+  // > パイロット開始前に、実際の運用体制で守れる値かを確認する必要がある。
+  // > 守れない目標は「常に超過している」状態を作り、SLAそのものが見られなくなる。
+  // ---------------------------------------------------------------------------
+  const SLA_TARGETS = [
+    // priority, 初回応答(分), 解決(分)
+    ['critical', 30, 4 * 60], //  30分 /  4時間
+    ['high', 60, 24 * 60], //  1時間 / 24時間
+    ['medium', 4 * 60, 3 * 24 * 60], //  4時間 /  3日
+    ['low', 8 * 60, 7 * 24 * 60], //  8時間 /  7日
+  ];
+
+  let slaSeq = 9700;
+  for (const org of ORGS) {
+    for (const [priority, response, resolution] of SLA_TARGETS) {
+      await client.query(
+        `INSERT INTO sla_policy
+           (id, organization_id, priority, response_target_minutes, resolution_target_minutes)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (organization_id, priority) DO UPDATE
+            SET response_target_minutes = EXCLUDED.response_target_minutes,
+                resolution_target_minutes = EXCLUDED.resolution_target_minutes`,
+        [id(slaSeq++), org.id, priority, response, resolution],
+      );
+    }
+  }
+
   await client.query('COMMIT');
 
-  console.log(`seed 完了: organization ${ORGS.length} 件 / user ${created.length + 2} 件`);
+  console.log(
+    `seed 完了: organization ${ORGS.length} 件 / user ${created.length + 2} 件 / ` +
+      `SLA目標 ${ORGS.length * SLA_TARGETS.length} 件`,
+  );
   console.log('  組織:');
   for (const o of ORGS) console.log(`    ${o.code} (${o.id})`);
   console.log('  ※ すべて合成データ。実在の人物・組織とは無関係。');
