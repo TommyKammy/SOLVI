@@ -1,0 +1,126 @@
+import { cookies } from 'next/headers';
+
+/**
+ * API 呼び出し (WP-P2-PORTAL-002)。
+ *
+ * ブラウザから直接 API を叩かせず、**Next.js のサーバ側を経由する**。
+ *
+ * 理由は2つ。
+ *   1. セッションCookieが `HttpOnly` なので、ブラウザのJSからは読めない。
+ *      サーバ側で読んで転送する必要がある
+ *   2. API のオリジンをブラウザへ露出させない。露出させると CORS の設定が要り、
+ *      設定を緩めた分だけ攻撃面が広がる
+ */
+
+const API_BASE = process.env.API_BASE_URL ?? 'http://api:3001';
+
+export interface ProblemDetails {
+  type?: string;
+  title: string;
+  status: number;
+  detail?: string;
+  errors?: Array<{ field: string; message: string }>;
+  correlationId?: string;
+}
+
+export type ApiResult<T> =
+  { ok: true; data: T; setCookie?: string } | { ok: false; problem: ProblemDetails };
+
+async function call<T>(
+  path: string,
+  init: RequestInit & { forwardCookie?: boolean } = {},
+): Promise<ApiResult<T>> {
+  const headers = new Headers(init.headers);
+  headers.set('content-type', 'application/json');
+
+  if (init.forwardCookie !== false) {
+    const jar = await cookies();
+    const all = jar.getAll();
+    if (all.length > 0) {
+      headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+      // 画面は常に最新の状態を出す。チケットの状態はキャッシュしてよい情報ではない。
+      cache: 'no-store',
+    });
+  } catch {
+    // ネットワーク到達不能。**原因の詳細を利用者へ出さない。**
+    // 内部のホスト名やポートが画面に出ると、それ自体が偵察の材料になる。
+    return {
+      ok: false,
+      problem: { title: '接続できませんでした', status: 503 },
+    };
+  }
+
+  const setCookie = response.headers.get('set-cookie') ?? undefined;
+
+  if (response.status === 204) {
+    return { ok: true, data: undefined as T, ...(setCookie ? { setCookie } : {}) };
+  }
+
+  const text = await response.text();
+  const parsed: unknown = text.length > 0 ? JSON.parse(text) : {};
+
+  if (!response.ok) {
+    const problem = parsed as ProblemDetails;
+    return {
+      ok: false,
+      problem: { ...problem, status: problem.status ?? response.status },
+    };
+  }
+
+  return { ok: true, data: parsed as T, ...(setCookie ? { setCookie } : {}) };
+}
+
+export interface TicketView {
+  id: string;
+  number: string;
+  kind: 'incident' | 'request';
+  state: string;
+  subject: string;
+  body: string;
+  impact: string;
+  urgency: string;
+  priority: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  assigned: boolean;
+}
+
+export interface SessionView {
+  userId: string;
+  organizationId: string;
+  roles: Array<{ roleCode: string; organizationId: string | null }>;
+}
+
+export const api = {
+  login: (body: { email: string; password: string; organizationId?: string }) =>
+    call<{ userId: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      forwardCookie: false,
+    }),
+
+  logout: () => call<void>('/auth/logout', { method: 'POST' }),
+
+  me: () => call<SessionView>('/auth/me'),
+
+  createTicket: (body: {
+    kind: string;
+    subject: string;
+    body: string;
+    impact: string;
+    urgency: string;
+  }) => call<TicketView>('/tickets', { method: 'POST', body: JSON.stringify(body) }),
+
+  listTickets: (limit = 10) =>
+    call<{ items: TicketView[]; total: number; scope: string }>(`/tickets?limit=${limit}`),
+
+  getTicket: (id: string) => call<TicketView>(`/tickets/${encodeURIComponent(id)}`),
+};

@@ -53,6 +53,10 @@ services:
       DATABASE_URL: postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       METRICS_PORT: 9464
+      # 検証段階のローカル認証を有効化する(ADR-0019)。
+      # 本番構成(NODE_ENV=production)ではプロセスが起動を拒否する。
+      AUTH_LOCAL_ENABLED: 'true'
+      SESSION_COOKIE_SECURE: 'false'
       S3_ENDPOINT: http://minio:9000
     ports:
       - '${API_PORT:-3001}:3001'
@@ -89,6 +93,10 @@ services:
       DATABASE_URL: postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       METRICS_PORT: 9464
+      # 検証段階のローカル認証を有効化する(ADR-0019)。
+      # 本番構成(NODE_ENV=production)ではプロセスが起動を拒否する。
+      AUTH_LOCAL_ENABLED: 'true'
+      SESSION_COOKIE_SECURE: 'false'
       S3_ENDPOINT: http://minio:9000
     ports:
       - '${WORKER_PORT:-3002}:3002'
@@ -240,6 +248,12 @@ services:
       SYNTHETIC_API_BASE: http://api:3001
       SYNTHETIC_WEB_BASE: http://web:3000
       SYNTHETIC_PORT: 9465
+      # 合成監視専用のアカウント。実在の利用者を使い回すと、
+      # その人が無効化された瞬間に監視が落ちる(原因の特定にも時間がかかる)。
+      # 未設定なら login / ticket_create は「未実行」として公開し、成功扱いにしない。
+      SYNTHETIC_EMAIL: ${SYNTHETIC_EMAIL:-}
+      SYNTHETIC_PASSWORD: ${SYNTHETIC_PASSWORD:-}
+      SYNTHETIC_ORG: ${SYNTHETIC_ORG:-}
     volumes:
       - ./tools:/app/tools:ro
     depends_on:
@@ -268,6 +282,8 @@ services:
     environment:
       NODE_ENV: development
       API_BASE_URL: http://api:3001
+      WEB_BASE_URL: http://localhost:3000
+      SESSION_COOKIE_SECURE: 'false'
     ports:
       - '${WEB_PORT:-3000}:3000'
     volumes:

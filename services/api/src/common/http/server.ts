@@ -14,12 +14,44 @@ import {
 } from '@solvi/shared';
 import { randomUUID } from 'node:crypto';
 
-export type Handler = (req: IncomingMessage, res: ServerResponse) => Promise<unknown> | unknown;
+/** パスパラメータ。`/tickets/:id` の `:id` に入った値。 */
+export type RouteParams = Readonly<Record<string, string>>;
+
+export type Handler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: RouteParams,
+) => Promise<unknown> | unknown;
 
 interface Route {
   method: string;
+  /** 登録時のパターン(`/tickets/:id`)。メトリクスとトレースにはこれを使う。 */
   path: string;
+  segments: string[];
   handler: Handler;
+}
+
+/**
+ * パターンと実パスの照合。
+ *
+ * ここで返すのは値だけで、**メトリクスやスパン名にはパターンを使う**。
+ * 実IDを載せると時系列が無限に増えて監視基盤を壊す(metrics.ts の方針)。
+ */
+function matchPath(segments: string[], pathname: string): RouteParams | null {
+  const actual = pathname.split('/').filter((s) => s.length > 0);
+  if (actual.length !== segments.length) return null;
+
+  const params: Record<string, string> = {};
+  for (let i = 0; i < segments.length; i += 1) {
+    const pattern = segments[i]!;
+    const value = actual[i]!;
+    if (pattern.startsWith(':')) {
+      params[pattern.slice(1)] = decodeURIComponent(value);
+      continue;
+    }
+    if (pattern !== value) return null;
+  }
+  return params;
 }
 
 /**
@@ -35,14 +67,26 @@ export class HttpServer {
 
   constructor(private readonly logger: Logger) {}
 
-  get(path: string, handler: Handler): this {
-    this.routes.push({ method: 'GET', path, handler });
+  private register(method: string, path: string, handler: Handler): this {
+    this.routes.push({
+      method,
+      path,
+      segments: path.split('/').filter((s) => s.length > 0),
+      handler,
+    });
     return this;
   }
 
+  get(path: string, handler: Handler): this {
+    return this.register('GET', path, handler);
+  }
+
   post(path: string, handler: Handler): this {
-    this.routes.push({ method: 'POST', path, handler });
-    return this;
+    return this.register('POST', path, handler);
+  }
+
+  patch(path: string, handler: Handler): this {
+    return this.register('PATCH', path, handler);
   }
 
   listen(port: number): Server {
@@ -81,7 +125,18 @@ export class HttpServer {
 
     await runWithContext(context, async () => {
       const url = new URL(req.url ?? '/', 'http://localhost');
-      const route = this.routes.find((r) => r.method === req.method && r.path === url.pathname);
+
+      let route: Route | undefined;
+      let params: RouteParams = {};
+      for (const candidate of this.routes) {
+        if (candidate.method !== req.method) continue;
+        const matched = matchPath(candidate.segments, url.pathname);
+        if (matched) {
+          route = candidate;
+          params = matched;
+          break;
+        }
+      }
 
       // ヘルスチェックはスパンを作らない。大量に来るうえ障害解析の役に立たず、
       // 記録するとノイズでトレースが埋まる。
@@ -90,7 +145,7 @@ export class HttpServer {
       const run = async (): Promise<void> => {
         try {
           if (!route) throw Problems.notFound('エンドポイント');
-          const body = await route.handler(req, res);
+          const body = await route.handler(req, res, params);
           if (res.writableEnded) return;
           this.sendJson(res, 200, body ?? {});
         } catch (error) {

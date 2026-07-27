@@ -27,7 +27,7 @@ import {
 } from '../../services/api/src/modules/auth/local-auth.service.js';
 import { beginAuthTransaction } from '../../services/api/src/modules/auth/auth-context.js';
 import { uuidv7 } from '../../services/api/src/common/audit/audit.js';
-import { cleanAuditData } from '../support/cleanup.js';
+import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
 const ORG_B = '00000000-0000-4000-9000-000000000002';
@@ -149,6 +149,10 @@ beforeEach(async () => {
   await admin.query('DELETE FROM session');
   await admin.query('DELETE FROM local_credential');
   await admin.query('DELETE FROM identity WHERE issuer = $1', [LOCAL_ISSUER]);
+  // 他のテストファイルが残したチケットが app_user を参照しているため、
+  // 業務データを先に消さないと利用者を削除できない(FK違反)。
+  // 削除順は tests/support/cleanup.ts に集約してある。
+  await cleanBusinessData(admin);
   await admin.query("DELETE FROM role_binding WHERE source = 'manual'");
   await admin.query("DELETE FROM app_user WHERE created_via = 'admin'");
   await cleanAuditData(admin, "target_type IN ('session', 'app_user')");
