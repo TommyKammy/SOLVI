@@ -3,102 +3,163 @@ project: SOLVI
 doc_id: "WP-P2-SEARCH-006"
 title: "Ticket SearchとSLA Lite"
 category: "06_WorkPackages"
-type: "work-package"
-status: "draft"
-version: "0.1.0"
+type: "workpackage"
+status: "baseline"
+version: "0.2.0"
 created: "2026-07-27"
 updated: "2026-07-27"
 owner: "SOLVI Product Team"
-tags: ["work-package", "p2", "search"]
-source_of_truth: false
+tags: ["workpackage", "p2"]
+source_of_truth: true
 implementation_status: "not-started"
-phase: "P2"
-workstream: "SEARCH"
-risk: "medium"
-story_points: 8
-depends_on: ["WP-P2-OPS-003"]
-requirement_ids: ["FR-TKT-006", "FR-TKT-008", "NFR-PERF-001"]
-aliases: ["WP-P2-SEARCH-006"]
 ---
 
-# Ticket SearchとSLA Lite
+# WP-P2-SEARCH-006: Ticket SearchとSLA Lite
 
-> [!warning] この文書は骨子のみ(status: draft)
-> 実装根拠に使用できません(AGENTS.md §0)。**該当Phase開始2週間前**までに実体化します。
-> 現時点で確定している内容は、リンク先の`baseline`文書を参照してください。
+| 項目 | 値 |
+|---|---|
+| Phase | P2 |
+| Workstream | SEARCH |
+| Risk | medium |
+| Story Points | 8 |
+| Suggested Owner | Backend |
+| Parallelizable | No([[WP-P2-OPS-003]]後) |
+| Gate | Gate A |
 
-## 1. 目的
+## 1. Purpose
 
-Permission-aware search、Saved view、応答/解決期限を実装。
+チケットの日本語全文検索と、SLA(応答・解決期限)の計測を実装する。
+
+**SLAの本質はクロックの停止条件にある。** 「利用者からの返信待ち」の時間をIT部門の
+応答時間に数えると、担当者は返信を待つほど成績が悪くなる。結果として、
+指標を守るために不要な催促や、実態と合わない期限設定が起きる。
+停止条件を正しく実装することが、この指標を運用に耐えるものにする条件である。
+
+検索は[[ADR-0011_Postgres_FTS_then_pgvector]]に従いPostgreSQLの全文検索で実装する。
+外部検索クラスタは導入しない。
 
 ## 2. Requirement IDs
 
-- `FR-TKT-006`
-- `FR-TKT-008`
-- `NFR-PERF-001`
+`FR-TKT-006`, `FR-TKT-008`, `NFR-SEC-001`, `NFR-SEC-006`, `NFR-PERF-001`, `NFR-PERF-002`
 
 ## 3. Dependencies
 
-- [[WP-P2-OPS-003]]
+[[WP-P2-OPS-003]](完了済み)
 
 ## 4. Scope / Allowed Paths
 
-- `apps/api`
-- `apps/web`
-- `database`
+- `db/migrations/`
+- `services/api/src/modules/ticket/`
+- `packages/shared/src/`
+- `tests/unit/`
+- `tests/security/`
+- `tools/`
 
 ## 5. Out of Scope
 
-- 後続Phaseの本格機能
+- **認証されたHTTPエンドポイント** — [[WP-P1-IDM-003]] 完了まで着手しない
+- ナレッジ記事の検索([[WP-P3-SRCH-002]])。本WPはチケットのみ
+- セマンティック検索・pgvector([[ADR-0011_Postgres_FTS_then_pgvector]]の判断基準に達していない)
+- SLA違反時の通知・エスカレーション([[WP-P2-NTF-005]])
+- 営業時間・カレンダーを考慮したSLA計算。**初期は暦時間(24時間)で計算する**
+  営業時間対応は祝日マスタと組織別設定が必要で、Gate A後の運用実績を見て判断する
+- SLAポリシーの画面からの編集(初期は組織ごとの既定値のみ)
 
-## 6. Deliverables
+## 6. 設計判断
 
-- Query/Filter
-- Index
-- Saved view
-- SLA policy
-- Clock abstraction
+| 論点 | 決定 | 理由 |
+|---|---|---|
+| 日本語検索の方式 | **pg_bigm ではなく PostgreSQL 標準の `simple` 設定 + pg_trgm** を初期採用 | 追加拡張を増やさずに始める。形態素解析が必要な精度要求が出た時点で[[ADR-0011_Postgres_FTS_then_pgvector]]のFollow-upとして再評価する |
+| SLAクロックの保持方法 | **累積経過時間を都度計算せず、状態遷移のたびに加算して保持** | 都度計算は遷移履歴の全走査が必要で、一覧表示で重くなる。加算方式なら列を読むだけで済む |
+| 停止条件 | `pending` で停止、`in_progress` で再開([[03.3_Ticket_Requirements]]の遷移表 `slaClock`) | 遷移表に既に定義済み。実装はその表を参照する |
+| SLA目標値 | 優先度別の既定値を組織単位で持つ | 初期は固定値。組織ごとの調整余地だけ残す |
+| 期限超過の扱い | 記録するが**遷移を止めない** | SLAは計測指標であり統制ではない。超過を理由に業務を止めると現場が回らない |
 
 ## 7. Acceptance Criteria
 
-- [ ] Cross-org result 0
-- [ ] p95計測
-- [ ] SLA pause/resume一致
+- [ ] `sla_policy` が organization_id を持ち、`check_rls.mjs` が問題0件で通る
+- [ ] 日本語の件名・本文で検索でき、部分一致(「ログイン」で「ログインできない」が)ヒットする
+- [ ] 検索結果に**権限外のチケットが1件も含まれない**(一覧と同じ認可条件を使う)
+- [ ] 検索キーワードに特殊文字(`&` `|` `!` `:` `'`)を含めても例外にならず、注入されない
+- [ ] **`pending` に遷移するとSLAクロックが停止し、経過時間が加算されない**
+- [ ] `pending` から `in_progress` に戻るとクロックが再開する
+- [ ] 応答期限(初回応答まで)と解決期限を優先度別に判定できる
+- [ ] 期限超過が記録されるが、**状態遷移は拒否されない**
+- [ ] 停止・再開を複数回繰り返しても経過時間が正しく累積する
+- [ ] 1万件での検索が p95 2.0秒以内(NFR-PERF-002)
 
 ## 8. Verification and Evidence
 
-- Query integration
-- Performance fixture
-- Time-control test
+### テスト(→ [[04.16_Test_Strategy]])
 
-EvidenceにはCommand、Environment、Commit SHA、Result、Timestamp、ScreenshotまたはLog URIを含める。
+- TL-01(SLAクロックの加算・停止・再開。時刻を制御して決定的に検証する)
+- TL-06(検索結果の権限絞り込み)
+- TL-03(検索キーワードの特殊文字)
+- TL-15(1万件での検索応答時間)
+
+### Evidence
+
+- クロックの停止・再開を含むシナリオでの経過時間の実測値
+- 検索結果に権限外が含まれないことの確認
+- 1万件での検索応答時間
+
+Evidenceは`evidence/WP-P2-SEARCH-006/<YYYYMMDD-HHMM>/`へ保存する。
 
 ## 9. Security and Audit
 
-- Organization境界とRoleを検証する。
-- 状態変更はAudit Eventを生成する。
-- Secret、Token、PIIをLog、Prompt、Ticketへ出力しない。
-- 特権操作はApproval、期限、Allowlist、Idempotency、Receiptを検証する。
+- 検索の認可条件は一覧([[WP-P2-OPS-003]])と**同一の実装を使う**。検索用に別の絞り込みを書くと、片方だけ修正されたときに漏れる
+- 検索キーワードは `plainto_tsquery` 等でパラメータとして扱う。`to_tsquery` に生文字列を渡さない(構文エラーと注入の両方を避ける)
+- SLA違反の情報は担当者向け。依頼者へ「対応が遅れている」ことを自動的に開示しない
+- 該当する脅威: T-01(越境)、T-02(検索経由での存在推測)、T-03(注入)
 
-## 10. Codex app Prompt
+## 10. Rollback / 失敗時の扱い
+
+Migration の down で `sla_policy` と SLA関連の列・索引を削除する。
+チケット本体は残る。SLAの計測値が失われるが、状態遷移の履歴(監査イベント)から再計算できる。
+
+## 11. Codex app Prompt
 
 ```text
-Ticket SearchとSLA Liteを実装し、AcceptanceとEvidenceを満たしてください。
-このWork PackageのScopeに限定してください。依存WPが未完了なら実装せず報告してください。
-実装後は変更File、Migration、検証CommandとResult、未解決事項、Security影響、Evidence保存先を提示してください。
+あなたはSOLVIの実装担当です。このWork Package(WP-P2-SEARCH-006)のみを実装してください。
+
+正本: AGENTS.md → 本WP(特に §6 設計判断)
+     → docs/planning/03_Requirements/03.3_Ticket_Requirements.md(§状態機械の slaClock)
+     → docs/planning/07_ADR/ADR-0011_Postgres_FTS_then_pgvector.md
+
+作業内容:
+1. 検索を実装する。**一覧(ticket-query.ts)の認可条件をそのまま使う**。
+   検索用に別の絞り込みを書かないこと。片方だけ修正されると漏れる。
+2. 検索キーワードはパラメータとして扱う。to_tsquery に生文字列を渡さない。
+   特殊文字(& | ! : ')を含んでも例外にならないこと。
+3. SLAクロックを実装する。**累積経過時間を列に保持し、状態遷移のたびに加算**する。
+   都度計算は遷移履歴の全走査が必要で一覧が重くなる。
+   停止・再開の条件は 03.3 の遷移表 slaClock を参照すること。
+4. 応答期限・解決期限を優先度別に判定する。**超過しても遷移は止めない**。
+   SLAは計測指標であり統制ではない。
+5. 1万件での検索応答時間を計測する。
+
+やってはいけないこと:
+- 検索用に別の認可条件を書くこと
+- SLA超過を理由に状態遷移を拒否すること
+- 営業時間・祝日を考慮した計算(初期は暦時間。Out of Scope)
+- HTTPエンドポイントの追加(WP-P1-IDM-003 未完了)
+
+完了時に報告すること:
+- クロックの停止・再開を含むシナリオでの経過時間の実測
+- 検索結果に権限外が含まれないことの確認
+- 1万件での検索応答時間
+- §7 Acceptance Criteria の充足状況
 ```
 
-## 11. Definition of Done
+## 12. Definition of Done
 
-- [ ] Acceptanceをすべて満たす。
-- [ ] Riskに応じたUnit/Integration/E2E/Security Testが通る。
-- [ ] DB変更にMigrationとCompatibility説明がある。
-- [ ] API、Runbook、Architecture、RTMを更新する。
-- [ ] 未解決Critical/Highがない。
-- [ ] 必要なHuman Reviewを完了する。
-- [ ] Execution LogとEvidenceを追記する。
+- [ ] §7 Acceptance Criteriaをすべて満たす
+- [ ] §8のテストが通り、Evidenceを保存した
+- [ ] Migration に down があり、up→down→up が成功する
+- [ ] `check_rls.mjs` と `check_architecture.mjs` が通る
+- [ ] Execution Logへ結果を追記した
 
-## 12. Execution Log
+## 13. Execution Log
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
