@@ -71,10 +71,12 @@ implementation_status: "partial"
       — **部分達成。** 役割・エスカレーション経路・Severity判定・中断基準は確定。
       **担当者名と連絡先が未記入**(OQ-013)。この状態では障害時に
       「誰に連絡すればよいか」が決まらない
-- [ ] 合成監視がPortalトップ・ログイン・チケット作成の3導線を定期実行している
-      — **未達。** portal_top / api_ready の2件のみ実行中。
-      login と ticket_create は [[WP-P1-IDM-003]] 未実装のため外部から実行できない。
-      `solvi_synthetic_skipped` として公開し、**成功として扱っていない**
+- [x] 合成監視がPortalトップ・ログイン・チケット作成の3導線を定期実行している
+      — **達成**(2026-07-27 / [[WP-P2-PORTAL-002]])。portal_top / api_ready / login /
+      ticket_create の4件。[[ADR-0019_Local_Authentication_For_Development]] により
+      外部IdPを待たずに認証導線を実行できるようになった。
+      専用アカウントを使う(実在の利用者を使い回すと、その人が無効化された瞬間に監視が落ちる)。
+      資格情報が未設定の場合は `solvi_synthetic_skipped` として公開し、成功扱いにしない
 - [x] パイロット中断の判断基準(重大障害の定義)が明記されている
       — [[08.3_SOLVI_Incident_Response]] §2
 
@@ -121,7 +123,7 @@ Evidenceは`evidence/WP-P2-SLO-008/<YYYYMMDD-HHMM>/`へ保存する([[06.2_Evide
 
 ## 12. Definition of Done
 
-- [ ] §7 Acceptance Criteriaをすべて満たす — **3件が未達**(§7参照)。
+- [ ] §7 Acceptance Criteriaをすべて満たす — **2件が未達**(§7参照)。
       いずれも実装作業ではなく、実運用データと担当者確定を要する
 - [x] §8のテストが通り、Evidenceを保存した
 - [x] DB変更なし(本WPはスキーマを変更しない)
