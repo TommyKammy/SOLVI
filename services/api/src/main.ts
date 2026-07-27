@@ -10,8 +10,34 @@ import {
 import { Database } from './common/db/pool.js';
 import { HttpServer } from './common/http/server.js';
 import { HealthService } from './modules/health/health.js';
+import { AuthController } from './modules/auth/auth.routes.js';
+import type { IncomingMessage } from 'node:http';
 
 const SERVICE_VERSION = process.env.SOLVI_VERSION ?? 'dev';
+
+/** 本文サイズの上限。上限が無いと、大きな本文だけでプロセスを潰せる。 */
+const MAX_BODY_BYTES = 64 * 1024;
+
+async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > MAX_BODY_BYTES) {
+      req.destroy();
+      throw new Error('リクエスト本文が大きすぎます');
+    }
+    chunks.push(chunk as Buffer);
+  }
+  if (chunks.length === 0) return {};
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    // 解析できない本文は、認証経路では「不正な資格情報」と同じ扱いにする。
+    // 詳細を返しても利用者の役には立たない。
+    return {};
+  }
+}
 
 async function bootstrap(): Promise<void> {
   let env: ApiEnv;
@@ -44,6 +70,24 @@ async function bootstrap(): Promise<void> {
   const db = new Database(env.DATABASE_URL, logger);
   const health = new HealthService(db, logger, SERVICE_VERSION);
 
+  // 認証。ローカル認証が無効なら経路は 404 を返す(存在を秘匿する)。
+  const auth = new AuthController(db.authPool(), {
+    localAuthEnabled: env.AUTH_LOCAL_ENABLED,
+    cookieSecure: env.SESSION_COOKIE_SECURE,
+    localAuth: {
+      maxFailedAttempts: env.AUTH_MAX_FAILED_ATTEMPTS,
+      lockoutSeconds: env.AUTH_LOCKOUT_SECONDS,
+    },
+  });
+
+  if (env.AUTH_LOCAL_ENABLED) {
+    // 有効化されていること自体をログに残す。本番では起動時に弾かれるため、
+    // この行が本番のログに出ることはない(脅威 T-25)。
+    logger.warn('local authentication is enabled (development only)', {
+      message: 'ADR-0019: 検証段階限定。本番構成では起動を拒否する',
+    });
+  }
+
   const app = new HttpServer(logger)
     .get('/healthz', () => health.liveness())
     .get('/readyz', async (_req, res) => {
@@ -54,6 +98,23 @@ async function bootstrap(): Promise<void> {
         return;
       }
       return report;
+    })
+    .post('/auth/login', async (req, res) => {
+      const result = await auth.login(await readJsonBody(req));
+      res.writeHead(result.status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        ...result.headers,
+      });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/auth/logout', async (req, res) => {
+      const result = await auth.logout(req.headers);
+      res.writeHead(result.status, result.headers);
+      res.end();
+    })
+    .get('/auth/me', async (req) => {
+      const result = await auth.me(req.headers);
+      return result.body;
     });
 
   const server = app.listen(env.API_PORT);
