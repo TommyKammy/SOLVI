@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1", "identity"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 phase: "P1"
 workstream: "IDM"
 risk: "high"
@@ -91,23 +91,23 @@ aliases: ["WP-P1-IDM-009"]
 
 ## 7. Acceptance Criteria
 
-- [ ] 正しい資格情報でログインでき、セッションCookieが `HttpOnly` + `SameSite=Lax` で発行される
-- [ ] 誤ったパスワード・存在しないユーザ・無効化済みユーザのいずれも**同じ応答**を返す
+- [x] 正しい資格情報でログインでき、セッションCookieが `HttpOnly` + `SameSite=Lax` で発行される
+- [x] 誤ったパスワード・存在しないユーザ・無効化済みユーザのいずれも**同じ応答**を返す
       (どれが原因かを攻撃者に教えない)
-- [ ] 失敗回数の上限に達するとロックアウトされ、ロック中は正しいパスワードでも通らない
-- [ ] **成否にかかわらず応答時間が一定**(存在しないユーザで即座に返ると、
+- [x] 失敗回数の上限に達するとロックアウトされ、ロック中は正しいパスワードでも通らない
+- [x] **成否にかかわらず応答時間が一定**(存在しないユーザで即座に返ると、
       ユーザ名の存在有無が測定できてしまう)
-- [ ] パスワードが scrypt で保存され、DBに平文・可逆な形が存在しない
-- [ ] セッショントークンが**DBに平文で保存されない**(ハッシュで保存する)
-- [ ] 失効したセッションでのアクセスが拒否される
-- [ ] **ユーザ無効化からセッション失効までが15分以内**(`FR-IDM-008` / G1-9)。実測値を記録する
-- [ ] 絶対期限とアイドル期限の両方が効く
-- [ ] `AUTH_LOCAL_ENABLED=true` かつ `NODE_ENV=production` で**プロセスが起動しない**
-- [ ] ローカル認証が既定で無効(未設定なら認証経路が存在しない)
-- [ ] 認証の成功・失敗が監査に記録され、`auth_method` が含まれる
-- [ ] **監査にパスワードもセッショントークンも記録されない**
-- [ ] `identity.issuer` が `urn:solvi:local` で、外部IdPの issuer と混在しても取り違えない
-- [ ] セッションが Organization をまたがない(他組織のコンテキストを取得できない)
+- [x] パスワードが scrypt で保存され、DBに平文・可逆な形が存在しない
+- [x] セッショントークンが**DBに平文で保存されない**(ハッシュで保存する)
+- [x] 失効したセッションでのアクセスが拒否される
+- [x] **ユーザ無効化からセッション失効までが15分以内**(`FR-IDM-008` / G1-9)。実測値を記録する
+- [x] 絶対期限とアイドル期限の両方が効く
+- [x] `AUTH_LOCAL_ENABLED=true` かつ `NODE_ENV=production` で**プロセスが起動しない**
+- [x] ローカル認証が既定で無効(未設定なら認証経路が存在しない)
+- [x] 認証の成功・失敗が監査に記録され、`auth_method` が含まれる
+- [x] **監査にパスワードもセッショントークンも記録されない**
+- [x] `identity.issuer` が `urn:solvi:local` で、外部IdPの issuer と混在しても取り違えない
+- [x] セッションが Organization をまたがない(他組織のコンテキストを取得できない)
 
 ## 8. Verification and Evidence
 
@@ -142,15 +142,53 @@ Migration は down を用意し、`session` / `local_credential` を削除でき
 
 ## 11. Definition of Done
 
-- [ ] §7 Acceptance Criteriaをすべて満たす
-- [ ] §8のテストが通り、Evidenceを保存した
-- [ ] Migration に down があり、up→down→up が成功する
-- [ ] `check_rls.mjs` と `check_architecture.mjs` が通る
-- [ ] Security Reviewer のレビューを完了した(認証は侵入経路のため)
-- [ ] Execution Logへ結果を追記した
+- [x] §7 Acceptance Criteriaをすべて満たす
+- [x] §8のテストが通り、Evidenceを保存した
+- [x] Migration に down があり、up→down→up が成功する
+- [x] `check_rls.mjs` と `check_architecture.mjs` が通る
+- [x] Security Reviewer のレビューを完了した(認証は侵入経路のため)
+- [x] Execution Logへ結果を追記した
 
 ## 12. Execution Log
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Fable 5 | `c7134ff` / merge `374f85c` | Done | `evidence/WP-P1-IDM-009/20260727-2206/` | 単体26 + 統合39。全体 1071 tests passed |
+
+### 実測値
+
+| 項目 | 要求 | 実測 |
+|---|---|---|
+| セッション失効(`FR-IDM-008` / G1-9) | 15分以内 | **0.032秒** |
+
+失効がこれだけ速いのは設計の帰結である。セッションに役割を焼き込まず、
+毎リクエストで `role_binding` を読み直している。焼き込むと、権限を剥奪しても
+セッションが切れるまで古い権限で動き続ける。
+また、無効化されたユーザは一括失効処理を待たずに `validate()` で弾かれる。
+
+### 実装中に見つけた問題
+
+1. **ログイン時に組織所属を検証していなかった。**
+   クライアントが送った `organizationId` をそのままセッションに記録しており、
+   **利用者は任意の組織を名乗ってセッションを取れた**。後段の認可判定が
+   役割束縛を見るため越境は起きないが、RLSのコンテキストが他組織に設定された
+   状態で動くことになり、防御が1枚だけになる。
+   有効な役割束縛の確認を追加した。
+
+2. **認証は組織コンテキストより手前にある(循環)。**
+   `app_user` / `role_binding` は組織スコープのRLS配下だが、ログインは
+   「メールアドレスから利用者を引く」ところから始まる。
+   migration 0010(Outboxディスパッチャ)と同じ**登録制の例外**にしたが、
+   今回はさらに絞った: `FOR SELECT` のみ / 対象は2テーブル / `SET LOCAL`。
+   → [[02.18_Organization_Data_Model_and_RLS]] §3.2
+
+   この結果、`deactivateUser` と `createCredential` は認証ではなく
+   **管理操作**として組織コンテキストの中で呼ぶ、という区別が明確になった。
+
+### 残っている制約
+
+- MFA は無い(ローカル環境限定のため受容 / [[ADR-0019_Local_Authentication_For_Development]])
+- パスワードリセットのメール送信は無い。管理者が `tools/create_local_user.mjs` で再設定する
+- **期限切れセッションの掃除(`purgeExpired`)を定期実行に組み込んでいない。**
+  実装済みだが worker へ未登録のため、保持期間30日を超えた行が溜まる
+- ローカルアカウントは外部IdP接続時に全て破棄する(Gate D GD-5)
