@@ -6,3 +6,4 @@ export * from './errors/problem.js';
 export * from './ticket/state-machine.js';
 export * from './ticket/priority.js';
 export * from './attachment/validation.js';
+export * from './ticket/sla.js';
