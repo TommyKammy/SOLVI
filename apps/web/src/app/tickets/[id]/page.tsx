@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { api } from '../../../lib/api';
 import { CommentThread } from '../../../components/CommentThread';
 import { CommentForm } from '../../../components/CommentForm';
+import { AttachmentList } from '../../../components/AttachmentList';
+import { AttachmentForm } from '../../../components/AttachmentForm';
 import {
   stateLabel,
   kindLabel,
@@ -50,6 +52,10 @@ export default async function TicketDetailPage({
   // 依頼者のセッションでは、そもそも内部メモが返ってこない。
   const commentResult = await api.listComments(id);
   const comments = commentResult.ok ? commentResult.data.items : [];
+
+  // 内部添付は API 側で除外される。画面はフィルタしない。
+  const attachmentResult = await api.listAttachments(id);
+  const attachments = attachmentResult.ok ? attachmentResult.data.items : [];
 
   async function postComment(formData: FormData): Promise<void> {
     'use server';
@@ -120,6 +126,10 @@ export default async function TicketDetailPage({
 
       <h2>お知らせいただいた内容</h2>
       <div className="body-text">{ticket.body}</div>
+
+      <h2>添付ファイル</h2>
+      <AttachmentList attachments={attachments} />
+      <AttachmentForm ticketId={id} canChooseVisibility={false} />
 
       <h2>やり取り</h2>
       <CommentThread comments={comments} currentUserId={session.data.userId} />

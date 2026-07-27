@@ -58,6 +58,9 @@ services:
       AUTH_LOCAL_ENABLED: 'true'
       SESSION_COOKIE_SECURE: 'false'
       S3_ENDPOINT: http://minio:9000
+      # ブラウザへ渡す署名付きURLはホスト側から到達できる名前で署名する。
+      # コンテナ内の名前で署名すると、ブラウザが解決できない。
+      S3_PUBLIC_ENDPOINT: http://127.0.0.1:${S3_PORT:-9100}
     ports:
       - '${API_PORT:-3001}:3001'
       - '${API_METRICS_PORT:-9464}:9464'   # Prometheus スクレイプ

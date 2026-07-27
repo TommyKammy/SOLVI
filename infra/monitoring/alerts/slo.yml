@@ -112,6 +112,29 @@ groups:
             ディスパッチャの停止・DB負荷・特定イベントの詰まりを疑ってください。
           runbook: 'docs/ops/slo.md#outbox滞留'
 
+      # 添付のスキャンが判定不能を返し続けている。
+      #
+      # **画面は正常に見えるが、添付が誰も開けない状態になる。**
+      # ダウンロードURLは scan_status = 'clean' でなければ発行されないため、
+      # スキャナが落ちると添付は溜まる一方になる。
+      # 利用者からは「ファイルが壊れている」としか見えず、発見が遅れる。
+      - alert: SolviAttachmentScanStalled
+        expr: |
+          sum(rate(solvi_attachment_scans_total{outcome="deferred"}[10m])) > 0
+          and
+          sum(rate(solvi_attachment_scans_total{outcome="clean"}[10m])) == 0
+        for: 10m
+        labels:
+          severity: ticket
+          slo: async
+        annotations:
+          summary: '添付のウイルススキャンが判定できていません'
+          description: >-
+            10分間、スキャンが判定不能のみを返しています。
+            添付は保存されますが**誰も開けません**。
+            ClamAV の稼働と署名DBの状態を確認してください。
+          runbook: 'docs/ops/slo.md#添付スキャンの滞留'
+
   # ---------------------------------------------------------------------------
   # セキュリティ
   # ---------------------------------------------------------------------------
