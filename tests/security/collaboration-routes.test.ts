@@ -16,7 +16,7 @@ import { hashPassword } from '../../packages/shared/src/auth/password.js';
 import { TicketController } from '../../services/api/src/modules/ticket/ticket.routes.js';
 import { CollaborationController } from '../../services/api/src/modules/ticket/collaboration.routes.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
-import { S3CompatibleStorage } from '../../services/api/src/common/storage/object-storage.js';
+import { S3CompatibleStorage } from '@solvi/shared';
 import { SessionService } from '../../services/api/src/modules/auth/session.service.js';
 import {
   LocalAuthService,

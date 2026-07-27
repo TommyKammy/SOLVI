@@ -47,9 +47,24 @@ export function generateStorageKey(): string {
 export interface ObjectStorage {
   presignGet(key: string, ttlSeconds: number, downloadFileName: string): SignedUrl;
   presignPut(key: string, ttlSeconds: number, contentType: string): SignedUrl;
+  /**
+   * オブジェクトの実体をサーバ側で取得する。
+   *
+   * **利用者への配布には使わない。** 配布は署名付きURLで行い、
+   * アプリを経由させない(大きなファイルでプロセスが詰まる)。
+   * これはウイルススキャンのように**サーバ自身が中身を見る必要がある**場合に限る。
+   */
+  getObject(key: string): Promise<Buffer>;
 }
 
 /**
+ * オブジェクトストレージ。
+ *
+ * `packages/shared` に置いているのは、**API と Worker の双方が必要とする**ため。
+ * API は署名付きURLを発行し、Worker はウイルススキャンのために実体を読む。
+ * どちらかのサービスに置くと、もう一方がそれを import することになり、
+ * サービス間の依存が生まれる(`check_architecture.mjs` が禁止している)。
+ *
  * S3互換の署名付きURL(SigV4)。
  *
  * ローカルは MinIO、本番は S3(ADR-0018)。同一の実装で両方を扱う。
@@ -71,6 +86,43 @@ export class S3CompatibleStorage implements ObjectStorage {
     return this.presign('PUT', key, ttlSeconds, {}, contentType);
   }
 
+  /**
+   * サーバ側での実体取得。ウイルススキャンのみに使う。
+   *
+   * 自分で署名付きURLを作って自分で取りに行く。専用の資格情報経路を増やさず、
+   * 署名の実装も1つに保つ。TTLは短く取る — このURLは外へ出さないため、
+   * 長い有効期間に意味が無い。
+   */
+  async getObject(key: string): Promise<Buffer> {
+    const signed = this.presignGet(key, 60, 'object');
+    const response = await fetch(signed.url);
+    if (!response.ok) {
+      throw new Error(`オブジェクトを取得できません: ${response.status}`);
+    }
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  /**
+   * RFC 3986 に従ったURIエンコード。
+   *
+   * **`encodeURIComponent` をそのまま使ってはいけない。**
+   * `! ' ( ) *` を変換しないため、SigV4 が要求する正規化と食い違う。
+   *
+   * この違いは普段は現れない。オブジェクトキーは16進文字列で、
+   * PUT の追加パラメータは `Content-Type` だけだからである。
+   * 現れるのはダウンロードのときで、`Content-Disposition` に
+   * `filename*=UTF-8''<name>` が入る — ここに `*` と `'` が含まれる。
+   *
+   * 結果として **PUT は通るが GET だけが 403 になる**という、
+   * 気付きにくい壊れ方をしていた(WP-P2-SCAN-011 で発見)。
+   */
+  private static uriEncode(value: string): string {
+    return encodeURIComponent(value).replace(
+      /[!'()*]/g,
+      (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+  }
+
   private presign(
     method: 'GET' | 'PUT',
     key: string,
@@ -88,7 +140,10 @@ export class S3CompatibleStorage implements ObjectStorage {
     const credentialScope = `${dateStamp}/${this.config.region}/s3/aws4_request`;
 
     const host = new URL(this.config.endpoint).host;
-    const canonicalUri = `/${this.config.bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
+    const canonicalUri = `/${this.config.bucket}/${key
+      .split('/')
+      .map((segment) => S3CompatibleStorage.uriEncode(segment))
+      .join('/')}`;
 
     const query: Record<string, string> = {
       'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
@@ -102,7 +157,7 @@ export class S3CompatibleStorage implements ObjectStorage {
 
     const canonicalQuery = Object.keys(query)
       .sort()
-      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k]!)}`)
+      .map((k) => `${S3CompatibleStorage.uriEncode(k)}=${S3CompatibleStorage.uriEncode(query[k]!)}`)
       .join('&');
 
     const canonicalRequest = [

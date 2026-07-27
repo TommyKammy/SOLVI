@@ -98,6 +98,9 @@ services:
       AUTH_LOCAL_ENABLED: 'true'
       SESSION_COOKIE_SECURE: 'false'
       S3_ENDPOINT: http://minio:9000
+      # スキャナ。未設定なら添付は pending のまま残り、ダウンロードURLは出ない。
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
     ports:
       - '${WORKER_PORT:-3002}:3002'
     volumes:
@@ -273,6 +276,35 @@ services:
     ports:
       - '${ALERT_SINK_PORT:-9466}:9466'
 
+  # ---------------------------------------------------------------------------
+  # ウイルススキャン (WP-P2-SCAN-011 / OQ-011)
+  #
+  # 添付は scan_status = 'clean' でなければダウンロードURLが発行されない。
+  # つまりこのサービスが止まっていると、添付は溜まるが誰も開けない。
+  # **それは意図した挙動である** — 検疫を通っていないものを配らない。
+  #
+  # 公式イメージは arm64 を出していないため amd64 をエミュレーションで動かす。
+  # 起動に約50秒かかる(署名DBの読み込み)。ヘルスチェックの猶予を長めに取る。
+  # ---------------------------------------------------------------------------
+  clamav:
+    image: clamav/clamav:1.4.3@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
+    platform: linux/amd64
+    environment:
+      # 起動のたびに署名DBを取りに行くと、オフラインで動かなくなる。
+      # イメージ同梱のDBで起動し、更新は freshclam の定期実行に任せる。
+      CLAMAV_NO_FRESHCLAMD: 'false'
+    volumes:
+      - clamavdb:/var/lib/clamav
+    ports:
+      - '${CLAMAV_PORT:-3310}:3310'
+    healthcheck:
+      test: ['CMD', 'clamdcheck.sh']
+      interval: 15s
+      timeout: 10s
+      # 署名DBの読み込みに時間がかかる。短いと起動途中で unhealthy になる。
+      retries: 20
+      start_period: 120s
+
   web:
     build:
       context: .
@@ -297,6 +329,7 @@ services:
 volumes:
   pgdata:
   miniodata:
+  clamavdb:
   promdata:
   alertmanagerdata:
   alertlog:

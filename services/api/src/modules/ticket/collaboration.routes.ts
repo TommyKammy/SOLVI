@@ -2,7 +2,7 @@ import type pg from 'pg';
 import { Problems, recordDomainEvent, allowedTransitionsFrom } from '@solvi/shared';
 import { TicketService } from './ticket.service.js';
 import { CollaborationService, type TicketComment } from './collaboration.service.js';
-import type { ObjectStorage } from '../../common/storage/object-storage.js';
+import type { ObjectStorage } from '@solvi/shared';
 import type { PoolDenialRecorder } from '../../common/audit/denial-recorder.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 

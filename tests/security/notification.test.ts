@@ -25,7 +25,7 @@ import {
   type OutboxHandler,
 } from '../../services/worker/src/dispatcher/outbox-dispatcher.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
-import { S3CompatibleStorage } from '../../services/api/src/common/storage/object-storage.js';
+import { S3CompatibleStorage } from '@solvi/shared';
 import type { AuthzContext, Principal } from '../../services/api/src/common/authz/authz.js';
 import { runWithContext, newContext, createLogger } from '@solvi/shared';
 import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
