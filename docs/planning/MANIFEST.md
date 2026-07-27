@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 250 |
 | Markdown | 242 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,592,813 bytes |
+| 合計サイズ | 6,605,929 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3146 | `4b3a979eb56216ff83052c11e08cef343b8c2ee4b8862ead76c38cc3d959e6d7` |
-| `00_Index/00.8_Status_Dashboard.md` | 3108 | `f11434f4744e9d2e294cc13cd1298d33b88cb22756834723dfe21342710928b6` |
+| `00_Index/00.8_Status_Dashboard.md` | 3253 | `4681a09292835f5e336ce11cf38d16e40288c5061303cf6e888f5f862474a2e2` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -163,8 +163,8 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 2719 | `c69dc3a91f0001414475dc8be3486252295d637c74bc50ec11332d46f0d2a4b3` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7688 | `8282ff4467c97035370ebc0da15cc818b09450ccf58fcd2fc0d75387c1a2746c` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 2813 | `15fbd9c1427a531571ae42317907381fe66e5a8c7adae22c17667bb4b9d1f6ca` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 1592 | `1b9e52dd7d291256e80c57174bcce1992539f8a8587f605e5ad7d11ee74b0826` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 2757 | `9ad13721756b9174f7f5f78613c60941145d76c55092a246d484409f757dea4a` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 8362 | `55c6c1429c0507de44847849fbb904ae461859a2605cd303d70306fc8b23b4d1` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 8519 | `95e707373ed383a3aabcd88f883129eb080e6c58c81dcfb52852673ac1f693bf` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLO-008.md` | 4691 | `9b139e12a6f9af4c045b69fccd54d0c809e126d653b3847f92f1a9b14e4a4b9b` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 8356 | `dd50e0d5e4fa5ee259be3f912d09830af9570d5b6fdb7f3a9d1c89e13d35ac59` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2801 | `03d48931d82108cdb9bc6c036e6696285620df7a00907f8f299f492427edb4f0` |
@@ -216,7 +216,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0008_Transactional_Outbox.md` | 2777 | `14871747daec0a16585978c4a44fcc9772f1acfc77ec64051afe50501613a73f` |
 | `07_ADR/ADR-0009_Append_Only_Audit.md` | 3247 | `1f78363c6dd56216e853e37dfae493497a8f959b2beb3efb58f7ab8c87e6fc9d` |
 | `07_ADR/ADR-0010_S3_Compatible_Attachments.md` | 2970 | `c411eca8b8a8b5a9b5d5ac7f0170b97b7ebcfd404b6060d3c898e599cb64c4a8` |
-| `07_ADR/ADR-0011_Postgres_FTS_then_pgvector.md` | 3098 | `ca1eefe545b00666f798af73b6ada7be348119b10e86e4aea9752ec9e9f7abb1` |
+| `07_ADR/ADR-0011_Postgres_FTS_then_pgvector.md` | 3537 | `6629a02856e093ddf3b5878a567bf6c77b1ab429652f24f5a0caf70bc9bf5cb3` |
 | `07_ADR/ADR-0012_Defer_Temporal.md` | 3131 | `2102c721d02dac54bd371fd25332f57dbcaa9311138b71ab19c640e513a61883` |
 | `07_ADR/ADR-0013_Current_State_Plus_Append_Only_Events.md` | 2750 | `0f647176553e5ad3923dccd8c51ce3c49fde64f6e6fe98e303706fb95a3a6e53` |
 | `07_ADR/ADR-0014_No_Custom_Inventory_Agent.md` | 2756 | `867e543646d11746c102e08a80d5a545b98c3c0e5bc0bda77c8fafa33531ae58` |

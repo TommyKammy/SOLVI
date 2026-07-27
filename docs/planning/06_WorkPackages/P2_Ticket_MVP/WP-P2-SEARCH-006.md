@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 ---
 
 # WP-P2-SEARCH-006: Ticket SearchとSLA Lite
@@ -163,4 +163,4 @@ Migration の down で `sla_policy` と SLA関連の列・索引を削除する�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-07-27 | Claude (Codex) | `aa91812` | Done | `evidence/WP-P2-SEARCH-006/20260727-1520/verification.md` | 全941テスト通過。SLAは実経過4時間のうち3時間の待ちを除外し1時間のみ算入することを実測。停止条件は状態機械の`slaClock`を唯一の根拠とし、遷移表との一致をテストで固定。検索はILIKEのワイルドカード`%` `_`をエスケープ(未エスケープだと`%`単体で全件ヒット)。1万件で検索p95 9.8ms(目標2000ms、ローカル計測)。 |
