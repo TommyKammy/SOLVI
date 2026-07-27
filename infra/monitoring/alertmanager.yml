@@ -1,0 +1,70 @@
+# SOLVI Alertmanager 設定 (WP-P2-SLO-008)
+#
+# 設計方針: **通知に業務情報を載せない。**
+#
+# アラートは社外のチャットやメールを経由することがあり、宛先を絞りにくい。
+# アラートの本文にチケット件名や利用者名が入ると、監視経路が情報漏えい経路になる。
+# アラートは「どの系列が、どの閾値を、どれだけ超えたか」だけを伝え、
+# 業務内容の確認はログインした画面で行う。
+#
+# アラートルール側でも、テンプレート変数に $labels.job / $labels.check のような
+# カーディナリティの低いラベルしか使っていない(ticket_id や user_id を
+# メトリクスのラベルに入れていないため、そもそも載せられない)。
+
+global:
+  resolve_timeout: 5m
+
+route:
+  # 同じ原因のアラートをまとめる。個別に飛ばすと、1つの障害で
+  # 十数通が届き、重要なものが埋もれる。
+  group_by: ['alertname', 'slo']
+  group_wait: 30s
+  group_interval: 5m
+  # 未解決のまま鳴り続けるアラートの再通知間隔。
+  # 短いと通知疲れを起こし、長いと忘れられる。
+  repeat_interval: 4h
+  receiver: default
+
+  routes:
+    # severity: page — 即時対応。パイロット期間の運用時間は
+    # 08.3_SOLVI_Incident_Response を参照(営業時間内対応)。
+    - matchers:
+        - severity = page
+      receiver: oncall
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # severity: ticket — 当日中の対応。夜間に人を起こさない。
+    - matchers:
+        - severity = ticket
+      receiver: default
+
+inhibit_rules:
+  # 対象が落ちていれば、トラフィックが無いのも合成監視が落ちるのも当然の結果である。
+  # 原因のアラートだけを残し、結果のアラートを抑止する。
+  #
+  # 抑止対象を alertname で列挙している。`slo = availability` のような
+  # 属性での指定にすると、**源であるSolviTargetDown自身も対象に含まれる**うえ、
+  # `equal` で突き合わせるラベルを間違えると抑止が静かに効かなくなる
+  # (SolviTargetDown だけが job ラベルを持ち、他は持たないため、
+  #  `equal: ['job']` では一致せず抑止が成立しなかった)。
+  #
+  # 抑止は「鳴らさない」設定であり、間違えても何も起きないので気付けない。
+  # 明示的な列挙にして、効いているかどうかを読んで判断できる形にする。
+  - source_matchers:
+      - alertname = SolviTargetDown
+    target_matchers:
+      - alertname =~ "SolviNoTraffic|SolviSyntheticCheckFailing|SolviErrorBudgetBurnFast|SolviErrorBudgetBurnSlow|SolviLatencyP95Degraded"
+
+receivers:
+  # ローカル/パイロット環境では webhook で受け、到達確認を機械的に行う。
+  # 本番の通知先(メール・チャット)は Gate A までに決める。→ OQ-012
+  - name: default
+    webhook_configs:
+      - url: 'http://alert-sink:9466/alerts'
+        send_resolved: true
+
+  - name: oncall
+    webhook_configs:
+      - url: 'http://alert-sink:9466/alerts'
+        send_resolved: true

@@ -1,5 +1,6 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { Resource } from '@opentelemetry/resources';
@@ -23,9 +24,20 @@ export interface TracingOptions {
   environment: string;
   /** 未設定ならエクスポータを繋がず、計装だけ有効にする(ローカル最小構成) */
   otlpEndpoint?: string | undefined;
+  /**
+   * Prometheus スクレイプ用の待受ポート。未設定ならメトリクスを公開しない。
+   *
+   * **これを設定しないと MeterProvider が生成されず、`metrics.getMeter()` は
+   * NoopMeterProvider を返す。** つまり `recordHttpRequest()` などの記録呼び出しは
+   * すべて黙って捨てられる。例外も警告も出ない。
+   * WP-P1-OBS-005 は計器を定義したがこの配管を繋いでおらず、
+   * 実際には1つも記録されていなかった(WP-P2-SLO-008 で修正)。
+   */
+  metricsPort?: number | undefined;
 }
 
 let sdk: NodeSDK | undefined;
+let metricServer: PrometheusExporter | undefined;
 
 export function startTracing(options: TracingOptions): void {
   if (sdk) return; // 二重初期化を防ぐ
@@ -37,8 +49,19 @@ export function startTracing(options: TracingOptions): void {
     'service.namespace': 'solvi',
   });
 
+  // Prometheus は pull 型なので、SOLVI 側が落ちていれば
+  // 「スクレイプできない」こと自体が障害の証拠になる。
+  // push 型だと、送らなくなったのか送るものが無いのか区別できない。
+  if (options.metricsPort) {
+    metricServer = new PrometheusExporter({
+      port: options.metricsPort,
+      endpoint: '/metrics',
+    });
+  }
+
   sdk = new NodeSDK({
     resource,
+    ...(metricServer ? { metricReader: metricServer } : {}),
     ...(options.otlpEndpoint
       ? { traceExporter: new OTLPTraceExporter({ url: `${options.otlpEndpoint}/v1/traces` }) }
       : {}),
@@ -62,6 +85,7 @@ export async function stopTracing(): Promise<void> {
   if (!sdk) return;
   await sdk.shutdown();
   sdk = undefined;
+  metricServer = undefined;
 }
 
 const tracer = () => trace.getTracer('solvi');

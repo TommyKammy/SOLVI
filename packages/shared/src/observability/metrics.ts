@@ -50,6 +50,21 @@ function getInstruments(): Instruments {
 }
 
 /**
+ * SLOの分母に入れないルート。
+ *
+ * ヘルスチェックは高頻度で、かつ常に速く常に成功する。SLOの系列に混ぜると
+ * **可用性を水増しし、レイテンシのp95を薄める**。利用者が1件も成功していなくても、
+ * ヘルスチェックが毎秒通っていれば可用性99.9%と表示されてしまう。
+ *
+ * 「クエリ側でフィルタすればよい」ではなく記録側で落とすのは、
+ * 新しいダッシュボードやアラートを書く人がフィルタを忘れた時点で
+ * 数字が静かに嘘になるため。除外を1か所に閉じる。
+ *
+ * ヘルスチェック自体の失敗は Prometheus の `up` とコンテナの healthcheck で見る。
+ */
+const SLO_EXCLUDED_ROUTES: ReadonlySet<string> = new Set(['/healthz', '/readyz', '/metrics']);
+
+/**
  * HTTPリクエストの記録。
  * @param route ルートパターン(`/tickets/:id`)。実IDを含む生パスを渡さないこと。
  */
@@ -59,6 +74,8 @@ export function recordHttpRequest(params: {
   statusCode: number;
   durationMs: number;
 }): void {
+  if (SLO_EXCLUDED_ROUTES.has(params.route)) return;
+
   const attributes = {
     'http.method': params.method,
     'http.route': params.route,

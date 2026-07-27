@@ -1,0 +1,58 @@
+# SOLVI 監視設定 (WP-P2-SLO-008)
+#
+# スクレイプ対象は「SLOの判定に使うもの」に限る。
+# 取れるから取る、を始めると、どの系列を見て判断するのかが曖昧になり、
+# 結果としてどれも見られなくなる。
+
+global:
+  # SLOの判定に使う分解能。15秒より細かくしても判断は変わらず、
+  # 保持容量とクエリ時間だけが増える。
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    # 複数環境のアラートが同じ Alertmanager に集まったとき、
+    # どの環境の話かをアラート本文で判別できるようにする。
+    environment: local
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/alerts/*.yml
+
+scrape_configs:
+  # Prometheus 自身。監視基盤が死んでいることに気付けないと、
+  # 「アラートが鳴らない = 正常」という最悪の誤解が生じる。
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: solvi-api
+    static_configs:
+      - targets: ['api:9464']
+        labels:
+          service: api
+
+  - job_name: solvi-worker
+    static_configs:
+      - targets: ['worker:9464']
+        labels:
+          service: worker
+
+  - job_name: solvi-executor
+    static_configs:
+      - targets: ['executor:9464']
+        labels:
+          service: executor
+
+  # 合成監視 (tools/synthetic_check.mjs) の結果。
+  # 内部メトリクスが健全でも、利用者から見て使えていないことがある。
+  # 「外から実際に叩いた結果」を別系統で持つ。
+  - job_name: solvi-synthetic
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['synthetic:9465']
+        labels:
+          service: synthetic

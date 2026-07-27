@@ -1,0 +1,196 @@
+# SOLVI SLOアラート (WP-P2-SLO-008 / NFR-OPS-001)
+#
+# 収録の基準は1つだけ: **鳴ったら人が何かをする**こと。
+#
+# 「知っておくと良い」程度のものを入れると、鳴っても誰も動かなくなる。
+# その状態が続くと、本当に動くべきアラートも見過ごされる。
+# アラートの敵は見逃しではなくノイズである。
+#
+# 参考にした値の出どころ: docs/ops/slo.md
+# メトリクス名は実際の /metrics 出力で確認済み(推測ではない)。
+
+groups:
+  # ---------------------------------------------------------------------------
+  # 可用性・レイテンシ (SLO本体)
+  # ---------------------------------------------------------------------------
+  - name: solvi-slo
+    interval: 30s
+    rules:
+      # エラーバジェットの燃焼速度で判定する。
+      # 「エラー率1%超で即通知」だと、一瞬の失敗でも夜中に人が起きる。
+      # 逆に月次の集計だけを見ると、気付いたときには使い切っている。
+      # 短窓と長窓の両方が閾値を超えたときだけ鳴らすと、
+      # 一過性の揺れでは鳴らず、継続的な悪化では確実に鳴る。
+      - alert: SolviErrorBudgetBurnFast
+        # 14.4倍の燃焼 = 30日ぶんのバジェットを約2日で使い切る速度
+        expr: |
+          (
+            sum(rate(solvi_http_requests_total{http_status_class="5xx"}[5m]))
+            / sum(rate(solvi_http_requests_total[5m]))
+          ) > (14.4 * 0.01)
+          and
+          (
+            sum(rate(solvi_http_requests_total{http_status_class="5xx"}[1h]))
+            / sum(rate(solvi_http_requests_total[1h]))
+          ) > (14.4 * 0.01)
+        for: 2m
+        labels:
+          severity: page
+          slo: availability
+        annotations:
+          summary: 'エラーバジェットを高速に消費しています'
+          description: >-
+            直近5分と1時間の両方で5xx率がSLO目標(1%)の14.4倍を超えています。
+            この速度が続くと約2日で月間バジェットを使い切ります。
+            まず影響範囲(どのルートか)を確認してください。
+          runbook: 'docs/ops/slo.md#エラーバジェットの燃焼'
+
+      - alert: SolviErrorBudgetBurnSlow
+        # 6倍の燃焼 = 約5日で使い切る速度。営業時間内対応で足りる。
+        expr: |
+          (
+            sum(rate(solvi_http_requests_total{http_status_class="5xx"}[30m]))
+            / sum(rate(solvi_http_requests_total[30m]))
+          ) > (6 * 0.01)
+          and
+          (
+            sum(rate(solvi_http_requests_total{http_status_class="5xx"}[6h]))
+            / sum(rate(solvi_http_requests_total[6h]))
+          ) > (6 * 0.01)
+        for: 15m
+        labels:
+          severity: ticket
+          slo: availability
+        annotations:
+          summary: 'エラーバジェットの消費が目標を上回っています'
+          description: >-
+            5xx率がSLO目標の6倍を超えた状態が続いています。
+            即時対応は不要ですが、当日中に原因を特定してください。
+          runbook: 'docs/ops/slo.md#エラーバジェットの燃焼'
+
+      - alert: SolviLatencyP95Degraded
+        # 主要画面 p95 1.5秒 (NFR-PERF-001)。
+        # 単発の遅延では鳴らないよう10分の窓を取る。
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(solvi_http_duration_bucket[10m]))
+          ) > 1500
+        for: 10m
+        labels:
+          severity: ticket
+          slo: latency
+        annotations:
+          summary: 'レイテンシp95が目標(1.5秒)を超えています'
+          description: >-
+            10分間のp95が {{ $value | humanize }}ms です。
+            遅いルートの特定は http_route 別の同じクエリで行えます。
+          runbook: 'docs/ops/slo.md#レイテンシ'
+
+  # ---------------------------------------------------------------------------
+  # 非同期処理 — 画面は正常でも仕事が進んでいない状態を捕まえる
+  # ---------------------------------------------------------------------------
+  - name: solvi-async
+    interval: 30s
+    rules:
+      # 通知やワークフローが止まっていても、画面は普通に動く。
+      # 利用者からは「連絡が来ない」としか見えず、発見が遅れる。
+      - alert: SolviOutboxLagHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(solvi_outbox_lag_bucket[10m]))
+          ) > 30
+        for: 10m
+        labels:
+          severity: ticket
+          slo: async
+        annotations:
+          summary: 'Outbox配送の遅延がNFR-PERF-003(p95 30秒)を超えています'
+          description: >-
+            イベント発行から処理開始までのp95が {{ $value | humanize }}秒です。
+            ディスパッチャの停止・DB負荷・特定イベントの詰まりを疑ってください。
+          runbook: 'docs/ops/slo.md#outbox滞留'
+
+  # ---------------------------------------------------------------------------
+  # セキュリティ
+  # ---------------------------------------------------------------------------
+  - name: solvi-security
+    interval: 30s
+    rules:
+      # 認可拒否の急増は、攻撃か権限設定の誤りのどちらか。
+      # どちらであっても人が確認する必要がある。
+      - alert: SolviAuthzDenialSpike
+        expr: |
+          sum(rate(solvi_authz_denials_total[5m])) > 1
+        for: 5m
+        labels:
+          severity: ticket
+          slo: security
+        annotations:
+          summary: '認可拒否が急増しています'
+          description: >-
+            毎秒 {{ $value | humanize }} 件の認可拒否が5分続いています。
+            攻撃、あるいは権限設定の誤りによる正当な利用者の締め出しが考えられます。
+            **どちらであっても利用者影響があります。** audit_event を確認してください。
+          runbook: 'docs/ops/slo.md#認可拒否の急増'
+
+  # ---------------------------------------------------------------------------
+  # 監視基盤そのもの
+  #
+  # 「アラートが鳴らない = 正常」という誤解が最も危険。
+  # 監視が死んでいることを監視する。
+  # ---------------------------------------------------------------------------
+  - name: solvi-meta
+    interval: 30s
+    rules:
+      - alert: SolviTargetDown
+        expr: up{job=~"solvi-.*"} == 0
+        for: 2m
+        labels:
+          severity: page
+          slo: availability
+        annotations:
+          summary: '{{ $labels.job }} からメトリクスを取得できません'
+          description: >-
+            スクレイプに失敗しています。プロセス停止、ポート閉塞、
+            METRICS_PORT 未設定のいずれかです。
+            **METRICS_PORT が未設定だとメトリクスは黙って捨てられます。**
+          runbook: 'docs/ops/slo.md#メトリクスが取れない'
+
+      - alert: SolviNoTraffic
+        # 平日日中に一切のリクエストが無いのは、利用者が到達できていない可能性が高い。
+        # 5xxが出ないまま完全に落ちる障害(LB/DNS/認証基盤)はこれでしか捕まらない。
+        expr: |
+          sum(rate(solvi_http_requests_total[15m])) == 0
+        for: 15m
+        labels:
+          severity: ticket
+          slo: availability
+        annotations:
+          summary: '15分間リクエストが1件もありません'
+          description: >-
+            エラー率は正常に見えても、利用者が到達できていない可能性があります
+            (LB・DNS・認証基盤の障害)。合成監視の結果と併せて確認してください。
+            パイロット期間は利用が少ないため、夜間・休日は誤検知になります。
+            通知先の抑止時間帯を alertmanager.yml で調整してください。
+          runbook: 'docs/ops/slo.md#トラフィックが無い'
+
+  # ---------------------------------------------------------------------------
+  # 合成監視 — 利用者から見た可用性
+  # ---------------------------------------------------------------------------
+  - name: solvi-synthetic
+    interval: 60s
+    rules:
+      - alert: SolviSyntheticCheckFailing
+        expr: solvi_synthetic_success == 0
+        for: 3m
+        labels:
+          severity: page
+          slo: availability
+        annotations:
+          summary: '合成監視 {{ $labels.check }} が失敗しています'
+          description: >-
+            外部から見た主要導線が使えていません。
+            内部メトリクスが正常でも、利用者は業務を進められない状態です。
+          runbook: 'docs/ops/slo.md#合成監視が失敗'

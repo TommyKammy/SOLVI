@@ -19,6 +19,10 @@ const baseSchema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   OTEL_SERVICE_NAMESPACE: z.string().default('solvi'),
+  // Prometheus スクレイプ用の待受ポート。未設定だとメトリクスが
+  // 一切記録されない(MeterProvider が生成されない)ため、
+  // 本番相当環境では必ず設定する。→ docs/ops/slo.md
+  METRICS_PORT: z.coerce.number().int().min(1).max(65535).optional(),
 });
 
 const databaseSchema = z.object({
