@@ -10,6 +10,8 @@ import type pg from 'pg';
  * ここに新しいテーブルを追加するときは、**子から親の順**に並べること。
  */
 const DELETE_ORDER = [
+  'notification',
+  'outbox_event',
   'ticket_relation',
   'ticket_assignment',
   'ticket_attachment',
