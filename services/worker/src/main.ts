@@ -8,9 +8,12 @@ import {
   stopTracing,
   newContext,
   runWithContext,
+  ClamAvScanner,
+  S3CompatibleStorage,
   type WorkerEnv,
 } from '@solvi/shared';
 import pg from 'pg';
+import { AttachmentScanner } from './jobs/scan/attachment-scanner.js';
 
 /**
  * Outbox配送とWorkflow進行を担うプロセス(ADR-0008)。
@@ -81,10 +84,53 @@ async function bootstrap(): Promise<void> {
   server.listen(env.WORKER_PORT);
   logger.info('worker listening', { count: env.WORKER_PORT });
 
+  // 添付のウイルススキャン (WP-P2-SCAN-011 / OQ-011)。
+  //
+  // CLAMAV_HOST が未設定なら**スキャンを行わない**。その場合 scan_status は
+  // pending のまま残り、ダウンロードURLは発行されない。
+  // 「スキャナが無いから素通しする」という経路は作らない。
+  const scanPool = new pg.Pool({ connectionString: env.DATABASE_URL, max: 5 });
+  const attachmentScanner = env.CLAMAV_HOST
+    ? new AttachmentScanner(
+        scanPool,
+        new S3CompatibleStorage({
+          endpoint: env.S3_ENDPOINT,
+          bucket: env.S3_BUCKET_ATTACHMENTS,
+          accessKey: env.S3_ACCESS_KEY,
+          secretKey: env.S3_SECRET_KEY,
+          region: env.S3_REGION,
+        }),
+        new ClamAvScanner({
+          host: env.CLAMAV_HOST,
+          port: env.CLAMAV_PORT,
+          maxBytes: env.CLAMAV_MAX_BYTES,
+        }),
+        logger,
+      )
+    : undefined;
+
+  if (!attachmentScanner) {
+    logger.warn('attachment scanning is disabled', {
+      message: 'CLAMAV_HOST が未設定です。添付は pending のまま残り、ダウンロードできません',
+    });
+  }
+
   // ループの各周回に独立した相関IDを与える。バッチ起点の処理も追跡できるようにする。
   const tick = (): void => {
-    runWithContext(newContext(), () => {
-      logger.debug('outbox dispatch tick (no dispatcher yet — WP-P4-WF-003)');
+    void runWithContext(newContext(), async () => {
+      if (!attachmentScanner) return;
+      try {
+        const summary = await attachmentScanner.scanPending();
+        if (summary.scanned > 0) {
+          logger.info('attachment scan tick', {
+            count: summary.scanned,
+            message: `clean=${summary.clean} infected=${summary.infected} deferred=${summary.deferred}`,
+          });
+        }
+      } catch (error) {
+        // スキャンの失敗でワーカーを落とさない。次の周回で再試行する。
+        logger.error('attachment scan tick failed', error);
+      }
     });
   };
   const loopTimer = setInterval(tick, 30_000);
@@ -93,6 +139,7 @@ async function bootstrap(): Promise<void> {
     logger.info('shutting down', { message: signal });
     clearInterval(loopTimer);
     clearInterval(healthTimer);
+    await scanPool.end().catch(() => undefined);
     server.close();
     await pool.end();
     await stopTracing();

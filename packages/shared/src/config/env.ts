@@ -107,6 +107,22 @@ export const workerEnvSchema = baseSchema
   .merge(storageSchema)
   .extend({
     WORKER_PORT: z.coerce.number().int().positive().default(3002),
+
+    /**
+     * ウイルススキャナ (WP-P2-SCAN-011 / OQ-011)。
+     *
+     * 未設定なら添付スキャンを行わない。その場合 `scan_status` は `pending` の
+     * まま残り、**ダウンロードURLは発行されない**。
+     * 「スキャナが無いから素通しする」という選択肢は持たせない。
+     */
+    CLAMAV_HOST: z.string().optional(),
+    CLAMAV_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
+    /** スキャン可能な上限。超えるものは pending のまま残す(clean にしない)。 */
+    CLAMAV_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(25 * 1024 * 1024),
   });
 
 /**

@@ -13,7 +13,7 @@ import { HealthService } from './modules/health/health.js';
 import { AuthController } from './modules/auth/auth.routes.js';
 import { TicketController } from './modules/ticket/ticket.routes.js';
 import { CollaborationController } from './modules/ticket/collaboration.routes.js';
-import { S3CompatibleStorage } from './common/storage/object-storage.js';
+import { S3CompatibleStorage } from '@solvi/shared';
 import { PoolDenialRecorder } from './common/audit/denial-recorder.js';
 import type { IncomingMessage } from 'node:http';
 

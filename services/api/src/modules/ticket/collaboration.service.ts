@@ -13,7 +13,7 @@ import {
   MAX_SIGNED_URL_TTL_SECONDS,
   type ObjectStorage,
   type SignedUrl,
-} from '../../common/storage/object-storage.js';
+} from '@solvi/shared';
 
 /**
  * コメント・内部メモ・添付(FR-TKT-004 / FR-TKT-005)。

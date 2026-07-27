@@ -9,11 +9,7 @@ import pg from 'pg';
 import { TicketService } from '../../services/api/src/modules/ticket/ticket.service.js';
 import { CollaborationService } from '../../services/api/src/modules/ticket/collaboration.service.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
-import {
-  S3CompatibleStorage,
-  MAX_SIGNED_URL_TTL_SECONDS,
-  generateStorageKey,
-} from '../../services/api/src/common/storage/object-storage.js';
+import { S3CompatibleStorage, MAX_SIGNED_URL_TTL_SECONDS, generateStorageKey } from '@solvi/shared';
 import type { AuthzContext, Principal } from '../../services/api/src/common/authz/authz.js';
 import { runWithContext, newContext } from '@solvi/shared';
 import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';

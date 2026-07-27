@@ -30,7 +30,7 @@ import {
 } from '../../services/worker/src/dispatcher/outbox-dispatcher.js';
 import { enqueueOutboxEvent } from '../../services/api/src/common/outbox/outbox.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
-import { S3CompatibleStorage } from '../../services/api/src/common/storage/object-storage.js';
+import { S3CompatibleStorage } from '@solvi/shared';
 import { SessionService } from '../../services/api/src/modules/auth/session.service.js';
 import {
   LocalAuthService,

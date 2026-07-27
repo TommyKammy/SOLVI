@@ -12,3 +12,5 @@ export * from './observability/metrics.js';
 export * from './notification/webhook-signature.js';
 export * from './auth/password.js';
 export * from './auth/session-token.js';
+export * from './scan/clamav.js';
+export * from './storage/object-storage.js';
