@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { api } from '../../../lib/api';
+import { CommentThread } from '../../../components/CommentThread';
+import { CommentForm } from '../../../components/CommentForm';
 import {
   stateLabel,
   kindLabel,
@@ -30,6 +33,9 @@ export default async function TicketDetailPage({
   const query = await searchParams;
   const justCreated = query.created !== undefined;
 
+  const session = await api.me();
+  if (!session.ok) redirect('/login');
+
   const result = await api.getTicket(id);
   if (!result.ok) {
     if (result.problem.status === 401) redirect('/login');
@@ -39,6 +45,24 @@ export default async function TicketDetailPage({
   }
 
   const ticket = result.data;
+
+  // コメント一覧。**内部メモの除外はAPI側が行う。**
+  // 依頼者のセッションでは、そもそも内部メモが返ってこない。
+  const commentResult = await api.listComments(id);
+  const comments = commentResult.ok ? commentResult.data.items : [];
+
+  async function postComment(formData: FormData): Promise<void> {
+    'use server';
+    const posted = await api.addComment(id, {
+      // 依頼者は公開範囲を選べない。選択肢を出すと、
+      // 「内部メモ」を選んで担当者に届かない投稿が生まれる。
+      visibility: 'public',
+      body: String(formData.get('body') ?? ''),
+    });
+    if (!posted.ok) redirect(`/tickets/${id}?commentError=1`);
+    revalidatePath(`/tickets/${id}`);
+    redirect(`/tickets/${id}`);
+  }
 
   return (
     <main id="main" className="shell">
@@ -96,6 +120,19 @@ export default async function TicketDetailPage({
 
       <h2>お知らせいただいた内容</h2>
       <div className="body-text">{ticket.body}</div>
+
+      <h2>やり取り</h2>
+      <CommentThread comments={comments} currentUserId={session.data.userId} />
+
+      <h2>追加でお知らせする</h2>
+      <p className="lead">状況が変わった場合や、担当者への補足があればこちらへお書きください。</p>
+      <CommentForm
+        action={postComment}
+        canWriteInternal={false}
+        errorMessage={
+          query.commentError !== undefined ? '内容を確認して、もう一度お試しください。' : undefined
+        }
+      />
 
       <p style={{ marginTop: '2rem' }}>
         <Link href="/">ポータルへ戻る</Link>

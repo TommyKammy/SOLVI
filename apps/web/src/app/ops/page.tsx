@@ -1,0 +1,92 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { api } from '../../lib/api';
+import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../lib/labels';
+
+/**
+ * 担当者向けチケット一覧 (WP-P2-OPSUI-010)。
+ *
+ * 依頼者のトップとは**情報の密度を変える**(11.1)。
+ * 依頼者は「自分の件がどうなったか」だけを知りたいが、
+ * 担当者は「いま何から手を付けるか」を決める必要がある。
+ * 優先度と受付日時を出し、未割当が分かるようにする。
+ */
+
+export const dynamic = 'force-dynamic';
+
+export default async function OpsQueue() {
+  const session = await api.me();
+  if (!session.ok) redirect('/login');
+
+  const isAgent = session.data.roles.some((r) =>
+    ['agent', 'org_admin', 'platform_admin'].includes(r.roleCode),
+  );
+  if (!isAgent) {
+    // 権限が無い利用者にはこの画面を見せない。
+    // ただし**表示しないことを防御にしない** — APIは自分の分しか返さない。
+    return (
+      <main id="main" className="shell">
+        <h1>担当者向けの画面</h1>
+        <p className="empty">この画面を表示する権限がありません。</p>
+        <p>
+          <Link href="/">ポータルへ戻る</Link>
+        </p>
+      </main>
+    );
+  }
+
+  const tickets = await api.listTickets(50);
+
+  return (
+    <main id="main" className="shell">
+      <h1>対応待ちの一覧</h1>
+      <p className="lead">組織全体の問い合わせを、受付が新しい順に表示しています。</p>
+
+      {!tickets.ok ? (
+        <p className="empty" role="status">
+          一覧を取得できませんでした。時間をおいて再度お試しください。
+        </p>
+      ) : tickets.data.items.length === 0 ? (
+        <p className="empty">対応待ちの問い合わせはありません。</p>
+      ) : (
+        <table className="tickets">
+          <caption style={{ textAlign: 'left', paddingBottom: '0.5rem' }}>
+            全 {tickets.data.total} 件中 {tickets.data.items.length} 件を表示
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">受付番号</th>
+              <th scope="col">件名</th>
+              <th scope="col">種別</th>
+              <th scope="col">優先度</th>
+              <th scope="col">状況</th>
+              <th scope="col">担当</th>
+              <th scope="col">受付日時</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tickets.data.items.map((ticket) => (
+              <tr key={ticket.id}>
+                <td>
+                  <Link href={`/ops/${ticket.id}`}>{ticket.number}</Link>
+                </td>
+                <td>{ticket.subject}</td>
+                <td>{kindLabel(ticket.kind)}</td>
+                <td>{priorityLabel(ticket.priority)}</td>
+                <td>
+                  <span className="state">{stateLabel(ticket.state)}</span>
+                </td>
+                <td>
+                  {/* 未割当を色ではなく文言で示す。
+                      「空欄」だと、担当がいないのか表示漏れなのか分からない。 */}
+                  {ticket.assigned ? '割当済み' : '未割当'}
+                </td>
+                <td>{formatDateTime(ticket.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </main>
+  );
+}

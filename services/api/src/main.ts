@@ -12,6 +12,8 @@ import { HttpServer } from './common/http/server.js';
 import { HealthService } from './modules/health/health.js';
 import { AuthController } from './modules/auth/auth.routes.js';
 import { TicketController } from './modules/ticket/ticket.routes.js';
+import { CollaborationController } from './modules/ticket/collaboration.routes.js';
+import { S3CompatibleStorage } from './common/storage/object-storage.js';
 import { PoolDenialRecorder } from './common/audit/denial-recorder.js';
 import type { IncomingMessage } from 'node:http';
 
@@ -90,9 +92,19 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  const tickets = new TicketController({
+  const denialRecorder = new PoolDenialRecorder(db.authPool());
+  const tickets = new TicketController({ pool: db.authPool(), denialRecorder });
+
+  const collaboration = new CollaborationController({
     pool: db.authPool(),
-    denialRecorder: new PoolDenialRecorder(db.authPool()),
+    denialRecorder,
+    storage: new S3CompatibleStorage({
+      endpoint: env.S3_ENDPOINT,
+      bucket: env.S3_BUCKET_ATTACHMENTS,
+      accessKey: env.S3_ACCESS_KEY,
+      secretKey: env.S3_SECRET_KEY,
+      region: env.S3_REGION,
+    }),
   });
 
   const app = new HttpServer(logger)
@@ -141,6 +153,44 @@ async function bootstrap(): Promise<void> {
     .get('/tickets/:id', async (req, _res, params) => {
       const authenticated = await auth.authenticate(req.headers);
       const result = await tickets.findById(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .get('/tickets/:id/workspace', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.workspace(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .get('/tickets/:id/comments', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.listComments(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/tickets/:id/comments', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.addComment(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/tickets/:id/transitions', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.transition(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      return result.body;
+    })
+    .post('/tickets/:id/assignee', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.assign(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
       return result.body;
     });
 
