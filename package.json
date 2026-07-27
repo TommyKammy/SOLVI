@@ -36,13 +36,16 @@
     "down": "docker compose down -v",
     "logs": "docker compose logs -f",
     "check:architecture": "node tools/check_architecture.mjs",
-    "check:skips": "node tools/check_no_skipped_tests.mjs"
+    "check:skips": "node tools/check_no_skipped_tests.mjs",
+    "check:a11y": "node tools/check_accessibility.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.5",
     "eslint": "^9.18.0",
     "globals": "^17.8.0",
+    "playwright": "^1.62.0",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
