@@ -21,6 +21,10 @@ const NON_ORG_SCOPED = new Map([
   ['app_user', '1人が複数組織へ所属しうる。role_binding 経由で分離する'],
   ['identity', 'app_user に従属。role_binding 経由で分離する'],
   ['organization', 'organization_id ではなく id 自身が組織を表す。RLSは id で分離する'],
+  [
+    'audit_anchor',
+    '日次ハッシュは組織横断の整合性を担保するため分割しない。参照は監査者ロールで制御する',
+  ],
 ]);
 
 /** アプリ接続ロール。いずれも非owner・NOBYPASSRLS でなければならない。 */
