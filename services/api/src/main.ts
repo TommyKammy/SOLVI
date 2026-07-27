@@ -3,6 +3,8 @@ import {
   loadEnv,
   createLogger,
   EnvValidationError,
+  startTracing,
+  stopTracing,
   type ApiEnv,
 } from '@solvi/shared';
 import { Database } from './common/db/pool.js';
@@ -23,6 +25,14 @@ async function bootstrap(): Promise<void> {
     }
     throw error;
   }
+
+  // 計装は他の初期化より先に行う。後から始めると、起動時の処理が計装されない。
+  startTracing({
+    serviceName: 'solvi-api',
+    serviceVersion: SERVICE_VERSION,
+    environment: env.NODE_ENV,
+    otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT || undefined,
+  });
 
   const logger = createLogger({
     service: 'api',
@@ -54,6 +64,7 @@ async function bootstrap(): Promise<void> {
     server.close();
     await app.close();
     await db.close();
+    await stopTracing();
     process.exit(0);
   };
 

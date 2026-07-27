@@ -7,6 +7,9 @@ import {
   newContext,
   CORRELATION_HEADER,
   REQUEST_ID_HEADER,
+  recordHttpRequest,
+  withSpan,
+  withRestoredTraceContext,
   type Logger,
 } from '@solvi/shared';
 import { randomUUID } from 'node:crypto';
@@ -67,26 +70,73 @@ export class HttpServer {
     const context = newContext({ correlationId, requestId });
     const log = this.logger.child({ correlationId, requestId });
 
+    // 受信したW3Cトレース文脈を復元してからスパンを開始する。
+    // 呼び出し元(Portal や他サービス)のトレースへ繋げるため。
+    const incoming: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (key === 'traceparent' || key === 'tracestate') {
+        incoming[key] = Array.isArray(value) ? (value[0] ?? '') : (value ?? '');
+      }
+    }
+
     await runWithContext(context, async () => {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const route = this.routes.find((r) => r.method === req.method && r.path === url.pathname);
 
-      try {
-        if (!route) throw Problems.notFound('エンドポイント');
-        const body = await route.handler(req, res);
-        if (res.writableEnded) return;
-        this.sendJson(res, 200, body ?? {});
-      } catch (error) {
-        this.sendError(res, error, correlationId, url.pathname, log);
-      } finally {
-        const durationMs = Number(process.hrtime.bigint() - started) / 1e6;
-        log.info('request completed', {
-          method: req.method ?? 'UNKNOWN',
-          path: url.pathname,
-          statusCode: res.statusCode,
-          durationMs: Math.round(durationMs * 100) / 100,
-        });
+      // ヘルスチェックはスパンを作らない。大量に来るうえ障害解析の役に立たず、
+      // 記録するとノイズでトレースが埋まる。
+      const skipTrace = url.pathname === '/healthz' || url.pathname === '/readyz';
+
+      const run = async (): Promise<void> => {
+        try {
+          if (!route) throw Problems.notFound('エンドポイント');
+          const body = await route.handler(req, res);
+          if (res.writableEnded) return;
+          this.sendJson(res, 200, body ?? {});
+        } catch (error) {
+          this.sendError(res, error, correlationId, url.pathname, log);
+        } finally {
+          const durationMs = Number(process.hrtime.bigint() - started) / 1e6;
+          // メトリクスには**ルートパターン**を渡す。実IDを含む生パスを渡すと
+          // 時系列が無限に増えて監視基盤を壊す(metrics.ts の方針)。
+          recordHttpRequest({
+            method: req.method ?? 'UNKNOWN',
+            route: route?.path ?? '(unmatched)',
+            statusCode: res.statusCode,
+            durationMs,
+          });
+          log.info('request completed', {
+            method: req.method ?? 'UNKNOWN',
+            path: url.pathname,
+            statusCode: res.statusCode,
+            durationMs: Math.round(durationMs * 100) / 100,
+          });
+        }
+      };
+
+      if (skipTrace) {
+        await run();
+        return;
       }
+
+      // 自動計装(instrumentation-http)は実行環境によって無言で無効になる
+      // (tsx/ESM ではモジュールのパッチが効かない)。実際に検証で発覚したため、
+      // アプリ側で明示的にスパンを張る。自動計装は補助であり、依存しない。
+      await withRestoredTraceContext(incoming, () =>
+        withSpan(
+          `${req.method ?? 'UNKNOWN'} ${route?.path ?? '(unmatched)'}`,
+          {
+            'http.request.method': req.method ?? 'UNKNOWN',
+            'http.route': route?.path ?? '(unmatched)',
+            // 相関IDをスパンにも載せ、ログ・監査と突き合わせられるようにする
+            'solvi.correlation_id': correlationId,
+          },
+          async (span) => {
+            await run();
+            span.setAttribute('http.response.status_code', res.statusCode);
+          },
+        ),
+      );
     });
   }
 

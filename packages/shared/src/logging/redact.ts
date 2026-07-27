@@ -15,6 +15,8 @@ export const LOG_ALLOWED_KEYS = new Set([
   'env',
   'correlationId',
   'requestId',
+  'traceId',
+  'spanId',
   'workflowRunId',
   'commandId',
   'receiptId',
