@@ -281,7 +281,8 @@ export class CollaborationService {
   async createDownloadUrl(ctx: AuthzContext, attachmentId: string): Promise<SignedUrl> {
     const { rows } = await this.client.query(
       `SELECT * FROM ticket_attachment
-        WHERE id = $1 AND ($2::boolean OR visibility = 'public')`,
+        WHERE id = $1 AND ($2::boolean OR visibility = 'public')
+          AND deleted_at IS NULL`,
       [attachmentId, this.canSeeInternal(ctx)],
     );
     if (rows.length === 0) throw Problems.notFound('添付ファイル');
@@ -334,10 +335,96 @@ export class CollaborationService {
     const { rows } = await this.client.query(
       `SELECT * FROM ticket_attachment
         WHERE ticket_id = $1 AND ($2::boolean OR visibility = 'public')
+          AND deleted_at IS NULL
         ORDER BY created_at, id`,
       [ticketId, this.canSeeInternal(ctx)],
     );
     return rows.map(toAttachment);
+  }
+
+  /**
+   * 添付の削除。
+   *
+   * **実体は消すが、あったことは残す。**
+   *
+   *   実体を残すと   → 削除したつもりで漏えいが続く
+   *   記録ごと消すと → 誰が何を消したか追えず、証拠隠滅と区別できない
+   *
+   * 誤って他人の情報が写った画像を添付した場合、メタデータを隠すだけでは
+   * 実体が残り、署名を作れる者には依然として読める。
+   * **実体を消して初めて「取り消した」と言える。**
+   *
+   * 消せるのは「自分が添付したもの」と「担当者が組織内のもの」に限る。
+   * 依頼者が担当者の添付を消せると、対応の記録を一方的に削れてしまう。
+   */
+  async deleteAttachment(ctx: AuthzContext, attachmentId: string, reason: string): Promise<void> {
+    const trimmed = reason.trim();
+    if (trimmed.length === 0) {
+      // 理由の無い削除は、後から「なぜ消えたのか」が分からない。
+      throw Problems.validation([{ field: 'reason', message: '削除の理由を入力してください' }]);
+    }
+
+    const { rows } = await this.client.query(
+      `SELECT * FROM ticket_attachment WHERE id = $1 AND deleted_at IS NULL`,
+      [attachmentId],
+    );
+    if (rows.length === 0) throw Problems.notFound('添付ファイル');
+    const attachment = toAttachment(rows[0]!);
+
+    // チケットへのアクセス権が無ければ、そもそも存在を知られない。
+    await this.assertTicketAccess(ctx, attachment.ticketId);
+
+    // 内部添付は内部を見られる者だけが消せる。
+    if (attachment.visibility === 'internal' && !this.canSeeInternal(ctx)) {
+      throw Problems.notFound('添付ファイル');
+    }
+
+    const isOwner = attachment.uploadedBy === ctx.principal.userId;
+    const isAgent = this.canSeeInternal(ctx);
+    if (!isOwner && !isAgent) {
+      await this.denialRecorder.record(ctx.organizationId, {
+        eventType: 'authz.access.denied',
+        organizationId: ctx.organizationId,
+        actorType: 'user',
+        actorId: ctx.principal.userId,
+        targetType: 'ticket_attachment',
+        targetId: attachmentId,
+        action: 'delete',
+        outcome: 'denied',
+        policyDecision: { rule: 'attachment_delete', detail: '自分が添付したものではありません' },
+      });
+      throw Problems.forbidden('この添付を削除する権限がありません');
+    }
+
+    // **先に実体を消す。** メタデータを先に消すと、実体の削除に失敗したとき
+    // 「消えたはずのファイルが残っている」状態になり、しかも一覧に出ないため
+    // 気付けない。実体の削除が失敗すれば、ここで処理全体が止まる。
+    //
+    // `storageKey` は表示用の型に含めていない(実体の場所を外へ出さないため)。
+    // ここでは行から直接読む。
+    await this.storage.deleteObject(rows[0]!.storage_key as string);
+
+    await this.client.query(
+      `UPDATE ticket_attachment
+          SET deleted_at = now(), deleted_by = $2, deletion_reason = $3
+        WHERE id = $1`,
+      [attachmentId, ctx.principal.userId, trimmed.slice(0, 500)],
+    );
+
+    await recordAuditEvent(this.client, {
+      eventType: 'ticket.attachment.deleted',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      targetType: 'ticket_attachment',
+      targetId: attachmentId,
+      action: 'delete',
+      outcome: 'success',
+      // **ファイル名は残す。** 何が削除されたか分からなければ監査にならない。
+      // 理由も残す — 「誤添付」と「証拠隠滅」を後から区別する材料になる。
+      beforeState: { fileName: attachment.fileName, visibility: attachment.visibility },
+      afterState: { deleted: true, reason: trimmed.slice(0, 500) },
+    });
   }
 
   /**

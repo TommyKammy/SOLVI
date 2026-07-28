@@ -115,6 +115,7 @@ export interface AvailableAction {
 
 export interface AttachmentView {
   id: string;
+  uploadedBy: string;
   fileName: string;
   sizeBytes: number;
   visibility: 'public' | 'internal';
@@ -192,6 +193,12 @@ export const api = {
       `/tickets/${encodeURIComponent(id)}/attachments`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  deleteAttachment: (attachmentId: string, reason: string) =>
+    call<void>(`/attachments/${encodeURIComponent(attachmentId)}/delete`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
 
   downloadUrl: (attachmentId: string) =>
     call<{ url: string; expiresAt: string }>(

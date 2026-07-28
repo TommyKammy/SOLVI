@@ -57,6 +57,17 @@ export default async function TicketDetailPage({
   const attachmentResult = await api.listAttachments(id);
   const attachments = attachmentResult.ok ? attachmentResult.data.items : [];
 
+  async function removeAttachment(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.deleteAttachment(
+      String(formData.get('attachmentId') ?? ''),
+      String(formData.get('reason') ?? ''),
+    );
+    if (!done.ok) redirect(`/tickets/${id}?commentError=1`);
+    revalidatePath(`/tickets/${id}`);
+    redirect(`/tickets/${id}`);
+  }
+
   async function postComment(formData: FormData): Promise<void> {
     'use server';
     const posted = await api.addComment(id, {
@@ -128,7 +139,13 @@ export default async function TicketDetailPage({
       <div className="body-text">{ticket.body}</div>
 
       <h2>添付ファイル</h2>
-      <AttachmentList attachments={attachments} />
+      {/* 依頼者が消せるのは自分が添付したものだけ。
+          担当者の添付を消せると、対応の記録を一方的に削れてしまう。 */}
+      <AttachmentList
+        attachments={attachments}
+        currentUserId={session.data.userId}
+        deleteAction={removeAttachment}
+      />
       <AttachmentForm ticketId={id} canChooseVisibility={false} />
 
       <h2>やり取り</h2>

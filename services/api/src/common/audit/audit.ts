@@ -42,6 +42,7 @@ export const AUDIT_EVENT_TYPES = [
   'ticket.comment.added',
   'ticket.attachment.added',
   'ticket.attachment.downloaded',
+  'ticket.attachment.deleted',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
