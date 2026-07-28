@@ -109,6 +109,52 @@ export class RelationService {
     return { a, b };
   }
 
+  /**
+   * 受付番号でチケットを引く (WP-P2-RELUI-012)。
+   *
+   * 担当者が見ているのは番号(`INC-2026-000012`)であり、UUID ではない。
+   * 画面にUUIDを手で写させると、**写し間違いで別のチケットを統合しうる**。
+   * 統合は取り消せないので、その経路を作らない。
+   *
+   * 見つからない場合も権限が無い場合も**同じ文面**を返す。
+   * 区別すると、番号を総当たりして他組織・他人のチケットの実在を確かめられる。
+   */
+  async findByNumber(ctx: AuthzContext, number: string): Promise<RelatedTicketSummary> {
+    const trimmed = number.trim();
+    const notFoundError = Problems.validation([
+      { field: 'targetTicketNumber', message: 'その受付番号のチケットは見つかりません' },
+    ]);
+    if (trimmed.length === 0) throw notFoundError;
+
+    // RLS により他組織の行はそもそも返らない。
+    const { rows } = await this.client.query<TicketRow>(
+      'SELECT id, organization_id, requester_id, number, subject, state, merged_into_id FROM ticket WHERE number = $1',
+      [trimmed],
+    );
+    if (rows.length === 0) throw notFoundError;
+    const ticket = rows[0]!;
+
+    try {
+      requireAccess(
+        ctx,
+        { organizationId: ticket.organization_id, ownerUserId: ticket.requester_id },
+        READ_POLICY,
+        'チケット',
+      );
+    } catch {
+      // 403 を返すと「その番号は実在する」と分かってしまう。
+      throw notFoundError;
+    }
+
+    return {
+      ticketId: ticket.id,
+      number: ticket.number,
+      subject: ticket.subject,
+      state: ticket.state,
+      role: 'related',
+    };
+  }
+
   async link(
     ctx: AuthzContext,
     sourceTicketId: string,
@@ -307,18 +353,31 @@ export class RelationService {
       [sourceTicketId, targetTicketId],
     );
 
-    // 統合先から元チケットを辿れるようにする(related として双方向に見える)
-    await this.client
-      .query(
-        `INSERT INTO ticket_relation
-           (id, organization_id, relation_type, source_ticket_id, target_ticket_id, created_by)
-         VALUES ($1, $2, 'related', $3, $4, $5)`,
-        [uuidv7(), ctx.organizationId, targetTicketId, sourceTicketId, ctx.principal.userId],
-      )
-      .catch((error: { code?: string }) => {
-        // 既に関連付け済みなら何もしない。統合自体は成立させる。
-        if (error.code !== '23505') throw error;
-      });
+    // 統合先から元チケットを辿れるようにする(related として双方向に見える)。
+    //
+    // **既に関連付けられている場合がある。** 担当者が「関連しているようだ」と
+    // 気付いて先に関連付け、そのあとで「やはり重複だ」と統合する —
+    // これは異常な操作順ではなく、むしろ自然な流れである。
+    //
+    // ここで一意制約違反を JavaScript の catch で握り潰してはいけない。
+    // **PostgreSQL では文がエラーになった時点でトランザクション全体が中断する。**
+    // 例外を捕まえても中断は解けず、以降のクエリはすべて
+    // 「current transaction is aborted」で失敗する。
+    // 実際この経路は 500 を返していた(統合そのものは成立せず、
+    // 「先に関連付けてから統合する」と必ず失敗した)。
+    //
+    // 部分一意索引に合わせた `ON CONFLICT` を書く。`WHERE` を省くと
+    // 索引が一致せず「no unique or exclusion constraint matching」で落ちる。
+    await this.client.query(
+      `INSERT INTO ticket_relation
+         (id, organization_id, relation_type, source_ticket_id, target_ticket_id, created_by)
+       VALUES ($1, $2, 'related', $3, $4, $5)
+       ON CONFLICT (
+         LEAST(source_ticket_id, target_ticket_id),
+         GREATEST(source_ticket_id, target_ticket_id)
+       ) WHERE relation_type = 'related' DO NOTHING`,
+      [uuidv7(), ctx.organizationId, targetTicketId, sourceTicketId, ctx.principal.userId],
+    );
 
     // コメント・添付が元チケットに残っていることを数える。
     // 「移動しない」という決定が守られていることを、実行時にも確認できるようにする。

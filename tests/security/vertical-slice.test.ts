@@ -168,8 +168,17 @@ beforeEach(async () => {
   await admin.query('DELETE FROM notification');
   await admin.query('DELETE FROM outbox_event');
   await admin.query('DELETE FROM session');
-  await admin.query('DELETE FROM local_credential');
-  await admin.query('DELETE FROM identity WHERE issuer = $1', [LOCAL_ISSUER]);
+  // **シードのアカウントを消さない。** テストが作るのは created_via='admin' のみ。
+  // 以前はここで local_credential を全消ししており、テストを流したあとは
+  // シードの利用者が誰もログインできなくなっていた。画面は正常に見えるのに
+  // 全員が 401 になり、原因は認証の不具合に見える(実際は資格情報の消失)。
+  await admin.query(
+    `DELETE FROM local_credential WHERE user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+  );
+  await admin.query(
+    `DELETE FROM identity WHERE issuer = $1 AND user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+    [LOCAL_ISSUER],
+  );
   await cleanBusinessData(admin);
   await admin.query("DELETE FROM role_binding WHERE source = 'manual'");
   await admin.query("DELETE FROM app_user WHERE created_via = 'admin'");

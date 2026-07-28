@@ -247,8 +247,8 @@ const ACCEPTED_UNWIRED = {
   isDerivedPriority: '優先度が導出値のままか手で変えられたかを画面に出すための判定。画面側が未実装',
   assertCanSwitchOrganization:
     'platform_admin の組織横断操作の門番。横断操作の画面と経路がまだ無い',
-  RelationService:
-    '**HTTP経路も画面も無い。** WP-P2-REL-009 は「実装済み」とされていたが、利用者からは到達できない。追補WPで繋ぐ',
+  // RelationService は WP-P2-RELUI-012 で繋いだので、この表から外した。
+  // 繋いだら消す — 残したままだと、次に見た人が「まだ未接続」と読む。
 };
 
 process.stdout.write('\nC. 公開されているが本番経路から呼ばれない関数\n');

@@ -15,6 +15,7 @@ import { HealthService } from './modules/health/health.js';
 import { AuthController } from './modules/auth/auth.routes.js';
 import { TicketController } from './modules/ticket/ticket.routes.js';
 import { CollaborationController } from './modules/ticket/collaboration.routes.js';
+import { RelationController } from './modules/ticket/relation.routes.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
 import { NotificationService } from './modules/notification/notification.service.js';
@@ -114,6 +115,8 @@ async function bootstrap(): Promise<void> {
       region: env.S3_REGION,
     }),
   });
+
+  const relations = new RelationController({ pool: db.authPool(), denialRecorder });
 
   const app = new HttpServer(logger)
     .get('/healthz', () => health.liveness())
@@ -231,6 +234,36 @@ async function bootstrap(): Promise<void> {
         params.id ?? '',
         await readJsonBody(req),
       );
+      return result.body;
+    })
+    // ---- 関連付けと統合 (WP-P2-RELUI-012) --------------------------------
+    .get('/tickets/:id/relations', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await relations.list(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/tickets/:id/relations', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await relations.link(authenticated, params.id ?? '', await readJsonBody(req));
+      res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/relations/:id/delete', async (req, res, params) => {
+      // 添付の削除と同じ理由で POST。取り消す操作をリンクに置かない。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await relations.unlink(authenticated, params.id ?? '');
+      res.writeHead(result.status);
+      res.end();
+    })
+    .post('/tickets/:id/merge', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await relations.merge(authenticated, params.id ?? '', await readJsonBody(req));
+      return result.body;
+    })
+    .get('/tickets/by-number/:number', async (req, _res, params) => {
+      // 統合前の確認に使う。閲覧できない番号は「見つかりません」で返る。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await relations.lookup(authenticated, params.number ?? '');
       return result.body;
     });
 

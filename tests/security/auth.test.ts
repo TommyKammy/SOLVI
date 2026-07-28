@@ -147,8 +147,17 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await admin.query('DELETE FROM session');
-  await admin.query('DELETE FROM local_credential');
-  await admin.query('DELETE FROM identity WHERE issuer = $1', [LOCAL_ISSUER]);
+  // **シードのアカウントを消さない。** テストが作るのは created_via='admin' のみ。
+  // 以前はここで local_credential を全消ししており、テストを流したあとは
+  // シードの利用者が誰もログインできなくなっていた。画面は正常に見えるのに
+  // 全員が 401 になり、原因は認証の不具合に見える(実際は資格情報の消失)。
+  await admin.query(
+    `DELETE FROM local_credential WHERE user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+  );
+  await admin.query(
+    `DELETE FROM identity WHERE issuer = $1 AND user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+    [LOCAL_ISSUER],
+  );
   // 他のテストファイルが残したチケットが app_user を参照しているため、
   // 業務データを先に消さないと利用者を削除できない(FK違反)。
   // 削除順は tests/support/cleanup.ts に集約してある。
@@ -344,7 +353,15 @@ describe('総当たり対策', () => {
       );
     }
 
-    const { rows } = await admin.query('SELECT locked_until FROM local_credential');
+    // **対象の利用者に絞る。** かつては `local_credential` を全消ししていたため
+    // 「1行しか無い」前提で書けたが、それはシードの資格情報まで壊す片付けだった。
+    // 片付けを直した結果、この前提が崩れて初めて誤りが露呈した。
+    const { rows } = await admin.query(
+      `SELECT locked_until FROM local_credential lc
+         JOIN app_user u ON u.id = lc.user_id
+        WHERE u.primary_email = $1`,
+      ['lock@example.com'],
+    );
     expect(rows[0].locked_until).not.toBeNull();
   });
 
@@ -392,7 +409,12 @@ describe('総当たり対策', () => {
       );
     }
     // ロック時に失敗回数が0へ戻っていること
-    const { rows } = await admin.query('SELECT failed_attempts FROM local_credential');
+    const { rows } = await admin.query(
+      `SELECT failed_attempts FROM local_credential lc
+         JOIN app_user u ON u.id = lc.user_id
+        WHERE u.primary_email = $1`,
+      ['lock4@example.com'],
+    );
     expect(rows[0].failed_attempts).toBe(0);
   });
 
@@ -404,7 +426,12 @@ describe('総当たり対策', () => {
     await withAuth(({ auth }) =>
       auth.authenticate({ email: 'reset@example.com', password: PASSWORD, organizationId: ORG_A }),
     );
-    const { rows } = await admin.query('SELECT failed_attempts FROM local_credential');
+    const { rows } = await admin.query(
+      `SELECT failed_attempts FROM local_credential lc
+         JOIN app_user u ON u.id = lc.user_id
+        WHERE u.primary_email = $1`,
+      ['reset@example.com'],
+    );
     expect(rows[0].failed_attempts).toBe(0);
   });
 });
