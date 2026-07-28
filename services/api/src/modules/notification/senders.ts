@@ -27,11 +27,5 @@ export class RecordingEmailSender implements NotificationSender {
   }
 }
 
-/** 送信を必ず失敗させる。リトライ経路の検証に使う。 */
-export class FailingEmailSender implements NotificationSender {
-  readonly channel = 'email' as const;
-  constructor(private readonly reason = 'SMTP接続に失敗しました') {}
-  async send(): Promise<void> {
-    throw new Error(this.reason);
-  }
-}
+// 送信を必ず失敗させるテスト用チャネルは tests/support/senders.ts にある。
+// 本番のソースへ置くと、**本番経路に到達しうる失敗装置**を配ることになる。

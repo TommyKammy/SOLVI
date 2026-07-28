@@ -12,6 +12,7 @@ import {
   persistAnchor,
   verifyAnchor,
 } from '../../services/worker/src/jobs/audit-anchor/anchor.js';
+import { runDailyAnchor } from '../../services/worker/src/jobs/audit-anchor/runner.js';
 import { runWithContext, newContext } from '@solvi/shared';
 import { cleanAuditData } from '../support/cleanup.js';
 
@@ -275,5 +276,148 @@ describe('日次アンカーと改ざん検知 (Gate 1 G1-5)', () => {
 
   it('アンカーがない日は no_anchor を返す', async () => {
     expect((await verifyAnchor(admin, '2020-01-01')).status).toBe('no_anchor');
+  });
+});
+
+/**
+ * **アンカーが実際に動く経路の検査。**
+ *
+ * 上の一連の検査はすべて `admin`(BYPASSRLS を持つ所有者)で行っている。
+ * そのため「アプリロールでは1件も見えない」という事実を一度も踏まなかった。
+ * 実運用のワーカーは `solvi_app` で接続する。**そちらで確かめる。**
+ *
+ * この検査が無かったために、アンカーは実装済みとして扱われながら
+ * 一度も実行されず、仮に実行されていれば毎日「0件の1日」を記録していた。
+ */
+describe('アンカーの実行経路 (migration 0014)', () => {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const silentLogger = {
+    debug: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+    error: () => undefined,
+  } as unknown as Parameters<typeof runDailyAnchor>[1];
+
+  // audit_anchor はファイル冒頭の beforeEach(cleanAuditData)で消える。
+  // ここで生の DELETE を書いてはいけない — append-only トリガに阻まれる。
+
+  it('**組織コンテキストが無いとアプリロールには1件も見えない**', async () => {
+    await runWithContext(newContext(), () =>
+      asOrg(ORG_A, (c) => recordAuditEvent(c, sampleEvent())),
+    );
+
+    const client = await appPool.connect();
+    try {
+      await client.query('BEGIN');
+      const blind = await computeDailyRoot(client, new Date().toISOString().slice(0, 10));
+      await client.query('ROLLBACK');
+      // ここが 0 であることこそが、例外ポリシーを必要とする理由である。
+      // そして 0 件でも rootHash は正しく計算でき、保存も成功してしまう。
+      expect(blind.eventCount).toBe(0);
+      expect(blind.rootHash).toMatch(/^[0-9a-f]{64}$/);
+    } finally {
+      client.release();
+    }
+  });
+
+  it('app.anchor を立てると全組織のイベントが見える', async () => {
+    await runWithContext(newContext(), () =>
+      asOrg(ORG_A, (c) => recordAuditEvent(c, sampleEvent(ORG_A))),
+    );
+    await runWithContext(newContext(), () =>
+      asOrg(ORG_B, (c) => recordAuditEvent(c, sampleEvent(ORG_B))),
+    );
+
+    const client = await appPool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.anchor', 'on', true)");
+      const seen = await computeDailyRoot(client, new Date().toISOString().slice(0, 10));
+      await client.query('ROLLBACK');
+      // 組織をまたいで1本の連鎖にする。組織ごとに分けると、
+      // その組織の行を全部消してアンカーを作り直せば辻褄が合ってしまう。
+      expect(seen.eventCount).toBeGreaterThanOrEqual(2);
+    } finally {
+      client.release();
+    }
+  });
+
+  it('例外はトランザクションを越えて残らない', async () => {
+    const client = await appPool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.anchor', 'on', true)");
+      await client.query('COMMIT');
+
+      await client.query('BEGIN');
+      const { rows } = await client.query("SELECT current_setting('app.anchor', true) AS v");
+      await client.query('ROLLBACK');
+      expect(rows[0].v === null || rows[0].v === '').toBe(true);
+    } finally {
+      client.release();
+    }
+  });
+
+  it('runDailyAnchor が前日分を固定し、照合まで行う', async () => {
+    const summary = await runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger));
+    expect(summary.anchored).toBe(yesterday);
+    expect(summary.mismatched).toHaveLength(0);
+
+    const { rows } = await admin.query('SELECT anchor_date FROM audit_anchor');
+    expect(rows).toHaveLength(1);
+  });
+
+  it('**同じ日を二度実行しても増えない**(1時間おきに回せる)', async () => {
+    await runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger));
+    await runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger));
+    const { rows } = await admin.query('SELECT count(*)::int AS n FROM audit_anchor');
+    expect(rows[0].n).toBe(1);
+  });
+
+  it('**当日分は固定しない**(まだイベントが増える日をアンカーすると必ず不一致になる)', async () => {
+    await runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger));
+    const { rows } = await admin.query('SELECT anchor_date::text AS d FROM audit_anchor');
+    expect(rows.map((r) => r.d)).not.toContain(new Date().toISOString().slice(0, 10));
+  });
+
+  it('ポリシーが無ければ実行を拒む(空のアンカーを保存しない)', async () => {
+    await admin.query('DROP POLICY audit_event_anchor_lookup ON audit_event');
+    try {
+      await expect(
+        runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger)),
+      ).rejects.toThrow(/audit_event_anchor_lookup/);
+      const { rows } = await admin.query('SELECT count(*)::int AS n FROM audit_anchor');
+      expect(rows[0].n).toBe(0);
+    } finally {
+      await admin.query(
+        `CREATE POLICY audit_event_anchor_lookup ON audit_event
+           FOR SELECT USING (current_setting('app.anchor', true) = 'on')`,
+      );
+    }
+  });
+
+  it('改変を検出すると mismatched に日付が入る', async () => {
+    const eventId = await runWithContext(newContext(), () =>
+      asOrg(ORG_A, (c) => recordAuditEvent(c, sampleEvent())),
+    );
+    // 前日分を対象にするため、記録済みイベントの時刻を1日戻す。
+    // occurred_at はアプリからは指定できない(捏造を防ぐため)。
+    await admin.query('ALTER TABLE audit_event DISABLE TRIGGER audit_event_no_update');
+    await admin.query(
+      "UPDATE audit_event SET occurred_at = occurred_at - interval '1 day' WHERE event_id = $1",
+      [eventId],
+    );
+    await admin.query('ALTER TABLE audit_event ENABLE TRIGGER audit_event_no_update');
+
+    const first = await runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger));
+    expect(first.eventCount).toBeGreaterThan(0);
+
+    await admin.query('ALTER TABLE audit_event DISABLE TRIGGER audit_event_no_update');
+    await admin.query("UPDATE audit_event SET outcome = 'failure' WHERE event_id = $1", [eventId]);
+    await admin.query('ALTER TABLE audit_event ENABLE TRIGGER audit_event_no_update');
+
+    const summary = await runWithContext(newContext(), () => runDailyAnchor(appPool, silentLogger));
+    expect(summary.mismatched).toContain(yesterday);
   });
 });

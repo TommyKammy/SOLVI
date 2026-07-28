@@ -1,0 +1,25 @@
+OK   未認証で /tickets が 401 — status=401
+OK   誤パスワードで 401 — status=401
+OK   失敗理由を返さない — {"type":"https://solvi.internal/problems/unauthenticated","title":"ログインが必要です","s
+NG   ログイン成功 — status=401
+NG   HttpOnly が付く
+NG   SameSite=Lax が付く
+OK   本文にトークンを含めない
+OK   他組織を名乗るログインを拒否 — status=401
+NG   起票が 201 — status=401
+NG   受付番号が返る
+OK   担当者IDを返さない
+NG   優先度が導出されている
+NG   不正入力が 400 — status=401
+NG   誤りをまとめて返す — 0 件
+OK   Problem Details 形式
+NG   一覧が取得できる — undefined 件 scope=undefined
+NG   依頼者の可視範囲は own
+NG   個別取得できる — status=401
+NG   存在しないIDは 404 — status=401
+OK   ログアウトが 204 — status=204
+OK   **ログアウト後は同じCookieで通らない** — status=401
+OK   ログイン画面 — status=200
+OK   ポータルトップ(未認証はログインへ) — status=307
+
+12 件の問題があります

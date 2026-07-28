@@ -147,6 +147,24 @@ describe('ログとトレースの突き合わせ', () => {
     logger.info('outside span');
     expect(JSON.parse(lines[0]!).traceId).toBeUndefined();
   });
+
+  it('**付加フィールドの message が表題を消さない**', () => {
+    const { lines, logger } = capture();
+    logger.info('audit anchor', { message: 'date=2026-07-27 created' });
+    const record = JSON.parse(lines[0]!);
+    // 表題で検索できなければ、障害対応の最中にログを引けない。
+    expect(record.message).toBe('audit anchor');
+    // 衝突した値も捨てない。
+    expect(record.detail).toBe('date=2026-07-27 created');
+  });
+
+  it('衝突が無ければ detail は付かない', () => {
+    const { lines, logger } = capture();
+    logger.info('plain', { count: 3 });
+    const record = JSON.parse(lines[0]!);
+    expect(record.detail).toBeUndefined();
+    expect(record.count).toBe(3);
+  });
 });
 
 describe('計装が新たな露出経路を作っていないこと (NFR-SEC-004 / 脅威 T-22)', () => {

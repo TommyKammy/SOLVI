@@ -15,12 +15,14 @@ import {
 } from '@solvi/shared';
 import pg from 'pg';
 import { AttachmentScanner } from './jobs/scan/attachment-scanner.js';
+import { runDailyAnchor } from './jobs/audit-anchor/runner.js';
 
 /**
- * Outbox配送とWorkflow進行を担うプロセス(ADR-0008)。
+ * バッチ処理を担うプロセス(ADR-0008)。
  *
- * Phase 1 ではプロセスの器と健全性確認のみを用意する。
- * Outboxのディスパッチ実装は WP-P4-WF-003、監査アンカーのバッチは WP-P1-AUD-004 で追加する。
+ * 現在の担当は添付のウイルススキャン、ウイルス定義の鮮度観測、監査アンカーの3つ。
+ * Outboxの配送はAPIプロセス側で行う(`services/api/src/common/outbox/dispatcher.ts`
+ * の冒頭に理由を記した)。
  */
 
 const SERVICE_VERSION = process.env.SOLVI_VERSION ?? 'dev';
@@ -44,6 +46,7 @@ async function bootstrap(): Promise<void> {
     environment: env.NODE_ENV,
     otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT || undefined,
     metricsPort: env.METRICS_PORT,
+    serviceNamespace: env.OTEL_SERVICE_NAMESPACE,
   });
 
   const logger = createLogger({ service: 'worker', level: env.LOG_LEVEL, env: env.NODE_ENV });
@@ -167,9 +170,30 @@ async function bootstrap(): Promise<void> {
   };
   const loopTimer = setInterval(tick, 30_000);
 
+  // 監査アンカー (ADR-0009 / WP-P1-AUD-004)。
+  //
+  // 前日分を固定し、直近3日分を照合する。同じ日付を何度実行しても増えないため
+  // (ON CONFLICT DO NOTHING)、1時間おきに回して取りこぼしを埋める。
+  // 日次のスケジューラを別に用意すると、ワーカーが落ちていた日が
+  // **恒久的に欠番になる**。
+  const anchorTick = (): void => {
+    void runWithContext(newContext(), async () => {
+      try {
+        await runDailyAnchor(pool, logger);
+      } catch (error) {
+        // アンカーの失敗でワーカーを落とさない。ただし**握り潰さない** —
+        // 記録されないアンカーは、後からでは作り直せない日が増えるということ。
+        logger.error('audit anchor failed', error);
+      }
+    });
+  };
+  anchorTick();
+  const anchorTimer = setInterval(anchorTick, 60 * 60 * 1000);
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info('shutting down', { message: signal });
     clearInterval(loopTimer);
+    clearInterval(anchorTimer);
     clearInterval(healthTimer);
     if (signatureTimer) clearInterval(signatureTimer);
     await scanPool.end().catch(() => undefined);

@@ -23,6 +23,7 @@ interface Instruments {
   domainEvents: Counter;
   authzDenials: Counter;
   attachmentScans: Counter;
+  auditAnchors: Counter;
 }
 
 function getInstruments(): Instruments {
@@ -49,6 +50,9 @@ function getInstruments(): Instruments {
     attachmentScans: m.createCounter('solvi.attachment.scans', {
       description:
         '添付のスキャン結果。deferred の継続はスキャナ障害を示し、添付が開けない状態になる',
+    }),
+    auditAnchors: m.createCounter('solvi.audit.anchors', {
+      description: '監査アンカーの照合結果。**増えないこと自体が異常**(バッチが動いていない)',
     }),
   };
   return instruments;
@@ -150,6 +154,18 @@ export function resetScannerSignatureAge(): void {
  */
 export function recordAttachmentScan(outcome: 'clean' | 'infected' | 'deferred'): void {
   getInstruments().attachmentScans.add(1, { outcome });
+}
+
+/**
+ * 監査アンカーの照合結果 (ADR-0009)。
+ *
+ * `mismatch` は監査イベントが事後に改変されたことを意味する。
+ * ただし**より起きやすい故障は「一度も記録されない」ほうである** —
+ * アンカー処理は平時に何も出力しないため、止まっていても誰も気付かない。
+ * カウンタが増え続けていることを監視側で確かめる。
+ */
+export function recordAuditAnchor(outcome: 'match' | 'mismatch'): void {
+  getInstruments().auditAnchors.add(1, { outcome });
 }
 
 /**

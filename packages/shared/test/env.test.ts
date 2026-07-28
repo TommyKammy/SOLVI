@@ -10,7 +10,6 @@ const validApiEnv = {
   S3_BUCKET_AUDIT_ANCHOR: 'b',
   S3_ACCESS_KEY: 'k',
   S3_SECRET_KEY: 's',
-  SESSION_SECRET: 'x'.repeat(32),
 };
 
 describe('環境変数の検証 (fail closed)', () => {
@@ -25,13 +24,12 @@ describe('環境変数の検証 (fail closed)', () => {
     );
   });
 
-  it('SESSION_SECRET が短いと失敗する', () => {
-    expect(() =>
-      loadEnv(apiEnvSchema, 'api', {
-        ...validApiEnv,
-        SESSION_SECRET: 'short',
-      } as NodeJS.ProcessEnv),
-    ).toThrow(EnvValidationError);
+  it('**SESSION_SECRET はもう要求しない**', () => {
+    // 必須にしていたが誰も読んでいなかった。セッションは256ビットの乱数を
+    // SHA-256 で保存するだけで、署名鍵を使わない。
+    // 使われない秘密を必須にすると「替えれば失効する」という誤解を生む。
+    const env = loadEnv(apiEnvSchema, 'api', validApiEnv as NodeJS.ProcessEnv);
+    expect('SESSION_SECRET' in env).toBe(false);
   });
 
   it('エラーメッセージに値そのものを含めない', () => {
@@ -47,13 +45,12 @@ describe('環境変数の検証 (fail closed)', () => {
     // 形式が通ってしまう場合もあるため、通ったこと自体は失敗にしない
   });
 
-  it('Executor は添付ストレージやセッション秘密を要求しない(必要のない秘密を持たせない)', () => {
+  it('Executor は添付ストレージを要求しない(必要のない秘密を持たせない)', () => {
     const env = loadEnv(executorEnvSchema, 'executor', {
       NODE_ENV: 'test',
       DATABASE_URL: 'postgres://exec:pass@localhost:5432/solvi',
     } as NodeJS.ProcessEnv);
     expect(env.EXECUTOR_PORT).toBe(3003);
     expect('S3_SECRET_KEY' in env).toBe(false);
-    expect('SESSION_SECRET' in env).toBe(false);
   });
 });

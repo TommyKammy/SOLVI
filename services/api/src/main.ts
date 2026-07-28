@@ -5,6 +5,8 @@ import {
   EnvValidationError,
   startTracing,
   stopTracing,
+  runWithContext,
+  newContext,
   type ApiEnv,
 } from '@solvi/shared';
 import { Database } from './common/db/pool.js';
@@ -14,6 +16,9 @@ import { AuthController } from './modules/auth/auth.routes.js';
 import { TicketController } from './modules/ticket/ticket.routes.js';
 import { CollaborationController } from './modules/ticket/collaboration.routes.js';
 import { S3CompatibleStorage } from '@solvi/shared';
+import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
+import { NotificationService } from './modules/notification/notification.service.js';
+import { RecordingEmailSender } from './modules/notification/senders.js';
 import { PoolDenialRecorder } from './common/audit/denial-recorder.js';
 import type { IncomingMessage } from 'node:http';
 
@@ -63,6 +68,7 @@ async function bootstrap(): Promise<void> {
     environment: env.NODE_ENV,
     otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT || undefined,
     metricsPort: env.METRICS_PORT,
+    serviceNamespace: env.OTEL_SERVICE_NAMESPACE,
   });
 
   const logger = createLogger({
@@ -228,12 +234,73 @@ async function bootstrap(): Promise<void> {
       return result.body;
     });
 
+  // ---------------------------------------------------------------------------
+  // Outbox の配送 (ADR-0008 / WP-P2-NTF-005)
+  //
+  // **これを繋がないと、通知は一件も届かない。**
+  // イベントは業務トランザクションで積まれるが、配送する者がいなければ
+  // outbox_event に溜まり続ける。画面は正常に見え、テストも緑のまま、
+  // 依頼者だけが「連絡が来ない」と感じる。
+  //
+  // 実際、この配線が抜けたまま通知機能一式が「完了」として記録されていた。
+  // 横断点検(tools/check_unwired.mjs)で発見した。
+  // ---------------------------------------------------------------------------
+  const emailSender = new RecordingEmailSender();
+
+  const notificationHandler: OutboxHandler = async (record, client) => {
+    const service = new NotificationService(client, new Map([['email', emailSender]]));
+    try {
+      await service.deliverForEvent(record);
+      return { status: 'ok' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // ペイロード不足は再試行しても直らない。
+      if (message.includes('ペイロードにありません')) {
+        return { status: 'permanent_failure', reason: message };
+      }
+      return { status: 'retry', reason: message };
+    }
+  };
+
+  const outboxDispatcher = new OutboxDispatcher(
+    db.authPool(),
+    new Map(
+      ['ticket.created', 'ticket.transitioned', 'ticket.assigned', 'ticket.comment.added'].map(
+        (type) => [type, notificationHandler],
+      ),
+    ),
+    logger,
+  );
+
+  const dispatchTick = (): void => {
+    void runWithContext(newContext(), async () => {
+      try {
+        const summary = await outboxDispatcher.dispatchOnce();
+        if (summary.fetched > 0) {
+          logger.info('outbox dispatch', {
+            count: summary.fetched,
+            message:
+              `succeeded=${summary.succeeded} retried=${summary.retried} ` +
+              `failed=${summary.failed}`,
+          });
+        }
+      } catch (error) {
+        // 配送の失敗でプロセスを落とさない。次の周回で再試行する。
+        logger.error('outbox dispatch failed', error);
+      }
+    });
+  };
+  // 10秒間隔。NFR-PERF-003 は p95 30秒を求めており、余裕を持たせる。
+  const dispatchTimer = setInterval(dispatchTick, 10_000);
+  dispatchTick();
+
   const server = app.listen(env.API_PORT);
   logger.info('api listening', { count: env.API_PORT });
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info('shutting down', { message: signal });
     // 新規受付を止めてから接続を閉じる。処理中のリクエストを切らない。
+    clearInterval(dispatchTimer);
     server.close();
     await app.close();
     await db.close();

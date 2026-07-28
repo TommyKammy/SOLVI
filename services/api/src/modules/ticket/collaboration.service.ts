@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import { Problems, validateAttachment, MAX_ATTACHMENT_BYTES } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
+import { enqueueOutboxEvent } from '../../common/outbox/outbox.js';
 import { NoopDenialRecorder, type DenialRecorder } from '../../common/audit/denial-recorder.js';
 import {
   hasRole,
@@ -158,6 +159,23 @@ export class CollaborationService {
       outcome: 'success',
       // 本文は監査へ入れない(02.17 §4)。区分と長さのみ。
       afterState: { commentId: id, visibility: input.visibility, bodyLength: body.length },
+    });
+
+    // **内部メモも積む。** 積まずに済ませると、将来別の経路がイベントを
+    // 拾ったときに漏れる。通知側が visibility を見て弾く。
+    const { rows: ticketRows } = await this.client.query<{ number: string }>(
+      'SELECT number FROM ticket WHERE id = $1',
+      [input.ticketId],
+    );
+    await enqueueOutboxEvent(this.client, {
+      eventType: 'ticket.comment.added',
+      organizationId: ctx.organizationId,
+      payload: {
+        ticketId: input.ticketId,
+        ticketNumber: ticketRows[0]?.number ?? '',
+        actorId: ctx.principal.userId,
+        visibility: input.visibility,
+      },
     });
 
     return toComment(rows[0]!);

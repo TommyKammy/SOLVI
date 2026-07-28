@@ -163,7 +163,6 @@ beforeEach(async () => {
 describe('本番構成での起動拒否 (脅威 T-25 / Gate D GD-4)', () => {
   const baseEnv = {
     DATABASE_URL: 'postgres://u:p@localhost:5432/db',
-    SESSION_SECRET: 'x'.repeat(32),
     S3_ENDPOINT: 'http://localhost:9000',
     S3_REGION: 'ap-northeast-1',
     S3_BUCKET_ATTACHMENTS: 'attachments',

@@ -11,6 +11,9 @@ export const LOG_ALLOWED_KEYS = new Set([
   'timestamp',
   'level',
   'message',
+  // 付加フィールドの `message` が表題と衝突したときの移送先(logger.ts の write を参照)。
+  // 呼び出し側が書いた説明文がそのまま入るため、`message` と同じ扱いにする。
+  'detail',
   'service',
   'env',
   'correlationId',

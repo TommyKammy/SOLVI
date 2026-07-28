@@ -15,19 +15,17 @@ import {
   isNotifiable,
   buildSubject,
 } from '../../services/api/src/modules/notification/notification.service.js';
-import {
-  RecordingEmailSender,
-  FailingEmailSender,
-} from '../../services/api/src/modules/notification/senders.js';
+import { RecordingEmailSender } from '../../services/api/src/modules/notification/senders.js';
 import {
   OutboxDispatcher,
   backoffSeconds,
   type OutboxHandler,
-} from '../../services/worker/src/dispatcher/outbox-dispatcher.js';
+} from '../../services/api/src/common/outbox/dispatcher.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import type { AuthzContext, Principal } from '../../services/api/src/common/authz/authz.js';
 import { runWithContext, newContext, createLogger } from '@solvi/shared';
+import { FailingEmailSender } from '../support/senders.js';
 import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
@@ -133,29 +131,35 @@ beforeEach(async () => {
   await cleanAuditData(admin, "target_type IN ('ticket', 'notification')");
 });
 
-/** チケットを作り、対応するOutboxイベントを積む */
+/**
+ * チケットを作る。Outboxイベントは**TicketServiceが業務トランザクション内で積む**。
+ *
+ * テスト側で改めて積んではいけない。かつてこの補助関数は自分でも
+ * `enqueueOutboxEvent` を呼んでいたが、それは当時 TicketService が
+ * 積んでいなかったからである — つまり**テストだけが Outbox を使っていた**。
+ * ここで手動に積み直すと、その状態へ戻ってしまう。
+ */
 async function createTicketWithEvent(orgId = ORG_A, actorRole = 'agent') {
   const actor = users.get(`${orgId}:${actorRole}`)!;
   const requester = users.get(`${orgId}:requester`)!;
   const ctx = ctxFor(actor, actorRole, orgId);
-  return runWithContext(newContext(), () =>
-    inOrg(orgId, async (c) => {
-      const ticket = await new TicketService(c, denials).create(ctx, {
-        ...input(),
-        requesterId: requester,
-      });
-      const eventId = await enqueueOutboxEvent(c, {
-        eventType: 'ticket.created',
-        organizationId: orgId,
-        payload: {
-          ticketId: ticket.id,
-          ticketNumber: ticket.number,
-          actorId: actor,
-        },
-      });
-      return { ticket, eventId, actor, requester };
-    }),
+  const ticket = await runWithContext(newContext(), () =>
+    inOrg(orgId, (c) =>
+      new TicketService(c, denials).create(ctx, { ...input(), requesterId: requester }),
+    ),
   );
+
+  const { rows } = await admin.query(
+    "SELECT id FROM outbox_event WHERE event_type = 'ticket.created' AND payload->>'ticketId' = $1",
+    [ticket.id],
+  );
+  if (rows.length !== 1) {
+    throw new Error(
+      `チケット作成でOutboxイベントが ${rows.length} 件。` +
+        'TicketService.create が業務トランザクション内で積んでいるはずである。',
+    );
+  }
+  return { ticket, eventId: rows[0].id as string, actor, requester };
 }
 
 describe('Outboxの原子性 (ADR-0008)', () => {
@@ -343,69 +347,56 @@ describe('内部メモを通知しない (FR-TKT-004)', () => {
     expect(isNotifiable('ticket.comment.added', 'public')).toBe(true);
   });
 
-  it('**内部メモを追加しても通知が作られない**', async () => {
+  /**
+   * コメントを追加し、**そのコメントによる通知だけ**を数える。
+   *
+   * チケット作成自体も通知対象なので、先に配送して数え終えてから
+   * コメントを付ける。そうしないと「作成の通知」を
+   * 「コメントの通知」と取り違える。
+   */
+  async function commentThenDispatch(visibility: 'internal' | 'public') {
     const agent = users.get(`${ORG_A}:agent`)!;
     const requester = users.get(`${ORG_A}:requester`)!;
     const ctx = ctxFor(agent, 'agent', ORG_A);
 
+    const ticket = await runWithContext(newContext(), () =>
+      inOrg(ORG_A, (c) =>
+        new TicketService(c, denials).create(ctx, { ...input(), requesterId: requester }),
+      ),
+    );
+
+    // 作成イベントをここで配送しきる
+    await new OutboxDispatcher(
+      pool,
+      makeHandlers(new RecordingEmailSender()),
+      logger,
+    ).dispatchOnce();
+    await admin.query('DELETE FROM notification');
+
     await runWithContext(newContext(), () =>
-      inOrg(ORG_A, async (c) => {
-        const ticket = await new TicketService(c, denials).create(ctx, {
-          ...input(),
-          requesterId: requester,
-        });
-        await new CollaborationService(c, storage, denials).addComment(ctx, {
+      inOrg(ORG_A, (c) =>
+        new CollaborationService(c, storage, denials).addComment(ctx, {
           ticketId: ticket.id,
-          visibility: 'internal',
+          visibility,
           body: '他部署でも同様の事象。AD側の設定が原因と推測。',
-        });
-        await enqueueOutboxEvent(c, {
-          eventType: 'ticket.comment.added',
-          organizationId: ORG_A,
-          payload: {
-            ticketId: ticket.id,
-            ticketNumber: ticket.number,
-            visibility: 'internal',
-            actorId: agent,
-          },
-        });
-      }),
+        }),
+      ),
     );
 
     const sender = new RecordingEmailSender();
     await new OutboxDispatcher(pool, makeHandlers(sender), logger).dispatchOnce();
-
-    expect(sender.sent).toHaveLength(0);
     const { rows } = await admin.query('SELECT count(*)::int AS n FROM notification');
-    expect(rows[0].n).toBe(0);
+    return { sender, notifications: rows[0].n as number };
+  }
+
+  it('**内部メモを追加しても通知が作られない**', async () => {
+    const { sender, notifications } = await commentThenDispatch('internal');
+    expect(sender.sent).toHaveLength(0);
+    expect(notifications).toBe(0);
   });
 
   it('公開コメントは通知される', async () => {
-    const agent = users.get(`${ORG_A}:agent`)!;
-    const requester = users.get(`${ORG_A}:requester`)!;
-    const ctx = ctxFor(agent, 'agent', ORG_A);
-
-    await runWithContext(newContext(), () =>
-      inOrg(ORG_A, async (c) => {
-        const ticket = await new TicketService(c, denials).create(ctx, {
-          ...input(),
-          requesterId: requester,
-        });
-        await enqueueOutboxEvent(c, {
-          eventType: 'ticket.comment.added',
-          organizationId: ORG_A,
-          payload: {
-            ticketId: ticket.id,
-            ticketNumber: ticket.number,
-            visibility: 'public',
-            actorId: agent,
-          },
-        });
-      }),
-    );
-
-    const sender = new RecordingEmailSender();
-    await new OutboxDispatcher(pool, makeHandlers(sender), logger).dispatchOnce();
+    const { sender } = await commentThenDispatch('public');
     expect(sender.sent.length).toBeGreaterThan(0);
   });
 });

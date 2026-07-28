@@ -34,6 +34,13 @@ export interface TracingOptions {
    * 実際には1つも記録されていなかった(WP-P2-SLO-008 で修正)。
    */
   metricsPort?: number | undefined;
+  /**
+   * `service.namespace` の値。複数の系が同じ収集基盤へ送るときに区別する。
+   *
+   * 以前はここが `'solvi'` の直書きで、`OTEL_SERVICE_NAMESPACE` は
+   * 宣言されているのに読まれていなかった。設定しても何も変わらない状態だった。
+   */
+  serviceNamespace?: string | undefined;
 }
 
 let sdk: NodeSDK | undefined;
@@ -46,7 +53,7 @@ export function startTracing(options: TracingOptions): void {
     [ATTR_SERVICE_NAME]: options.serviceName,
     [ATTR_SERVICE_VERSION]: options.serviceVersion,
     'deployment.environment.name': options.environment,
-    'service.namespace': 'solvi',
+    'service.namespace': options.serviceNamespace ?? 'solvi',
   });
 
   // Prometheus は pull 型なので、SOLVI 側が落ちていれば

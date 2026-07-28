@@ -144,7 +144,9 @@ groups:
       # 7日を閾値にしたのは、ClamAV の定義が日次で更新されるため。
       # 数日の遅れは許容し、週を跨いだら人が確認する。
       - alert: SolviScannerSignaturesStale
-        expr: solvi_scanner_signature_age_seconds > 7 * 24 * 3600
+        # メトリクス名は実際の /metrics 出力に合わせる。
+        # 単位は付かない(`_seconds` を足すと**永久に発火しない**)。
+        expr: solvi_scanner_signature_age > 7 * 24 * 3600
         for: 30m
         labels:
           severity: ticket
@@ -240,3 +242,41 @@ groups:
             外部から見た主要導線が使えていません。
             内部メトリクスが正常でも、利用者は業務を進められない状態です。
           runbook: 'docs/ops/slo.md#合成監視が失敗'
+
+  # ---------------------------------------------------------------------------
+  # 監査アンカー — 改ざん検知そのものの死活
+  # ---------------------------------------------------------------------------
+  - name: solvi-audit-anchor
+    interval: 60s
+    rules:
+      - alert: SolviAuditAnchorMismatch
+        expr: increase(solvi_audit_anchors_total{outcome="mismatch"}[1h]) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: '監査イベントが事後に改変された可能性があります'
+          description: >-
+            保存済みアンカーと現在の監査イベントの連鎖ハッシュが一致しません。
+            アプリ経路からは UPDATE / DELETE できないため、
+            DBへの直接操作かリストアの取り違えが疑われます。
+            **調査が終わるまで該当期間の監査ログを証跡として扱わないでください。**
+          runbook: 'docs/ops/slo.md#監査アンカーの不一致'
+
+      # **何も鳴らないことを正常と読み替えないための警報である。**
+      # アンカー処理は平時に何も出力しない。止まっていても画面もヘルスチェックも
+      # 正常のままで、気付くのは監査を求められた時になる。
+      # 1時間おきに実行しているので、3時間増えなければ止まっている。
+      - alert: SolviAuditAnchorNotRunning
+        expr: increase(solvi_audit_anchors_total[3h]) == 0 or absent(solvi_audit_anchors_total)
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: '監査アンカーが3時間以上実行されていません'
+          description: >-
+            改ざん検知が止まっています。止まっている間に改変されたイベントは
+            **後からでは検知できません**(アンカーは上書きできないため、
+            欠けた日を後から作っても意味がありません)。
+            worker のログで audit anchor failed を確認してください。
+          runbook: 'docs/ops/slo.md#監査アンカーが動いていない'
