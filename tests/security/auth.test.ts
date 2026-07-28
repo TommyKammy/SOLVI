@@ -162,7 +162,15 @@ beforeEach(async () => {
   // 業務データを先に消さないと利用者を削除できない(FK違反)。
   // 削除順は tests/support/cleanup.ts に集約してある。
   await cleanBusinessData(admin);
-  await admin.query("DELETE FROM role_binding WHERE source = 'manual'");
+  // **シードの束縛を消さない。** テストが作るのは created_via='admin' の利用者だけ。
+  // 以前は source='manual' の束縛を全消ししており、シードの兼務設定
+  // (acme の agent が beta の requester も兼ねる)が消えていた。
+  // その結果、テストのあとは兼務者が存在せず、通し確認が静かに別の経路を通っていた。
+  await admin.query(
+    `DELETE FROM role_binding
+      WHERE source = 'manual'
+        AND user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+  );
   await admin.query("DELETE FROM app_user WHERE created_via = 'admin'");
   await cleanAuditData(admin, "target_type IN ('session', 'app_user')");
 });
@@ -777,5 +785,167 @@ describe('パスワード保存の形式', () => {
         PASSWORD,
       ]),
     ).rejects.toThrow(/local_credential_hash_format/);
+  });
+});
+
+/**
+ * 組織の選択 (WP-P1-IDM-010)。
+ *
+ * かつてログイン画面は**組織IDのUUIDを利用者に手入力させていた。**
+ * 利用者が知っているのは「自分がどの会社の人間か」だけで、その組織IDではない。
+ * 所属はシステムが役割束縛として既に持っている。
+ *
+ * ここで確かめるのは2つ。
+ *   1. 入力させなくても正しい組織が決まること
+ *   2. **入力させないことで越境の穴が開いていないこと**
+ */
+describe('組織の解決と選択 (WP-P1-IDM-010)', () => {
+  it('**組織を指定しなくてもログインできる**(所属が1つのとき)', async () => {
+    await createUser({ email: 'single@example.com', orgId: ORG_A, roleCode: 'agent' });
+
+    const result = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'single@example.com', password: PASSWORD }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.organizationId).toBe(ORG_A);
+    expect(result.organizations).toHaveLength(1);
+    // 画面に出すのは名前。IDは選択のために持たせるだけ。
+    expect(result.organizations[0]!.name.length).toBeGreaterThan(0);
+
+    const { rows } = await admin.query('SELECT organization_id FROM session WHERE id = $1', [
+      result.sessionId,
+    ]);
+    expect(rows[0].organization_id).toBe(ORG_A);
+  });
+
+  it('**兼務者には選ばせる**(勝手に片方を選ばない)', async () => {
+    const userId = await createUser({ email: 'dual@example.com', orgId: ORG_A, roleCode: 'agent' });
+    const { rows: role } = await admin.query("SELECT id, scope FROM role WHERE code = 'requester'");
+    await admin.query(
+      `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source)
+       VALUES ($1, $2, $3, $4, $5, 'manual')`,
+      [uuidv7(), userId, role[0].id, role[0].scope, ORG_B],
+    );
+
+    const result = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'dual@example.com', password: PASSWORD }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // 別組織のつもりで書き込む事故を、最初の一歩で防ぐ。
+    expect(result.organizationId).toBeNull();
+    expect(result.organizations).toHaveLength(2);
+  });
+
+  it('所属が無ければログインできない', async () => {
+    // 役割束縛を持たない利用者を作る
+    const userId = uuidv7();
+    await admin.query(
+      `INSERT INTO app_user (id, primary_email, display_name, status, created_via)
+       VALUES ($1, $2, $3, 'active', 'admin')`,
+      [userId, 'orphan@example.com', 'orphan'],
+    );
+    await admin.query(
+      `INSERT INTO local_credential (id, user_id, password_hash) VALUES ($1, $2, $3)`,
+      [uuidv7(), userId, await hashPassword(PASSWORD)],
+    );
+
+    const result = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'orphan@example.com', password: PASSWORD }),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('no_organization_access');
+  });
+
+  it('**所属していない組織は指定しても通らない**(名乗りを受け付けない)', async () => {
+    await createUser({ email: 'claimer@example.com', orgId: ORG_A, roleCode: 'agent' });
+
+    const result = await withAuth(({ auth }) =>
+      auth.authenticate({
+        email: 'claimer@example.com',
+        password: PASSWORD,
+        organizationId: ORG_B,
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('no_organization_access');
+  });
+
+  it('選択すると session と監査が更新される', async () => {
+    const userId = await createUser({
+      email: 'choose@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+
+    const login = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'choose@example.com', password: PASSWORD }),
+    );
+    expect(login.ok).toBe(true);
+    if (!login.ok) return;
+
+    const changed = await withAuth(({ auth }) =>
+      auth.selectOrganization({
+        sessionId: login.sessionId,
+        userId,
+        organizationId: ORG_A,
+        previousOrganizationId: null,
+      }),
+    );
+    expect(changed).toBe(true);
+
+    const { rows } = await admin.query(
+      "SELECT after_state, before_state FROM audit_event WHERE event_type = 'platform.org_context.switched'",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].after_state.organizationId).toBe(ORG_A);
+  });
+
+  it('**所属していない組織へは切り替えられない**', async () => {
+    const userId = await createUser({ email: 'nope@example.com', orgId: ORG_A, roleCode: 'agent' });
+    const login = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'nope@example.com', password: PASSWORD }),
+    );
+    if (!login.ok) throw new Error('ログインに失敗');
+
+    const changed = await withAuth(({ auth }) =>
+      auth.selectOrganization({
+        sessionId: login.sessionId,
+        userId,
+        organizationId: ORG_B,
+        previousOrganizationId: ORG_A,
+      }),
+    );
+    expect(changed).toBe(false);
+
+    // セッションは動いていない
+    const { rows } = await admin.query('SELECT organization_id FROM session WHERE id = $1', [
+      login.sessionId,
+    ]);
+    expect(rows[0].organization_id).toBe(ORG_A);
+  });
+
+  it('期限切れの束縛は所属に数えない', async () => {
+    const userId = await createUser({
+      email: 'expired@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+    // 期間の整合制約があるため、開始も併せて過去へ動かす。
+    await admin.query(
+      `UPDATE role_binding
+          SET valid_from = now() - interval '10 days',
+              valid_until = now() - interval '1 day'
+        WHERE user_id = $1`,
+      [userId],
+    );
+
+    const result = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'expired@example.com', password: PASSWORD }),
+    );
+    expect(result.ok).toBe(false);
   });
 });

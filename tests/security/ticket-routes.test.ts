@@ -126,7 +126,15 @@ beforeEach(async () => {
     [LOCAL_ISSUER],
   );
   await cleanBusinessData(admin);
-  await admin.query("DELETE FROM role_binding WHERE source = 'manual'");
+  // **シードの束縛を消さない。** テストが作るのは created_via='admin' の利用者だけ。
+  // 以前は source='manual' の束縛を全消ししており、シードの兼務設定
+  // (acme の agent が beta の requester も兼ねる)が消えていた。
+  // その結果、テストのあとは兼務者が存在せず、通し確認が静かに別の経路を通っていた。
+  await admin.query(
+    `DELETE FROM role_binding
+      WHERE source = 'manual'
+        AND user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+  );
   await admin.query("DELETE FROM app_user WHERE created_via = 'admin'");
   await cleanAuditData(admin, "target_type IN ('ticket', 'session', 'app_user')");
 });

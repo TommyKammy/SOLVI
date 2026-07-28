@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { api } from '../lib/api';
+import { api, requireSession } from '../lib/api';
 import { stateLabel, kindLabel, formatDateTime } from '../lib/labels';
 
 /**
@@ -16,8 +15,9 @@ import { stateLabel, kindLabel, formatDateTime } from '../lib/labels';
 export const dynamic = 'force-dynamic';
 
 export default async function PortalHome() {
-  const session = await api.me();
-  if (!session.ok) redirect('/login');
+  // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
+  // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
+  await requireSession();
 
   const tickets = await api.listTickets(10);
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { api } from '../../../lib/api';
+import { api, requireSession } from '../../../lib/api';
 import { CommentThread } from '../../../components/CommentThread';
 import { CommentForm } from '../../../components/CommentForm';
 import { AttachmentList } from '../../../components/AttachmentList';
@@ -39,8 +39,9 @@ export default async function OpsWorkspace({
   const { id } = await params;
   const query = await searchParams;
 
-  const session = await api.me();
-  if (!session.ok) redirect('/login');
+  // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
+  // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
+  const session = await requireSession();
 
   const result = await api.workspace(id);
   if (!result.ok) {
@@ -127,7 +128,7 @@ export default async function OpsWorkspace({
     redirect(`/ops/${id}`);
   }
 
-  const isMine = ticket.assigneeId === session.data.userId;
+  const isMine = ticket.assigneeId === session.userId;
 
   return (
     <main id="main" className="shell">
@@ -237,14 +238,14 @@ export default async function OpsWorkspace({
       <h2>添付ファイル</h2>
       <AttachmentList
         attachments={attachments}
-        currentUserId={session.data.userId}
+        currentUserId={session.userId}
         canDeleteAny
         deleteAction={removeAttachment}
       />
       <AttachmentForm ticketId={id} canChooseVisibility />
 
       <h2>やり取り</h2>
-      <CommentThread comments={comments} currentUserId={session.data.userId} />
+      <CommentThread comments={comments} currentUserId={session.userId} />
 
       <h2>投稿する</h2>
       <CommentForm

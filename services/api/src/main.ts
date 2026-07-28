@@ -146,6 +146,15 @@ async function bootstrap(): Promise<void> {
       const result = await auth.me(req.headers);
       return result.body;
     })
+    // 組織の選択 (WP-P1-IDM-010)。ログイン済みでなければ呼べない。
+    .get('/auth/organizations', async (req) => {
+      const result = await auth.myOrganizations(req.headers);
+      return result.body;
+    })
+    .post('/auth/organization', async (req) => {
+      const result = await auth.selectOrganization(req.headers, await readJsonBody(req));
+      return result.body;
+    })
     .post('/tickets', async (req, res) => {
       // 認証はハンドラの最初に置く。ルータ側の仕組みにすると、
       // 新しいルートを足した人が付け忘れても動いてしまう。

@@ -19,13 +19,10 @@ async function login(formData: FormData): Promise<void> {
 
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
-  const organizationId = String(formData.get('organizationId') ?? '');
 
-  const result = await api.login({
-    email,
-    password,
-    ...(organizationId ? { organizationId } : {}),
-  });
+  // **組織は入力させない。** 利用者が知っているのは「自分がどの会社の人間か」
+  // だけで、その組織IDではない。所属はシステムが役割束縛として持っている。
+  const result = await api.login({ email, password });
 
   if (!result.ok) {
     // クエリに理由を載せない。載せるとブラウザ履歴と参照元ヘッダに残る。
@@ -50,7 +47,9 @@ async function login(formData: FormData): Promise<void> {
     }
   }
 
-  redirect('/');
+  // 兼務者は組織が決まらない。**勝手に片方を選ばない** —
+  // 別組織のつもりで書き込む事故を、最初の一歩で防ぐ。
+  redirect(result.data.organizationId ? '/' : '/select-organization');
 }
 
 export default async function LoginPage({
@@ -99,20 +98,6 @@ export default async function LoginPage({
             autoComplete="current-password"
             required
             aria-invalid={failed || undefined}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="organizationId">組織ID</label>
-          <span className="hint" id="org-hint">
-            所属する組織のIDを入力してください。分からない場合は管理者へお問い合わせください。
-          </span>
-          <input
-            id="organizationId"
-            name="organizationId"
-            type="text"
-            aria-describedby="org-hint"
-            required
           />
         </div>
 

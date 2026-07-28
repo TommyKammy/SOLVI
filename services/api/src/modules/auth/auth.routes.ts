@@ -106,12 +106,109 @@ export class AuthController {
         // **トークンを本文に含めない。** Cookie でのみ渡す。
         // 本文に入れると、SPAが localStorage へ保存する誘惑が生まれ、
         // HttpOnly の意味が失われる。
-        body: { userId: result.userId },
+        body: {
+          userId: result.userId,
+          // 所属が1つなら決まっている。兼務者は null で返り、画面が選ばせる。
+          organizationId: result.organizationId,
+          organizations: result.organizations,
+        },
       };
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       throw error;
     } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * 操作する組織を選ぶ / 切り替える (WP-P1-IDM-010)。
+   *
+   * **ログイン済みでなければ呼べない。** 未認証の利用者へ組織の一覧を
+   * 見せる経路は作らない — 組織名の一覧は、それ自体が顧客リストである。
+   */
+  async selectOrganization(headers: Record<string, string | string[] | undefined>, body: unknown) {
+    const token = parseSessionCookie(headerValue(headers, 'cookie'));
+    if (!token) {
+      recordAuthzDenial('auth.session.missing');
+      throw Problems.unauthenticated();
+    }
+
+    const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
+      string,
+      unknown
+    >;
+    const organizationId =
+      typeof record.organizationId === 'string' ? record.organizationId.trim() : '';
+    if (organizationId.length === 0) {
+      throw Problems.validation([{ field: 'organizationId', message: '組織を選んでください' }]);
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await beginAuthTransaction(client);
+      const sessions = new SessionService(client);
+      const validation = await sessions.validate(token);
+      if (!validation.valid) {
+        recordAuthzDenial(`auth.session.${validation.reason}`);
+        throw Problems.unauthenticated();
+      }
+
+      const auth = new LocalAuthService(client, sessions, this.options.localAuth);
+      const changed = await auth.selectOrganization({
+        sessionId: validation.session.id,
+        userId: validation.session.userId,
+        organizationId,
+        previousOrganizationId: validation.session.organizationId,
+      });
+      await client.query('COMMIT');
+
+      if (!changed) {
+        // 所属していない組織。**存在するかどうかは答えない。**
+        recordAuthzDenial('auth.organization.not_a_member');
+        throw Problems.forbidden('その組織では操作できません');
+      }
+
+      return { status: 200, body: { organizationId } };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * 本人が所属する組織の一覧 (WP-P1-IDM-010)。
+   *
+   * 組織が未選択でも呼べる。`authenticate()` は未選択を拒むため、
+   * ここではセッションの検証だけを行う — **選択画面を出すために必要な情報が、
+   * 選択していないと取れない**という行き止まりを作らない。
+   */
+  async myOrganizations(headers: Record<string, string | string[] | undefined>) {
+    const token = parseSessionCookie(headerValue(headers, 'cookie'));
+    if (!token) {
+      recordAuthzDenial('auth.session.missing');
+      throw Problems.unauthenticated();
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await beginAuthTransaction(client);
+      const sessions = new SessionService(client);
+      const validation = await sessions.validate(token);
+      if (!validation.valid) {
+        recordAuthzDenial(`auth.session.${validation.reason}`);
+        throw Problems.unauthenticated();
+      }
+      const auth = new LocalAuthService(client, sessions, this.options.localAuth);
+      const organizations = await auth.memberOrganizations(validation.session.userId);
+      return {
+        status: 200,
+        body: { selected: validation.session.organizationId, organizations },
+      };
+    } finally {
+      await client.query('COMMIT').catch(() => undefined);
       client.release();
     }
   }
@@ -202,8 +299,11 @@ export class AuthController {
         // 「どの組織として操作しているか」が決まらないまま
         // RLS のコンテキストを設定すると、fail-closed で0件になるだけで
         // 原因が分かりにくい。ここで明示的に落とす。
+        // **専用の型で返す。** 画面はこれを見て組織の選択へ誘導する。
+        // 一般の 403 と同じにすると「権限がありません」としか出せず、
+        // 兼務者は自分が何をすべきか分からないまま行き止まりになる。
         recordAuthzDenial('auth.session.no_organization');
-        throw Problems.forbidden('操作対象の組織が選択されていません');
+        throw Problems.organizationNotSelected();
       }
 
       return {

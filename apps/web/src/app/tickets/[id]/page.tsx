@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { api } from '../../../lib/api';
+import { api, requireSession } from '../../../lib/api';
 import { CommentThread } from '../../../components/CommentThread';
 import { CommentForm } from '../../../components/CommentForm';
 import { AttachmentList } from '../../../components/AttachmentList';
@@ -36,8 +36,9 @@ export default async function TicketDetailPage({
   const query = await searchParams;
   const justCreated = query.created !== undefined;
 
-  const session = await api.me();
-  if (!session.ok) redirect('/login');
+  // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
+  // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
+  const session = await requireSession();
 
   const result = await api.getTicket(id);
   if (!result.ok) {
@@ -159,13 +160,13 @@ export default async function TicketDetailPage({
           担当者の添付を消せると、対応の記録を一方的に削れてしまう。 */}
       <AttachmentList
         attachments={attachments}
-        currentUserId={session.data.userId}
+        currentUserId={session.userId}
         deleteAction={removeAttachment}
       />
       <AttachmentForm ticketId={id} canChooseVisibility={false} />
 
       <h2>やり取り</h2>
-      <CommentThread comments={comments} currentUserId={session.data.userId} />
+      <CommentThread comments={comments} currentUserId={session.userId} />
 
       <h2>追加でお知らせする</h2>
       <p className="lead">状況が変わった場合や、担当者への補足があればこちらへお書きください。</p>

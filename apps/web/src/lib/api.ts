@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
 /**
@@ -150,9 +151,20 @@ export interface WorkspaceView {
   availableActions: AvailableAction[];
 }
 
+export interface MemberOrganization {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export const api = {
   login: (body: { email: string; password: string; organizationId?: string }) =>
-    call<{ userId: string }>('/auth/login', {
+    call<{
+      userId: string;
+      /** 所属が1つなら決まっている。兼務者は null で、画面が選ばせる。 */
+      organizationId: string | null;
+      organizations: MemberOrganization[];
+    }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(body),
       forwardCookie: false,
@@ -161,6 +173,20 @@ export const api = {
   logout: () => call<void>('/auth/logout', { method: 'POST' }),
 
   me: () => call<SessionView>('/auth/me'),
+
+  /**
+   * 本人が所属する組織。**組織が未選択でも呼べる。**
+   * 選択画面を出すための情報が、選択していないと取れないという
+   * 行き止まりを作らないため。
+   */
+  myOrganizations: () =>
+    call<{ selected: string | null; organizations: MemberOrganization[] }>('/auth/organizations'),
+
+  selectOrganization: (organizationId: string) =>
+    call<{ organizationId: string }>('/auth/organization', {
+      method: 'POST',
+      body: JSON.stringify({ organizationId }),
+    }),
 
   createTicket: (body: {
     kind: string;
@@ -254,3 +280,23 @@ export const api = {
       body: JSON.stringify({ assigneeId }),
     }),
 };
+
+/**
+ * ログイン済みでなければログイン画面へ、組織が未選択なら選択画面へ送る。
+ *
+ * **401 と「組織未選択」を同じ扱いにしない。** 兼務者を401としてログイン画面へ
+ * 送り返すと、正しい資格情報で何度ログインしても同じ画面に戻ってくる。
+ * 利用者から見て**直しようのない行き止まり**になる。
+ *
+ * 各画面が個別に判定すると、新しい画面を足した人が片方を書き忘れる。
+ * 判定はここ1か所に閉じる。
+ */
+export async function requireSession(): Promise<SessionView> {
+  const session = await api.me();
+  if (session.ok) return session.data;
+
+  if (session.problem.type?.endsWith('/organization-not-selected')) {
+    redirect('/select-organization');
+  }
+  redirect('/login');
+}

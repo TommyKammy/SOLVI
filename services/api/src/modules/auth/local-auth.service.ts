@@ -33,8 +33,30 @@ export type AuthFailureReason =
   | 'user_inactive'
   | 'no_organization_access';
 
+/** 利用者が所属する組織。**画面には名前を出し、IDは持たせるだけにする。** */
+export interface MemberOrganization {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export type AuthResult =
-  | { ok: true; userId: string; token: string; sessionId: string }
+  | {
+      ok: true;
+      userId: string;
+      token: string;
+      sessionId: string;
+      /**
+       * このセッションで選択された組織。
+       *
+       * **兼務者は未選択(null)でセッションが始まる。** どちらの立場で
+       * 操作しているかを本人に決めさせるためであり、勝手に選ぶと
+       * 「別組織のつもりで書き込んでいた」が起こりうる。
+       */
+      organizationId: string | null;
+      /** 本人が所属する組織。未選択のとき、画面はここから選ばせる。 */
+      organizations: MemberOrganization[];
+    }
   | { ok: false; reason: AuthFailureReason };
 
 export interface LocalAuthOptions {
@@ -60,7 +82,18 @@ export class LocalAuthService {
   async authenticate(params: {
     email: string;
     password: string;
-    organizationId: string | null;
+    /**
+     * 操作する組織。**通常は指定しない。**
+     *
+     * 指定しなければ、本人の役割束縛から決める(所属が1つならそれ、
+     * 複数なら未選択のままセッションを開始し、本人に選ばせる)。
+     * かつては画面がこの値を必須で受け取っており、
+     * **利用者にUUIDを手入力させていた。**
+     *
+     * 指定した場合の扱いは従来どおり — 所属していなければ拒否する。
+     * 通し確認や外部の呼び出しが特定の組織を名指しする用途に残す。
+     */
+    organizationId?: string | null;
   }): Promise<AuthResult> {
     const now = this.now();
 
@@ -115,26 +148,38 @@ export class LocalAuthService {
       return { ok: false, reason: 'user_inactive' };
     }
 
-    // 要求された組織に有効な役割束縛があるか確認する。
+    // 所属する組織を**本人の役割束縛から**求める。
     //
-    // **これが無いと、利用者は任意の組織IDを名乗ってセッションを取れる。**
-    // 後段の認可判定が束縛を見るため越境は起きないが、RLSのコンテキストが
-    // 他組織に設定された状態で動くことになり、防御が1枚だけになる。
-    // 入口で閉じておけば、その先の全ての層が正しい前提で動く。
+    // 組織を利用者に入力させない。UUIDを手で打たせる作りは、
+    // 打ち間違いに気付けないうえ、そもそも利用者が知らない値である。
+    // 知っているのは「自分がどの会社の人間か」だけであり、
+    // それはシステム側が役割束縛として既に持っている。
+    //
+    // 名乗りを受け付けないので、**任意の組織IDでセッションを取る経路も無い。**
+    // (以前は組織IDを受け取って所属を確認していた。確認自体は正しかったが、
+    //  入力させること自体が不要だった。)
+    const organizations = await this.memberOrganizations(row.user_id);
+
+    if (organizations.length === 0) {
+      await this.recordFailure(row.user_id, params.email, 'no_organization_access');
+      return { ok: false, reason: 'no_organization_access' };
+    }
+
+    // 明示的に指定された場合は、所属しているものに限る。
     if (params.organizationId) {
-      const { rowCount } = await this.client.query(
-        `SELECT 1 FROM role_binding
-          WHERE user_id = $1 AND organization_id = $2
-            AND valid_from <= now()
-            AND (valid_until IS NULL OR valid_until > now())
-          LIMIT 1`,
-        [row.user_id, params.organizationId],
-      );
-      if (rowCount === 0) {
+      const allowed = organizations.some((o) => o.id === params.organizationId);
+      if (!allowed) {
         await this.recordFailure(row.user_id, params.email, 'no_organization_access');
         return { ok: false, reason: 'no_organization_access' };
       }
     }
+
+    // 指定が無いとき: 所属が1つなら決まる。複数なら**選ばせる**。
+    //
+    // 兼務者に対して勝手に片方を選ぶと、「別組織のつもりで書き込んでいた」
+    // が起こりうる。組織をまたぐ誤記入は、他社の情報を見せる事故になる。
+    const selected =
+      params.organizationId ?? (organizations.length === 1 ? organizations[0]!.id : null);
 
     // 成功。失敗カウンタを戻す。
     await this.client.query(
@@ -145,11 +190,8 @@ export class LocalAuthService {
     // 組織が確定したのでRLSのコンテキストを設定する。
     // 監査イベントは組織スコープのRLS配下にあり、これが無いと書けない。
     // **所属確認の後に設定する**ことで、名乗っただけの組織で監査を書けないようにしている。
-    if (params.organizationId) {
-      await this.client.query('SELECT set_config($1, $2, true)', [
-        'app.current_org',
-        params.organizationId,
-      ]);
+    if (selected) {
+      await this.client.query('SELECT set_config($1, $2, true)', ['app.current_org', selected]);
     }
 
     // セッションは必ず新規発行する(セッション固定攻撃の防止)。
@@ -158,12 +200,12 @@ export class LocalAuthService {
     const { token, session } = await this.sessions.issue({
       userId: row.user_id,
       authMethod: 'local',
-      organizationId: params.organizationId,
+      organizationId: selected,
     });
 
     await recordAuditEvent(this.client, {
       eventType: 'auth.login.success',
-      organizationId: params.organizationId,
+      organizationId: selected,
       actorType: 'user',
       actorId: row.user_id,
       subjectUserId: row.user_id,
@@ -177,7 +219,88 @@ export class LocalAuthService {
       afterState: { authMethod: 'local' },
     });
 
-    return { ok: true, userId: row.user_id, token, sessionId: session.id };
+    return {
+      ok: true,
+      userId: row.user_id,
+      token,
+      sessionId: session.id,
+      organizationId: selected,
+      organizations,
+    };
+  }
+
+  /**
+   * 本人が所属する組織 (WP-P1-IDM-010)。
+   *
+   * 有効な役割束縛があるものだけを返す。期限切れの束縛は所属ではない。
+   *
+   * **組織の一覧をログイン前に見せる経路は作らない。** 未認証の利用者へ
+   * 組織名を並べると、それ自体が顧客リストになる。ここは
+   * パスワード照合を通ったあとにしか呼ばれない。
+   */
+  async memberOrganizations(userId: string): Promise<MemberOrganization[]> {
+    const { rows } = await this.client.query<{ id: string; code: string; name: string }>(
+      `SELECT DISTINCT o.id, o.code, o.name
+         FROM role_binding rb
+         JOIN organization o ON o.id = rb.organization_id
+        WHERE rb.user_id = $1
+          AND rb.valid_from <= now()
+          AND (rb.valid_until IS NULL OR rb.valid_until > now())
+        ORDER BY o.name`,
+      [userId],
+    );
+    return rows;
+  }
+
+  /**
+   * 操作する組織を選ぶ / 切り替える (WP-P1-IDM-010)。
+   *
+   * `session.organization_id` は所有権ではなく**選択状態**である
+   * (migration 0011 のコメント)。ここはその選択を書き換える。
+   *
+   * **所属していない組織は選べない。** セッションを持っていても、
+   * 束縛の無い組織を名乗れば拒否する。認証と認可は別である。
+   *
+   * 切り替えは監査に残す。「どの立場で操作していたか」は、
+   * 後から記録を読むときに最初に要る情報である。
+   */
+  async selectOrganization(params: {
+    sessionId: string;
+    userId: string;
+    organizationId: string;
+    previousOrganizationId: string | null;
+  }): Promise<boolean> {
+    const organizations = await this.memberOrganizations(params.userId);
+    if (!organizations.some((o) => o.id === params.organizationId)) return false;
+
+    const { rowCount } = await this.client.query(
+      `UPDATE session SET organization_id = $2
+        WHERE id = $1 AND revoked_at IS NULL`,
+      [params.sessionId, params.organizationId],
+    );
+    if (rowCount === 0) return false;
+
+    // 監査は移動先の組織スコープで書く。
+    await this.client.query('SELECT set_config($1, $2, true)', [
+      'app.current_org',
+      params.organizationId,
+    ]);
+
+    await recordAuditEvent(this.client, {
+      eventType: 'platform.org_context.switched',
+      organizationId: params.organizationId,
+      actorType: 'user',
+      actorId: params.userId,
+      subjectUserId: params.userId,
+      targetType: 'session',
+      targetId: params.sessionId,
+      action: 'select_organization',
+      outcome: 'success',
+      beforeState: { organizationId: params.previousOrganizationId },
+      afterState: { organizationId: params.organizationId },
+    });
+
+    return true;
   }
 
   /**
