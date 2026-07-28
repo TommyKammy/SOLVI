@@ -193,6 +193,44 @@ Migration の down で `outbox_event` と `notification` を削除する。未�
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-07-27 | Fable 5 | `a805d11` / merge `2f14e39` | Done | `evidence/WP-P2-NTF-005/20260727-1609/` | 25 integration + 19 unit。全体 995 tests passed |
+| 2026-07-28 | Opus 5 | `31348f6` / merge `aefab5e` | **訂正** | `evidence/SELF-AUDIT-001/20260728-1536/` | **本WPは「Done」ではなかった。**§14.1 参照 |
+
+### 14.1 訂正 — 通知は一度も送られていなかった (2026-07-28)
+
+横断点検([[04.23_Wiring_Verification]])で判明した。
+
+`enqueueOutboxEvent` を呼んでいたのは**テストだけ**であり、
+`OutboxDispatcher` はどこからも生成されていなかった。
+統合25件・単体19件は緑だったが、それはテストが自分でイベントを積み、
+自分でディスパッチャを起動していたからである。
+
+**業務処理は1件もイベントを積まず、配送プロセスも走っていなかった。
+通知は一度も送られていない。**
+
+受入基準は「通知の内容が正しいこと」「内部メモが漏れないこと」を
+問うており、**それが実際に発生する経路を持つかを問うていなかった。**
+基準を満たしていたことと、機能していたことが乖離した。
+
+修正:
+
+- `ticket.service.ts`(create / transition / assign)と
+  `collaboration.service.ts`(コメント)の**業務トランザクション内**で
+  `enqueueOutboxEvent` を呼ぶ
+- `services/api/src/main.ts` で10秒周期の配送を開始
+  (`services/worker` ではなく API 側。理由は `dispatcher.ts` の冒頭)
+- テストの補助関数が自分でイベントを積むのをやめた。
+  積み直すと元の状態に戻るため、補助関数にその旨を明記した
+- 縦切りテストは**テストが1件も積まないこと**を前提に、
+  業務処理が生む7件を数えるようにした
+
+実経路での確認(テスト補助を使わない):
+
+```
+OK  全3件を配送
+通知 1 件
+  → requester@acme.example.test / "[INC-2026-000003] 新しいコメントがあります"
+OK  内部メモは通知されていない
+```
 
 ### 実装時の設計判断
 

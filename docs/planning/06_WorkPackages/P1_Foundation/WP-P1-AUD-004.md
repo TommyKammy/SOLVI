@@ -150,3 +150,53 @@ Evidenceは`evidence/WP-P1-AUD-004/<YYYYMMDD-HHMM>/`へ保存し、Command・Env
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-07-27 | Claude (Codex) | `036b0cd` | Done | `evidence/WP-P1-AUD-004/20260727-1020/verification.md` | 監査テスト18/18。append-onlyを権限REVOKE+トリガの二層で強制し、**owner権限でも**UPDATE/DELETEが拒否されることを確認。日次アンカーで改ざん(UPDATE/DELETE)を両方ともmismatch検出。uuid v7に単調カウンタを実装(順序が崩れると連鎖ハッシュが非決定的になり改ざん検知が壊れるため)。 |
+| 2026-07-28 | Opus 5 | `31348f6` / merge `aefab5e` | **訂正** | `evidence/SELF-AUDIT-001/20260728-1536/` | **アンカーは一度も実行されていなかった。**§13.1 参照 |
+
+### 13.1 訂正 — アンカーは一度も実行されていなかった (2026-07-28)
+
+横断点検([[04.23_Wiring_Verification]])で判明した。
+
+`computeDailyRoot` / `persistAnchor` / `verifyAnchor` は互いに呼び合い、
+テストも18件通っていた。しかし **`services/worker/src/main.ts` は
+`anchor.ts` を読み込んでいなかった。** 定期実行の口がどこにも無く、
+改ざん検知は実装済みとして扱われながら一度も動いていなかった。
+
+`main.ts` の冒頭には「監査アンカーのバッチは WP-P1-AUD-004 で追加する」と
+書かれたままだった。**その注記が残っていること自体が唯一の痕跡だった。**
+
+さらに重い問題として、仮に実行していても**空のアンカーを記録し続けた**。
+`audit_event` のRLSは `organization_id = app_current_org()` であり、
+組織コンテキストを持たないバッチからは0件に見える。
+0件でも連鎖ハッシュは正しく計算でき、`persistAnchor` は成功する。
+**ログにもヘルスチェックにも何の異常も出ない。**
+
+既存のテストがこれを捉えられなかったのは、すべて `admin`
+(BYPASSRLS を持つ所有者)で実行していたためである。
+実運用のワーカーは `solvi_app` で接続する。
+
+修正:
+
+- **migration 0014**: `app.anchor` の読み取り専用例外を追加。
+  登録制とし、`app.dispatcher` / `app.auth` / `app.scanner` を流用しない
+  ([[02.18_Organization_Data_Model_and_RLS]] §3)
+- `runner.ts` を追加。実行前に例外ポリシーの実在を確認し、
+  無ければ**実行しない**(アンカーは上書きできないため、
+  誤ったものを1件でも保存すると後から直せない)
+- worker で1時間おきに実行。前日分を固定し、直近3日分を照合する。
+  当日分は固定しない(まだ増える日をアンカーすると必ず不一致になる)
+- メトリクス `solvi.audit.anchors` を追加し、
+  **不一致だけでなく「増えないこと」自体を警報にする**
+  (`SolviAuditAnchorMismatch` / `SolviAuditAnchorNotRunning`)
+- アプリロールで実行する経路のテストを8件追加。
+  「組織コンテキスト無しでは0件しか見えない」ことを**明示的に固定した**
+
+実行結果:
+
+```
+date=2026-07-27 created verified=1 root=630c66a2679e
+solvi_audit_anchors_total{outcome="match"} 1
+```
+
+あわせて、`audit_event_immutable()` の例外文が常に `audit_event` を
+名乗っていた点を直した(`audit_anchor` の削除を試すと、
+触っていないテーブル名が返って調査の起点がずれる)。

@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
-implementation_status: "done"
+implementation_status: "partial"
 ---
 
 # WP-P2-REL-009: Ticket関連付けとMerge
@@ -160,3 +160,27 @@ Migration の down で `ticket_relation` を削除する。`ticket.merged_into_i
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-07-27 | Claude (Codex) | `2b214d6` | Done | `evidence/WP-P2-REL-009/20260727-1520/verification.md` | 全900テスト通過。1階層制約をアプリ層・部分一意索引・トリガの3層で表明し、SQL直接INSERTでも拒否されることを確認。Merge後もコメント・添付が元チケットに残ることを実測(retained: comments 1 / attachments 1、統合先は0件)。統合の連鎖と理由なし統合を拒否。 |
+| 2026-07-28 | Opus 5 | — | **訂正** | `evidence/SELF-AUDIT-001/20260728-1536/` | **利用者からは到達できない。**§13.1 参照 |
+
+### 13.1 訂正 — サービスはあるが誰も呼べない (2026-07-28)
+
+横断点検([[04.23_Wiring_Verification]])で判明した。
+
+`RelationService`(`link` / `unlink` / `listRelations` / `merge` /
+`unresolvedChildren`)には**HTTPエンドポイントも画面も無い。**
+テストからしか呼ばれておらず、利用者はチケットを関連付けることも
+統合することもできない。
+
+`implementation_status` を `partial` に改めた。
+サービス層とスキーマ(migration 0007)は完成しており、
+1階層制約の3層防御も検証済みである。**欠けているのは経路だけ**だが、
+経路が無い機能は存在しないのと同じである。
+
+繋ぐまでは `tools/check_unwired.mjs` の `ACCEPTED_UNWIRED` に
+理由付きで載せ、毎回の検査出力に現れ続けるようにした。
+
+残作業(追補WPとして起票する):
+
+- 関連付け・統合のHTTPエンドポイント
+- チケット詳細画面での関連表示と操作
+- 統合時の確認(**統合は取り消せない**ため、確認の作りが要点になる)
