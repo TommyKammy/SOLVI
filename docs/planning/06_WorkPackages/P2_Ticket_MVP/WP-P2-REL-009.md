@@ -11,7 +11,7 @@ updated: "2026-07-27"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
-implementation_status: "partial"
+implementation_status: "done"
 ---
 
 # WP-P2-REL-009: Ticket関連付けとMerge
@@ -179,8 +179,25 @@ Migration の down で `ticket_relation` を削除する。`ticket.merged_into_i
 繋ぐまでは `tools/check_unwired.mjs` の `ACCEPTED_UNWIRED` に
 理由付きで載せ、毎回の検査出力に現れ続けるようにした。
 
-残作業(追補WPとして起票する):
+残作業は [[WP-P2-RELUI-012]] で実施し、2026-07-28 に完了した。
+`implementation_status` を `done` へ戻す。
 
-- 関連付け・統合のHTTPエンドポイント
-- チケット詳細画面での関連表示と操作
-- 統合時の確認(**統合は取り消せない**ため、確認の作りが要点になる)
+### 13.2 追補で見つかった欠陥 (2026-07-28)
+
+[[WP-P2-RELUI-012]] の通し確認で、本WPの `merge` に欠陥が見つかった。
+
+**「先に関連付けてから統合する」と必ず 500 になっていた。**
+
+統合先から元チケットを辿る関連を挿入する際、一意制約違反(23505)を
+JavaScript の `catch` で握り潰していた。
+**PostgreSQL では文がエラーになった時点でトランザクション全体が中断する。**
+例外を捕まえても中断は解けず、以降のクエリはすべて
+`current transaction is aborted` で失敗する。
+
+担当者が「関連していそうだ」と気付いて先に関連付け、
+そのあと「やはり重複だ」と統合する — これは異常な操作順ではなく自然な流れである。
+
+本WPのテストが緑だったのは、統合の前に関連付ける手順を踏んでいなかったからにすぎない。
+**単一の操作だけを試すテストでは、操作の順序が作る状態を踏めない。**
+
+修正は部分一意索引に合わせた `ON CONFLICT ... DO NOTHING`。回帰テストを追加した。
