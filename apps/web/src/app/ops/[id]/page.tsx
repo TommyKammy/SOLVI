@@ -75,6 +75,17 @@ export default async function OpsWorkspace({
     redirect(`/ops/${id}`);
   }
 
+  async function removeAttachment(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.deleteAttachment(
+      String(formData.get('attachmentId') ?? ''),
+      String(formData.get('reason') ?? ''),
+    );
+    if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    revalidatePath(`/ops/${id}`);
+    redirect(`/ops/${id}`);
+  }
+
   async function takeOwnership(): Promise<void> {
     'use server';
     const me = await api.me();
@@ -151,7 +162,12 @@ export default async function OpsWorkspace({
       <div className="body-text">{ticket.body}</div>
 
       <h2>添付ファイル</h2>
-      <AttachmentList attachments={attachments} />
+      <AttachmentList
+        attachments={attachments}
+        currentUserId={session.data.userId}
+        canDeleteAny
+        deleteAction={removeAttachment}
+      />
       <AttachmentForm ticketId={id} canChooseVisibility />
 
       <h2>やり取り</h2>

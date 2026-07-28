@@ -482,3 +482,25 @@ fieldset.visibility .choice .note {
   color: var(--text-muted);
   margin: 0 0 0.5rem;
 }
+
+/* 添付の削除 (WP-P2-SCAN-011 追補) */
+.delete-attachment {
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+.delete-attachment summary {
+  cursor: pointer;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+.delete-attachment form {
+  margin-top: 0.75rem;
+  max-width: 28rem;
+}
+/* 取り消せない操作は見た目でも区別する。ただし色だけに頼らず、
+   文言でも「元に戻せません」と書く。 */
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}

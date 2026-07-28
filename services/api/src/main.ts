@@ -201,6 +201,18 @@ async function bootstrap(): Promise<void> {
       res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result.body));
     })
+    .post('/attachments/:id/delete', async (req, res, params) => {
+      // POST で受ける。GET や DELETE をリンクに置くと、ページを開いただけで
+      // 消える経路ができる。取り消せない操作を偶発的に起こさせない。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.deleteAttachment(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
     .get('/attachments/:id/download', async (req, _res, params) => {
       const authenticated = await auth.authenticate(req.headers);
       const result = await collaboration.createDownloadUrl(authenticated, params.id ?? '');

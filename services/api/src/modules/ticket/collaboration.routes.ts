@@ -83,6 +83,9 @@ function toCommentView(comment: TicketComment): Record<string, unknown> {
 function toAttachmentView(attachment: TicketAttachment): Record<string, unknown> {
   return {
     id: attachment.id,
+    // 誰が添付したかは画面が「自分のものか」を判断するために要る。
+    // 表示名ではなくIDにとどめる — 一覧に他人の名前を並べる必要は無い。
+    uploadedBy: attachment.uploadedBy,
     fileName: attachment.fileName,
     sizeBytes: attachment.sizeBytes,
     visibility: attachment.visibility,
@@ -242,6 +245,23 @@ export class CollaborationController {
       status: 200,
       body: { url: signed.url, expiresAt: signed.expiresAt.toISOString() },
     };
+  }
+
+  /**
+   * 添付の削除。
+   *
+   * **理由を必須にする。** 「誤って添付した」と「都合の悪い記録を消した」は
+   * 後から区別できなければならない。理由の無い削除は、その区別を放棄することになる。
+   */
+  async deleteAttachment(auth: AuthenticatedRequest, attachmentId: string, body: unknown) {
+    const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
+      string,
+      unknown
+    >;
+    const reason = typeof record.reason === 'string' ? record.reason : '';
+
+    await this.run(auth, ({ collab }) => collab.deleteAttachment(auth.authz, attachmentId, reason));
+    return { status: 204, body: null };
   }
 
   async transition(auth: AuthenticatedRequest, ticketId: string, body: unknown) {

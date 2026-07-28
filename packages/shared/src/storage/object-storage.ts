@@ -68,6 +68,14 @@ export interface ObjectStorage {
    * これはウイルススキャンのように**サーバ自身が中身を見る必要がある**場合に限る。
    */
   getObject(key: string): Promise<Buffer>;
+  /**
+   * オブジェクトの物理削除。
+   *
+   * **論理削除では足りない場面がある。** 誤って他人の情報が写った画像を
+   * 添付した場合、メタデータを隠すだけでは実体が残り、署名を作れる者には
+   * 依然として読める。実体を消して初めて「取り消した」と言える。
+   */
+  deleteObject(key: string): Promise<void>;
 }
 
 /**
@@ -143,8 +151,24 @@ export class S3CompatibleStorage implements ObjectStorage {
     );
   }
 
+  /**
+   * オブジェクトの物理削除。
+   *
+   * **既に存在しない場合も成功として扱う。** 削除は繰り返し呼ばれうる
+   * (再試行、二重クリック)。「無いものを消せない」で失敗すると、
+   * メタデータだけ削除済みで実体が残る、という中途半端な状態を招く。
+   */
+  async deleteObject(key: string): Promise<void> {
+    const signed = this.presign('DELETE', key, 60, {}, undefined, this.config.endpoint);
+    const response = await fetch(signed.url, { method: 'DELETE' });
+    // 204 = 削除成功、404 = 既に無い。どちらも目的は達している。
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`オブジェクトを削除できません: ${response.status}`);
+    }
+  }
+
   private presign(
-    method: 'GET' | 'PUT',
+    method: 'GET' | 'PUT' | 'DELETE',
     key: string,
     requestedTtl: number,
     extraQuery: Record<string, string>,
