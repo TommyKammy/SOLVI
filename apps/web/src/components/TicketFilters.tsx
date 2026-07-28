@@ -22,6 +22,24 @@ export function TicketFilters({ applied }: { applied: URLSearchParams }) {
 
   return (
     <form className="filters" method="get" action="/ops">
+      {/* 検索欄を先頭に置く。担当者が最初にやりたいのは
+          「同じような問い合わせが過去に無かったか」を確かめることである。
+          過去を探せないと、同じ調査を何度も繰り返すことになる。 */}
+      <div className="field search-field">
+        <label htmlFor="keyword">キーワード</label>
+        <span className="hint" id="keyword-hint">
+          受付番号・件名・内容から探します。
+        </span>
+        <input
+          id="keyword"
+          name="keyword"
+          type="search"
+          defaultValue={applied.get('keyword') ?? ''}
+          maxLength={200}
+          aria-describedby="keyword-hint"
+        />
+      </div>
+
       <fieldset className="filter-group">
         <legend>状況</legend>
         {FILTERABLE_STATES.map((state) => (
