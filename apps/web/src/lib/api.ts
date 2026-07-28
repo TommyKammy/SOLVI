@@ -125,6 +125,24 @@ export interface AttachmentView {
   downloadable: boolean;
 }
 
+export interface RelationView {
+  relationId: string;
+  ticketId: string;
+  number: string;
+  subject: string;
+  state: string;
+  role: 'related' | 'parent' | 'child';
+}
+
+export interface RelationListView {
+  items: RelationView[];
+  /**
+   * 未解決の子。**解決を止めるためではなく、判断材料として渡される。**
+   * 子が別チームの担当で長期化することがあり、拒否すると運用が詰まる。
+   */
+  unresolvedChildren: Array<{ ticketId: string; number: string; subject: string; state: string }>;
+}
+
 export interface WorkspaceView {
   ticket: TicketView & { requesterId: string; assigneeId: string | null };
   comments: CommentView[];
@@ -204,6 +222,31 @@ export const api = {
     call<{ url: string; expiresAt: string }>(
       `/attachments/${encodeURIComponent(attachmentId)}/download`,
     ),
+
+  listRelations: (id: string) =>
+    call<RelationListView>(`/tickets/${encodeURIComponent(id)}/relations`),
+
+  linkTicket: (id: string, body: { relationType: string; targetTicketNumber: string }) =>
+    call<{ relationId: string; relationType: string; targetTicketId: string }>(
+      `/tickets/${encodeURIComponent(id)}/relations`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  unlinkTicket: (relationId: string) =>
+    call<void>(`/relations/${encodeURIComponent(relationId)}/delete`, { method: 'POST' }),
+
+  /** 統合前の確認に使う。閲覧できない番号は「見つかりません」で返る。 */
+  lookupByNumber: (number: string) =>
+    call<{ ticketId: string; number: string; subject: string; state: string }>(
+      `/tickets/by-number/${encodeURIComponent(number)}`,
+    ),
+
+  mergeTicket: (id: string, body: { targetTicketNumber: string; reason: string }) =>
+    call<{
+      sourceTicketId: string;
+      targetTicketId: string;
+      retained: { comments: number; attachments: number };
+    }>(`/tickets/${encodeURIComponent(id)}/merge`, { method: 'POST', body: JSON.stringify(body) }),
 
   assign: (id: string, assigneeId: string | null) =>
     call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {

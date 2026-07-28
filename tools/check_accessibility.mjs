@@ -104,6 +104,22 @@ async function main() {
       path: `/tickets/${process.env.A11Y_TICKET_ID}`,
       requiresAuth: true,
     });
+    // 統合の確認画面 (WP-P2-RELUI-012)。**取り消せない操作の画面**であり、
+    // ここで読み違えると元に戻せない。確認表が支援技術から読めることを確かめる。
+    screens.push({
+      name: '統合の確認(相手未指定)',
+      path: `/ops/${process.env.A11Y_TICKET_ID}/merge`,
+      requiresAuth: true,
+    });
+    if (process.env.A11Y_MERGE_TARGET) {
+      screens.push({
+        name: '統合の確認(確認表あり)',
+        path: `/ops/${process.env.A11Y_TICKET_ID}/merge?target=${encodeURIComponent(
+          process.env.A11Y_MERGE_TARGET,
+        )}`,
+        requiresAuth: true,
+      });
+    }
   }
 
   let totalViolations = 0;

@@ -1,0 +1,43 @@
+
+ RUN  v3.2.7 /Users/tomoakikawada/Dev/SOLVI/worktree/rel-ui
+
+stdout | tests/security/auth.test.ts > セッション失効の即時性 (FR-IDM-008 / Gate 1 G1-9) > **ユーザ無効化でセッションが即座に無効になる**
+REVOCATION_LATENCY_SECONDS=0.032
+
+ ✓ tests/security/auth.test.ts (39 tests) 2707ms
+   ✓ 情報の非対称性を作らない > **存在しないユーザと誤パスワードで応答時間が大きく変わらない**  313ms
+ ✓ tests/security/relation-routes.test.ts (26 tests) 2321ms
+ ✓ tests/security/ticket-filters.test.ts (26 tests) 2208ms
+ ✓ tests/security/collaboration-routes.test.ts (17 tests) 1851ms
+ ✓ tests/security/ticket-routes.test.ts (19 tests) 1670ms
+ ✓ tests/security/attachment-delete.test.ts (14 tests) 1374ms
+ ✓ tests/security/object-storage.test.ts (11 tests) 1544ms
+   ✓ 署名付きURLで実際にやり取りできる > **期限切れの署名では取得できない**  1505ms
+ ✓ tests/security/ticket-list.test.ts (19 tests) 520ms
+ ✓ tests/security/vertical-slice.test.ts (3 tests) 442ms
+ ✓ tests/security/ticket-relation.test.ts (24 tests) 378ms
+ ✓ tests/security/collaboration.test.ts (32 tests) 385ms
+ ✓ tests/security/notification.test.ts (25 tests) 359ms
+ ✓ tests/security/ticket-search-sla.test.ts (23 tests) 284ms
+ ✓ tests/security/ticket-service.test.ts (19 tests) 288ms
+ ✓ tests/unit/auth-primitives.test.ts (26 tests) 257ms
+ ✓ tests/security/audit-append-only.test.ts (26 tests) 176ms
+ ✓ tests/security/attachment-scan.test.ts (7 tests) 115ms
+ ✓ tests/security/cross-org.test.ts (18 tests) 56ms
+stdout | tests/unit/ticket-state-machine.test.ts > 遷移表の全セル網羅 > 許可される遷移と拒否される遷移の件数を記録する
+  遷移表: 許可 20 件 / 拒否 684 件 (全 704 組合せ)
+
+ ✓ tests/unit/ticket-state-machine.test.ts (723 tests) 18ms
+ ✓ tests/unit/slo-metrics.test.ts (11 tests) 14ms
+ ✓ tests/unit/observability.test.ts (12 tests) 10ms
+ ✓ tests/unit/clamav.test.ts (21 tests) 6ms
+ ✓ tests/unit/webhook-signature.test.ts (19 tests) 3ms
+ ✓ tests/unit/authz.test.ts (15 tests) 3ms
+ ✓ tests/unit/attachment-validation.test.ts (32 tests) 3ms
+ ✓ tests/unit/sla.test.ts (18 tests) 2ms
+
+ Test Files  26 passed (26)
+      Tests  1225 passed (1225)
+   Start at  06:47:50
+   Duration  22.24s (transform 231ms, setup 0ms, collect 1.90s, tests 17.00s, environment 2ms, prepare 582ms)
+

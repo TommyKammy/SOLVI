@@ -1,0 +1,28 @@
+
+A. 監査イベント型と実際の記録
+  注記  9/26 件の監査イベント型が未使用
+       org.member.added, org.member.removed, role.binding.created, role.binding.deleted, user.created, user.updated, audit.export.executed, config.changed, platform.org_context.switched
+
+B. アラート式とメトリクスの実在
+  OK   アラートが参照する 8 件のメトリクスがすべて存在する
+
+C. 公開されているが本番経路から呼ばれない関数
+  OK   テストからしか呼ばれない公開関数は無い
+  注記  3 件がどこからも参照されていない
+       resetScannerSignatureAge, registerGauge, resetInstrumentsForTest
+  注記  5 件は未接続を承知で残している
+       signWebhook — Webhook送信の受け口がまだ無い。署名だけ先に作った(WP-P2-NTF-005 §6)
+       verifyWebhook — signWebhook と同じ理由
+       InMemoryNonceStore — signWebhook と同じ理由。永続化版は受け口を作るときに決める
+       isDerivedPriority — 優先度が導出値のままか手で変えられたかを画面に出すための判定。画面側が未実装
+       assertCanSwitchOrganization — platform_admin の組織横断操作の門番。横断操作の画面と経路がまだ無い
+
+D. 環境変数の定義と参照
+  OK   環境変数 23 件すべてが参照されている
+
+E. マイグレーションの巻き戻し
+  OK   マイグレーション 14 件すべてに down がある
+
+OK: 「定義したが動いていない」箇所は見つかりませんでした(注記 3 件)
+    ただしこの検査は静的な突き合わせであり、実際に動くことの証明ではない。
+    実経路の確認は verify_tracing / verify_slo_pipeline / e2e が担う。

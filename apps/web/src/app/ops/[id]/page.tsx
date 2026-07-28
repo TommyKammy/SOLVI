@@ -6,6 +6,8 @@ import { CommentThread } from '../../../components/CommentThread';
 import { CommentForm } from '../../../components/CommentForm';
 import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
+import { RelationList } from '../../../components/RelationList';
+import { RelationForm } from '../../../components/RelationForm';
 import {
   stateLabel,
   kindLabel,
@@ -48,6 +50,13 @@ export default async function OpsWorkspace({
 
   const { ticket, comments, attachments, availableActions } = result.data;
 
+  // 関連は別の問い合わせにする。workspace に混ぜると、関連の取得が失敗した
+  // ときに本体まで開けなくなる。関連が見えないことは、対応そのものを
+  // 止める理由にはならない。
+  const relations = await api.listRelations(id);
+  const relationItems = relations.ok ? relations.data.items : [];
+  const unresolvedChildren = relations.ok ? relations.data.unresolvedChildren : [];
+
   async function postComment(formData: FormData): Promise<void> {
     'use server';
     const posted = await api.addComment(id, {
@@ -86,6 +95,28 @@ export default async function OpsWorkspace({
     redirect(`/ops/${id}`);
   }
 
+  async function addRelation(formData: FormData): Promise<void> {
+    'use server';
+    const linked = await api.linkTicket(id, {
+      relationType: String(formData.get('relationType') ?? 'related'),
+      targetTicketNumber: String(formData.get('targetTicketNumber') ?? ''),
+    });
+    if (!linked.ok) {
+      const detail = linked.problem.detail ?? linked.problem.title;
+      redirect(`/ops/${id}?relationError=${encodeURIComponent(detail)}`);
+    }
+    revalidatePath(`/ops/${id}`);
+    redirect(`/ops/${id}`);
+  }
+
+  async function removeRelation(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.unlinkTicket(String(formData.get('relationId') ?? ''));
+    if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    revalidatePath(`/ops/${id}`);
+    redirect(`/ops/${id}`);
+  }
+
   async function takeOwnership(): Promise<void> {
     'use server';
     const me = await api.me();
@@ -109,6 +140,15 @@ export default async function OpsWorkspace({
         受付番号 {ticket.number} ・ {kindLabel(ticket.kind)} ・ 優先度{' '}
         {priorityLabel(ticket.priority)}
       </p>
+
+      {typeof query.merged === 'string' && (
+        <div className="notice" role="status">
+          <h2 style={{ marginTop: 0 }}>{query.merged} をこの問い合わせへ統合しました</h2>
+          <p style={{ margin: 0 }}>
+            統合元のやり取りと添付は統合元に残っています。必要なら統合元を開いて確認してください。
+          </p>
+        </div>
+      )}
 
       {query.actionError !== undefined && (
         <div className="error-summary" role="alert" tabIndex={-1}>
@@ -135,6 +175,25 @@ export default async function OpsWorkspace({
       </dl>
 
       <h2>操作</h2>
+
+      {unresolvedChildren.length > 0 && (
+        // **止めない。知らせるだけ。** 子が別チームの担当で長期化することがあり、
+        // 解決を拒否すると運用が詰まる。判断は人に残す(WP-P2-REL-009 §6)。
+        <div className="notice" role="note">
+          <h3 style={{ marginTop: 0 }}>まだ対応中の子の問い合わせがあります</h3>
+          <ul style={{ marginBottom: 0 }}>
+            {unresolvedChildren.map((child) => (
+              <li key={child.ticketId}>
+                <Link href={`/ops/${child.ticketId}`}>
+                  {child.number} {child.subject}
+                </Link>{' '}
+                — {stateLabel(child.state)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="actions-row">
         {!isMine && (
           <form action={takeOwnership}>
@@ -160,6 +219,20 @@ export default async function OpsWorkspace({
 
       <h2>依頼内容</h2>
       <div className="body-text">{ticket.body}</div>
+
+      <h2>関連する問い合わせ</h2>
+      <RelationList relations={relationItems} canUnlink unlinkAction={removeRelation} />
+      <RelationForm
+        action={addRelation}
+        errorMessage={typeof query.relationError === 'string' ? query.relationError : undefined}
+      />
+      {ticket.state !== 'merged' && (
+        <p style={{ marginTop: '1rem' }}>
+          {/* 統合は別の画面へ送る。ここにボタンを置くと、
+              他の操作と同じ重さに見えてしまう。**取り消せない操作である。** */}
+          <Link href={`/ops/${id}/merge`}>重複した問い合わせとして統合する</Link>
+        </p>
+      )}
 
       <h2>添付ファイル</h2>
       <AttachmentList

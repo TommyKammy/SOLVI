@@ -6,6 +6,7 @@ import { CommentThread } from '../../../components/CommentThread';
 import { CommentForm } from '../../../components/CommentForm';
 import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
+import { RelationList } from '../../../components/RelationList';
 import {
   stateLabel,
   kindLabel,
@@ -56,6 +57,13 @@ export default async function TicketDetailPage({
   // 内部添付は API 側で除外される。画面はフィルタしない。
   const attachmentResult = await api.listAttachments(id);
   const attachments = attachmentResult.ok ? attachmentResult.data.items : [];
+
+  // 関連する問い合わせ。**依頼者にも見せる。**
+  // 「同じ件でもう1つ出してしまった」ときに、どちらが生きているのか
+  // 依頼者自身が分からないと、担当者へ問い合わせる手間が増える。
+  // 相手が権限外なら API が返さないので、画面はそのまま並べてよい。
+  const relationResult = await api.listRelations(id);
+  const relations = relationResult.ok ? relationResult.data.items : [];
 
   async function removeAttachment(formData: FormData): Promise<void> {
     'use server';
@@ -137,6 +145,14 @@ export default async function TicketDetailPage({
 
       <h2>お知らせいただいた内容</h2>
       <div className="body-text">{ticket.body}</div>
+
+      {relations.length > 0 && (
+        <>
+          <h2>関連する問い合わせ</h2>
+          {/* 解除も統合も担当者の操作である。依頼者には出さない。 */}
+          <RelationList relations={relations} />
+        </>
+      )}
 
       <h2>添付ファイル</h2>
       {/* 依頼者が消せるのは自分が添付したものだけ。
