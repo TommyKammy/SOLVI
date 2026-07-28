@@ -7,6 +7,16 @@
  * 冪等に実行できる(再実行しても増殖しない)。
  */
 import pg from 'pg';
+import { hashPassword } from '../packages/shared/src/auth/password.js';
+
+/**
+ * 開発用の共通パスワード。
+ *
+ * **合成データ専用である。** `AUTH_LOCAL_ENABLED` は本番で有効にできない
+ * (env.ts の superRefine で拒否する)ため、この値が本番へ届く経路は無い。
+ * それでも seed.mjs 自体を本番で実行しないこと。
+ */
+const DEV_PASSWORD = 'local-dev-password-1';
 
 const url = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
 if (!url) {
@@ -69,6 +79,29 @@ try {
          VALUES ($1, $2, $3, $4, $5, 'seed')
          ON CONFLICT DO NOTHING`,
         [id(seq + 2000), userId, role.id, role.scope, org.id],
+      );
+
+      // ローカル認証の資格情報 (ADR-0019)。
+      //
+      // **これが無いと誰もログインできない。** 以前は別のツール
+      // (`create_local_user.mjs`)を手で叩く前提だったが、その手順は
+      // 立ち上げ手順のどこにも書かれておらず、テストが
+      // `local_credential` を消したあとは seed を再実行しても戻らなかった。
+      // 画面は正常に出るのに全員が 401 になり、原因は認証の不具合に見える。
+      await client.query(
+        `INSERT INTO identity (id, user_id, idp_type, issuer, subject)
+         VALUES ($1, $2, 'local', 'urn:solvi:local', $3)
+         ON CONFLICT (issuer, subject) DO NOTHING`,
+        [id(seq + 3000), userId, email],
+      );
+      await client.query(
+        `INSERT INTO local_credential (id, user_id, password_hash)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE
+            SET password_hash = EXCLUDED.password_hash,
+                failed_attempts = 0,
+                locked_until = NULL`,
+        [id(seq + 4000), userId, await hashPassword(DEV_PASSWORD)],
       );
 
       created.push({ org: org.code, role: code, userId, email });
@@ -158,6 +191,7 @@ try {
   );
   console.log('  組織:');
   for (const o of ORGS) console.log(`    ${o.code} (${o.id})`);
+  console.log(`  ログイン: <role>@<org>.example.test / ${DEV_PASSWORD}`);
   console.log('  ※ すべて合成データ。実在の人物・組織とは無関係。');
 } catch (error) {
   await client.query('ROLLBACK');

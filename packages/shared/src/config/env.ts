@@ -50,7 +50,14 @@ export const apiEnvSchema = baseSchema
   .merge(storageSchema)
   .extend({
     API_PORT: z.coerce.number().int().positive().default(3001),
-    SESSION_SECRET: z.string().min(32, 'SESSION_SECRET は32文字以上にしてください'),
+    // SESSION_SECRET はここに無い。
+    //
+    // かつては必須(32文字以上)として宣言されていたが、**どこからも読まれていなかった。**
+    // セッショントークンは256ビットの乱数で、保存するのはその SHA-256 である
+    // (`packages/shared/src/auth/session-token.ts`)。署名鍵は登場しない。
+    //
+    // 使われない秘密を必須にすると、運用者は「これを替えればセッションが切れる」と
+    // 読む。実際には**何も起きない**。無いほうが誤解を生まない。
 
     /**
      * ローカルアカウント認証の有効化 (ADR-0019)。

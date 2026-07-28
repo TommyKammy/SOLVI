@@ -1,0 +1,19 @@
+
+[1] リクエストを発生させる
+  OK   APIへのリクエスト — status=404
+
+[2] Jaegerへ到達するまで待つ
+
+[3] サービスがJaegerに登録されている
+  OK   solvi-api が登録されている — services=solvi-worker, solvi-api, jaeger-all-in-one
+
+[4] トレースが記録されている
+  OK   solvi-api のトレースが存在する — 20 件
+  OK   スパンに service.name が付いている — 34 spans
+  OK   ヘルスチェックがトレースに含まれない — 0 件
+
+[5] ログに trace id が載っている
+  OK   trace id を含むログ行がある — 10 行
+  OK   ログに接続文字列やJWTが出ていない
+
+7/7 件が期待どおり

@@ -1,0 +1,1 @@
+solvi_audit_anchors_total{outcome="mismatch"} 1

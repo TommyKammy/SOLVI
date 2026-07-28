@@ -16,6 +16,7 @@ import {
   type Urgency,
 } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
+import { enqueueOutboxEvent } from '../../common/outbox/outbox.js';
 import { NoopDenialRecorder, type DenialRecorder } from '../../common/audit/denial-recorder.js';
 import {
   canAccess,
@@ -196,6 +197,15 @@ export class TicketService {
       },
     });
 
+    // 通知イベントを**同一トランザクションで積む**(ADR-0008)。
+    // 別トランザクションにすると「チケットは作られたが通知は積まれなかった」
+    // という状態が生まれ、依頼者は受け付けられたことを知らないまま待つ。
+    await enqueueOutboxEvent(this.client, {
+      eventType: 'ticket.created',
+      organizationId: ctx.organizationId,
+      payload: { ticketId: id, ticketNumber: number, actorId: ctx.principal.userId },
+    });
+
     return toTicket(rows[0]!);
   }
 
@@ -301,6 +311,12 @@ export class TicketService {
       afterState: { state: input.to, reason: input.reason },
     });
 
+    await enqueueOutboxEvent(this.client, {
+      eventType: 'ticket.transitioned',
+      organizationId: ctx.organizationId,
+      payload: { ticketId: ticket.id, ticketNumber: ticket.number, actorId: ctx.principal.userId },
+    });
+
     return toTicket(updated[0]!);
   }
 
@@ -380,6 +396,12 @@ export class TicketService {
       outcome: 'success',
       beforeState: { assigneeId: ticket.assigneeId },
       afterState: { assigneeId },
+    });
+
+    await enqueueOutboxEvent(this.client, {
+      eventType: 'ticket.assigned',
+      organizationId: ctx.organizationId,
+      payload: { ticketId, ticketNumber: ticket.number, actorId: ctx.principal.userId },
     });
 
     return toTicket(updated[0]!);

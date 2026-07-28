@@ -1,0 +1,10 @@
+file:///Users/tomoakikawada/Dev/SOLVI/worktree/self-audit/tools/e2e/attachment_flow.mjs:30
+  if (!r.ok) throw new Error(`ログイン失敗 ${email}: ${r.status}`);
+                   ^
+
+Error: ログイン失敗 requester@acme.example.test: 401
+    at login (file:///Users/tomoakikawada/Dev/SOLVI/worktree/self-audit/tools/e2e/attachment_flow.mjs:30:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///Users/tomoakikawada/Dev/SOLVI/worktree/self-audit/tools/e2e/attachment_flow.mjs:39:19
+
+Node.js v25.6.1

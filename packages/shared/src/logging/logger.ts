@@ -64,6 +64,15 @@ export class Logger {
     // trace id をログへ載せ、ログからトレースへ辿れるようにする。
     // トレースが有効でない場合は付けない(全ゼロのIDは検索を汚すだけ)。
     const traceId = currentTraceId();
+
+    // 付加フィールドに `message` があっても、**表題を上書きさせない**。
+    //
+    // 上書きを許していたため、`logger.info('audit anchor', { message: '...' })`
+    // は `audit anchor` を失い、ログを "audit anchor" で検索しても
+    // 1件も出てこなかった。ログは出ているのに**探せない**という形の欠陥で、
+    // 障害対応の最中にしか気付けない。
+    // 衝突した値は捨てずに `detail` へ移す。
+    const { message: collidingDetail, ...rest } = { ...this.context, ...fields };
     const record = redactLogRecord({
       timestamp: new Date().toISOString(),
       level,
@@ -71,8 +80,8 @@ export class Logger {
       service: this.options.service,
       env: this.options.env,
       ...(traceId ? { traceId } : {}),
-      ...this.context,
-      ...fields,
+      ...rest,
+      ...(collidingDetail === undefined ? {} : { detail: collidingDetail }),
     });
     const line = JSON.stringify(record);
     if (this.options.sink) this.options.sink(line);

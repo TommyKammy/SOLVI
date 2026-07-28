@@ -27,8 +27,7 @@ import { RecordingEmailSender } from '../../services/api/src/modules/notificatio
 import {
   OutboxDispatcher,
   type OutboxHandler,
-} from '../../services/worker/src/dispatcher/outbox-dispatcher.js';
-import { enqueueOutboxEvent } from '../../services/api/src/common/outbox/outbox.js';
+} from '../../services/api/src/common/outbox/dispatcher.js';
 import { PoolDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { SessionService } from '../../services/api/src/modules/auth/session.service.js';
@@ -204,16 +203,6 @@ describe('縦切り: 申告 → 対応 → 解決 → 通知 → 監査 (GA-1)',
     );
     expect(created.status).toBe(201);
     const ticketId = created.body.id as string;
-    const ticketNumber = created.body.number as string;
-
-    // 起票イベントをOutboxへ(実運用ではサービス内で同一Txに積む)
-    await inOrg((client) =>
-      enqueueOutboxEvent(client, {
-        eventType: 'ticket.created',
-        organizationId: ORG_A,
-        payload: { ticketId, ticketNumber, actorId: requester.userId },
-      }),
-    );
 
     // ---------------------------------------------------------------------
     // 2. 担当者が引き受け、対応を始める
@@ -247,15 +236,6 @@ describe('縦切り: 申告 → 対応 → 解決 → 通知 → 監査 (GA-1)',
       });
     });
 
-    // 内部メモのイベントもOutboxへ。通知側が visibility を見て弾くはず。
-    await inOrg((client) =>
-      enqueueOutboxEvent(client, {
-        eventType: 'ticket.comment.added',
-        organizationId: ORG_A,
-        payload: { ticketId, ticketNumber, actorId: agent.userId, visibility: 'internal' },
-      }),
-    );
-
     // ---------------------------------------------------------------------
     // 4. 担当者が公開コメントを書く(依頼者に見せる)
     // ---------------------------------------------------------------------
@@ -267,14 +247,6 @@ describe('縦切り: 申告 → 対応 → 解決 → 通知 → 監査 (GA-1)',
         body: 'アカウントのロックを解除しました。お試しください。',
       });
     });
-    await inOrg((client) =>
-      enqueueOutboxEvent(client, {
-        eventType: 'ticket.comment.added',
-        organizationId: ORG_A,
-        payload: { ticketId, ticketNumber, actorId: agent.userId, visibility: 'public' },
-      }),
-    );
-
     // ---------------------------------------------------------------------
     // 5. 解決する
     // ---------------------------------------------------------------------
@@ -286,20 +258,15 @@ describe('縦切り: 申告 → 対応 → 解決 → 通知 → 監査 (GA-1)',
         reason: 'resolve',
       });
     });
-    await inOrg((client) =>
-      enqueueOutboxEvent(client, {
-        eventType: 'ticket.transitioned',
-        organizationId: ORG_A,
-        payload: { ticketId, ticketNumber, actorId: agent.userId },
-      }),
-    );
-
     // ---------------------------------------------------------------------
     // 6. 通知を配送する
     // ---------------------------------------------------------------------
     const dispatcher = new OutboxDispatcher(pool, makeHandlers(sender), logger);
     const summary = await dispatcher.dispatchOnce();
-    expect(summary.fetched).toBe(4);
+    // 起票 / 割当 / assigned / in_progress / 内部メモ / 公開コメント / resolved。
+    // **テストは1件もイベントを積んでいない。** すべて業務処理が同一Txで積んだものである。
+    // ここが 0 に近づいたら、Outboxが業務経路から外れたということ。
+    expect(summary.fetched).toBe(7);
     expect(summary.failed).toBe(0);
 
     // =====================================================================

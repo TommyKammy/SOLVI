@@ -1,0 +1,36 @@
+SLO配線の検証
+
+1. アプリからのメトリクス公開
+  OK   api の /metrics に到達できる
+  OK   solvi_http_requests_total が公開されている
+  OK   solvi_http_duration が公開されている
+  OK   ヘルスチェックが SLI の系列に混ざっていない
+
+2. Prometheus のスクレイプ
+  OK   Prometheus に到達できる
+  OK   solvi-* のスクレイプ対象が設定されている — 4 件
+  OK   solvi-api をスクレイプできている
+  OK   solvi-executor をスクレイプできている
+  OK   solvi-synthetic をスクレイプできている
+  OK   solvi-worker をスクレイプできている
+
+3. アラートルール
+  OK   SolviErrorBudgetBurnFast が読み込まれている
+  OK   SolviErrorBudgetBurnSlow が読み込まれている
+  OK   SolviLatencyP95Degraded が読み込まれている
+  OK   SolviOutboxLagHigh が読み込まれている
+  OK   SolviAuthzDenialSpike が読み込まれている
+  OK   SolviTargetDown が読み込まれている
+  OK   SolviNoTraffic が読み込まれている
+  OK   SolviSyntheticCheckFailing が読み込まれている
+  OK   SolviAttachmentScanStalled が読み込まれている
+  OK   SolviScannerSignaturesStale が読み込まれている
+  OK   すべてのルールが正常に評価されている
+  OK   すべてのアラートに runbook の参照がある
+
+4. 合成監視
+  OK   合成監視の結果が Prometheus に入っている — 2 チェック
+  注記 未実行のチェックがある: login, ticket_create
+       (成功として扱っていない。WP-P1-IDM-003 完了後に有効化すること)
+
+OK: SLOの配線は期待どおりです

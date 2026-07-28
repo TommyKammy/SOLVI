@@ -11,6 +11,19 @@ import {
 /**
  * Outboxディスパッチャ(ADR-0008 / WP-P2-NTF-005)。
  *
+ * **配送は API プロセスで動かす。**
+ *
+ * 本来この役割は worker のものだが、配送には通知サービスと監査の書き込みが要り、
+ * どちらも `services/api` にある。worker から import するとサービス間依存になり、
+ * `packages/shared` へ移すと共有パッケージが `pg` に依存することになる —
+ * どちらも `check_architecture.mjs` が禁じている。
+ *
+ * 永続化層を共有パッケージ化すれば worker へ移せるが、それは境界の変更であり
+ * 後継ADRが要る(AGENTS.md §1.9)。**それまでは API で動かす。**
+ * ADR-0001 のモジュラモノリスの方針とも矛盾しない。
+ *
+ * 複数のAPIプロセスが同時に動いても `FOR UPDATE SKIP LOCKED` で二重配送しない。
+ *
  * 設計上の要点:
  *
  * 1. `FOR UPDATE SKIP LOCKED` で取得する。複数のワーカーが同時に動いても、
