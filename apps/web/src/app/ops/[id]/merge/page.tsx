@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { api } from '../../../../lib/api';
+import { api, requireSession } from '../../../../lib/api';
 import { stateLabel } from '../../../../lib/labels';
 
 /**
@@ -30,8 +30,9 @@ export default async function MergeTicket({
   const { id } = await params;
   const query = await searchParams;
 
-  const session = await api.me();
-  if (!session.ok) redirect('/login');
+  // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
+  // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
+  await requireSession();
 
   const source = await api.workspace(id);
   if (!source.ok) {

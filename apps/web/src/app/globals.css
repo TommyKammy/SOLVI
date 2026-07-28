@@ -591,3 +591,26 @@ button.danger {
   white-space: nowrap;
   border: 0;
 }
+
+/* 組織の選択 (WP-P1-IDM-010) */
+.org-choice {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+.org-choice legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+}
+.org-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+/* 選択肢は押しやすくする。ラベルだけが当たり判定だと、
+   ラジオの丸を正確に狙わせることになる。 */
+.org-option label {
+  flex: 1;
+  cursor: pointer;
+}

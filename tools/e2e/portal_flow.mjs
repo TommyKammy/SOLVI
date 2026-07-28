@@ -1,5 +1,6 @@
 /** ログイン → 起票 → 参照 の通し確認 (WP-P2-PORTAL-002) */
 const API = 'http://127.0.0.1:3001';
+const WEB = 'http://127.0.0.1:3000';
 const ORG = '00000000-0000-4000-9000-000000000001';
 const step = (n, ok, detail = '') =>
   console.log(`${ok ? 'OK  ' : 'NG  '} ${n}${detail ? ' — ' + detail : ''}`);
@@ -31,14 +32,17 @@ check(
   JSON.stringify(wrongBody).slice(0, 80),
 );
 
-// 3. 正しい資格情報でログイン
+// 3. 正しい資格情報でログイン。**組織IDは送らない。**
+//
+// かつて画面は利用者に組織IDのUUIDを手入力させていた。
+// 利用者が知っているのは「自分がどの会社の人間か」だけであり、
+// 所属はシステムが役割束縛として持っている (WP-P1-IDM-010)。
 r = await fetch(`${API}/auth/login`, {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({
     email: 'requester@acme.example.test',
     password: 'local-dev-password-1',
-    organizationId: ORG,
   }),
 });
 check('ログイン成功', r.status === 200, `status=${r.status}`);
@@ -46,6 +50,15 @@ const setCookie = r.headers.get('set-cookie') ?? '';
 check('HttpOnly が付く', /HttpOnly/i.test(setCookie));
 check('SameSite=Lax が付く', /SameSite=Lax/i.test(setCookie));
 const loginBody = await r.json();
+check(
+  '**組織を指定せずに所属が決まる**',
+  loginBody.organizationId === ORG,
+  String(loginBody.organizationId),
+);
+check(
+  '所属組織が名前つきで返る',
+  (loginBody.organizations ?? []).every((o) => (o.name ?? '').length > 0),
+);
 check(
   '本文にトークンを含めない',
   !JSON.stringify(loginBody).includes(setCookie.split('=')[1]?.split(';')[0] ?? 'x'),
@@ -139,6 +152,66 @@ for (const [name, path] of [
     `status=${res.status}`,
   );
 }
+
+// ---------------------------------------------------------------------------
+// 兼務者は組織を選ぶまで業務APIを使えない (WP-P1-IDM-010)
+// ---------------------------------------------------------------------------
+r = await fetch(`${API}/auth/login`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  // シードの acme agent は beta の requester も兼ねる
+  body: JSON.stringify({ email: 'agent@acme.example.test', password: 'local-dev-password-1' }),
+});
+const dual = await r.json();
+const dualCookie = (r.headers.get('set-cookie') ?? '').split(';')[0];
+check(
+  '**兼務者は組織が決まらない**(勝手に選ばない)',
+  dual.organizationId === null,
+  String(dual.organizationId),
+);
+check('選択肢が2件返る', (dual.organizations ?? []).length === 2);
+
+r = await fetch(`${API}/auth/me`, { headers: { cookie: dualCookie } });
+const denied = await r.json();
+check(
+  '**未選択のまま業務APIを呼ぶと専用の型で拒否される**',
+  r.status === 403 && String(denied.type).endsWith('/organization-not-selected'),
+  `status=${r.status} type=${String(denied.type).split('/').pop()}`,
+);
+
+r = await fetch(`${API}/auth/organizations`, { headers: { cookie: dualCookie } });
+const orgList = await r.json();
+check(
+  '未選択でも組織一覧は取れる(行き止まりを作らない)',
+  r.status === 200 && orgList.organizations.length === 2,
+);
+
+r = await fetch(`${API}/auth/organization`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', cookie: dualCookie },
+  body: JSON.stringify({ organizationId: orgList.organizations[0].id }),
+});
+check('組織を選べる', r.status === 200, `status=${r.status}`);
+r = await fetch(`${API}/auth/me`, { headers: { cookie: dualCookie } });
+check(
+  '選択後は業務APIが通る',
+  r.status === 200 && (await r.json()).organizationId === orgList.organizations[0].id,
+);
+
+r = await fetch(`${API}/auth/organization`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', cookie: dualCookie },
+  body: JSON.stringify({ organizationId: '00000000-0000-4000-9000-000000000099' }),
+});
+check('**所属していない組織へは切り替えられない**', r.status === 403, `status=${r.status}`);
+
+const loginPage = await fetch(`${WEB}/login`);
+check('**ログイン画面に組織IDの入力欄が無い**', !(await loginPage.text()).includes('組織ID'));
+
+const selectPage = await fetch(`${WEB}/select-organization`, { headers: { cookie: dualCookie } });
+const selectHtml = await selectPage.text();
+check('組織の選択画面が開く', selectPage.status === 200, `status=${selectPage.status}`);
+check('**組織を名前で選ばせる**', selectHtml.includes('サンプル株式会社'));
 
 console.log(
   failed === 0 ? '\nOK: 通し確認はすべて期待どおりです' : `\n${failed} 件の問題があります`,

@@ -108,12 +108,17 @@ try {
     }
   }
 
-  // 兼務の例(FR-IDM-006): acme の agent が beta の requester も兼ねる
+  // 兼務の例(FR-IDM-006): acme の agent が beta の requester も兼ねる。
+  //
+  // `source` は 'seed' にする。合成データであって手動付与ではない。
+  // 以前は 'manual' としていたため、テストの片付け
+  // (`DELETE FROM role_binding WHERE source = 'manual'`)で消えていた。
+  // 消えると兼務者が居なくなり、**組織選択の経路が誰も通らないまま緑になる。**
   const dualUser = created.find((c) => c.org === 'acme' && c.role === 'agent');
   const requesterRole = roleByCode.get('requester');
   await client.query(
     `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source, valid_until)
-     VALUES ($1, $2, $3, $4, $5, 'manual', now() + interval '90 days')
+     VALUES ($1, $2, $3, $4, $5, 'seed', now() + interval '90 days')
      ON CONFLICT DO NOTHING`,
     [id(9001), dualUser.userId, requesterRole.id, requesterRole.scope, ORGS[1].id],
   );
@@ -128,7 +133,7 @@ try {
   );
   await client.query(
     `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source)
-     VALUES ($1, $2, $3, 'platform', NULL, 'manual') ON CONFLICT DO NOTHING`,
+     VALUES ($1, $2, $3, 'platform', NULL, 'seed') ON CONFLICT DO NOTHING`,
     [id(9502), platformUserId, platformAdminRole.id],
   );
 

@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { api } from '../../lib/api';
+import { api, requireSession } from '../../lib/api';
 import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../lib/labels';
 import { TicketFilters } from '../../components/TicketFilters';
 
@@ -34,10 +33,11 @@ export default async function OpsQueue({
   }
   const filtering = [...filter.keys()].length > 0;
 
-  const session = await api.me();
-  if (!session.ok) redirect('/login');
+  // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
+  // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
+  const session = await requireSession();
 
-  const isAgent = session.data.roles.some((r) =>
+  const isAgent = session.roles.some((r) =>
     ['agent', 'org_admin', 'platform_admin'].includes(r.roleCode),
   );
   if (!isAgent) {

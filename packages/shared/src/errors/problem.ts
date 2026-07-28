@@ -101,6 +101,22 @@ export const Problems = {
       detail: `${from} から ${to} への遷移は許可されていません`,
     }),
 
+  /**
+   * 組織が未選択のまま業務APIを呼んだ (WP-P1-IDM-010)。
+   *
+   * **`forbidden` と分ける。** 「その操作は許可されていない」と
+   * 「まだどの組織として操作するか決めていない」は、利用者がとるべき行動が違う。
+   * 前者は諦めるしかないが、後者は組織を選べば進める。
+   * 同じ 403 に混ぜると、画面は「権限がありません」としか出せない。
+   */
+  organizationNotSelected: () =>
+    new ProblemError({
+      status: 403,
+      type: `${TYPE_BASE}/organization-not-selected`,
+      title: '操作する組織が選ばれていません',
+      detail: '複数の組織に所属しています。どの組織として操作するかを選んでください。',
+    }),
+
   internal: () =>
     new ProblemError({
       status: 500,
