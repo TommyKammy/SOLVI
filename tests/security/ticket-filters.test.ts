@@ -299,6 +299,94 @@ describe('絞り込みが認可を広げない', () => {
   });
 });
 
+describe('キーワード検索', () => {
+  it('件名から探せる', async () => {
+    await createUser('k1@example.com', ORG_A, 'agent');
+    const agent = await loginAs('k1@example.com', ORG_A);
+    await newTicket(agent, { subject: 'プリンタが動かない' });
+    await newTicket(agent, { subject: 'メールが送れない' });
+
+    const result = await listWith(agent, 'keyword=' + encodeURIComponent('プリンタ'));
+    expect(result.body.items).toHaveLength(1);
+    expect(result.body.items[0]!.subject).toBe('プリンタが動かない');
+  });
+
+  it('受付番号から探せる', async () => {
+    await createUser('k2@example.com', ORG_A, 'agent');
+    const agent = await loginAs('k2@example.com', ORG_A);
+    const id = await newTicket(agent, { subject: '番号で探す' });
+
+    const detail = await run(() => tickets.findById(agent, id));
+    const number = detail.body.number as string;
+
+    const result = await listWith(agent, 'keyword=' + encodeURIComponent(number));
+    expect(result.body.items.map((t) => t.id)).toContain(id);
+  });
+
+  it.each([
+    ['%', '%'],
+    ['_', '_'],
+    ['バックスラッシュ', '\\'],
+  ])('**ワイルドカード %s が全件一致にならない**', async (_label, wildcard) => {
+    await createUser('k3@example.com', ORG_A, 'agent');
+    const agent = await loginAs('k3@example.com', ORG_A);
+    await newTicket(agent, { subject: '普通の件名' });
+    await newTicket(agent, { subject: 'もう一つの件名' });
+
+    // エスケープしないと、`%` は「何でも一致」として解釈され
+    // 「検索した」という体裁で全件が返る。
+    const result = await listWith(agent, 'keyword=' + encodeURIComponent(wildcard));
+    expect(result.body.items).toHaveLength(0);
+  });
+
+  it('**検索が認可の範囲を広げない**', async () => {
+    await createUser('k4@example.com', ORG_A, 'requester');
+    await createUser('k4b@example.com', ORG_A, 'requester');
+    const me = await loginAs('k4@example.com', ORG_A);
+    const other = await loginAs('k4b@example.com', ORG_A);
+
+    await newTicket(me, { subject: '共通のことば' });
+    await newTicket(other, { subject: '共通のことば' });
+
+    const result = await listWith(me, 'keyword=' + encodeURIComponent('共通のことば'));
+    // 検索語が一致しても、見える範囲は変わらない
+    expect(result.body.items).toHaveLength(1);
+    expect(result.body.scope).toBe('own');
+  });
+
+  it('**他組織のチケットは検索に出ない**', async () => {
+    await createUser('k5@example.com', ORG_A, 'agent');
+    await createUser('k5b@example.com', ORG_B, 'agent');
+    const inA = await loginAs('k5@example.com', ORG_A);
+    const inB = await loginAs('k5b@example.com', ORG_B);
+
+    await newTicket(inB, { subject: '越境してはいけない語' });
+
+    const result = await listWith(inA, 'keyword=' + encodeURIComponent('越境してはいけない語'));
+    expect(result.body.items).toHaveLength(0);
+  });
+
+  it('長すぎる検索語を拒否する', async () => {
+    await createUser('k6@example.com', ORG_A, 'agent');
+    const agent = await loginAs('k6@example.com', ORG_A);
+    await expect(listWith(agent, 'keyword=' + 'あ'.repeat(300))).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
+  it('空白だけの検索語は条件として扱わない', async () => {
+    await createUser('k7@example.com', ORG_A, 'agent');
+    const agent = await loginAs('k7@example.com', ORG_A);
+    await newTicket(agent, { subject: '何か' });
+
+    const result = await listWith(agent, 'keyword=' + encodeURIComponent('   '));
+    // 「空で検索した」を「全件」として扱う。エラーにすると、
+    // 入力欄を空にして押しただけで怒られることになる。
+    expect(result.body.appliedFilter).not.toHaveProperty('keyword');
+    expect(result.body.items.length).toBeGreaterThan(0);
+  });
+});
+
 describe('適用された条件を応答で返す', () => {
   it('**画面が送った条件と突き合わせられる**', async () => {
     await createUser('ap@example.com', ORG_A, 'agent');

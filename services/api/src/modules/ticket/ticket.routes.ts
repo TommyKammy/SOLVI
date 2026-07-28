@@ -76,6 +76,7 @@ function parseFilter(
   priority?: string[];
   assigneeId?: string | null;
   unassignedOnly?: boolean;
+  keyword?: string;
 } {
   const errors: Array<{ field: string; message: string }> = [];
 
@@ -109,9 +110,27 @@ function parseFilter(
     errors.push({ field: 'assignment', message: '指定できない値です' });
   }
 
+  /**
+   * 全文検索の語。
+   *
+   * **短すぎる語を受け付けない。** 1文字で検索すると事実上の全件取得になり、
+   * 「検索した」という体裁で全件を眺めることになる。
+   * ワイルドカード(`%` `_`)のエスケープはクエリ組み立て側で行っている。
+   */
+  const rawKeyword = (query.get('keyword') ?? '').trim();
+  let keyword: string | undefined;
+  if (rawKeyword.length > 0) {
+    if (rawKeyword.length > 200) {
+      errors.push({ field: 'keyword', message: '検索語が長すぎます' });
+    } else {
+      keyword = rawKeyword;
+    }
+  }
+
   if (errors.length > 0) throw Problems.validation(errors);
 
   return {
+    ...(keyword ? { keyword } : {}),
     ...(state ? { state } : {}),
     ...(kind ? { kind } : {}),
     ...(priority ? { priority } : {}),

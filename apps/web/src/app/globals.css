@@ -504,3 +504,9 @@ button.danger {
   background: var(--danger);
   border-color: var(--danger);
 }
+
+/* 検索欄 (WP-P2-SEARCH-006 の画面) */
+.filters .search-field {
+  flex: 1 1 18rem;
+  min-width: 14rem;
+}

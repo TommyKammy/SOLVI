@@ -27,7 +27,7 @@ export default async function OpsQueue({
   // 突き合わせられるようにする。
   const filter = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (!['state', 'kind', 'priority', 'assignment'].includes(key)) continue;
+    if (!['state', 'kind', 'priority', 'assignment', 'keyword'].includes(key)) continue;
     for (const v of Array.isArray(value) ? value : value ? [value] : []) {
       filter.append(key, v);
     }
@@ -67,7 +67,10 @@ export default async function OpsQueue({
         // **絞り込み中であることを本文で示す。** 件数だけだと、
         // 絞り込んでいることを忘れて「件数が減った」と誤解される。
         <p className="filter-notice" role="status">
-          絞り込み中です。すべて表示するには「条件を解除」を押してください。
+          {filter.get('keyword')
+            ? `「${filter.get('keyword')}」で検索中です。`
+            : '絞り込み中です。'}
+          すべて表示するには「条件を解除」を押してください。
         </p>
       )}
 
@@ -78,7 +81,9 @@ export default async function OpsQueue({
       ) : tickets.data.items.length === 0 ? (
         <p className="empty">
           {filtering
-            ? '条件に合う問い合わせはありません。条件を緩めてお試しください。'
+            ? filter.get('keyword')
+              ? `「${filter.get('keyword')}」に一致する問い合わせはありません。別の言葉でお試しください。`
+              : '条件に合う問い合わせはありません。条件を緩めてお試しください。'
             : '対応待ちの問い合わせはありません。'}
         </p>
       ) : (
