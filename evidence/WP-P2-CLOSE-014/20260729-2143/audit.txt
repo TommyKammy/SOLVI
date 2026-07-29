@@ -1,0 +1,5 @@
+     number      | state  | closed | actor_type | actor_id_null |   reason   
+-----------------+--------+--------+------------+---------------+------------
+ INC-2026-000009 | closed | t      | system     | t             | auto_close
+(1 row)
+

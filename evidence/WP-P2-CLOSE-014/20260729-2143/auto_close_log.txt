@@ -1,0 +1,1 @@
+api-1  | {"timestamp":"2026-07-29T21:45:41.456Z","level":"info","message":"auto close sweep","service":"api","env":"development","count":1,"detail":"candidates=1 closed=1 skipped=0 failed=0"}

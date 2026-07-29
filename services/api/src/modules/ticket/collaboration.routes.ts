@@ -57,20 +57,35 @@ const ACTION_LABELS: Record<string, string> = {
   'resolved:resolve': '解決にする',
   'closed:close': '完了にする',
   'cancelled:cancel': '取り消す',
+  // 「解決したが直っていない」ときの操作。状態名ではなく行動で書く。
+  'in_progress:reopen': '対応を再開する(解決を取り消す)',
 };
 
+/**
+ * 人が選べない遷移理由。
+ *
+ * `auto_close` は**時間による自動遷移**であり、押すボタンではない
+ * (03.3 状態機械「Closed(Resolved後14日で自動)」)。
+ * 除外しないと「完了にする」(`close`)と並んで
+ * **同じ意味のボタンが2つ出る**。実際そうなっていた。
+ *
+ * `merge` は関連付けの画面の操作である。ここに出すと
+ * 「間違えて統合してしまった」が起きやすい。
+ */
+const NOT_MANUAL_REASONS = new Set(['auto_close', 'merge']);
+
 function toActions(state: string): AvailableAction[] {
-  return (
-    allowedTransitionsFrom(state as never)
-      .map((rule) => ({
-        to: rule.to,
-        reason: rule.reason,
-        label: ACTION_LABELS[`${rule.to}:${rule.reason}`] ?? `${rule.to} にする`,
-      }))
-      // 統合は関連付け画面の操作であり、ここには出さない。
-      // 出すと「間違えて統合してしまった」が起きやすい。
-      .filter((action) => action.to !== 'merged')
-  );
+  return allowedTransitionsFrom(state as never)
+    .filter((rule) => !NOT_MANUAL_REASONS.has(rule.reason) && rule.to !== 'merged')
+    .map((rule) => ({
+      to: rule.to,
+      reason: rule.reason,
+      // **内部の状態名を画面へ出さない。** 訳が無いことに気付ける形にする。
+      // 以前は `?? \`${rule.to} にする\`` で埋めていたため、
+      // `reopen` と `auto_close` が「in_progress にする」「closed にする」
+      // という生の状態名で表示されていた。
+      label: ACTION_LABELS[`${rule.to}:${rule.reason}`] ?? `${rule.to} (${rule.reason})`,
+    }));
 }
 
 function toCommentView(comment: TicketComment): Record<string, unknown> {
