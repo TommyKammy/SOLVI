@@ -16,9 +16,17 @@ import {
  * 未選択を「すべて」として扱う。既定で絞り込まないのは、
  * **見えていないものがあることに気付けない**状態を作らないため。
  */
-export function TicketFilters({ applied }: { applied: URLSearchParams }) {
+export function TicketFilters({
+  applied,
+  groups,
+}: {
+  applied: URLSearchParams;
+  /** 振り先の候補。無ければグループの絞り込み自体を出さない。 */
+  groups?: Array<{ id: string; name: string }>;
+}) {
   const selected = (name: string, value: string): boolean => applied.getAll(name).includes(value);
   const assignment = applied.get('assignment') ?? '';
+  const group = applied.get('group') ?? '';
 
   return (
     <form className="filters" method="get" action="/ops">
@@ -98,6 +106,26 @@ export function TicketFilters({ applied }: { applied: URLSearchParams }) {
           <option value="unassigned">未割当</option>
         </select>
       </div>
+
+      {groups !== undefined && groups.length > 0 && (
+        <div className="field">
+          <label htmlFor="group">担当グループ</label>
+          <select id="group" name="group" defaultValue={group}>
+            <option value="">すべて</option>
+            {/* **「自分のグループ」を先頭に置く。** 担当者が日常的に見るのは
+                自分のキューであり、他のグループを覗くのは例外的な操作である。 */}
+            <option value="mine">自分のグループ</option>
+            {/* どこにも振られていないものは、誰も見ていない可能性が高い。
+                探せないと**放置されたことに気付けない**。 */}
+            <option value="ungrouped">グループ未割当</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="filter-actions">
         <button type="submit">絞り込む</button>

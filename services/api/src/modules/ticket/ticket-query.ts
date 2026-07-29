@@ -44,6 +44,15 @@ export interface TicketFilter {
   createdTo?: Date;
   /** 担当者未割当のみ */
   unassignedOnly?: boolean;
+  /**
+   * 担当グループ (FR-TKT-003)。
+   *
+   * 複数指定できるのは「自分のキュー」を引くためである。担当者は
+   * 通常いくつかのグループに属しており、それらを1つの一覧で見たい。
+   */
+  assigneeGroupIds?: string[];
+  /** グループ未割当のみ。**どこにも振られていないもの**を見つける。 */
+  ungroupedOnly?: boolean;
 }
 
 /**
@@ -137,6 +146,17 @@ function filterClauses(filter: TicketFilter | undefined, params: unknown[]): str
     params.push(filter.requesterId);
     clauses.push(`t.requester_id = $${params.length}`);
   }
+  if (filter.assigneeGroupIds && filter.assigneeGroupIds.length > 0) {
+    params.push(filter.assigneeGroupIds);
+    clauses.push(`t.assignee_group_id = ANY($${params.length})`);
+  }
+
+  if (filter.ungroupedOnly) {
+    // 振り先が決まっていないものは、誰も見ていない可能性が高い。
+    // 一覧から探せないと**放置されたことに気付けない**。
+    clauses.push('t.assignee_group_id IS NULL');
+  }
+
   if (filter.createdFrom) {
     params.push(filter.createdFrom);
     clauses.push(`t.created_at >= $${params.length}`);

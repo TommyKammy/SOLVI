@@ -10,6 +10,7 @@ import {
   type Urgency,
 } from '@solvi/shared';
 import { TicketService } from './ticket.service.js';
+import { GroupService } from './group.service.js';
 import {
   CollaborationService,
   type TicketComment,
@@ -17,6 +18,7 @@ import {
 } from './collaboration.service.js';
 import type { ObjectStorage } from '@solvi/shared';
 import type { PoolDenialRecorder } from '../../common/audit/denial-recorder.js';
+import { hasRole } from '../../common/authz/authz.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 
 /**
@@ -126,7 +128,11 @@ export class CollaborationController {
 
   private async run<T>(
     auth: AuthenticatedRequest,
-    fn: (services: { tickets: TicketService; collab: CollaborationService }) => Promise<T>,
+    fn: (services: {
+      tickets: TicketService;
+      collab: CollaborationService;
+      groups: GroupService;
+    }) => Promise<T>,
   ): Promise<T> {
     const client = await this.deps.pool.connect();
     try {
@@ -138,6 +144,7 @@ export class CollaborationController {
       const out = await fn({
         tickets: new TicketService(client, this.deps.denialRecorder),
         collab: new CollaborationService(client, this.deps.storage, this.deps.denialRecorder),
+        groups: new GroupService(client, this.deps.denialRecorder),
       });
       await client.query('COMMIT');
       return out;
@@ -184,11 +191,21 @@ export class CollaborationController {
    * 「押せたはずのボタンが押せない」が起きる。1回の応答で整合させる。
    */
   async workspace(auth: AuthenticatedRequest, ticketId: string) {
-    const result = await this.run(auth, async ({ tickets, collab }) => {
+    const result = await this.run(auth, async ({ tickets, collab, groups }) => {
       const ticket = await tickets.findById(auth.authz, ticketId);
       const comments = await collab.listComments(auth.authz, ticketId);
       const attachments = await collab.listAttachments(auth.authz, ticketId);
-      return { ticket, comments, attachments };
+      // 振り先の選択肢も返す。別の問い合わせにすると、画面が
+      // 「グループ名を出すためだけ」に毎回1往復増やすことになる。
+      //
+      // **振れない人には空で返す。** この応答は依頼者も取得しうる
+      // (内部メモが混ざらないことを検査する経路がある)。
+      // グループが引けないことを理由に応答全体を失敗させると、
+      // 依頼者から見て画面が開かなくなる。
+      const availableGroups = hasRole(auth.authz, 'agent', 'org_admin', 'platform_admin')
+        ? await groups.list(auth.authz)
+        : [];
+      return { ticket, comments, attachments, availableGroups };
     });
 
     return {
@@ -206,12 +223,19 @@ export class CollaborationController {
           urgency: result.ticket.urgency,
           requesterId: result.ticket.requesterId,
           assigneeId: result.ticket.assigneeId,
+          assigneeGroupId: result.ticket.assigneeGroupId,
           createdAt: result.ticket.createdAt.toISOString(),
           resolvedAt: result.ticket.resolvedAt?.toISOString() ?? null,
         },
         comments: result.comments.map(toCommentView),
         attachments: result.attachments.map(toAttachmentView),
         availableActions: toActions(result.ticket.state),
+        // 振り先の候補。**無効化したグループは含まれない**(新しく振れない)。
+        availableGroups: result.availableGroups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          memberCount: g.memberCount,
+        })),
         // **優先度が規則どおりかを画面へ渡す。**
         //
         // 優先度は影響度×緊急度から導かれる値であり、直接書き換える経路は無い。
@@ -336,6 +360,46 @@ export class CollaborationController {
         impact: ticket.impact,
         urgency: ticket.urgency,
         priority: ticket.priority,
+      },
+    };
+  }
+
+  /**
+   * 担当グループの割当 (FR-TKT-003 / WP-P2-GRP-015)。
+   *
+   * **個人の担当とは別の経路にする。** 1つのエンドポイントで両方を
+   * 受け取ると、「グループだけ変えたつもりで担当も外れた」が起きる。
+   */
+  async assignGroup(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
+    const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
+      string,
+      unknown
+    >;
+    // 空文字は「キューから外す」。null と区別せずに扱うと、
+    // フォームから空で送られたときに意図せず外れる/外れないが分かれる。
+    const raw = record.groupId;
+    const groupId = typeof raw === 'string' && raw.length > 0 ? raw : null;
+
+    const ticket = await this.run(auth, ({ tickets }) =>
+      tickets.assignGroup(auth.authz, ticketId, groupId),
+    );
+    recordDomainEvent('ticket.assigned', 'success');
+    return { status: 200, body: { assigneeGroupId: ticket.assigneeGroupId } };
+  }
+
+  /** 振り先の候補。振る画面が名前を出すために使う。 */
+  async listGroups(auth: AuthenticatedRequest) {
+    const groups = await this.run(auth, ({ groups: service }) => service.list(auth.authz));
+    return {
+      status: 200,
+      body: {
+        items: groups.map((g) => ({
+          id: g.id,
+          code: g.code,
+          name: g.name,
+          description: g.description,
+          memberCount: g.memberCount,
+        })),
       },
     };
   }

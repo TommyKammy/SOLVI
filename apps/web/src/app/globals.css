@@ -640,3 +640,38 @@ button.danger {
   margin-top: 0.75rem;
   max-width: 28rem;
 }
+
+/* 担当グループ (WP-P2-GRP-015) */
+.groups {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+/* 運用から外したもの。
+   **`opacity` で薄くしない。** 薄くすると文字のコントラストが落ち、
+   読めない人が出る(axe で 2.92:1 と判定された)。
+   区別は左の罫線と、文言(「運用から外れています」)で行う。 */
+.group.inactive {
+  border-left: 5px solid var(--text-muted);
+  background: var(--surface-muted, #f6f7f9);
+}
+.group .meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+.group-code {
+  font-family: ui-monospace, monospace;
+}

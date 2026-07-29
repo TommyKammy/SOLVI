@@ -144,13 +144,25 @@ export interface RelationListView {
   unresolvedChildren: Array<{ ticketId: string; number: string; subject: string; state: string }>;
 }
 
+export interface GroupSummary {
+  id: string;
+  name: string;
+  memberCount: number;
+}
+
 export interface WorkspaceView {
-  ticket: TicketView & { requesterId: string; assigneeId: string | null };
+  ticket: TicketView & {
+    requesterId: string;
+    assigneeId: string | null;
+    assigneeGroupId: string | null;
+  };
   comments: CommentView[];
   attachments: AttachmentView[];
   availableActions: AvailableAction[];
   /** 保存されている優先度が影響度×緊急度の規則どおりか (WP-P2-PRIO-013)。 */
   priorityIsDerived: boolean;
+  /** 振り先の候補。**無効化したグループは含まれない** (FR-TKT-003)。 */
+  availableGroups: GroupSummary[];
 }
 
 export interface MemberOrganization {
@@ -282,6 +294,57 @@ export const api = {
       `/tickets/${encodeURIComponent(id)}/assessment`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  /** 担当グループの割当。**個人の担当とは別の経路** (FR-TKT-003)。 */
+  assignGroup: (id: string, groupId: string | null) =>
+    call<{ assigneeGroupId: string | null }>(`/tickets/${encodeURIComponent(id)}/group`, {
+      method: 'POST',
+      body: JSON.stringify({ groupId }),
+    }),
+
+  listGroups: (includeInactive = false) =>
+    call<{
+      items: Array<{
+        id: string;
+        code: string;
+        name: string;
+        description: string | null;
+        active: boolean;
+        memberCount: number;
+      }>;
+    }>(`/groups${includeInactive ? '?includeInactive=1' : ''}`),
+
+  myGroups: () =>
+    call<{ items: Array<{ id: string; code: string; name: string }> }>('/groups/mine'),
+
+  createGroup: (body: { code: string; name: string; description?: string }) =>
+    call<{ id: string; code: string; name: string }>('/groups', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  setGroupActive: (groupId: string, active: boolean) =>
+    call<void>(`/groups/${encodeURIComponent(groupId)}/active`, {
+      method: 'POST',
+      body: JSON.stringify({ active }),
+    }),
+
+  listGroupMembers: (groupId: string) =>
+    call<{ items: Array<{ userId: string; displayName: string; addedAt: string }> }>(
+      `/groups/${encodeURIComponent(groupId)}/members`,
+    ),
+
+  addGroupMember: (groupId: string, userId: string) =>
+    call<void>(`/groups/${encodeURIComponent(groupId)}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+
+  removeGroupMember: (groupId: string, userId: string) =>
+    call<void>(`/groups/${encodeURIComponent(groupId)}/members/remove`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
 
   assign: (id: string, assigneeId: string | null) =>
     call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {
