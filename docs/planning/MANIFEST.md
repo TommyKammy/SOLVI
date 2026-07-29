@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 257 |
 | Markdown | 249 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,756,257 bytes |
+| 合計サイズ | 6,757,518 bytes |
 
 ## ファイル一覧
 
@@ -158,7 +158,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P1_Foundation/WP-P1-DATA-002.md` | 6760 | `2159688b128334cf880d4fc6d7694988bf3ba2b312df9eda139d797d82679906` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-003.md` | 7314 | `f6ece4e1b3affd284da8bc55bb2ef86b3b5595b9b0baf00f4307b530b83546a5` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-009.md` | 9801 | `5f299631b2b213a10cada05323d6622b14f987ce7945f279de36b9a22242e089` |
-| `06_WorkPackages/P1_Foundation/WP-P1-IDM-010.md` | 8334 | `0cd07de32ea121921336ed017f32076f2e07725c7959979a5b99fbb7f6f27bfe` |
+| `06_WorkPackages/P1_Foundation/WP-P1-IDM-010.md` | 9595 | `1377a376a181907a560f197e22d3dff91c450380850e670f5cc14c6d7826f765` |
 | `06_WorkPackages/P1_Foundation/WP-P1-OBS-005.md` | 6593 | `f09a186e6124cab73c8fdc1a5746ad375b20a9032a2ce8b8babe8d66456e113f` |
 | `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 5923 | `b2e7f5917cbaa40a58580bf9c23c8ac461d790057581b59dafc62b38b73eafe8` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 8423 | `10eb51a3d7b1d0a20a8090b2041d4dadf24e74e4e3d34fed6d1528c50c6f4dfa` |
