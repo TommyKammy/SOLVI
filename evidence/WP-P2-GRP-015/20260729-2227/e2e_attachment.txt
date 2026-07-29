@@ -1,0 +1,20 @@
+OK   チケットを作成 — status=201
+OK   依頼者がファイルを添付できる — PUT=200
+OK   EICAR もアップロード自体は通る(検疫は後段) — PUT=200
+OK   **実行できる形式は受け付けない** — status=400
+OK   スキャン前は downloadable=false
+OK   **スキャン前はダウンロードURLが出ない** — status=409
+OK   **worker が実際にスキャンする** — screenshot.txt=clean invoice.txt=infected
+OK   **EICAR が infected になる**
+OK   正常なファイルが開けるようになる — scanStatus=clean
+OK   **感染ファイルは開けないまま** — scanStatus=infected
+OK   正常なファイルのダウンロードURLが出る — status=200
+OK   **署名付きURLで実際に取得できる** — status=200
+OK   添付として扱われる
+OK   **感染ファイルのURLは出ない** — status=409
+OK   担当者が内部添付を追加できる
+OK   **内部添付が依頼者に見えない** — 2 件
+OK   担当者には内部添付が見える
+OK   **依頼者は内部添付を追加できない** — status=403
+
+OK: 添付の通し確認はすべて期待どおりです

@@ -1,5 +1,6 @@
 import type pg from 'pg';
 import { Problems, recordDomainEvent } from '@solvi/shared';
+import { GroupService } from './group.service.js';
 import { TicketService, type Ticket } from './ticket.service.js';
 import { PoolDenialRecorder } from '../../common/audit/denial-recorder.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
@@ -67,15 +68,26 @@ const PRIORITIES = new Set(['low', 'medium', 'high', 'critical']);
  * 複数指定は同じキーを繰り返す(`?state=new&state=assigned`)。
  * カンマ区切りにすると、値そのものにカンマを含む項目を足したときに壊れる。
  */
+/**
+ * どのグループにも一致しないためのID。
+ *
+ * 所属が無い人が「自分のグループ」を選んだとき、空配列で条件を落とすと
+ * **絞り込んだつもりで全件が出る**。一致しない値を1つ渡して0件にする。
+ */
+const NO_MATCH_UUID = '00000000-0000-4000-8000-0000000000ff';
+
 function parseFilter(
   query: URLSearchParams,
   currentUserId: string,
+  myGroupIds: string[],
 ): {
   state?: string[];
   kind?: string[];
   priority?: string[];
   assigneeId?: string | null;
   unassignedOnly?: boolean;
+  assigneeGroupIds?: string[];
+  ungroupedOnly?: boolean;
   keyword?: string;
 } {
   const errors: Array<{ field: string; message: string }> = [];
@@ -110,6 +122,35 @@ function parseFilter(
     errors.push({ field: 'assignment', message: '指定できない値です' });
   }
 
+  // グループの絞り込み。値は「自分のグループ」「未割当」「特定のグループID」。
+  //
+  // 特定のIDは受け付ける。担当の絞り込み(assignment)と違い、
+  // **グループのIDは総当たりの意味を持たない** — 組織内のグループは
+  // 一覧APIで正当に取得できるものであり、隠す対象ではない。
+  // ただし他組織のIDを渡してもRLSで0件になる。
+  const groupParam = query.get('group');
+  let assigneeGroupIds: string[] | undefined;
+  let ungroupedOnly: boolean | undefined;
+
+  if (groupParam === 'mine') {
+    // 呼び出し側が本人の所属グループを解決して渡す。
+    // ここでDBを引かないのは、この関数が純粋な解析であるため。
+    assigneeGroupIds = myGroupIds;
+    if (assigneeGroupIds.length === 0) {
+      // 所属が無い人が「自分のグループ」を選んだ場合。**全件を返さない。**
+      // 空配列のまま条件を落とすと、絞り込んだつもりで全件が出る。
+      assigneeGroupIds = [NO_MATCH_UUID];
+    }
+  } else if (groupParam === 'ungrouped') {
+    ungroupedOnly = true;
+  } else if (groupParam !== null && groupParam.length > 0) {
+    if (!/^[0-9a-f-]{36}$/i.test(groupParam)) {
+      errors.push({ field: 'group', message: '指定できない値です' });
+    } else {
+      assigneeGroupIds = [groupParam];
+    }
+  }
+
   /**
    * 全文検索の語。
    *
@@ -136,6 +177,8 @@ function parseFilter(
     ...(priority ? { priority } : {}),
     ...(assigneeId !== undefined ? { assigneeId } : {}),
     ...(unassignedOnly !== undefined ? { unassignedOnly } : {}),
+    ...(assigneeGroupIds ? { assigneeGroupIds } : {}),
+    ...(ungroupedOnly !== undefined ? { ungroupedOnly } : {}),
   };
 }
 const IMPACTS = new Set(['low', 'medium', 'high']);
@@ -227,6 +270,26 @@ export class TicketController {
     }
   }
 
+  /** 本人の所属グループID。「自分のキュー」の絞り込みに使う。 */
+  private async resolveMyGroupIds(auth: AuthenticatedRequest): Promise<string[]> {
+    const client = await this.deps.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT set_config($1, $2, true)', [
+        'app.current_org',
+        auth.authz.organizationId,
+      ]);
+      const groups = await new GroupService(client).myGroups(auth.authz);
+      await client.query('COMMIT');
+      return groups.map((g) => g.id);
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async create(auth: AuthenticatedRequest, body: unknown) {
     const input = parseCreateBody(body);
     const ticket = await this.run(auth, (service) => service.create(auth.authz, input));
@@ -241,7 +304,11 @@ export class TicketController {
       throw Problems.validation([{ field: 'limit', message: '1〜100の範囲で指定してください' }]);
     }
 
-    const filter = parseFilter(query, auth.userId);
+    // 「自分のグループ」を選ばれたときだけ所属を引く。
+    // 常に引くと、絞り込みを使わない一覧でも毎回1クエリ増える。
+    const myGroupIds =
+      query.get('group') === 'mine' ? await this.resolveMyGroupIds(auth) : ([] as string[]);
+    const filter = parseFilter(query, auth.userId, myGroupIds);
 
     const result = await this.run(auth, (service) =>
       service.list(auth.authz, {

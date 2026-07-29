@@ -48,6 +48,8 @@ export interface Ticket {
   body: string;
   requesterId: string;
   assigneeId: string | null;
+  /** 担当グループ(キュー)。個人の担当とは**別の軸**である (FR-TKT-003)。 */
+  assigneeGroupId: string | null;
   impact: Impact;
   urgency: Urgency;
   priority: Priority;
@@ -114,6 +116,7 @@ function toTicket(row: Record<string, unknown>): Ticket {
     body: row.body as string,
     requesterId: row.requester_id as string,
     assigneeId: (row.assignee_id as string | null) ?? null,
+    assigneeGroupId: (row.assignee_group_id as string | null) ?? null,
     impact: row.impact as Impact,
     urgency: row.urgency as Urgency,
     priority: row.priority as Priority,
@@ -496,6 +499,94 @@ export class TicketService {
       eventType: 'ticket.assigned',
       organizationId: ctx.organizationId,
       payload: { ticketId, ticketNumber: ticket.number, actorId: ctx.principal.userId },
+    });
+
+    return toTicket(updated[0]!);
+  }
+
+  /**
+   * 担当グループの割当 (FR-TKT-003 / WP-P2-GRP-015)。
+   *
+   * **状態を動かさない。** キューに入っただけのチケットを `assigned` に
+   * すると「担当者が決まった」ことになるが、実際には誰も見ていない。
+   * SLAの応答時間は人が応答するまでの時間であり、キューに入った時刻ではない。
+   *
+   * **個人の担当を外さない。** 既に誰かが持っているチケットのグループを
+   * 直しても、その人が担当であることは変わらない。
+   * 「振り直したら担当が消えた」は事故になる。
+   *
+   * **通知しない。** 購読設定が無い状態でグループ全員へ送ると、
+   * すぐに誰も読まなくなる(Watcher機能は 03.3 の Non-Goals)。
+   * 誰かが引き受けた時点(`assign`)で依頼者へ通知される。
+   *
+   * @param groupId null を渡すとキューから外す
+   */
+  async assignGroup(ctx: AuthzContext, ticketId: string, groupId: string | null): Promise<Ticket> {
+    requireRole(ctx, 'agent', 'org_admin', 'platform_admin');
+
+    const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1 FOR UPDATE', [
+      ticketId,
+    ]);
+    if (rows.length === 0) throw Problems.notFound('チケット');
+    const ticket = toTicket(rows[0]!);
+
+    if (groupId !== null) {
+      // RLS により他組織のグループは見えない。
+      // 無効化したグループへは**新しく振れない**(過去の経路としては残る)。
+      const { rows: groups } = await this.client.query(
+        'SELECT active FROM assignment_group WHERE id = $1',
+        [groupId],
+      );
+      if (groups.length === 0) {
+        throw Problems.validation([
+          { field: 'groupId', message: '指定されたグループが見つかりません' },
+        ]);
+      }
+      if (groups[0]!.active !== true) {
+        throw Problems.validation([
+          { field: 'groupId', message: 'そのグループは運用から外されています' },
+        ]);
+      }
+    }
+
+    if (ticket.assigneeGroupId === groupId) {
+      // 同じキューへの振り直しは履歴として意味がない。
+      return ticket;
+    }
+
+    const { rows: updated } = await this.client.query(
+      'UPDATE ticket SET assignee_group_id = $2 WHERE id = $1 RETURNING *',
+      [ticketId, groupId],
+    );
+
+    // 個人の割当と同じ表に残す。1つのチケットの振られ方を1か所で辿れるようにする。
+    await this.client.query(
+      `INSERT INTO ticket_assignment
+         (id, organization_id, ticket_id, assignee_id, previous_assignee_id, assigned_by,
+          group_id, previous_group_id)
+       VALUES ($1, $2, $3, $4, $4, $5, $6, $7)`,
+      [
+        uuidv7(),
+        ctx.organizationId,
+        ticketId,
+        ticket.assigneeId,
+        ctx.principal.userId,
+        groupId,
+        ticket.assigneeGroupId,
+      ],
+    );
+
+    await recordAuditEvent(this.client, {
+      eventType: 'ticket.assigned',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      targetType: 'ticket',
+      targetId: ticketId,
+      action: groupId === null ? 'unassign_group' : 'assign_group',
+      outcome: 'success',
+      beforeState: { assigneeGroupId: ticket.assigneeGroupId },
+      afterState: { assigneeGroupId: groupId },
     });
 
     return toTicket(updated[0]!);

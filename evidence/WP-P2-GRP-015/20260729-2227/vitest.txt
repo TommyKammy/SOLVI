@@ -1,0 +1,44 @@
+
+ RUN  v3.2.7 /Users/tomoakikawada/Dev/SOLVI/worktree/groups
+
+ ✓ tests/security/assignment-group.test.ts (28 tests) 3896ms
+stdout | tests/security/auth.test.ts > セッション失効の即時性 (FR-IDM-008 / Gate 1 G1-9) > **ユーザ無効化でセッションが即座に無効になる**
+REVOCATION_LATENCY_SECONDS=0.031
+
+ ✓ tests/security/auth.test.ts (46 tests) 3155ms
+   ✓ 情報の非対称性を作らない > **存在しないユーザと誤パスワードで応答時間が大きく変わらない**  301ms
+ ✓ tests/security/collaboration-routes.test.ts (37 tests) 4672ms
+ ✓ tests/security/relation-routes.test.ts (26 tests) 2315ms
+ ✓ tests/security/ticket-filters.test.ts (26 tests) 2199ms
+ ✓ tests/security/ticket-routes.test.ts (19 tests) 1582ms
+ ✓ tests/security/attachment-delete.test.ts (14 tests) 1381ms
+ ✓ tests/security/object-storage.test.ts (11 tests) 1550ms
+   ✓ 署名付きURLで実際にやり取りできる > **期限切れの署名では取得できない**  1504ms
+ ✓ tests/security/ticket-list.test.ts (19 tests) 531ms
+ ✓ tests/security/ticket-relation.test.ts (24 tests) 376ms
+ ✓ tests/security/vertical-slice.test.ts (3 tests) 422ms
+ ✓ tests/security/ticket-search-sla.test.ts (23 tests) 291ms
+ ✓ tests/security/notification.test.ts (25 tests) 369ms
+ ✓ tests/security/collaboration.test.ts (32 tests) 343ms
+ ✓ tests/security/ticket-service.test.ts (19 tests) 277ms
+ ✓ tests/security/audit-append-only.test.ts (26 tests) 175ms
+ ✓ tests/unit/auth-primitives.test.ts (26 tests) 265ms
+ ✓ tests/security/attachment-scan.test.ts (7 tests) 128ms
+ ✓ tests/security/cross-org.test.ts (18 tests) 55ms
+stdout | tests/unit/ticket-state-machine.test.ts > 遷移表の全セル網羅 > 許可される遷移と拒否される遷移の件数を記録する
+  遷移表: 許可 20 件 / 拒否 684 件 (全 704 組合せ)
+
+ ✓ tests/unit/ticket-state-machine.test.ts (723 tests) 17ms
+ ✓ tests/unit/slo-metrics.test.ts (11 tests) 15ms
+ ✓ tests/unit/observability.test.ts (12 tests) 11ms
+ ✓ tests/unit/clamav.test.ts (21 tests) 5ms
+ ✓ tests/unit/attachment-validation.test.ts (32 tests) 2ms
+ ✓ tests/unit/webhook-signature.test.ts (19 tests) 3ms
+ ✓ tests/unit/authz.test.ts (15 tests) 2ms
+ ✓ tests/unit/sla.test.ts (18 tests) 2ms
+
+ Test Files  27 passed (27)
+      Tests  1280 passed (1280)
+   Start at  07:27:38
+   Duration  29.36s (transform 248ms, setup 0ms, collect 1.97s, tests 24.04s, environment 2ms, prepare 582ms)
+

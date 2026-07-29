@@ -123,6 +123,43 @@ try {
     [id(9001), dualUser.userId, requesterRole.id, requesterRole.scope, ORGS[1].id],
   );
 
+  // 担当グループ (FR-TKT-003 / WP-P2-GRP-015)。
+  //
+  // **キューが1つも無いと、グループ機能は画面から試せない。**
+  // 各組織に2つ作り、agent を両方へ入れる。
+  const GROUPS = [
+    { code: 'helpdesk', name: 'ヘルプデスク', description: '一次受付。切り分けて必要なら振り直す' },
+    { code: 'infra', name: 'インフラ担当', description: 'ネットワーク・サーバ・アカウント基盤' },
+  ];
+  let groupSeq = 9600;
+  for (const org of ORGS) {
+    for (const g of GROUPS) {
+      const groupId = id(++groupSeq);
+      await client.query(
+        `INSERT INTO assignment_group (id, organization_id, code, name, description)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (organization_id, code) DO UPDATE
+            SET name = EXCLUDED.name, description = EXCLUDED.description`,
+        [groupId, org.id, g.code, g.name, g.description],
+      );
+      // 実際に入っているIDを引き直す(既存行があれば ON CONFLICT で更新され、
+      // 挿入しようとしたIDは使われていない)。
+      const { rows: existing } = await client.query(
+        'SELECT id FROM assignment_group WHERE organization_id = $1 AND code = $2',
+        [org.id, g.code],
+      );
+      const actualId = existing[0].id;
+      const agent = created.find((c) => c.org === org.code && c.role === 'agent');
+      if (agent) {
+        await client.query(
+          `INSERT INTO assignment_group_member (group_id, user_id, organization_id)
+           VALUES ($1, $2, $3) ON CONFLICT (group_id, user_id) DO NOTHING`,
+          [actualId, agent.userId, org.id],
+        );
+      }
+    }
+  }
+
   // platform_admin は手動付与のみ(IdPグループ経由は DB 制約で禁止 / 脅威 T-07)
   const platformAdminRole = roleByCode.get('platform_admin');
   const platformUserId = id(9500);
@@ -192,7 +229,8 @@ try {
 
   console.log(
     `seed 完了: organization ${ORGS.length} 件 / user ${created.length + 2} 件 / ` +
-      `SLA目標 ${ORGS.length * SLA_TARGETS.length} 件`,
+      `SLA目標 ${ORGS.length * SLA_TARGETS.length} 件 / ` +
+      `担当グループ ${ORGS.length * GROUPS.length} 件`,
   );
   console.log('  組織:');
   for (const o of ORGS) console.log(`    ${o.code} (${o.id})`);

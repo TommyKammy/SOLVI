@@ -16,6 +16,7 @@ import { AuthController } from './modules/auth/auth.routes.js';
 import { TicketController } from './modules/ticket/ticket.routes.js';
 import { CollaborationController } from './modules/ticket/collaboration.routes.js';
 import { RelationController } from './modules/ticket/relation.routes.js';
+import { GroupController } from './modules/ticket/group.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
@@ -118,6 +119,7 @@ async function bootstrap(): Promise<void> {
   });
 
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
+  const groups = new GroupController({ pool: db.authPool(), denialRecorder });
 
   const app = new HttpServer(logger)
     .get('/healthz', () => health.liveness())
@@ -278,6 +280,73 @@ async function bootstrap(): Promise<void> {
     .post('/tickets/:id/merge', async (req, _res, params) => {
       const authenticated = await auth.authenticate(req.headers);
       const result = await relations.merge(authenticated, params.id ?? '', await readJsonBody(req));
+      return result.body;
+    })
+    // ---- 担当グループ (WP-P2-GRP-015) --------------------------------------
+    .get('/groups', async (req) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.list(
+        authenticated,
+        new URL(req.url ?? '/', 'http://x').searchParams,
+      );
+      return result.body;
+    })
+    .get('/groups/mine', async (req) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.mine(authenticated);
+      return result.body;
+    })
+    .post('/groups', async (req, res) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.create(authenticated, await readJsonBody(req));
+      res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/groups/:id/active', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.setActive(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
+    .get('/groups/:id/members', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.listMembers(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/groups/:id/members', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.addMember(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
+    .post('/groups/:id/members/remove', async (req, res, params) => {
+      // POST で受ける。DELETE をリンクに置くと、開いただけで外れる経路ができる。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await groups.removeMember(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
+    .post('/tickets/:id/group', async (req, _res, params) => {
+      // 個人の担当(/assignee)とは別の経路。1つにまとめると
+      // 「グループだけ変えたつもりで担当も外れた」が起きる。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.assignGroup(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
       return result.body;
     })
     .get('/tickets/by-number/:number', async (req, _res, params) => {

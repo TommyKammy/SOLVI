@@ -85,6 +85,8 @@ async function main() {
     { name: '対応待ちの一覧(担当者)', path: '/ops', requiresAuth: true },
     // 組織の選択 (WP-P1-IDM-010)。兼務者が最初に通る画面である。
     { name: '組織の選択', path: '/select-organization', requiresAuth: true },
+    // 担当グループの管理 (WP-P2-GRP-015)。org_admin でログインしたときだけ中身が出る。
+    { name: '担当グループの管理', path: '/ops/groups', requiresAuth: true },
     {
       name: '起票フォーム(エラー表示)',
       path: '/tickets/new?kind=incident&error=1&field=subject:%E4%BB%B6%E5%90%8D%E3%82%92%E5%85%A5%E5%8A%9B%E3%81%97%E3%81%A6%E3%81%8F%E3%81%A0%E3%81%95%E3%81%84',

@@ -44,7 +44,8 @@ export default async function OpsWorkspace({
     notFound();
   }
 
-  const { ticket, comments, attachments, availableActions, priorityIsDerived } = result.data;
+  const { ticket, comments, attachments, availableActions, priorityIsDerived, availableGroups } =
+    result.data;
 
   // 関連は別の問い合わせにする。workspace に混ぜると、関連の取得が失敗した
   // ときに本体まで開けなくなる。関連が見えないことは、対応そのものを
@@ -87,6 +88,18 @@ export default async function OpsWorkspace({
       String(formData.get('reason') ?? ''),
     );
     if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    revalidatePath(`/ops/${id}`);
+    redirect(`/ops/${id}`);
+  }
+
+  async function routeToGroup(formData: FormData): Promise<void> {
+    'use server';
+    const raw = String(formData.get('groupId') ?? '');
+    const done = await api.assignGroup(id, raw.length > 0 ? raw : null);
+    if (!done.ok) {
+      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
+      redirect(`/ops/${id}?groupError=${encodeURIComponent(detail)}`);
+    }
     revalidatePath(`/ops/${id}`);
     redirect(`/ops/${id}`);
   }
@@ -139,6 +152,7 @@ export default async function OpsWorkspace({
   }
 
   const isMine = ticket.assigneeId === session.userId;
+  const currentGroup = availableGroups.find((g) => g.id === ticket.assigneeGroupId);
 
   return (
     <main id="main" className="shell">
@@ -177,6 +191,13 @@ export default async function OpsWorkspace({
         </dd>
         <dt>担当</dt>
         <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
+
+        <dt>担当グループ</dt>
+        <dd>
+          {/* **グループと個人は別の軸である。** グループはキュー、個人は
+              いま手を動かしている人。両方が入りうるし、片方だけでもよい。 */}
+          {currentGroup ? currentGroup.name : 'どのグループにも振られていません'}
+        </dd>
         <dt>受付日時</dt>
         <dd>{formatDateTime(ticket.createdAt)}</dd>
       </dl>
@@ -223,6 +244,43 @@ export default async function OpsWorkspace({
           ))
         )}
       </div>
+
+      <h2>振り先</h2>
+      {/*
+        **グループ割当は状態を動かさない。** キューに入っただけのチケットを
+        「担当者が決まった」ことにすると、実際には誰も見ていないのに
+        応答したことになってしまう。
+      */}
+      {typeof query.groupError === 'string' && (
+        <div className="error-summary" role="alert" tabIndex={-1}>
+          <h3 style={{ margin: '0 0 0.5rem' }}>振り先を変えられませんでした</h3>
+          <p style={{ margin: 0 }}>{query.groupError}</p>
+        </div>
+      )}
+      <form action={routeToGroup} className="stack" style={{ maxWidth: '28rem' }}>
+        <div className="field">
+          <label htmlFor="group-select">担当グループ</label>
+          <span className="hint" id="group-select-hint">
+            振り先を変えても、いまの担当者はそのままです
+          </span>
+          <select
+            id="group-select"
+            name="groupId"
+            defaultValue={ticket.assigneeGroupId ?? ''}
+            aria-describedby="group-select-hint"
+          >
+            <option value="">どのグループにも振らない</option>
+            {availableGroups.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}({group.memberCount}人)
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="secondary">
+          振り先を変える
+        </button>
+      </form>
 
       <h2>見立て</h2>
       <AssessmentForm

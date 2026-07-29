@@ -55,13 +55,22 @@ export default async function OpsQueue({
   }
 
   const tickets = await api.listTickets(50, filter);
+  // 絞り込みの選択肢に名前を出すために引く。失敗しても一覧は出す —
+  // グループが見えないことは、対応そのものを止める理由にはならない。
+  const groupList = await api.listGroups();
+  const groups = groupList.ok ? groupList.data.items.map((g) => ({ id: g.id, name: g.name })) : [];
 
   return (
     <main id="main" className="shell">
       <h1>対応待ちの一覧</h1>
       <p className="lead">組織全体の問い合わせを、受付が新しい順に表示しています。</p>
 
-      <TicketFilters applied={filter} />
+      <TicketFilters applied={filter} groups={groups} />
+      {session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode)) && (
+        <p>
+          <Link href="/ops/groups">担当グループを管理する</Link>
+        </p>
+      )}
 
       {filtering && (
         // **絞り込み中であることを本文で示す。** 件数だけだと、
