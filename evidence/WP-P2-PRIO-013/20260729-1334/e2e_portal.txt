@@ -1,0 +1,41 @@
+OK   未認証で /tickets が 401 — status=401
+OK   誤パスワードで 401 — status=401
+OK   失敗理由を返さない — {"type":"https://solvi.internal/problems/unauthenticated","title":"ログインが必要です","s
+OK   ログイン成功 — status=200
+OK   HttpOnly が付く
+OK   SameSite=Lax が付く
+OK   **組織を指定せずに所属が決まる** — 00000000-0000-4000-9000-000000000001
+OK   所属組織が名前つきで返る
+OK   本文にトークンを含めない
+OK   他組織を名乗るログインを拒否 — status=401
+OK   起票が 201 — status=201
+OK   受付番号が返る — INC-2026-000002
+OK   担当者IDを返さない
+OK   優先度が導出されている — high
+OK   不正入力が 400 — status=400
+OK   誤りをまとめて返す — 5 件
+OK   Problem Details 形式
+OK   一覧が取得できる — 1 件 scope=own
+OK   依頼者の可視範囲は own — own
+OK   個別取得できる — status=200
+OK   存在しないIDは 404 — status=404
+OK   ログアウトが 204 — status=204
+OK   **ログアウト後は同じCookieで通らない** — status=401
+OK   ログイン画面 — status=200
+OK   ポータルトップ(未認証はログインへ) — status=307
+OK   **兼務者は組織が決まらない**(勝手に選ばない) — null
+OK   選択肢が2件返る
+OK   **未選択のまま業務APIを呼ぶと専用の型で拒否される** — status=403 type=organization-not-selected
+OK   未選択でも組織一覧は取れる(行き止まりを作らない)
+OK   組織を選べる — status=200
+OK   選択後は業務APIが通る
+OK   **所属していない組織へは切り替えられない** — status=403
+OK   **ログイン画面に組織IDの入力欄が無い**
+OK   組織の選択画面が開く — status=200
+OK   **組織を名前で選ばせる**
+OK   **ログイン前にログアウトが並ばない**
+OK   **ヘッダに操作中の組織が出る**
+OK   兼務者には切り替えリンクが出る
+OK   **所属が1つなら切り替えリンクを出さない**(押しても選択肢が無い導線を作らない)
+
+OK: 通し確認はすべて期待どおりです

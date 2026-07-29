@@ -34,6 +34,8 @@ export const AUDIT_EVENT_TYPES = [
   'ticket.created',
   'ticket.transitioned',
   'ticket.assigned',
+  // 影響度・緊急度の見直し (WP-P2-PRIO-013)。優先度は規則から導き直される。
+  'ticket.reassessed',
   'ticket.linked',
   'ticket.unlinked',
   'ticket.merged',

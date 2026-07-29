@@ -60,6 +60,10 @@ export function buildSubject(eventType: string, ticketNumber: string): string {
     'ticket.assigned': '担当者が決まりました',
     'ticket.comment.added': '新しいコメントがあります',
     'ticket.merged': '他の問い合わせに統合されました',
+    // **優先度が変わったことだけを伝える。** どう変わったかは画面で見てもらう。
+    // 件名に「critical になりました」と書くと、メールの一覧に
+    // 緊急度が並ぶことになり、本文を読まずに騒ぎが起きる。
+    'ticket.reassessed': '優先度が見直されました',
   };
   return `[${ticketNumber}] ${label[eventType] ?? '更新がありました'}`;
 }

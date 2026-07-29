@@ -244,7 +244,6 @@ const ACCEPTED_UNWIRED = {
   signWebhook: 'Webhook送信の受け口がまだ無い。署名だけ先に作った(WP-P2-NTF-005 §6)',
   verifyWebhook: 'signWebhook と同じ理由',
   InMemoryNonceStore: 'signWebhook と同じ理由。永続化版は受け口を作るときに決める',
-  isDerivedPriority: '優先度が導出値のままか手で変えられたかを画面に出すための判定。画面側が未実装',
   assertCanSwitchOrganization:
     'platform_admin の組織横断操作の門番。横断操作の画面と経路がまだ無い',
   // RelationService は WP-P2-RELUI-012 で繋いだので、この表から外した。

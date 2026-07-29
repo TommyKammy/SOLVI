@@ -20,6 +20,8 @@ export const OUTBOX_EVENT_TYPES = [
   'ticket.transitioned',
   'ticket.assigned',
   'ticket.comment.added',
+  // 優先度の見直し (WP-P2-PRIO-013)。優先度が変わったときだけ積む。
+  'ticket.reassessed',
   'ticket.merged',
 ] as const;
 

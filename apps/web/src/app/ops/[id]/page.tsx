@@ -8,13 +8,8 @@ import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
 import { RelationList } from '../../../components/RelationList';
 import { RelationForm } from '../../../components/RelationForm';
-import {
-  stateLabel,
-  kindLabel,
-  priorityLabel,
-  levelLabel,
-  formatDateTime,
-} from '../../../lib/labels';
+import { AssessmentForm } from '../../../components/AssessmentForm';
+import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../../lib/labels';
 
 /**
  * 担当者の作業画面 (WP-P2-OPSUI-010)。
@@ -49,7 +44,7 @@ export default async function OpsWorkspace({
     notFound();
   }
 
-  const { ticket, comments, attachments, availableActions } = result.data;
+  const { ticket, comments, attachments, availableActions, priorityIsDerived } = result.data;
 
   // 関連は別の問い合わせにする。workspace に混ぜると、関連の取得が失敗した
   // ときに本体まで開けなくなる。関連が見えないことは、対応そのものを
@@ -92,6 +87,21 @@ export default async function OpsWorkspace({
       String(formData.get('reason') ?? ''),
     );
     if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    revalidatePath(`/ops/${id}`);
+    redirect(`/ops/${id}`);
+  }
+
+  async function reassess(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.reassess(id, {
+      impact: String(formData.get('impact') ?? ''),
+      urgency: String(formData.get('urgency') ?? ''),
+      reason: String(formData.get('reason') ?? ''),
+    });
+    if (!done.ok) {
+      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
+      redirect(`/ops/${id}?assessError=${encodeURIComponent(detail)}`);
+    }
     revalidatePath(`/ops/${id}`);
     redirect(`/ops/${id}`);
   }
@@ -167,10 +177,6 @@ export default async function OpsWorkspace({
         </dd>
         <dt>担当</dt>
         <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
-        <dt>影響 / 急ぎ具合</dt>
-        <dd>
-          {levelLabel(ticket.impact)} / {levelLabel(ticket.urgency)}
-        </dd>
         <dt>受付日時</dt>
         <dd>{formatDateTime(ticket.createdAt)}</dd>
       </dl>
@@ -217,6 +223,16 @@ export default async function OpsWorkspace({
           ))
         )}
       </div>
+
+      <h2>見立て</h2>
+      <AssessmentForm
+        impact={ticket.impact}
+        urgency={ticket.urgency}
+        priority={ticket.priority}
+        priorityIsDerived={priorityIsDerived}
+        action={reassess}
+        errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
+      />
 
       <h2>依頼内容</h2>
       <div className="body-text">{ticket.body}</div>

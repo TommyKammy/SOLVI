@@ -1,5 +1,14 @@
 import type pg from 'pg';
-import { Problems, recordDomainEvent, allowedTransitionsFrom } from '@solvi/shared';
+import {
+  Problems,
+  recordDomainEvent,
+  allowedTransitionsFrom,
+  isDerivedPriority,
+  IMPACT_LEVELS,
+  URGENCY_LEVELS,
+  type Impact,
+  type Urgency,
+} from '@solvi/shared';
 import { TicketService } from './ticket.service.js';
 import {
   CollaborationService,
@@ -188,6 +197,17 @@ export class CollaborationController {
         comments: result.comments.map(toCommentView),
         attachments: result.attachments.map(toAttachmentView),
         availableActions: toActions(result.ticket.state),
+        // **優先度が規則どおりかを画面へ渡す。**
+        //
+        // 優先度は影響度×緊急度から導かれる値であり、直接書き換える経路は無い。
+        // それでも DB を直接触られたり、将来の機能が上書きしたりすれば食い違いうる。
+        // 食い違ったまま画面に出すと、**再現できない優先度**を根拠に
+        // 対応順が決まることになる。合わないなら合わないと言う。
+        priorityIsDerived: isDerivedPriority(
+          result.ticket.impact,
+          result.ticket.urgency,
+          result.ticket.priority,
+        ),
       },
     };
   }
@@ -277,6 +297,34 @@ export class CollaborationController {
     return { status: 200, body: { state: ticket.state } };
   }
 
+  /**
+   * 影響度・緊急度の見直し (WP-P2-PRIO-013)。
+   *
+   * **優先度そのものは受け取らない。** 受け取ると、画面が計算した値と
+   * サーバが導く値が食い違ったときに、どちらを採るかという問題が生まれる。
+   * 入力は影響度と緊急度だけにし、優先度は常にサーバが導く。
+   */
+  async reassess(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
+    const input = parseReassessBody(body);
+    const ticket = await this.run(auth, ({ tickets }) =>
+      tickets.reassess(auth.authz, {
+        ticketId,
+        impact: input.impact,
+        urgency: input.urgency,
+        reason: input.reason,
+      }),
+    );
+    recordDomainEvent('ticket.reassessed', 'success');
+    return {
+      status: 200,
+      body: {
+        impact: ticket.impact,
+        urgency: ticket.urgency,
+        priority: ticket.priority,
+      },
+    };
+  }
+
   async assign(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
     const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
       string,
@@ -351,6 +399,27 @@ function parseUploadRequest(body: unknown): {
     sizeBytes,
     visibility: visibility as 'public' | 'internal',
   };
+}
+
+function parseReassessBody(body: unknown): { impact: Impact; urgency: Urgency; reason: string } {
+  const record = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>;
+  const errors: Array<{ field: string; message: string }> = [];
+
+  const impact = String(record.impact ?? '');
+  if (!(IMPACT_LEVELS as readonly string[]).includes(impact)) {
+    errors.push({ field: 'impact', message: '影響の範囲を選んでください' });
+  }
+  const urgency = String(record.urgency ?? '');
+  if (!(URGENCY_LEVELS as readonly string[]).includes(urgency)) {
+    errors.push({ field: 'urgency', message: '急ぎ具合を選んでください' });
+  }
+
+  // 理由の長さと空判定はサービス層が持つ。ここで二重に持つと、
+  // 片方だけ直したときに食い違う。
+  const reason = typeof record.reason === 'string' ? record.reason : '';
+
+  if (errors.length > 0) throw Problems.validation(errors);
+  return { impact: impact as Impact, urgency: urgency as Urgency, reason };
 }
 
 function parseTransitionBody(body: unknown): { to: string; reason: string } {

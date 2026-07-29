@@ -236,6 +236,16 @@ async function bootstrap(): Promise<void> {
       const result = await collaboration.createDownloadUrl(authenticated, params.id ?? '');
       return result.body;
     })
+    .post('/tickets/:id/assessment', async (req, _res, params) => {
+      // 影響度・緊急度の見直し (WP-P2-PRIO-013)。優先度は受け取らない。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await collaboration.reassess(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      return result.body;
+    })
     .post('/tickets/:id/assignee', async (req, _res, params) => {
       const authenticated = await auth.authenticate(req.headers);
       const result = await collaboration.assign(
@@ -307,9 +317,13 @@ async function bootstrap(): Promise<void> {
   const outboxDispatcher = new OutboxDispatcher(
     db.authPool(),
     new Map(
-      ['ticket.created', 'ticket.transitioned', 'ticket.assigned', 'ticket.comment.added'].map(
-        (type) => [type, notificationHandler],
-      ),
+      [
+        'ticket.created',
+        'ticket.transitioned',
+        'ticket.assigned',
+        'ticket.comment.added',
+        'ticket.reassessed',
+      ].map((type) => [type, notificationHandler]),
     ),
     logger,
   );
