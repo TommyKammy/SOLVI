@@ -55,12 +55,26 @@ export default async function SelectOrganization({
     redirect('/');
   }
 
+  // 初回(未選択)と切り替え(選択済み)で言うべきことが違う。
+  // 初回は「決めてください」、切り替えは「いま何処に居るか」を先に示す。
+  const switching = selected !== null;
+  const currentName = organizations.find((o) => o.id === selected)?.name;
+
   return (
     <main id="main" className="shell">
-      <h1>どの組織として操作しますか</h1>
+      <h1>{switching ? '操作する組織を切り替える' : 'どの組織として操作しますか'}</h1>
       <p className="lead">
-        複数の組織に所属しています。選んだ組織の問い合わせだけが表示され、
-        書き込みもその組織のものになります。
+        {switching ? (
+          <>
+            いまは <strong>{currentName}</strong> として操作しています。
+            切り替えると、表示される問い合わせも書き込み先も変わります。
+          </>
+        ) : (
+          <>
+            複数の組織に所属しています。選んだ組織の問い合わせだけが表示され、
+            書き込みもその組織のものになります。
+          </>
+        )}
       </p>
 
       {query.error !== undefined && (
@@ -95,7 +109,7 @@ export default async function SelectOrganization({
           ))}
         </fieldset>
 
-        <button type="submit">この組織で続ける</button>
+        <button type="submit">{switching ? 'この組織へ切り替える' : 'この組織で続ける'}</button>
       </form>
     </main>
   );

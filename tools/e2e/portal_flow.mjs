@@ -213,6 +213,26 @@ const selectHtml = await selectPage.text();
 check('組織の選択画面が開く', selectPage.status === 200, `status=${selectPage.status}`);
 check('**組織を名前で選ばせる**', selectHtml.includes('サンプル株式会社'));
 
+// ヘッダの導線 (WP-P1-IDM-010)
+const strip = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '');
+
+const anonHeader = strip(await (await fetch(`${WEB}/login`)).text());
+check('**ログイン前にログアウトが並ばない**', !anonHeader.includes('ログアウト'));
+
+// この時点の dualCookie は組織を選択済み
+const dualPage = strip(
+  await (await fetch(`${WEB}/ops`, { headers: { cookie: dualCookie } })).text(),
+);
+check('**ヘッダに操作中の組織が出る**', dualPage.includes('操作中の組織'));
+check('兼務者には切り替えリンクが出る', dualPage.includes('組織を切り替える'));
+
+const soloCookie = cookie;
+const soloPage = strip(await (await fetch(`${WEB}/`, { headers: { cookie: soloCookie } })).text());
+check(
+  '**所属が1つなら切り替えリンクを出さない**(押しても選択肢が無い導線を作らない)',
+  !soloPage.includes('組織を切り替える'),
+);
+
 console.log(
   failed === 0 ? '\nOK: 通し確認はすべて期待どおりです' : `\n${failed} 件の問題があります`,
 );
