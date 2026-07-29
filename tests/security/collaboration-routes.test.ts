@@ -26,6 +26,10 @@ import { beginAuthTransaction } from '../../services/api/src/modules/auth/auth-c
 import { uuidv7 } from '../../services/api/src/common/audit/audit.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
 import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
+import { AutoCloseSweeper } from '../../services/api/src/common/close/auto-close.js';
+import { TicketService } from '../../services/api/src/modules/ticket/ticket.service.js';
+import { NoopDenialRecorder } from '../../services/api/src/common/audit/denial-recorder.js';
+import { createLogger } from '@solvi/shared';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
 const ORG_B = '00000000-0000-4000-9000-000000000002';
@@ -38,6 +42,7 @@ let pool: pg.Pool;
 let admin: pg.Client;
 let tickets: TicketController;
 let collab: CollaborationController;
+const silentLogger = createLogger({ service: 'test', level: 'error', env: 'test', sink: () => {} });
 
 async function createUser(email: string, orgId: string, roleCode: string): Promise<string> {
   const userId = uuidv7();
@@ -630,5 +635,242 @@ describe('見立ての見直し (FR-TKT-009)', () => {
       "SELECT count(*)::int AS n FROM outbox_event WHERE event_type = 'ticket.reassessed'",
     ));
     expect(rows[0].n).toBe(1);
+  });
+});
+
+/**
+ * 自動クローズと Reopen (FR-TKT-012 / 03.3 状態機械 / WP-P2-CLOSE-014)。
+ *
+ * 要求は「Closed(Resolved後14日で自動)」であり、状態機械にも規則があった。
+ * **実行する者だけが居なかった。** 解決済みチケットは永久に resolved のまま
+ * 残っていた。さらにその遷移が担当者の選択肢として画面に出ていた。
+ */
+describe('自動クローズと再開 (FR-TKT-012)', () => {
+  /** 解決済みにして、resolved_at を指定日数だけ過去へ動かす。 */
+  async function resolvedDaysAgo(
+    agent: AuthenticatedRequest,
+    ticketId: string,
+    days: number,
+  ): Promise<void> {
+    for (const [to, reason] of [
+      ['assigned', 'assign'],
+      ['in_progress', 'start'],
+      ['resolved', 'resolve'],
+    ]) {
+      await run(() => collab.transition(agent, ticketId, { to, reason }));
+    }
+    await admin.query(
+      `UPDATE ticket SET resolved_at = now() - ($2 || ' days')::interval WHERE id = $1`,
+      [ticketId, String(days)],
+    );
+  }
+
+  it('**auto_close が担当者の選択肢に出ない**(自動遷移は押すものではない)', async () => {
+    await createUser('req-ac1@example.com', ORG_A, 'requester');
+    await createUser('ops-ac1@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac1@example.com', ORG_A);
+    const agent = await loginAs('ops-ac1@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 0);
+
+    const ws = await run(() => collab.workspace(agent, ticketId));
+    const reasons = ws.body.availableActions.map((a) => a.reason);
+    // 除外しないと「完了にする」(close)と同じ意味のボタンが2つ並ぶ。
+    expect(reasons).not.toContain('auto_close');
+    expect(reasons).toContain('close');
+  });
+
+  it('**内部の状態名が画面へ出ない**(すべての選択肢に訳がある)', async () => {
+    await createUser('req-ac2@example.com', ORG_A, 'requester');
+    await createUser('ops-ac2@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac2@example.com', ORG_A);
+    const agent = await loginAs('ops-ac2@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    // すべての状態を辿り、どの選択肢にも「状態名 (理由)」の形が現れないこと。
+    // 以前は reopen と auto_close が「in_progress にする」「closed にする」
+    // という生の状態名で表示されていた。
+    const states: Array<[string, string]> = [
+      ['assigned', 'assign'],
+      ['in_progress', 'start'],
+      ['pending', 'wait_requester'],
+      ['in_progress', 'resume'],
+      ['resolved', 'resolve'],
+    ];
+    for (const [to, reason] of states) {
+      const ws = await run(() => collab.workspace(agent, ticketId));
+      for (const action of ws.body.availableActions) {
+        expect(action.label).not.toMatch(/^[a-z_]+ \(/);
+      }
+      await run(() => collab.transition(agent, ticketId, { to, reason }));
+    }
+    const last = await run(() => collab.workspace(agent, ticketId));
+    for (const action of last.body.availableActions) {
+      expect(action.label).not.toMatch(/^[a-z_]+ \(/);
+    }
+  });
+
+  it('**14日を過ぎた解決済みが自動で閉じる**', async () => {
+    await createUser('req-ac3@example.com', ORG_A, 'requester');
+    await createUser('ops-ac3@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac3@example.com', ORG_A);
+    const agent = await loginAs('ops-ac3@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 15);
+
+    const summary = await run(() => new AutoCloseSweeper(pool, silentLogger).sweepOnce());
+    expect(summary.closed).toBeGreaterThanOrEqual(1);
+
+    const { rows } = await admin.query('SELECT state, closed_at FROM ticket WHERE id = $1', [
+      ticketId,
+    ]);
+    expect(rows[0].state).toBe('closed');
+    expect(rows[0].closed_at).not.toBeNull();
+  });
+
+  it('**14日以内は閉じない**(Reopenの窓が開いている間は閉じない)', async () => {
+    await createUser('req-ac4@example.com', ORG_A, 'requester');
+    await createUser('ops-ac4@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac4@example.com', ORG_A);
+    const agent = await loginAs('ops-ac4@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 13);
+
+    const summary = await run(() => new AutoCloseSweeper(pool, silentLogger).sweepOnce());
+    expect(summary.candidates).toBe(0);
+
+    const { rows } = await admin.query('SELECT state FROM ticket WHERE id = $1', [ticketId]);
+    expect(rows[0].state).toBe('resolved');
+  });
+
+  it('**自動クローズが system として監査に残る**(人の操作にしない)', async () => {
+    await createUser('req-ac5@example.com', ORG_A, 'requester');
+    await createUser('ops-ac5@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac5@example.com', ORG_A);
+    const agent = await loginAs('ops-ac5@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 20);
+
+    await run(() => new AutoCloseSweeper(pool, silentLogger).sweepOnce());
+
+    const { rows } = await admin.query(
+      `SELECT actor_type, actor_id, after_state FROM audit_event
+        WHERE event_type = 'ticket.transitioned' AND action = 'auto_close' AND target_id = $1`,
+      [ticketId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].actor_type).toBe('system');
+    // 記録を読む人が「誰が閉じたのか」を探して見つからない状態を作らない。
+    expect(rows[0].actor_id).toBeNull();
+    expect(rows[0].after_state.reason).toBe('auto_close');
+  });
+
+  it('抽出後に状態が動いていたら閉じない(**抽出時点の判断を信じない**)', async () => {
+    await createUser('req-ac6@example.com', ORG_A, 'requester');
+    await createUser('ops-ac6@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac6@example.com', ORG_A);
+    const agent = await loginAs('ops-ac6@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 3);
+
+    // 依頼者が期限内に再開した状態を作る(FR-TKT-012)。
+    await run(() =>
+      collab.transition(requester, ticketId, { to: 'in_progress', reason: 'reopen' }),
+    );
+
+    // 候補として拾われた**あとで**この状態になった、という場面を直接再現する。
+    // 抽出と実行は別トランザクションであり、その隙間に人が触りうる。
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT set_config($1, $2, true)', ['app.current_org', ORG_A]);
+      const service = new TicketService(client, new NoopDenialRecorder());
+      const closed = await service.autoClose(ticketId);
+      await client.query('COMMIT');
+      // 状態機械へもう一度問うので、resolved でなければ何もしない。
+      expect(closed).toBeNull();
+    } finally {
+      client.release();
+    }
+
+    const { rows } = await admin.query('SELECT state FROM ticket WHERE id = $1', [ticketId]);
+    expect(rows[0].state).toBe('in_progress');
+  });
+
+  it('**依頼者が自分のチケットを再開できる**(FR-TKT-012)', async () => {
+    await createUser('req-ac7@example.com', ORG_A, 'requester');
+    await createUser('ops-ac7@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac7@example.com', ORG_A);
+    const agent = await loginAs('ops-ac7@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 3);
+
+    // これが無いと、依頼者は同じ件で新規に起票し直すしかなく履歴が分断される。
+    const result = await run(() =>
+      collab.transition(requester, ticketId, { to: 'in_progress', reason: 'reopen' }),
+    );
+    expect(result.body.state).toBe('in_progress');
+  });
+
+  it('**14日を過ぎた再開は拒否される**', async () => {
+    await createUser('req-ac8@example.com', ORG_A, 'requester');
+    await createUser('ops-ac8@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac8@example.com', ORG_A);
+    const agent = await loginAs('ops-ac8@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 15);
+
+    await expect(
+      run(() => collab.transition(requester, ticketId, { to: 'in_progress', reason: 'reopen' })),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it('**他人のチケットは再開できない**', async () => {
+    await createUser('req-ac9@example.com', ORG_A, 'requester');
+    await createUser('other-ac9@example.com', ORG_A, 'requester');
+    await createUser('ops-ac9@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-ac9@example.com', ORG_A);
+    const other = await loginAs('other-ac9@example.com', ORG_A);
+    const agent = await loginAs('ops-ac9@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+    await resolvedDaysAgo(agent, ticketId, 3);
+
+    await expect(
+      run(() => collab.transition(other, ticketId, { to: 'in_progress', reason: 'reopen' })),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('**他組織のチケットは自動クローズの対象にならない**とは限らない — 越境しないことを確かめる', async () => {
+    await createUser('req-acA@example.com', ORG_A, 'requester');
+    await createUser('ops-acA@example.com', ORG_A, 'agent');
+    await createUser('req-acB@example.com', ORG_B, 'requester');
+    await createUser('ops-acB@example.com', ORG_B, 'agent');
+    const reqA = await loginAs('req-acA@example.com', ORG_A);
+    const opsA = await loginAs('ops-acA@example.com', ORG_A);
+    const reqB = await loginAs('req-acB@example.com', ORG_B);
+    const opsB = await loginAs('ops-acB@example.com', ORG_B);
+
+    const idA = await newTicket(reqA);
+    const idB = await newTicket(reqB);
+    await resolvedDaysAgo(opsA, idA, 20);
+    await resolvedDaysAgo(opsB, idB, 20);
+
+    // 定期処理は**全組織を横断して**候補を拾う。それが要求である。
+    // 確かめるのは「閉じる操作がその組織のコンテキストで行われること」。
+    await run(() => new AutoCloseSweeper(pool, silentLogger).sweepOnce());
+
+    const { rows } = await admin.query(
+      'SELECT id, state FROM ticket WHERE id = ANY($1) ORDER BY id',
+      [[idA, idB]],
+    );
+    expect(rows.every((r) => r.state === 'closed')).toBe(true);
+
+    // 監査はそれぞれの組織スコープに残る
+    const { rows: audits } = await admin.query(
+      `SELECT organization_id FROM audit_event
+        WHERE action = 'auto_close' AND target_id = ANY($1)`,
+      [[idA, idB]],
+    );
+    expect(new Set(audits.map((a) => a.organization_id)).size).toBe(2);
   });
 });

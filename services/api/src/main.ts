@@ -16,6 +16,7 @@ import { AuthController } from './modules/auth/auth.routes.js';
 import { TicketController } from './modules/ticket/ticket.routes.js';
 import { CollaborationController } from './modules/ticket/collaboration.routes.js';
 import { RelationController } from './modules/ticket/relation.routes.js';
+import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
 import { NotificationService } from './modules/notification/notification.service.js';
@@ -348,6 +349,19 @@ async function bootstrap(): Promise<void> {
   };
   // 10秒間隔。NFR-PERF-003 は p95 30秒を求めており、余裕を持たせる。
   const dispatchTimer = setInterval(dispatchTick, 10_000);
+
+  // 解決済みチケットの自動クローズ (FR-TKT-012 / WP-P2-CLOSE-014)。
+  //
+  // **要求はあり、状態機械にも規則があり、実行する者だけが居なかった。**
+  // 押されなければ永久に resolved のまま残る。
+  //
+  // 1時間おきに回す。日次にすると、ワーカーが落ちていた日の分が
+  // 翌日まで滞留する。14日の窓に対して1時間の粒度で十分細かい。
+  const autoCloseTimer = startAutoCloseLoop(
+    new AutoCloseSweeper(db.authPool(), logger),
+    logger,
+    60 * 60 * 1000,
+  );
   dispatchTick();
 
   const server = app.listen(env.API_PORT);
@@ -357,6 +371,7 @@ async function bootstrap(): Promise<void> {
     logger.info('shutting down', { message: signal });
     // 新規受付を止めてから接続を閉じる。処理中のリクエストを切らない。
     clearInterval(dispatchTimer);
+    clearInterval(autoCloseTimer);
     server.close();
     await app.close();
     await db.close();

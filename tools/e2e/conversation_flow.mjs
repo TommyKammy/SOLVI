@@ -197,6 +197,53 @@ check(
 );
 check('優先度の入力欄は無い', !opsHtml.includes('name="priority"'));
 
+// ---------------------------------------------------------------------------
+// 解決後の扱い (FR-TKT-012 / WP-P2-CLOSE-014)
+//
+// 要求は「Closed(Resolved後14日で自動)」。状態機械に規則はあったが
+// **実行する者が居らず、解決済みは永久に resolved のまま残っていた。**
+// さらにその遷移が担当者の選択肢として画面に出ていた。
+// ---------------------------------------------------------------------------
+r = await call(`/tickets/${ticket.id}/workspace`, agent);
+const resolvedWs = await r.json();
+const reasons = resolvedWs.availableActions.map((a) => a.reason);
+check(
+  '**auto_close が選択肢に出ない**(自動遷移は押すものではない)',
+  !reasons.includes('auto_close'),
+  reasons.join(' / '),
+);
+check('完了にする操作は出る', reasons.includes('close'));
+check(
+  '**内部の状態名が画面へ出ない**(すべての選択肢に訳がある)',
+  resolvedWs.availableActions.every((a) => !/^[a-z_]+ \(/.test(a.label)),
+  resolvedWs.availableActions.map((a) => a.label).join(' / '),
+);
+
+// 依頼者が再開できる。これが無いと同じ件で新規に起票し直すしかなく履歴が分断される。
+r = await call(`/tickets/${ticket.id}/transitions`, requester, {
+  method: 'POST',
+  body: JSON.stringify({ to: 'in_progress', reason: 'reopen' }),
+});
+check('**依頼者が自分のチケットを再開できる**', r.status === 200, `status=${r.status}`);
+r = await call(`/tickets/${ticket.id}`, requester);
+check('再開後は対応中に戻る', (await r.json()).state === 'in_progress');
+
+// 依頼者の画面に導線がある
+const reResolve = [['resolved', 'resolve']];
+for (const [to, reason] of reResolve) {
+  await call(`/tickets/${ticket.id}/transitions`, agent, {
+    method: 'POST',
+    body: JSON.stringify({ to, reason }),
+  });
+}
+const requesterPage = await fetch(`${WEB}/tickets/${ticket.id}`, {
+  headers: { cookie: requester },
+});
+const requesterHtml = await requesterPage.text();
+check('依頼者の画面が開く', requesterPage.status === 200, `status=${requesterPage.status}`);
+check('**解決済みなら再開の導線が出る**', requesterHtml.includes('まだ解決していないと伝える'));
+check('期限の説明がある', requesterHtml.includes('14日'));
+
 process.stdout.write(`\nTICKET_ID=${ticket.id}\n`);
 process.stdout.write(
   failed === 0

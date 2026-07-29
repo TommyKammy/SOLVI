@@ -66,6 +66,17 @@ export default async function TicketDetailPage({
   const relationResult = await api.listRelations(id);
   const relations = relationResult.ok ? relationResult.data.items : [];
 
+  async function reopen(): Promise<void> {
+    'use server';
+    const done = await api.transition(id, { to: 'in_progress', reason: 'reopen' });
+    if (!done.ok) {
+      const detail = done.problem.detail ?? done.problem.title;
+      redirect(`/tickets/${id}?reopenError=${encodeURIComponent(detail)}`);
+    }
+    revalidatePath(`/tickets/${id}`);
+    redirect(`/tickets/${id}`);
+  }
+
   async function removeAttachment(formData: FormData): Promise<void> {
     'use server';
     const done = await api.deleteAttachment(
@@ -164,6 +175,36 @@ export default async function TicketDetailPage({
         deleteAction={removeAttachment}
       />
       <AttachmentForm ticketId={id} canChooseVisibility={false} />
+
+      {ticket.state === 'resolved' && (
+        <>
+          <h2>解決していない場合</h2>
+          {/*
+            **これが無いと、依頼者は同じ件で新規に起票し直すしかない。**
+            履歴が分断され、担当側から見ても再発なのか未解決なのか区別できなくなる。
+
+            期限(解決から14日)の判定はAPIが行う。画面で日数を数えると、
+            規則を2か所に持つことになり、片方だけ変わったときに食い違う。
+          */}
+          <p className="lead">
+            解決したことになっていますが直っていない場合は、こちらから対応の再開を
+            お願いできます。解決から14日を過ぎた場合は、あらためて新しく お問い合わせください。
+          </p>
+
+          {typeof query.reopenError === 'string' && (
+            <div className="error-summary" role="alert" tabIndex={-1}>
+              <h3 style={{ margin: '0 0 0.5rem' }}>再開できませんでした</h3>
+              <p style={{ margin: 0 }}>{query.reopenError}</p>
+            </div>
+          )}
+
+          <form action={reopen}>
+            <button type="submit" className="secondary">
+              まだ解決していないと伝える
+            </button>
+          </form>
+        </>
+      )}
 
       <h2>やり取り</h2>
       <CommentThread comments={comments} currentUserId={session.userId} />

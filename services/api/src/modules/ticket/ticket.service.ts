@@ -83,6 +83,15 @@ export interface TransitionInput {
   note?: string;
 }
 
+/**
+ * 自動処理の主体を表す固定ID。
+ *
+ * **実在の利用者ではない。** 監査には `actorType: 'system'` として記録し、
+ * `actorId` は載せない(この値をDBへ書かない)。
+ * `AuthzContext` が `userId` を要求するため、その場所を埋めるだけに使う。
+ */
+const SYSTEM_ACTOR_ID = '00000000-0000-4000-8000-000000000000';
+
 /** 一覧・詳細の閲覧ポリシー。担当者は組織内全件、依頼者は自分の分のみ。 */
 const READ_POLICY = {
   organizationWide: ['agent', 'org_admin', 'auditor', 'platform_admin'] as const,
@@ -237,10 +246,21 @@ export class TicketService {
     if (rows.length === 0) throw Problems.notFound('チケット');
     const ticket = toTicket(rows[0]!);
 
-    const isRequesterCancel =
-      input.reason === 'cancel' && ticket.requesterId === ctx.principal.userId;
+    // 依頼者に許す操作は2つだけ。
+    //
+    //   cancel  「やっぱり不要でした」。これが無いと、取り消しのためだけに
+    //           担当者へ連絡することになる
+    //   reopen  「解決したことになっているが直っていない」(FR-TKT-012)。
+    //           これが無いと、依頼者は同じ件で新規に起票し直すしかなく、
+    //           **履歴が分断される**。担当側から見ても再発なのか
+    //           未解決なのか区別できなくなる
+    //
+    // どちらも**自分のチケットに限る**。期限(14日)の判定は状態機械が持つ。
+    const isRequesterSelfAction =
+      (input.reason === 'cancel' || input.reason === 'reopen') &&
+      ticket.requesterId === ctx.principal.userId;
     const permitted =
-      isRequesterCancel ||
+      isRequesterSelfAction ||
       canAccess(
         ctx,
         { organizationId: ticket.organizationId, ownerUserId: ticket.requesterId },
@@ -273,6 +293,26 @@ export class TicketService {
       throw Problems.invalidTransition(ticket.state, input.to);
     }
 
+    return this.applyTransition(ctx, ticket, input, {
+      type: 'user',
+      userId: ctx.principal.userId,
+    });
+  }
+
+  /**
+   * 遷移の実行部分。**判定を通ったあとだけ呼ばれる。**
+   *
+   * `transition`(人の操作)と `autoClose`(時間による自動遷移)で共有する。
+   * 分けて書くと、SLAクロックの扱いや監査の項目が片方だけ直されて食い違う。
+   * 実際、状態機械には `auto_close` の規則があるのに**実行する経路が無く**、
+   * 解決済みチケットが永久に閉じない状態が続いていた(WP-P2-CLOSE-014)。
+   */
+  private async applyTransition(
+    ctx: AuthzContext,
+    ticket: Ticket,
+    input: TransitionInput,
+    actor: { type: 'user'; userId: string } | { type: 'system' },
+  ): Promise<Ticket> {
     // SLAクロックの更新。停止・再開の条件は状態機械の slaClock を唯一の根拠とする
     // (ここで独自の条件分岐を書くと遷移表と挙動が食い違う / FR-TKT-008)。
     const now = ctx.now ?? new Date();
@@ -301,8 +341,10 @@ export class TicketService {
     await recordAuditEvent(this.client, {
       eventType: 'ticket.transitioned',
       organizationId: ctx.organizationId,
-      actorType: 'user',
-      actorId: ctx.principal.userId,
+      // **自動遷移を人の操作として記録しない。** 記録を読む人が
+      // 「誰が閉じたのか」を探して見つからず、時間を使うことになる。
+      actorType: actor.type,
+      ...(actor.type === 'user' ? { actorId: actor.userId } : {}),
       subjectUserId: ticket.requesterId,
       targetType: 'ticket',
       targetId: ticket.id,
@@ -315,10 +357,61 @@ export class TicketService {
     await enqueueOutboxEvent(this.client, {
       eventType: 'ticket.transitioned',
       organizationId: ctx.organizationId,
-      payload: { ticketId: ticket.id, ticketNumber: ticket.number, actorId: ctx.principal.userId },
+      payload: {
+        ticketId: ticket.id,
+        ticketNumber: ticket.number,
+        // 自動遷移には操作者が居ない。null にすると通知側の自己除外が
+        // 誰にも当たらず、**関係者全員へ届く**。それが正しい。
+        ...(actor.type === 'user' ? { actorId: actor.userId } : {}),
+      },
     });
 
     return toTicket(updated[0]!);
+  }
+
+  /**
+   * 解決済みチケットの自動クローズ (FR-TKT-012 / 03.3 状態機械)。
+   *
+   * **人の操作ではない。** 要求は「Resolved後14日で自動」であり、
+   * 担当者が押すボタンではない。それにもかかわらず状態機械の `auto_close`
+   * 規則は担当者の選択肢として画面に出ており、かつ**自動で実行する者は
+   * 居なかった**。押されなければ永久に resolved のまま残っていた。
+   *
+   * 14日待つのは、Reopen の窓と同じ長さにするためである(FR-TKT-012)。
+   * 閉じてから再開できないと、依頼者は同じ件で新規に起票し直すことになり、
+   * 履歴が分断される。**窓が開いている間は閉じない。**
+   *
+   * @returns 閉じたチケットの受付番号
+   */
+  async autoClose(ticketId: string, now = new Date()): Promise<string | null> {
+    const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1 FOR UPDATE', [
+      ticketId,
+    ]);
+    if (rows.length === 0) return null;
+    const ticket = toTicket(rows[0]!);
+
+    // 候補の抽出から実行までに人が触っていることがある。
+    // **もう一度状態機械へ問う。** 抽出時点の判断を信じない。
+    const decision = canTransition(ticket.state, 'closed', 'auto_close', {
+      resolvedAt: ticket.resolvedAt,
+      now,
+    });
+    if (!decision.allowed) return null;
+
+    const ctx: AuthzContext = {
+      // 自動処理に主体は無い。組織だけが要る(監査とRLSのため)。
+      principal: { userId: SYSTEM_ACTOR_ID, status: 'active', bindings: [] },
+      organizationId: ticket.organizationId,
+      now,
+    };
+
+    await this.applyTransition(
+      ctx,
+      ticket,
+      { ticketId, to: 'closed', reason: 'auto_close' },
+      { type: 'system' },
+    );
+    return ticket.number;
   }
 
   /**
