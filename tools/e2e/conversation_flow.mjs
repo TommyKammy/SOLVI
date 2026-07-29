@@ -144,6 +144,59 @@ for (const [name, path, cookie] of [
   }
 }
 
+// ---------------------------------------------------------------------------
+// 見立ての見直し (WP-P2-PRIO-013)
+//
+// **優先度は入力ではない。** 影響度×緊急度から導かれる。
+// 直接書き換えられると同じ入力から同じ優先度が出なくなり、
+// SLA計測と監査の前提が崩れる。
+// ---------------------------------------------------------------------------
+r = await call(`/tickets/${ticket.id}/workspace`, agent);
+const beforeAssess = await r.json();
+check(
+  '優先度が規則どおりだと画面へ伝わる',
+  beforeAssess.priorityIsDerived === true,
+  String(beforeAssess.priorityIsDerived),
+);
+
+r = await call(`/tickets/${ticket.id}/assessment`, agent, {
+  method: 'POST',
+  body: JSON.stringify({
+    impact: 'high',
+    urgency: 'high',
+    reason: '3部署で同じ事象を確認',
+    priority: 'low',
+  }),
+});
+const assessed = await r.json();
+check('見立てを見直せる', r.status === 200, `status=${r.status}`);
+check(
+  '**優先度は規則から導かれる**(送った priority は効かない)',
+  assessed.priority === 'critical',
+  assessed.priority,
+);
+
+r = await call(`/tickets/${ticket.id}/assessment`, agent, {
+  method: 'POST',
+  body: JSON.stringify({ impact: 'high', urgency: 'high', reason: '同じ値' }),
+});
+check('**変更が無ければ拒否する**(黙って成功にしない)', r.status === 400, `status=${r.status}`);
+
+r = await call(`/tickets/${ticket.id}/assessment`, requester, {
+  method: 'POST',
+  body: JSON.stringify({ impact: 'low', urgency: 'low', reason: '下げてほしい' }),
+});
+check('**依頼者は見直せない**', r.status === 403, `status=${r.status}`);
+
+const opsPage = await fetch(`${WEB}/ops/${ticket.id}`, { headers: { cookie: agent } });
+const opsHtml = await opsPage.text();
+check('担当者の画面に見立てが出る', opsHtml.includes('見立て'), `status=${opsPage.status}`);
+check(
+  '**優先度の根拠が書かれている**(誰かが決めた値に見せない)',
+  opsHtml.includes('から決まっています'),
+);
+check('優先度の入力欄は無い', !opsHtml.includes('name="priority"'));
+
 process.stdout.write(`\nTICKET_ID=${ticket.id}\n`);
 process.stdout.write(
   failed === 0

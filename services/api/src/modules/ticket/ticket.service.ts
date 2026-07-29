@@ -4,6 +4,7 @@ import {
   canTransition,
   clockActionFor,
   derivePriority,
+  isTerminal,
   evaluateSla,
   Problems,
   type Impact,
@@ -403,6 +404,112 @@ export class TicketService {
       organizationId: ctx.organizationId,
       payload: { ticketId, ticketNumber: ticket.number, actorId: ctx.principal.userId },
     });
+
+    return toTicket(updated[0]!);
+  }
+
+  /**
+   * 影響度・緊急度の見直し (FR-TKT-009 / WP-P2-PRIO-013)。
+   *
+   * **優先度を直接書き換えさせない。** 影響度と緊急度を直し、優先度は
+   * 規則から導き直す。理由は3つある。
+   *
+   *   1. 同じ入力から常に同じ優先度が出ることが、SLA計測と監査の前提である
+   *      (`packages/shared/src/ticket/priority.ts`)。直接書き換えを許すと
+   *      その前提が崩れ、**優先度を再現できなくなる**
+   *   2. 監査に残るのが「誰かが critical にした」ではなく
+   *      「影響範囲が広いと分かった」になる。後から読んで判断の当否を検証できる
+   *   3. 優先度を直接上げられると、上げること自体が交渉の道具になる。
+   *      影響度・緊急度で語らせるほうが、議論が事実に向く
+   *
+   * 申告時の値は依頼者の見立てであり、調べた結果と食い違うのが普通である。
+   * **見直せないほうが不自然**であり、見直せないと現場は
+   * 「とりあえず緊急にして起票する」を覚える。
+   */
+  async reassess(
+    ctx: AuthzContext,
+    input: { ticketId: string; impact: Impact; urgency: Urgency; reason: string },
+  ): Promise<Ticket> {
+    requireRole(ctx, 'agent', 'org_admin', 'platform_admin');
+
+    const reason = input.reason.trim();
+    if (reason.length === 0) {
+      // 見直しは SLA の期限を動かす。理由の無い変更を残さない。
+      throw Problems.validation([{ field: 'reason', message: '見直した理由を入力してください' }]);
+    }
+    if (reason.length > 500) {
+      throw Problems.validation([
+        { field: 'reason', message: '理由は500文字以内で入力してください' },
+      ]);
+    }
+
+    const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1 FOR UPDATE', [
+      input.ticketId,
+    ]);
+    if (rows.length === 0) throw Problems.notFound('チケット');
+    const ticket = toTicket(rows[0]!);
+
+    requireAccess(
+      ctx,
+      { organizationId: ticket.organizationId, ownerUserId: ticket.requesterId },
+      {
+        organizationWide: [...TRANSITION_POLICY.organizationWide],
+        allowOwner: TRANSITION_POLICY.allowOwner,
+      },
+      'チケット',
+    );
+
+    if (isTerminal(ticket.state)) {
+      // 終わった案件の見直しは、SLAの達成状況を後から書き換えることになる。
+      // 記録を後から都合よく変えられる経路は作らない。
+      throw Problems.conflict('完了・取消・統合済みの問い合わせは見直せません');
+    }
+
+    if (ticket.impact === input.impact && ticket.urgency === input.urgency) {
+      // 何も変わらない見直しを記録しない。**黙って成功にもしない** —
+      // 押したのに何も起きないと、利用者は操作が効いていないと考える。
+      throw Problems.validation([{ field: 'impact', message: '影響度も緊急度も変わっていません' }]);
+    }
+
+    const priority = derivePriority(input.impact, input.urgency);
+
+    const { rows: updated } = await this.client.query(
+      'UPDATE ticket SET impact = $2, urgency = $3, priority = $4 WHERE id = $1 RETURNING *',
+      [input.ticketId, input.impact, input.urgency, priority],
+    );
+
+    await recordAuditEvent(this.client, {
+      eventType: 'ticket.reassessed',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      targetType: 'ticket',
+      targetId: input.ticketId,
+      action: 'reassess',
+      outcome: 'success',
+      // 前後を両方残す。「どこから」が無いと、判断の当否を後から読めない。
+      beforeState: {
+        impact: ticket.impact,
+        urgency: ticket.urgency,
+        priority: ticket.priority,
+      },
+      afterState: { impact: input.impact, urgency: input.urgency, priority, reason },
+    });
+
+    // 優先度が変わったときだけ知らせる。影響度と緊急度の入れ替えで
+    // 優先度が動かないこともあり、**変わっていないものを知らせても
+    // 「また来た」としか受け取られない。**
+    if (priority !== ticket.priority) {
+      await enqueueOutboxEvent(this.client, {
+        eventType: 'ticket.reassessed',
+        organizationId: ctx.organizationId,
+        payload: {
+          ticketId: input.ticketId,
+          ticketNumber: ticket.number,
+          actorId: ctx.principal.userId,
+        },
+      });
+    }
 
     return toTicket(updated[0]!);
   }

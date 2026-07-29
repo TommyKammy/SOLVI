@@ -623,3 +623,20 @@ button.danger {
   border-radius: 999px;
   white-space: nowrap;
 }
+
+/* 見立て(影響度・緊急度・優先度) (WP-P2-PRIO-013) */
+.assessment .detail {
+  margin-top: 0;
+}
+.reassess {
+  margin-top: 0.75rem;
+}
+.reassess summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.reassess form {
+  margin-top: 0.75rem;
+  max-width: 28rem;
+}

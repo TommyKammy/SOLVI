@@ -410,3 +410,225 @@ describe('担当者の操作', () => {
     expect(cleared.body.assigneeId).toBeNull();
   });
 });
+
+/**
+ * 影響度・緊急度の見直し (WP-P2-PRIO-013 / FR-TKT-009)。
+ *
+ * **優先度は入力ではない。** 影響度×緊急度から導かれる値であり、
+ * 直接書き換える経路を作らない。同じ入力から常に同じ優先度が出ることが
+ * SLA計測と監査の前提である。
+ */
+describe('見立ての見直し (FR-TKT-009)', () => {
+  it('影響度と緊急度を直すと**優先度が導き直される**', async () => {
+    await createUser('req-a@example.com', ORG_A, 'requester');
+    await createUser('ops-a@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-a@example.com', ORG_A);
+    const agent = await loginAs('ops-a@example.com', ORG_A);
+
+    // medium × medium → medium
+    const ticketId = await newTicket(requester);
+    const before = await run(() => collab.workspace(agent, ticketId));
+    expect(before.body.ticket.priority).toBe('medium');
+
+    // 調べたら全社に影響していた: high × high → critical
+    const result = await run(() =>
+      collab.reassess(agent, ticketId, {
+        impact: 'high',
+        urgency: 'high',
+        reason: '3部署で同じ事象を確認',
+      }),
+    );
+    expect(result.body.priority).toBe('critical');
+
+    const after = await run(() => collab.workspace(agent, ticketId));
+    expect(after.body.ticket.priority).toBe('critical');
+    expect(after.body.priorityIsDerived).toBe(true);
+  });
+
+  it('**優先度そのものは受け取らない**(送っても無視される)', async () => {
+    await createUser('req-b@example.com', ORG_A, 'requester');
+    await createUser('ops-b@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-b@example.com', ORG_A);
+    const agent = await loginAs('ops-b@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    await run(() =>
+      collab.reassess(agent, ticketId, {
+        impact: 'low',
+        urgency: 'low',
+        reason: '本人の端末だけの事象',
+        // 攻撃者(あるいは誤った画面)が優先度を名乗っても効かない
+        priority: 'critical',
+      }),
+    );
+
+    const after = await run(() => collab.workspace(agent, ticketId));
+    expect(after.body.ticket.priority).toBe('low');
+  });
+
+  it('**理由なしでは見直せない**(SLAの期限が動く操作である)', async () => {
+    await createUser('req-c@example.com', ORG_A, 'requester');
+    await createUser('ops-c@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-c@example.com', ORG_A);
+    const agent = await loginAs('ops-c@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    await expect(
+      run(() =>
+        collab.reassess(agent, ticketId, { impact: 'high', urgency: 'high', reason: '  ' }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('変更が無ければ拒否する(**黙って成功にしない**)', async () => {
+    await createUser('req-d@example.com', ORG_A, 'requester');
+    await createUser('ops-d@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-d@example.com', ORG_A);
+    const agent = await loginAs('ops-d@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    // 押したのに何も起きないと、利用者は操作が効いていないと考える。
+    await expect(
+      run(() =>
+        collab.reassess(agent, ticketId, {
+          impact: 'medium',
+          urgency: 'medium',
+          reason: '変えていない',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('**依頼者は見直せない**(見立ては担当側の判断)', async () => {
+    await createUser('req-e@example.com', ORG_A, 'requester');
+    const requester = await loginAs('req-e@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    await expect(
+      run(() =>
+        collab.reassess(requester, ticketId, {
+          impact: 'high',
+          urgency: 'high',
+          reason: '急いでいます',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('**終わった案件は見直せない**(SLAの達成状況を後から書き換えない)', async () => {
+    await createUser('req-f@example.com', ORG_A, 'requester');
+    await createUser('ops-f@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-f@example.com', ORG_A);
+    const agent = await loginAs('ops-f@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    for (const [to, reason] of [
+      ['assigned', 'assign'],
+      ['in_progress', 'start'],
+      ['resolved', 'resolve'],
+      ['closed', 'close'],
+    ]) {
+      await run(() => collab.transition(agent, ticketId, { to, reason }));
+    }
+
+    await expect(
+      run(() =>
+        collab.reassess(agent, ticketId, {
+          impact: 'high',
+          urgency: 'high',
+          reason: '後から思い直した',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('不正な値は 400(知らない水準を黙って受け付けない)', async () => {
+    await createUser('req-g@example.com', ORG_A, 'requester');
+    await createUser('ops-g@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-g@example.com', ORG_A);
+    const agent = await loginAs('ops-g@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    await expect(
+      run(() =>
+        collab.reassess(agent, ticketId, { impact: 'urgent', urgency: 'high', reason: '理由' }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('前後の値と理由が監査に残る', async () => {
+    await createUser('req-h@example.com', ORG_A, 'requester');
+    await createUser('ops-h@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-h@example.com', ORG_A);
+    const agent = await loginAs('ops-h@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    await run(() =>
+      collab.reassess(agent, ticketId, {
+        impact: 'high',
+        urgency: 'low',
+        reason: '回避策が見つかったため急ぎ具合を下げた',
+      }),
+    );
+
+    const { rows } = await admin.query(
+      "SELECT actor_id, before_state, after_state FROM audit_event WHERE event_type = 'ticket.reassessed'",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].actor_id).toBe(agent.userId);
+    // **どこから**動いたかが無いと、判断の当否を後から読めない。
+    expect(rows[0].before_state.priority).toBe('medium');
+    expect(rows[0].after_state.priority).toBe('medium');
+    expect(rows[0].after_state.impact).toBe('high');
+    expect(rows[0].after_state.reason).toContain('回避策');
+  });
+
+  it('**他組織のチケットは見直せない**', async () => {
+    await createUser('req-i@example.com', ORG_A, 'requester');
+    await createUser('ops-i@example.com', ORG_B, 'agent');
+    const requester = await loginAs('req-i@example.com', ORG_A);
+    const foreignAgent = await loginAs('ops-i@example.com', ORG_B);
+    const ticketId = await newTicket(requester);
+
+    await expect(
+      run(() =>
+        collab.reassess(foreignAgent, ticketId, {
+          impact: 'high',
+          urgency: 'high',
+          reason: '越境の試み',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('優先度が変わったときだけ通知イベントを積む', async () => {
+    await createUser('req-j@example.com', ORG_A, 'requester');
+    await createUser('ops-j@example.com', ORG_A, 'agent');
+    const requester = await loginAs('req-j@example.com', ORG_A);
+    const agent = await loginAs('ops-j@example.com', ORG_A);
+    const ticketId = await newTicket(requester);
+
+    // medium × medium → medium から high × low → medium(優先度は動かない)
+    await run(() =>
+      collab.reassess(agent, ticketId, { impact: 'high', urgency: 'low', reason: '影響のみ拡大' }),
+    );
+    let { rows } = await admin.query(
+      "SELECT count(*)::int AS n FROM outbox_event WHERE event_type = 'ticket.reassessed'",
+    );
+    // 変わっていないものを知らせても「また来た」としか受け取られない。
+    expect(rows[0].n).toBe(0);
+
+    // high × high → critical(優先度が動く)
+    await run(() =>
+      collab.reassess(agent, ticketId, {
+        impact: 'high',
+        urgency: 'high',
+        reason: '至急対応が必要',
+      }),
+    );
+    ({ rows } = await admin.query(
+      "SELECT count(*)::int AS n FROM outbox_event WHERE event_type = 'ticket.reassessed'",
+    ));
+    expect(rows[0].n).toBe(1);
+  });
+});

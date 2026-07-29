@@ -149,6 +149,8 @@ export interface WorkspaceView {
   comments: CommentView[];
   attachments: AttachmentView[];
   availableActions: AvailableAction[];
+  /** 保存されている優先度が影響度×緊急度の規則どおりか (WP-P2-PRIO-013)。 */
+  priorityIsDerived: boolean;
 }
 
 export interface MemberOrganization {
@@ -273,6 +275,13 @@ export const api = {
       targetTicketId: string;
       retained: { comments: number; attachments: number };
     }>(`/tickets/${encodeURIComponent(id)}/merge`, { method: 'POST', body: JSON.stringify(body) }),
+
+  /** 影響度・緊急度の見直し。**優先度は送らない** — サーバが導く。 */
+  reassess: (id: string, body: { impact: string; urgency: string; reason: string }) =>
+    call<{ impact: string; urgency: string; priority: string }>(
+      `/tickets/${encodeURIComponent(id)}/assessment`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 
   assign: (id: string, assigneeId: string | null) =>
     call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {
