@@ -5,7 +5,7 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.7.0"
+version: "0.8.0"
 created: "2026-07-27"
 updated: "2026-07-28"
 owner: "SOLVI Product Team"
@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 259 |
-| Markdown | 251 |
+| 対象ファイル | 260 |
+| Markdown | 252 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,778,633 bytes |
+| 合計サイズ | 6,788,701 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3943 | `50ccdac4badf60bc06e335d5db3e66d757f987b14d6cd7dfbaf300262fcabc9a` |
-| `00_Index/00.8_Status_Dashboard.md` | 6921 | `9dcb24900173abd77ce6a4c20929c5df6165d72312990a5141c29425f5df4c18` |
+| `00_Index/00.8_Status_Dashboard.md` | 7108 | `413ac3ca2cb6b6f6e9478d10c3af95a7043f319cc02aea94018229c682843e7e` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -94,7 +94,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3105 | `90e5bd7b75a0138a879ac6865beca5f1337eeb0035bde4ed18a56e1260e3ac8d` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
-| `03_Requirements/03.3_Ticket_Requirements.md` | 4016 | `cffb8db0c2afb7a6fde461eb2672770a0dd904ebbb20a631e82e608e0c0214d9` |
+| `03_Requirements/03.3_Ticket_Requirements.md` | 4376 | `53f58e9907a542b9446603ebca87ec7392a189ea1c637b0b4e73e07e4e084b22` |
 | `03_Requirements/03.4_Knowledge_Requirements.md` | 1491 | `9f68149899ef431520a20b008cc8cd7f8290d3b1f1c01fbd23ce807dfbffd159` |
 | `03_Requirements/03.5_Catalog_and_Approval_Requirements.md` | 3868 | `ae282818477298a5a9843875da65ca81421719133075916299e9089a6ad7fbf4` |
 | `03_Requirements/03.6_Automation_Executor_Requirements.md` | 2255 | `c32de4903cc93841dc0c46111dbf9d3c00e668411a60176c1daa811ec2ecb1a2` |
@@ -164,6 +164,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-CLOSE-014.md` | 7874 | `88a9060d7883047a73e846e34baef79ea290df6673c963b91b3645e3a6e8970b` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 8423 | `10eb51a3d7b1d0a20a8090b2041d4dadf24e74e4e3d34fed6d1528c50c6f4dfa` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-GATE-007.md` | 6043 | `e7fb73a5b1c72e3b3f6d19ac23d0173a2021b19e6c65b7cda9cb4147e002d570` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-GRP-015.md` | 8246 | `a0c7208c32c4d5ac12ff2d8240a4524015bd1cbd85eb9837165b901088445d38` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 13785 | `12de6779d5f4e4d27fa0a8802b55c3c56acc50f627d9f0541b9222b851401245` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7688 | `8282ff4467c97035370ebc0da15cc818b09450ccf58fcd2fc0d75387c1a2746c` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPSUI-010.md` | 9283 | `9f3f15ec522600ef01db8c5d56f4c3e3850fa563cf13ed0fae6fdd7c4389c8e6` |
@@ -288,7 +289,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.1_Project_Charter.md` | 1618 | `d5ab4c80b5cf2c59f0a3ab2197a922e6c3fc5ba8eb846ec3af9821dbc06cb6ca` |
 | `99_Project_Files/99.2_Assumptions_and_Constraints.md` | 1372 | `83af0468573706bd83a680c4e733e0040f93d2a714945d418ef6111a4eea2022` |
 | `99_Project_Files/99.3_Risk_Register.md` | 2652 | `89379a0103d2629390332ee025f05fb21d4efb1fc5772aa6ca60ff407339994f` |
-| `99_Project_Files/99.4_Decision_Log.md` | 17935 | `82b9af0f4bda2ff24fe5c7522db0f2025408cd5adc048746f437a0d580e9cae1` |
+| `99_Project_Files/99.4_Decision_Log.md` | 19210 | `2b9ceb4b04ac6e8a41fa3ca44f63784d741d2eec2aa3509e9d5471c42a53467a` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
 | `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |
