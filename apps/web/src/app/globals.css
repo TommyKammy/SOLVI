@@ -614,3 +614,12 @@ button.danger {
   flex: 1;
   cursor: pointer;
 }
+
+/* ヘッダの「いまどの組織か」 (WP-P1-IDM-010) */
+.current-org {
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { SiteHeader } from '../components/SiteHeader';
 
 export const metadata: Metadata = {
   title: 'SOLVI',
@@ -11,7 +12,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body>
@@ -19,24 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="skip-link" href="#main">
           本文へ移動
         </a>
-        <header className="site">
-          <div className="inner">
-            <a href="/">SOLVI サポート</a>
-            <nav
-              aria-label="利用者メニュー"
-              style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
-            >
-              {/* 担当者向けの入口。権限が無い利用者が押しても、
-                  画面側で「権限がありません」と伝え、APIは自分の分しか返さない。 */}
-              <a href="/ops">対応待ちの一覧</a>
-              <form action="/logout" method="post">
-                <button className="secondary" type="submit">
-                  ログアウト
-                </button>
-              </form>
-            </nav>
-          </div>
-        </header>
+        <SiteHeader />
         {children}
       </body>
     </html>
