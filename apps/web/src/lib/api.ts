@@ -79,6 +79,12 @@ async function call<T>(
   return { ok: true, data: parsed as T, ...(setCookie ? { setCookie } : {}) };
 }
 
+export interface TicketSlaView {
+  /** 解決期限までの残り。**負値は超過**。目標未設定なら null。 */
+  remainingSeconds: number | null;
+  breached: boolean;
+}
+
 export interface TicketView {
   id: string;
   number: string;
@@ -91,6 +97,8 @@ export interface TicketView {
   priority: string;
   createdAt: string;
   resolvedAt: string | null;
+  /** 期限 (FR-TKT-008)。目標が設定されていない組織では付かない。 */
+  sla?: TicketSlaView;
   assigned: boolean;
 }
 
@@ -163,6 +171,15 @@ export interface WorkspaceView {
   priorityIsDerived: boolean;
   /** 振り先の候補。**無効化したグループは含まれない** (FR-TKT-003)。 */
   availableGroups: GroupSummary[];
+  /** 期限の詳細 (FR-TKT-008)。**その場で計算した値**であり保存値ではない。 */
+  sla: {
+    elapsedSeconds: number;
+    responseTargetSeconds: number;
+    resolutionTargetSeconds: number;
+    responseBreached: boolean;
+    resolutionBreached: boolean;
+    remainingSeconds: number;
+  };
 }
 
 export interface MemberOrganization {

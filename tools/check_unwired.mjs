@@ -270,6 +270,25 @@ process.stdout.write('\nC. 公開されているが本番経路から呼ばれ�
     for (const m of text.matchAll(/export class ([A-Za-z0-9_]+)/g)) {
       exported.push({ name: m[1], path });
     }
+    // **公開クラスのメソッドも見る。**
+    //
+    // ここを見ていなかったため、`TicketService.slaStatus` が
+    // 「テストからしか呼ばれていない」ことを捉えられなかった。
+    // クラス自体はあちこちで使われているので、検査は「使われている」と
+    // 判定してしまう。**使われている物の中に、誰も呼ばないものが隠れる。**
+    //
+    // `private` は対象外。インデント2つの宣言だけを拾う
+    // (入れ子の関数式まで拾うと雑音になる)。
+    // クラスを含むファイルだけを対象にする。SQL文字列の中の
+    // `concat_ws(` のような行を拾わないため。
+    if (!/export class /.test(text)) continue;
+    for (const m of text.matchAll(/^ {2}(?:async )?([a-z][A-Za-z0-9_]*)\s*\(/gm)) {
+      const line = text.slice(text.lastIndexOf('\n', m.index) + 1, m.index + m[0].length);
+      if (/\b(private|protected|constructor|if|for|while|switch|catch|return)\b/.test(line)) {
+        continue;
+      }
+      exported.push({ name: m[1], path, kind: 'method' });
+    }
   }
 
   if (exported.length === 0) {
@@ -300,12 +319,20 @@ process.stdout.write('\nC. 公開されているが本番経路から呼ばれ�
           if (occurrences >= 2) usedInProduction.add(e.name);
           continue;
         }
+        // メソッドは `service.name(` の形で呼ばれる。名前だけの一致だと
+        // 別物の同名変数を拾うため、呼び出しの形で見る。
+        if (e.kind === 'method') {
+          if (new RegExp(`\\.${e.name}\\s*\\(`).test(text)) usedInProduction.add(e.name);
+          continue;
+        }
         if (new RegExp(`\\b${e.name}\\b`).test(text)) usedInProduction.add(e.name);
       }
     }
     for (const { text } of testText) {
-      for (const { name } of exported) {
-        if (new RegExp(`\\b${name}\\b`).test(text)) usedInTests.add(name);
+      for (const e of exported) {
+        const pattern =
+          e.kind === 'method' ? new RegExp(`\\.${e.name}\\s*\\(`) : new RegExp(`\\b${e.name}\\b`);
+        if (pattern.test(text)) usedInTests.add(e.name);
       }
     }
 

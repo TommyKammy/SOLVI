@@ -422,3 +422,187 @@ describe('適用された条件を応答で返す', () => {
     expect(result.body.appliedFilter).toEqual({});
   });
 });
+
+/**
+ * 期限の可視化 (FR-TKT-008 / WP-P2-SLAUI-016)。
+ *
+ * `slaStatus()` はテストからしか呼ばれておらず、期限はどの画面にも
+ * 出ていなかった。さらに判定は保存列に書かれ、**更新されるのは
+ * 状態遷移のときだけ**だった — 一覧で最も見たい「放置されたもの」だけが
+ * 更新されない状態だった。
+ *
+ * 判定は読むたびに計算する。計算してしまえば陳腐化しない。
+ */
+describe('期限の可視化 (FR-TKT-008)', () => {
+  it('**一覧に期限が載る**(保存値ではなく計算値)', async () => {
+    await createUser('sla-a@example.com', ORG_A, 'agent');
+    const agent = await loginAs('sla-a@example.com', ORG_A);
+    await newTicket(agent, { subject: '期限の確認' });
+
+    const result = await run(() => tickets.list(agent, new URLSearchParams()));
+    const item = result.body.items[0]!;
+    expect(item.sla).toBeDefined();
+    expect(typeof item.sla.remainingSeconds).toBe('number');
+    expect(item.sla.breached).toBe(false);
+  });
+
+  it('**放置しただけで超過になる**(誰も触らなくても判定される)', async () => {
+    await createUser('sla-b@example.com', ORG_A, 'agent');
+    const agent = await loginAs('sla-b@example.com', ORG_A);
+    const ticketId = await newTicket(agent, { subject: '放置される問い合わせ' });
+
+    // 誰も触らない。クロックの経過だけを進める。
+    // 保存値を使っていた頃は、これが永久に超過にならなかった。
+    await admin.query(
+      `UPDATE ticket SET sla_elapsed_seconds = 999999, sla_clock_started_at = NULL WHERE id = $1`,
+      [ticketId],
+    );
+
+    const result = await run(() => tickets.list(agent, new URLSearchParams()));
+    const item = result.body.items.find((t) => t.id === ticketId)!;
+    expect(item.sla.breached).toBe(true);
+    expect(item.sla.remainingSeconds).toBeLessThan(0);
+  });
+
+  it('超過だけを絞り込める', async () => {
+    await createUser('sla-c@example.com', ORG_A, 'agent');
+    const agent = await loginAs('sla-c@example.com', ORG_A);
+    const overdue = await newTicket(agent, { subject: '超過するもの' });
+    const fresh = await newTicket(agent, { subject: '余裕があるもの' });
+    await admin.query(
+      `UPDATE ticket SET sla_elapsed_seconds = 999999, sla_clock_started_at = NULL WHERE id = $1`,
+      [overdue],
+    );
+
+    const result = await run(() => tickets.list(agent, new URLSearchParams({ sla: 'breached' })));
+    const ids = result.body.items.map((t) => t.id);
+    expect(ids).toContain(overdue);
+    expect(ids).not.toContain(fresh);
+  });
+
+  it('**期限が近い順に並べられる**(最も遅れているものが先頭)', async () => {
+    await createUser('sla-d@example.com', ORG_A, 'agent');
+    const agent = await loginAs('sla-d@example.com', ORG_A);
+    const later = await newTicket(agent, { subject: '後で良いもの' });
+    const overdue = await newTicket(agent, { subject: '遅れているもの' });
+    await admin.query(
+      `UPDATE ticket SET sla_elapsed_seconds = 999999, sla_clock_started_at = NULL WHERE id = $1`,
+      [overdue],
+    );
+
+    const result = await run(() => tickets.list(agent, new URLSearchParams({ sort: 'deadline' })));
+    const ids = result.body.items.map((t) => t.id);
+    expect(ids.indexOf(overdue)).toBeLessThan(ids.indexOf(later));
+  });
+
+  it('知らない並び順・期限の値は 400(黙って無視しない)', async () => {
+    await createUser('sla-e@example.com', ORG_A, 'agent');
+    const agent = await loginAs('sla-e@example.com', ORG_A);
+    await expect(
+      run(() => tickets.list(agent, new URLSearchParams({ sort: 'whatever' }))),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      run(() => tickets.list(agent, new URLSearchParams({ sla: 'whatever' }))),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('**期限順では続きの取得を受け付けない**(壊れた頁を黙って返さない)', async () => {
+    await createUser('sla-a@example.com', ORG_A, 'agent');
+    const agent = await loginAs('sla-a@example.com', ORG_A);
+    await newTicket(agent, { subject: '期限の確認' });
+
+    // カーソルは (created_at, id) で判定するため、別の列で並べた一覧に
+    // 適用すると飛ばし・重複が起きる。
+    await expect(
+      run(() =>
+        tickets.list(
+          agent,
+          new URLSearchParams({
+            sort: 'deadline',
+            cursorCreatedAt: '2026-01-01 00:00:00+00',
+            cursorId: '00000000-0000-4000-9000-000000000001',
+          }),
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+/**
+ * 初回応答の記録 (FR-TKT-008 の応答SLA)。
+ *
+ * `recordFirstResponse` は「担当者の公開コメントで初めて呼ばれる」と
+ * 書かれていたが**呼ぶ側が居なかった**。`first_responded_at` は永久に
+ * NULL のままで、応答SLAは全件が「未応答」として判定され続けていた。
+ */
+describe('初回応答の記録 (FR-TKT-008)', () => {
+  it('**担当者の公開コメントで初回応答が記録される**', async () => {
+    await createUser('fr-req1@example.com', ORG_A, 'requester');
+    await createUser('fr-ops1@example.com', ORG_A, 'agent');
+    const requester = await loginAs('fr-req1@example.com', ORG_A);
+    const agent = await loginAs('fr-ops1@example.com', ORG_A);
+    const ticketId = await newTicket(requester, { subject: '応答の記録' });
+
+    await run(() =>
+      collab.addComment(agent, ticketId, { visibility: 'public', body: '確認しています。' }),
+    );
+
+    const { rows } = await admin.query('SELECT first_responded_at FROM ticket WHERE id = $1', [
+      ticketId,
+    ]);
+    expect(rows[0].first_responded_at).not.toBeNull();
+  });
+
+  it('**内部メモは応答に数えない**(依頼者に届いていない)', async () => {
+    await createUser('fr-req2@example.com', ORG_A, 'requester');
+    await createUser('fr-ops2@example.com', ORG_A, 'agent');
+    const requester = await loginAs('fr-req2@example.com', ORG_A);
+    const agent = await loginAs('fr-ops2@example.com', ORG_A);
+    const ticketId = await newTicket(requester, { subject: '内部メモのみ' });
+
+    await run(() =>
+      collab.addComment(agent, ticketId, { visibility: 'internal', body: '調査メモ' }),
+    );
+
+    const { rows } = await admin.query('SELECT first_responded_at FROM ticket WHERE id = $1', [
+      ticketId,
+    ]);
+    expect(rows[0].first_responded_at).toBeNull();
+  });
+
+  it('**依頼者自身の追記は応答ではない**', async () => {
+    await createUser('fr-req3@example.com', ORG_A, 'requester');
+    const requester = await loginAs('fr-req3@example.com', ORG_A);
+    const ticketId = await newTicket(requester, { subject: '依頼者の追記' });
+
+    await run(() =>
+      collab.addComment(requester, ticketId, { visibility: 'public', body: '補足です。' }),
+    );
+
+    const { rows } = await admin.query('SELECT first_responded_at FROM ticket WHERE id = $1', [
+      ticketId,
+    ]);
+    expect(rows[0].first_responded_at).toBeNull();
+  });
+
+  it('2回目以降のコメントで時刻が上書きされない', async () => {
+    await createUser('fr-req4@example.com', ORG_A, 'requester');
+    await createUser('fr-ops4@example.com', ORG_A, 'agent');
+    const requester = await loginAs('fr-req4@example.com', ORG_A);
+    const agent = await loginAs('fr-ops4@example.com', ORG_A);
+    const ticketId = await newTicket(requester, { subject: '2回目の応答' });
+
+    await run(() => collab.addComment(agent, ticketId, { visibility: 'public', body: '1回目' }));
+    const { rows: first } = await admin.query(
+      'SELECT first_responded_at FROM ticket WHERE id = $1',
+      [ticketId],
+    );
+    await run(() => collab.addComment(agent, ticketId, { visibility: 'public', body: '2回目' }));
+    const { rows: second } = await admin.query(
+      'SELECT first_responded_at FROM ticket WHERE id = $1',
+      [ticketId],
+    );
+
+    expect(second[0].first_responded_at.getTime()).toBe(first[0].first_responded_at.getTime());
+  });
+});

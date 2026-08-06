@@ -25,7 +25,14 @@ import {
   requireRole,
   type AuthzContext,
 } from '../../common/authz/authz.js';
-import { buildListQuery, visibilityScope, type ListOptions, type Cursor } from './ticket-query.js';
+import {
+  SLA_SELECT_SQL,
+  SLA_JOIN_SQL,
+  buildListQuery,
+  visibilityScope,
+  type ListOptions,
+  type Cursor,
+} from './ticket-query.js';
 
 /**
  * チケットのアプリケーションサービス。
@@ -59,6 +66,21 @@ export interface Ticket {
   /** SLAクロック。停止中は startedAt が null(FR-TKT-008)。 */
   slaClock: SlaClockState;
   firstRespondedAt: Date | null;
+  /**
+   * 期限の状況 (FR-TKT-008)。**一覧のSQLで計算した値**であり、保存値ではない。
+   *
+   * 目標が設定されていない組織では null。判定できないことを
+   * 「超過していない」と読み替えない。
+   */
+  sla?: TicketSlaSummary;
+}
+
+/** 一覧が返す期限の要約。詳細は `slaStatus()` が返す。 */
+export interface TicketSlaSummary {
+  elapsedSeconds: number;
+  /** 解決期限までの残り。**負値は超過**。目標未設定なら null。 */
+  remainingSeconds: number | null;
+  breached: boolean;
 }
 
 /**
@@ -128,6 +150,21 @@ function toTicket(row: Record<string, unknown>): Ticket {
       elapsedSeconds: Number(row.sla_elapsed_seconds ?? 0),
     },
     firstRespondedAt: (row.first_responded_at as Date | null) ?? null,
+    ...(row.sla_elapsed_now === undefined
+      ? {}
+      : {
+          sla: {
+            elapsedSeconds: Number(row.sla_elapsed_now ?? 0),
+            remainingSeconds:
+              row.remaining_seconds === null || row.remaining_seconds === undefined
+                ? null
+                : Number(row.remaining_seconds),
+            breached:
+              row.remaining_seconds !== null &&
+              row.remaining_seconds !== undefined &&
+              Number(row.remaining_seconds) < 0,
+          },
+        }),
   };
 }
 
@@ -225,7 +262,12 @@ export class TicketService {
   async findById(ctx: AuthzContext, ticketId: string): Promise<Ticket> {
     // RLS により他組織の行はそもそも返らない。ここでの 404 は
     // 「同一組織内だが閲覧権限がない」場合の存在秘匿(NFR-SEC-006)。
-    const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1', [ticketId]);
+    // 期限も一緒に引く (FR-TKT-008)。**一覧と同じ式を使う** —
+    // 別々に書くと、一覧と詳細で違う期限が出る。
+    const { rows } = await this.client.query(
+      `SELECT t.*, ${SLA_SELECT_SQL} FROM ticket t ${SLA_JOIN_SQL} WHERE t.id = $1`,
+      [ticketId],
+    );
     if (rows.length === 0) throw Problems.notFound('チケット');
 
     const ticket = toTicket(rows[0]!);
@@ -337,9 +379,17 @@ export class TicketService {
       [ticket.id, input.to, nextClock.startedAt, nextClock.elapsedSeconds],
     );
 
-    // SLA判定は記録のみ。**超過しても遷移は止めない**(WP-P2-SEARCH-006 §6)。
+    // **SLAの判定値を保存しない。** かつてここで
+    // `response_sla_breached` / `resolution_sla_breached` を更新していたが、
+    // 更新するのは状態遷移のときだけだった。つまり**放置されたチケットは
+    // 期限を過ぎてもフラグが立たない** — 一覧で最も見たいのは放置された
+    // ものであり、そこだけが更新されなかった。
+    //
+    // 判定は読むたびに計算する(`ticket-query.ts` の SLA_ELAPSED_SQL /
+    // `slaStatus()`)。計算してしまえば陳腐化しない。
+    //
+    // なお**超過しても遷移は止めない**(WP-P2-SEARCH-006 §6)。
     // SLAは計測指標であり統制ではない。
-    await this.refreshSlaBreach(ctx, toTicket(updated[0]!), now);
 
     await recordAuditEvent(this.client, {
       eventType: 'ticket.transitioned',
@@ -750,22 +800,6 @@ export class TicketService {
       responseTargetMinutes: rows[0]!.response_target_minutes,
       resolutionTargetMinutes: rows[0]!.resolution_target_minutes,
     };
-  }
-
-  /** SLAの判定結果を記録する。遷移を止めることはしない。 */
-  private async refreshSlaBreach(ctx: AuthzContext, ticket: Ticket, now: Date): Promise<void> {
-    const status = evaluateSla({
-      clock: ticket.slaClock,
-      target: await this.slaTargetFor(ctx, ticket.priority),
-      firstRespondedAt: ticket.firstRespondedAt,
-      createdAt: ticket.createdAt,
-      resolvedAt: ticket.resolvedAt,
-      now,
-    });
-    await this.client.query(
-      'UPDATE ticket SET response_sla_breached = $2, resolution_sla_breached = $3 WHERE id = $1',
-      [ticket.id, status.responseBreached, status.resolutionBreached],
-    );
   }
 
   /** 現時点のSLA状況。一覧・詳細の表示に使う。 */

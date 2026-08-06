@@ -68,3 +68,40 @@ export function formatDateTime(iso: string): string {
 export const FILTERABLE_STATES = ['new', 'assigned', 'in_progress', 'pending', 'resolved'] as const;
 
 export const FILTERABLE_PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;
+
+/**
+ * 残り時間・超過時間の表示 (FR-TKT-008)。
+ *
+ * **秒を出さない。** 「あと 3600 秒」では誰も判断できない。
+ * 日・時間・分に丸め、超過は「◯◯超過」と言い切る。
+ */
+export function formatRemaining(seconds: number): string {
+  const overdue = seconds < 0;
+  const abs = Math.abs(seconds);
+  const days = Math.floor(abs / 86400);
+  const hours = Math.floor((abs % 86400) / 3600);
+  const minutes = Math.floor((abs % 3600) / 60);
+
+  let text: string;
+  if (days > 0) text = `${days}日${hours > 0 ? hours + '時間' : ''}`;
+  else if (hours > 0) text = `${hours}時間${minutes > 0 ? minutes + '分' : ''}`;
+  else text = `${Math.max(1, minutes)}分`;
+
+  return overdue ? `${text}超過` : `あと${text}`;
+}
+
+/**
+ * 期限の逼迫度。画面の見せ方を決める。
+ *
+ * **「まもなく」を設けるのは、超過してから気付いても遅いからである。**
+ * 残り25%を切ったら知らせる(目標が短い critical ほど早く警告が出る)。
+ */
+export function slaUrgency(
+  remainingSeconds: number | null,
+  targetSeconds?: number,
+): 'breached' | 'soon' | 'ok' | 'unknown' {
+  if (remainingSeconds === null) return 'unknown';
+  if (remainingSeconds < 0) return 'breached';
+  if (targetSeconds && remainingSeconds < targetSeconds * 0.25) return 'soon';
+  return 'ok';
+}

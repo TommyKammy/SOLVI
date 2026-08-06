@@ -1,0 +1,10 @@
+RLS検査: 問題 0 件
+  note: app_user: 非組織スコープ — 1人が複数組織へ所属しうる。role_binding 経由で分離する
+  note: audit_anchor: 非組織スコープ — 日次ハッシュは組織横断の整合性を担保するため分割しない。参照は監査者ロールで制御する
+  note: identity: 非組織スコープ — app_user に従属。role_binding 経由で分離する
+  note: local_credential: 非組織スコープ — 同上。保存値はscryptの派生鍵であり元のパスワードではない
+  note: organization: 非組織スコープ — organization_id ではなく id 自身が組織を表す。RLSは id で分離する
+  note: role: 非組織スコープ — ロール定義は参照データ。組織に依存しない
+  note: schema_migration: 非組織スコープ — マイグレーション管理。業務データではない
+  note: session: 非組織スコープ — 認証は組織コンテキスト確立前に行う。保存値はトークンのハッシュで再利用できない
+OK: RLS設定と接続ロール権限は期待どおりです。

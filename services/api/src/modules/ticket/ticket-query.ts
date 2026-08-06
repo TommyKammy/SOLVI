@@ -27,7 +27,55 @@ const SORTABLE_COLUMNS = {
   updated_at: 'updated_at',
   priority: 'priority',
   number: 'number',
+  /**
+   * 解決期限までの残り。**担当者が最初に見たい並び順である。**
+   * 計算列なので `t.` を付けない(下の SORT_EXPRESSIONS で解決する)。
+   */
+  deadline: 'deadline',
 } as const;
+
+/**
+ * 並び替えの式。計算列は `t.<column>` では引けない。
+ *
+ * 期限順は「残り時間の少ない順」。超過しているものは負値になるので、
+ * 昇順に並べれば**最も遅れているものが先頭に来る**。
+ */
+const SORT_EXPRESSIONS: Record<string, string> = {
+  deadline: 'remaining_seconds',
+};
+
+/**
+ * SLAの経過・目標・超過を**その場で計算する**式 (FR-TKT-008)。
+ *
+ * **保存した判定値を使わない。**
+ *
+ * `ticket.response_sla_breached` / `resolution_sla_breached` という列が
+ * 存在したが、更新するのは状態遷移のときだけだった。つまり
+ * **放置されたチケットは期限を過ぎてもフラグが立たない** —
+ * 一覧で最も見たいのは放置されたものであり、そこだけが更新されない。
+ *
+ * 計算してしまえば陳腐化しない。保存値と実際が食い違う余地が消える。
+ * 件数の規模(パイロットで数千件)なら、索引が効かなくても問題にならない。
+ *
+ * クロックが動いていれば開始からの差分を足す
+ * (`packages/shared/src/ticket/sla.ts` の `currentElapsedSeconds` と同じ規則)。
+ */
+export const SLA_ELAPSED_SQL = `
+  (t.sla_elapsed_seconds
+    + CASE WHEN t.sla_clock_started_at IS NOT NULL
+           THEN GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (now() - t.sla_clock_started_at))))
+           ELSE 0 END)`;
+
+/**
+ * 目標値。組織ごとの `sla_policy` を引き、無ければ既定値を使う。
+ *
+ * **既定値をSQLに書かない。** `DEFAULT_SLA_TARGETS`(TypeScript側)と
+ * 二重に持つと、片方だけ直したときに一覧と詳細で違う判定になる。
+ * ポリシーが無い組織では NULL になり、超過の判定を「不明」として扱う。
+ */
+export const SLA_JOIN_SQL = `
+  LEFT JOIN sla_policy p
+    ON p.organization_id = t.organization_id AND p.priority = t.priority`;
 
 export type SortColumn = keyof typeof SORTABLE_COLUMNS;
 export type SortDirection = 'asc' | 'desc';
@@ -53,6 +101,13 @@ export interface TicketFilter {
   assigneeGroupIds?: string[];
   /** グループ未割当のみ。**どこにも振られていないもの**を見つける。 */
   ungroupedOnly?: boolean;
+  /**
+   * 解決期限を超過しているものだけ (FR-TKT-008)。
+   *
+   * **超過しても業務は止めない**(SLAは計測指標であって統制ではない)。
+   * 止めない代わりに、見つけられなければならない。
+   */
+  slaBreachedOnly?: boolean;
 }
 
 /**
@@ -157,6 +212,15 @@ function filterClauses(filter: TicketFilter | undefined, params: unknown[]): str
     clauses.push('t.assignee_group_id IS NULL');
   }
 
+  if (filter.slaBreachedOnly) {
+    // 目標が設定されていない組織では判定できない。**超過扱いにしない** —
+    // 設定漏れを「超過」として並べると、本当に遅れているものが埋もれる。
+    clauses.push(
+      `(p.resolution_target_minutes IS NOT NULL
+        AND ${SLA_ELAPSED_SQL} > p.resolution_target_minutes * 60)`,
+    );
+  }
+
   if (filter.createdFrom) {
     params.push(filter.createdFrom);
     clauses.push(`t.created_at >= $${params.length}`);
@@ -203,6 +267,19 @@ export function buildListQuery(ctx: AuthzContext, options: ListOptions = {}): Bu
   // カーソルは常に (created_at, id) で判定する。
   // ソート列が created_at 以外でも、一意性を担保するため id を第2キーに使う。
   if (options.cursor) {
+    // **期限順のときはカーソルを受け付けない。**
+    // カーソルは (created_at, id) で判定するため、別の列で並べた一覧に
+    // 適用すると「進んだつもりで飛ばされる／重複する」が起きる。
+    // 期限順は「いま遅れているものから見る」ための並びであり、
+    // 先頭から数十件を見れば足りる。黙って壊れた頁を返さない。
+    if (sortColumn !== 'created_at') {
+      throw Problems.validation([
+        {
+          field: 'cursorCreatedAt',
+          message: 'この並び順では続きの取得に対応していません',
+        },
+      ]);
+    }
     params.push(options.cursor.createdAt);
     const createdAtParam = params.length;
     params.push(options.cursor.id);
@@ -222,18 +299,23 @@ export function buildListQuery(ctx: AuthzContext, options: ListOptions = {}): Bu
 
   const where = clauses.join(' AND ');
   params.push(limit);
+  const orderBy = SORT_EXPRESSIONS[column] ?? `t.${column}`;
   const sql = `
-    SELECT t.*, t.created_at::text AS cursor_created_at
+    SELECT t.*, t.created_at::text AS cursor_created_at,
+           ${SLA_SELECT_SQL},
+           p.response_target_minutes,
+           p.resolution_target_minutes
       FROM ticket t
+      ${SLA_JOIN_SQL}
      WHERE ${where}
-     ORDER BY t.${column} ${direction}, t.id ${direction}
+     ORDER BY ${orderBy} ${direction} NULLS LAST, t.id ${direction}
      LIMIT $${params.length}
   `;
 
   return {
     sql,
     params,
-    countSql: `SELECT count(*)::int AS total FROM ticket t WHERE ${countWhere}`,
+    countSql: `SELECT count(*)::int AS total FROM ticket t ${SLA_JOIN_SQL} WHERE ${countWhere}`,
     countParams,
     limit,
   };
@@ -243,5 +325,16 @@ export function buildListQuery(ctx: AuthzContext, options: ListOptions = {}): Bu
 export function visibilityScope(ctx: AuthzContext): 'organization' | 'own' {
   return hasRole(ctx, ...ORGANIZATION_WIDE_ROLES) ? 'organization' : 'own';
 }
+
+/**
+ * 一覧と詳細で同じ式を使うための SELECT 句。
+ *
+ * **二か所に書かない。** 片方だけ直すと、一覧と詳細で違う期限が出る。
+ */
+export const SLA_SELECT_SQL = `
+  ${SLA_ELAPSED_SQL} AS sla_elapsed_now,
+  CASE WHEN p.resolution_target_minutes IS NULL THEN NULL
+       ELSE p.resolution_target_minutes * 60 - ${SLA_ELAPSED_SQL}
+  END AS remaining_seconds`;
 
 export { SORTABLE_COLUMNS, MAX_LIMIT, DEFAULT_LIMIT };
