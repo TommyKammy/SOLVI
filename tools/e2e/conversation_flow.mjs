@@ -244,6 +244,54 @@ check('依頼者の画面が開く', requesterPage.status === 200, `status=${req
 check('**解決済みなら再開の導線が出る**', requesterHtml.includes('まだ解決していないと伝える'));
 check('期限の説明がある', requesterHtml.includes('14日'));
 
+// ---------------------------------------------------------------------------
+// 期限の可視化 (FR-TKT-008 / WP-P2-SLAUI-016)
+//
+// `slaStatus()` はテストからしか呼ばれておらず、期限はどの画面にも
+// 出ていなかった。判定は保存列にあり、**更新されるのは状態遷移のときだけ**
+// だった — 一覧で最も見たい「放置されたもの」だけが更新されない。
+// ---------------------------------------------------------------------------
+r = await call(`/tickets?limit=5`, agent);
+const listed = await r.json();
+check(
+  '**一覧に期限が載る**',
+  listed.items.every((t) => t.sla !== undefined),
+  JSON.stringify(listed.items[0]?.sla),
+);
+
+r = await call(`/tickets/${ticket.id}/workspace`, agent);
+const wsSla = (await r.json()).sla;
+check('作業画面に期限の詳細が載る', typeof wsSla?.remainingSeconds === 'number');
+check(
+  '応答目標と解決目標の両方が返る',
+  wsSla.responseTargetSeconds > 0 && wsSla.resolutionTargetSeconds > 0,
+);
+
+r = await call('/tickets?sort=deadline', agent);
+check('期限が近い順に並べられる', r.status === 200, `status=${r.status}`);
+r = await call('/tickets?sla=breached', agent);
+check('超過だけを絞り込める', r.status === 200, `status=${r.status}`);
+r = await call('/tickets?sort=whatever', agent);
+check('知らない並び順は 400(黙って無視しない)', r.status === 400, `status=${r.status}`);
+
+// 依頼者にも期限が見える
+r = await call(`/tickets/${ticket.id}`, requester);
+check('**依頼者にも期限が見える**', (await r.json()).sla !== undefined);
+
+const opsList = await fetch(`${WEB}/ops`, { headers: { cookie: agent } });
+const opsListHtml = await opsList.text();
+check('一覧画面に期限の列がある', opsListHtml.includes('期限'), `status=${opsList.status}`);
+check('期限順の選択肢がある', opsListHtml.includes('期限が近い順'));
+check('超過の絞り込みがある', opsListHtml.includes('期限を超過'));
+
+const detail = await fetch(`${WEB}/ops/${ticket.id}`, { headers: { cookie: agent } });
+const detailHtml = await detail.text();
+check('作業画面に期限が出る', detailHtml.includes('解決の期限'));
+check(
+  '**超過しても止まらないと書いてある**(SLAは計測指標であって統制ではない)',
+  detailHtml.includes('操作は止まりません'),
+);
+
 process.stdout.write(`\nTICKET_ID=${ticket.id}\n`);
 process.stdout.write(
   failed === 0

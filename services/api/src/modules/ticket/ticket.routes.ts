@@ -39,6 +39,18 @@ function toPortalView(ticket: Ticket): Record<string, unknown> {
     // 誰が担当かは依頼者にとって必要な情報ではなく、
     // 担当者の稼働状況が外から見える状態を作る必要も無い。
     assigned: ticket.assigneeId !== null,
+    // 期限 (FR-TKT-008)。**依頼者にも見せる。**
+    // 「いつまでに返ってくるか」は依頼者が最も知りたいことであり、
+    // 見えないと「まだですか」という問い合わせが増える。
+    // 一覧のSQLで計算した値であり、保存値ではない(陳腐化しない)。
+    ...(ticket.sla
+      ? {
+          sla: {
+            remainingSeconds: ticket.sla.remainingSeconds,
+            breached: ticket.sla.breached,
+          },
+        }
+      : {}),
   };
 }
 
@@ -88,6 +100,7 @@ function parseFilter(
   unassignedOnly?: boolean;
   assigneeGroupIds?: string[];
   ungroupedOnly?: boolean;
+  slaBreachedOnly?: boolean;
   keyword?: string;
 } {
   const errors: Array<{ field: string; message: string }> = [];
@@ -120,6 +133,14 @@ function parseFilter(
     unassignedOnly = true;
   } else if (assignment !== null && assignment.length > 0) {
     errors.push({ field: 'assignment', message: '指定できない値です' });
+  }
+
+  // 期限超過の絞り込み (FR-TKT-008)。
+  //
+  // **超過しても業務は止めない**が、止めない代わりに見つけられなければならない。
+  const slaBreachedOnly = query.get('sla') === 'breached' ? true : undefined;
+  if (query.get('sla') !== null && query.get('sla') !== '' && slaBreachedOnly === undefined) {
+    errors.push({ field: 'sla', message: '指定できない値です' });
   }
 
   // グループの絞り込み。値は「自分のグループ」「未割当」「特定のグループID」。
@@ -179,6 +200,7 @@ function parseFilter(
     ...(unassignedOnly !== undefined ? { unassignedOnly } : {}),
     ...(assigneeGroupIds ? { assigneeGroupIds } : {}),
     ...(ungroupedOnly !== undefined ? { ungroupedOnly } : {}),
+    ...(slaBreachedOnly !== undefined ? { slaBreachedOnly } : {}),
   };
 }
 const IMPACTS = new Set(['low', 'medium', 'high']);
@@ -310,8 +332,22 @@ export class TicketController {
       query.get('group') === 'mine' ? await this.resolveMyGroupIds(auth) : ([] as string[]);
     const filter = parseFilter(query, auth.userId, myGroupIds);
 
+    // 並び順。既定は受付順(新しいものから)。
+    // 期限順は担当者の triage 用であり、**遅れているものが先頭に来る**。
+    const sortParam = query.get('sort') ?? '';
+    const SORTS: Record<string, { column: string; direction: 'asc' | 'desc' }> = {
+      '': { column: 'created_at', direction: 'desc' },
+      newest: { column: 'created_at', direction: 'desc' },
+      deadline: { column: 'deadline', direction: 'asc' },
+    };
+    const sort = SORTS[sortParam];
+    if (!sort) {
+      throw Problems.validation([{ field: 'sort', message: '指定できない並び順です' }]);
+    }
+
     const result = await this.run(auth, (service) =>
       service.list(auth.authz, {
+        sort: sort as never,
         ...(Object.keys(filter).length > 0 ? { filter: filter as never } : {}),
         ...(limit !== undefined ? { limit } : {}),
         // カーソルはサーバが返した文字列をそのまま受け取る。

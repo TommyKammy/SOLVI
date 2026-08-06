@@ -8,6 +8,7 @@ import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
 import { RelationList } from '../../../components/RelationList';
 import {
+  formatRemaining,
   stateLabel,
   kindLabel,
   priorityLabel,
@@ -154,6 +155,20 @@ export default async function TicketDetailPage({
           </>
         )}
       </dl>
+
+      {ticket.sla && ticket.state !== 'closed' && ticket.state !== 'cancelled' && (
+        // **依頼者にも期限を見せる。** 「いつまでに返ってくるか」は
+        // 依頼者が最も知りたいことであり、見えないと
+        // 「まだですか」という問い合わせが増える。
+        <div className={ticket.sla.breached ? 'sla-panel breached' : 'sla-panel'}>
+          <strong>対応の目安: {formatRemaining(ticket.sla.remainingSeconds ?? 0)}</strong>
+          <p className="hint" style={{ margin: '0.25rem 0 0' }}>
+            {ticket.sla.breached
+              ? '目安の時間を過ぎています。お待たせしており申し訳ありません。状況は担当者が確認しています。'
+              : '優先度に応じた目安です。状況により前後することがあります。'}
+          </p>
+        </div>
+      )}
 
       <h2>お知らせいただいた内容</h2>
       <div className="body-text">{ticket.body}</div>

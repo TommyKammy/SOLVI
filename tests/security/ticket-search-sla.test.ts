@@ -336,11 +336,29 @@ describe('SLAクロックの実DB挙動 (FR-TKT-008)', () => {
     // 遷移は成功している
     expect(resolved.state).toBe('resolved');
 
-    const { rows } = await admin.query(
-      'SELECT response_sla_breached, resolution_sla_breached FROM ticket WHERE id = $1',
-      [id],
+    // **判定は保存しない。読むたびに計算する。**
+    //
+    // かつては `response_sla_breached` / `resolution_sla_breached` 列へ
+    // 書き込んでいたが、更新するのは状態遷移のときだけだった。つまり
+    // 放置されたチケットは期限を過ぎてもフラグが立たず、
+    // **一覧で最も見たいものだけが更新されない**状態だった (WP-P2-SLAUI-016)。
+    const status = await inOrg(ORG_A, (c) =>
+      svc(c).slaStatus(ctxFor(agent, 'agent', ORG_A), id, at(1800)),
     );
-    expect(rows[0].resolution_sla_breached).toBe(true);
+    expect(status.resolutionBreached).toBe(true);
+  });
+
+  it('**放置しただけで超過が見える**(遷移しなくても判定される)', async () => {
+    const id = await makeTicket();
+    const agent = users.get(`${ORG_A}:agent`)!;
+
+    // 誰も触らない。状態は new のまま、時間だけが過ぎる。
+    // 保存値を使っていた頃は、これが**永久に超過にならなかった**。
+    const status = await inOrg(ORG_A, (c) =>
+      svc(c).slaStatus(ctxFor(agent, 'agent', ORG_A), id, at(1800)),
+    );
+    expect(status.resolutionBreached).toBe(true);
+    expect(status.remainingSeconds).toBeLessThan(0);
   });
 
   it('SLA状況を取得できる', async () => {

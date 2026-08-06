@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
-import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../lib/labels';
+import {
+  stateLabel,
+  kindLabel,
+  priorityLabel,
+  formatDateTime,
+  formatRemaining,
+  slaUrgency,
+} from '../../lib/labels';
 import { TicketFilters } from '../../components/TicketFilters';
 
 /**
@@ -108,6 +115,9 @@ export default async function OpsQueue({
               <th scope="col">優先度</th>
               <th scope="col">状況</th>
               <th scope="col">担当</th>
+              {/* **期限を担当より前に置く。** 担当者が最初に見るべきは
+                  「どれが遅れているか」であり、誰が持っているかではない。 */}
+              <th scope="col">期限</th>
               <th scope="col">受付日時</th>
             </tr>
           </thead>
@@ -127,6 +137,17 @@ export default async function OpsQueue({
                   {/* 未割当を色ではなく文言で示す。
                       「空欄」だと、担当がいないのか表示漏れなのか分からない。 */}
                   {ticket.assigned ? '割当済み' : '未割当'}
+                </td>
+                <td>
+                  {ticket.sla ? (
+                    <span className={`sla sla-${slaUrgency(ticket.sla.remainingSeconds)}`}>
+                      {formatRemaining(ticket.sla.remainingSeconds ?? 0)}
+                    </span>
+                  ) : (
+                    // **「不明」を空欄にしない。** 目標が設定されていない組織では
+                    // 判定できない。空欄だと「期限が無い」と読まれる。
+                    <span className="hint">目標未設定</span>
+                  )}
                 </td>
                 <td>{formatDateTime(ticket.createdAt)}</td>
               </tr>

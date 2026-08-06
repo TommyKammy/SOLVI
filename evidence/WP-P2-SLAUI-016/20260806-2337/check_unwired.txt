@@ -1,0 +1,27 @@
+
+A. 監査イベント型と実際の記録
+  注記  5/27 件の監査イベント型が未使用
+       role.binding.created, role.binding.deleted, user.created, user.updated, audit.export.executed
+
+B. アラート式とメトリクスの実在
+  OK   アラートが参照する 8 件のメトリクスがすべて存在する
+
+C. 公開されているが本番経路から呼ばれない関数
+  NG   5 件が**テストからしか呼ばれていない**
+       createCredential, deactivateUser, findComment, recordScanResult, recordFirstResponse
+       テストは緑だが本番経路では動かない可能性がある
+  注記  5 件がどこからも参照されていない
+       resetScannerSignatureAge, registerGauge, resetInstrumentsForTest, patch, purgeExpired
+  注記  4 件は未接続を承知で残している
+       signWebhook — Webhook送信の受け口がまだ無い。署名だけ先に作った(WP-P2-NTF-005 §6)
+       verifyWebhook — signWebhook と同じ理由
+       InMemoryNonceStore — signWebhook と同じ理由。永続化版は受け口を作るときに決める
+       assertCanSwitchOrganization — platform_admin の組織横断操作の門番。横断操作の画面と経路がまだ無い
+
+D. 環境変数の定義と参照
+  OK   環境変数 23 件すべてが参照されている
+
+E. マイグレーションの巻き戻し
+  OK   マイグレーション 18 件すべてに down がある
+
+1 件の問題があります(注記 3 件)

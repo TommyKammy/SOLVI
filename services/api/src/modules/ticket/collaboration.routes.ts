@@ -205,7 +205,11 @@ export class CollaborationController {
       const availableGroups = hasRole(auth.authz, 'agent', 'org_admin', 'platform_admin')
         ? await groups.list(auth.authz)
         : [];
-      return { ticket, comments, attachments, availableGroups };
+      // 期限 (FR-TKT-008)。**その場で計算する**(保存値ではない)。
+      // かつて `slaStatus()` はテストからしか呼ばれておらず、
+      // 期限がどの画面にも出ていなかった (WP-P2-SLAUI-016)。
+      const sla = await tickets.slaStatus(auth.authz, ticketId);
+      return { ticket, comments, attachments, availableGroups, sla };
     });
 
     return {
@@ -230,6 +234,16 @@ export class CollaborationController {
         comments: result.comments.map(toCommentView),
         attachments: result.attachments.map(toAttachmentView),
         availableActions: toActions(result.ticket.state),
+        // **SLAは計測指標であって統制ではない。** 超過しても操作は止めない。
+        // 止めない代わりに、見えなければならない。
+        sla: {
+          elapsedSeconds: result.sla.elapsedSeconds,
+          responseTargetSeconds: result.sla.responseTargetSeconds,
+          resolutionTargetSeconds: result.sla.resolutionTargetSeconds,
+          responseBreached: result.sla.responseBreached,
+          resolutionBreached: result.sla.resolutionBreached,
+          remainingSeconds: result.sla.remainingSeconds,
+        },
         // 振り先の候補。**無効化したグループは含まれない**(新しく振れない)。
         availableGroups: result.availableGroups.map((g) => ({
           id: g.id,

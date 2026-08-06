@@ -27,6 +27,8 @@ export function TicketFilters({
   const selected = (name: string, value: string): boolean => applied.getAll(name).includes(value);
   const assignment = applied.get('assignment') ?? '';
   const group = applied.get('group') ?? '';
+  const sla = applied.get('sla') ?? '';
+  const sort = applied.get('sort') ?? '';
 
   return (
     <form className="filters" method="get" action="/ops">
@@ -126,6 +128,26 @@ export function TicketFilters({
           </select>
         </div>
       )}
+
+      <div className="field">
+        <label htmlFor="sla">期限</label>
+        <select id="sla" name="sla" defaultValue={sla}>
+          <option value="">すべて</option>
+          {/* **超過しても業務は止めない**(SLAは計測指標であって統制ではない)。
+              止めない代わりに、見つけられなければならない。 */}
+          <option value="breached">期限を超過</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="sort">並び順</label>
+        <select id="sort" name="sort" defaultValue={sort}>
+          <option value="">新しい順</option>
+          {/* 期限順は「残り時間の少ない順」。超過は負値なので
+              最も遅れているものが先頭に来る。 */}
+          <option value="deadline">期限が近い順</option>
+        </select>
+      </div>
 
       <div className="filter-actions">
         <button type="submit">絞り込む</button>

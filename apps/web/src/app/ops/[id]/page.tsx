@@ -9,7 +9,13 @@ import { AttachmentForm } from '../../../components/AttachmentForm';
 import { RelationList } from '../../../components/RelationList';
 import { RelationForm } from '../../../components/RelationForm';
 import { AssessmentForm } from '../../../components/AssessmentForm';
-import { stateLabel, kindLabel, priorityLabel, formatDateTime } from '../../../lib/labels';
+import {
+  stateLabel,
+  kindLabel,
+  priorityLabel,
+  formatDateTime,
+  formatRemaining,
+} from '../../../lib/labels';
 
 /**
  * 担当者の作業画面 (WP-P2-OPSUI-010)。
@@ -44,8 +50,15 @@ export default async function OpsWorkspace({
     notFound();
   }
 
-  const { ticket, comments, attachments, availableActions, priorityIsDerived, availableGroups } =
-    result.data;
+  const {
+    ticket,
+    comments,
+    attachments,
+    availableActions,
+    priorityIsDerived,
+    availableGroups,
+    sla,
+  } = result.data;
 
   // 関連は別の問い合わせにする。workspace に混ぜると、関連の取得が失敗した
   // ときに本体まで開けなくなる。関連が見えないことは、対応そのものを
@@ -243,6 +256,16 @@ export default async function OpsWorkspace({
             </form>
           ))
         )}
+      </div>
+
+      {/* 期限 (FR-TKT-008)。**操作の手前に置く。**
+          何をするか決める前に、いつまでかを知っている必要がある。 */}
+      <div className={sla.resolutionBreached ? 'sla-panel breached' : 'sla-panel'}>
+        <strong>解決の期限: {formatRemaining(sla.remainingSeconds)}</strong>
+        <p className="hint" style={{ margin: '0.25rem 0 0' }}>
+          {sla.responseBreached ? '初回応答の目標を超えています。' : '初回応答の目標内です。'}{' '}
+          超過しても操作は止まりません。目標は計測のための値です。
+        </p>
       </div>
 
       <h2>振り先</h2>

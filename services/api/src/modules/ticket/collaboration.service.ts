@@ -148,6 +148,26 @@ export class CollaborationService {
       [id, ctx.organizationId, input.ticketId, ctx.principal.userId, input.visibility, body],
     );
 
+    // 初回応答の記録 (FR-TKT-008 の応答SLA / WP-P2-SLAUI-016)。
+    //
+    // `TicketService.recordFirstResponse` は「担当者の公開コメントで
+    // 初めて呼ばれる」と書かれていたが、**呼ぶ側が居なかった。**
+    // `first_responded_at` は永久に NULL のままで、
+    // 応答SLAは全件が「未応答」として判定され続けていた。
+    //
+    // 数えるのは**担当側の公開コメント**だけである。
+    //   * 内部メモは依頼者に届かない。応答ではない
+    //   * 依頼者自身の追記は応答ではない
+    if (input.visibility === 'public') {
+      // 「依頼者ではないこと」もSQLの条件に入れる。JavaScript側で判定するために
+      // チケットを引き直すと、その間に担当が変わる余地ができる。
+      await this.client.query(
+        `UPDATE ticket SET first_responded_at = now()
+          WHERE id = $1 AND first_responded_at IS NULL AND requester_id <> $2`,
+        [input.ticketId, ctx.principal.userId],
+      );
+    }
+
     await recordAuditEvent(this.client, {
       eventType: 'ticket.comment.added',
       organizationId: ctx.organizationId,

@@ -675,3 +675,32 @@ button.danger {
 .group-code {
   font-family: ui-monospace, monospace;
 }
+
+/* 期限の表示 (FR-TKT-008 / WP-P2-SLAUI-016) */
+.sla {
+  white-space: nowrap;
+}
+/* **色だけに頼らない。** 文言が「◯◯超過」「あと◯◯」で意味を持つ。
+   色は一覧を走査するときの補助にとどめる。 */
+.sla-breached {
+  color: var(--danger);
+  font-weight: 700;
+}
+.sla-soon {
+  font-weight: 600;
+}
+.sla-unknown {
+  color: var(--text-muted);
+}
+/* 詳細画面の期限。超過しているときだけ枠で囲む。 */
+.sla-panel {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+.sla-panel.breached {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
