@@ -372,11 +372,22 @@ describe('SLAクロックの実DB挙動 (FR-TKT-008)', () => {
 
   it('初回応答が記録され、2回目以降は上書きされない', async () => {
     const id = await makeTicket();
-    const ctx = ctxFor(users.get(`${ORG_A}:agent`)!, 'agent', ORG_A);
-    await inOrg(ORG_A, (c) => svc(c).recordFirstResponse(ctx, id, at(15)));
-    await inOrg(ORG_A, (c) => svc(c).recordFirstResponse(ctx, id, at(90)));
+    // 起票したのは agent なので、**agent 自身の書き込みは応答に数えない**。
+    // 別の担当者として記録する。
+    const other = ctxFor(users.get(`${ORG_A}:org_admin`)!, 'org_admin', ORG_A);
+    await inOrg(ORG_A, (c) => svc(c).recordFirstResponse(other, id, at(15)));
+    await inOrg(ORG_A, (c) => svc(c).recordFirstResponse(other, id, at(90)));
     const { rows } = await admin.query('SELECT first_responded_at FROM ticket WHERE id = $1', [id]);
     expect(new Date(rows[0].first_responded_at).toISOString()).toBe(at(15).toISOString());
+  });
+
+  it('**依頼者自身の書き込みは初回応答に数えない**', async () => {
+    const id = await makeTicket();
+    // makeTicket は agent が起票している = agent が依頼者である。
+    const self = ctxFor(users.get(`${ORG_A}:agent`)!, 'agent', ORG_A);
+    await inOrg(ORG_A, (c) => svc(c).recordFirstResponse(self, id, at(15)));
+    const { rows } = await admin.query('SELECT first_responded_at FROM ticket WHERE id = $1', [id]);
+    expect(rows[0].first_responded_at).toBeNull();
   });
 
   it('SLAポリシーが組織ごとに分離される', async () => {

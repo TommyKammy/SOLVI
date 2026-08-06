@@ -820,9 +820,13 @@ export class TicketService {
    * 担当者の公開コメントで初めて呼ばれる。2回目以降は何もしない。
    */
   async recordFirstResponse(ctx: AuthzContext, ticketId: string, at = new Date()): Promise<void> {
+    // **依頼者自身の書き込みは応答ではない。** 判定をここに置く —
+    // 「何を初回応答と数えるか」は業務の定義であり、呼び出し側ごとに
+    // 書くと解釈が分かれる(実際、コメント側に同じSQLを書いていた)。
     await this.client.query(
-      'UPDATE ticket SET first_responded_at = $2 WHERE id = $1 AND first_responded_at IS NULL',
-      [ticketId, at],
+      `UPDATE ticket SET first_responded_at = $2
+        WHERE id = $1 AND first_responded_at IS NULL AND requester_id <> $3`,
+      [ticketId, at, ctx.principal.userId],
     );
   }
 
