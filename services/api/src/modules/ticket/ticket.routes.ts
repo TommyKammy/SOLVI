@@ -101,6 +101,9 @@ function parseFilter(
   assigneeGroupIds?: string[];
   ungroupedOnly?: boolean;
   slaBreachedOnly?: boolean;
+  requesterId?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
   keyword?: string;
 } {
   const errors: Array<{ field: string; message: string }> = [];
@@ -133,6 +136,68 @@ function parseFilter(
     unassignedOnly = true;
   } else if (assignment !== null && assignment.length > 0) {
     errors.push({ field: 'assignment', message: '指定できない値です' });
+  }
+
+  /**
+   * 期間の絞り込み (FR-TKT-006)。
+   *
+   * `TicketFilter` には最初から `createdFrom` / `createdTo` があったが、
+   * **クエリパラメータとして読んでいなかった。** 条件は書けるのに
+   * 外から指定する経路が無く、要求の「期間で検索」が使えなかった。
+   *
+   * 日付だけを受け取る(`YYYY-MM-DD`)。時刻まで指定させると、
+   * 「9:00 から」と入れた人が前日の夜間を取りこぼす。
+   */
+  const parseDate = (value: string | null, field: string, endOfDay: boolean): Date | undefined => {
+    if (value === null || value.trim().length === 0) return undefined;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+      errors.push({ field, message: '日付は YYYY-MM-DD の形式で入力してください' });
+      return undefined;
+    }
+    // **終端はその日の終わりまで含める。** `2026-08-06` を「まで」に
+    // 指定した人は、その日に受け付けた分も見たい。
+    const parsed = new Date(`${value.trim()}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`);
+    if (Number.isNaN(parsed.getTime())) {
+      errors.push({ field, message: '日付として解釈できません' });
+      return undefined;
+    }
+    return parsed;
+  };
+
+  const createdFrom = parseDate(query.get('createdFrom'), 'createdFrom', false);
+  const createdTo = parseDate(query.get('createdTo'), 'createdTo', true);
+  if (createdFrom && createdTo && createdFrom > createdTo) {
+    // 決して一致しない範囲は、絞り込みではなく入力の誤りである。
+    // 0件を返すと「該当なし」と読まれ、指定を間違えたことに気付けない。
+    errors.push({ field: 'createdTo', message: '終わりの日が始まりより前になっています' });
+  }
+
+  /**
+   * 依頼者の絞り込み (FR-TKT-006)。
+   *
+   * **担当の絞り込み(`assignment`)と扱いが違う。**
+   *
+   * 担当では任意の利用者IDを受け付けない([[WP-P2-OPSUI-010]])。
+   * 「他人の担当分を名指しで引く」必要が無く、受け付ければ
+   * 在籍者のIDを総当たりする経路になるためである。
+   *
+   * 依頼者は事情が違う。
+   *
+   *   * 用途がある — 「この人の他の問い合わせ」は調査の起点として日常的に要る
+   *   * **存在が漏れない** — 結果は自組織のチケットに限られ、0件は
+   *     「その利用者が居ない」と「その利用者の問い合わせが無い」を区別しない
+   *   * IDは既に見えている — 作業画面が `requesterId` を返している
+   *
+   * 依頼者自身が他人のIDを指定しても、認可条件で自分の分に絞られるため0件になる。
+   */
+  const requesterParam = (query.get('requester') ?? '').trim();
+  let requesterId: string | undefined;
+  if (requesterParam.length > 0) {
+    if (!/^[0-9a-f-]{36}$/i.test(requesterParam)) {
+      errors.push({ field: 'requester', message: '指定できない値です' });
+    } else {
+      requesterId = requesterParam;
+    }
   }
 
   // 期限超過の絞り込み (FR-TKT-008)。
@@ -201,6 +266,9 @@ function parseFilter(
     ...(assigneeGroupIds ? { assigneeGroupIds } : {}),
     ...(ungroupedOnly !== undefined ? { ungroupedOnly } : {}),
     ...(slaBreachedOnly !== undefined ? { slaBreachedOnly } : {}),
+    ...(requesterId ? { requesterId } : {}),
+    ...(createdFrom ? { createdFrom } : {}),
+    ...(createdTo ? { createdTo } : {}),
   };
 }
 const IMPACTS = new Set(['low', 'medium', 'high']);

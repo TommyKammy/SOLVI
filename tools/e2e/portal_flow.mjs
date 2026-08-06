@@ -233,6 +233,108 @@ check(
   !soloPage.includes('組織を切り替える'),
 );
 
+// ---------------------------------------------------------------------------
+// 絞り込みが**画面から**効いていること (FR-TKT-006 / WP-P2-SEARCH-017)
+//
+// 画面はURLの値を許可リストで転記してAPIへ渡す。
+// **追加を忘れると、プルダウンは動くのに結果が変わらない。**
+// フォームは送っているのに画面が捨てている状態で、実際そうなっていた。
+//
+// APIの件数と画面の行数を突き合わせる。片方だけ見ても気付けない。
+// ---------------------------------------------------------------------------
+{
+  const opsCookie = await (async () => {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      // **組織を明示する。** この利用者は兼務者であり、指定しないと
+      // 組織が未選択のままセッションが始まる (WP-P1-IDM-010)。
+      body: JSON.stringify({
+        email: 'agent@acme.example.test',
+        password: 'local-dev-password-1',
+        organizationId: ORG,
+      }),
+    });
+    return (res.headers.get('set-cookie') ?? '').split(';')[0];
+  })();
+
+  const rowsOf = (html) => {
+    const body = /<tbody>[\s\S]*?<\/tbody>/.exec(html);
+    return body ? body[0].split('<tr>').length - 1 : 0;
+  };
+
+  for (const q of [
+    '',
+    '?state=resolved',
+    '?priority=critical',
+    '?group=ungrouped',
+    '?sla=breached',
+  ]) {
+    const api = await (
+      await fetch(`${API}/tickets${q}`, { headers: { cookie: opsCookie } })
+    ).json();
+    const page = await fetch(`${WEB}/ops${q}`, { headers: { cookie: opsCookie } });
+    const rows = rowsOf(await page.text());
+    check(
+      `絞り込みが画面へ届く ${q || '(条件なし)'}`,
+      api.total === rows,
+      `API=${api.total} 画面=${rows}`,
+    );
+  }
+
+  // 期間と依頼者
+  const created = await (
+    await fetch(`${API}/tickets?limit=1`, { headers: { cookie: opsCookie } })
+  ).json();
+  if (created.items.length > 0) {
+    const ws = await (
+      await fetch(`${API}/tickets/${created.items[0].id}/workspace`, {
+        headers: { cookie: opsCookie },
+      })
+    ).json();
+    const byRequester = await (
+      await fetch(`${API}/tickets?requester=${ws.ticket.requesterId}`, {
+        headers: { cookie: opsCookie },
+      })
+    ).json();
+    check('**依頼者で絞り込める**', byRequester.total >= 1, `${byRequester.total} 件`);
+
+    const detail = await fetch(`${WEB}/ops/${created.items[0].id}`, {
+      headers: { cookie: opsCookie },
+    });
+    check(
+      '作業画面に「この依頼者の他の問い合わせ」がある',
+      (await detail.text()).includes('この依頼者の他の問い合わせ'),
+    );
+  }
+
+  const past = await (
+    await fetch(`${API}/tickets?createdFrom=2020-01-01&createdTo=2020-12-31`, {
+      headers: { cookie: opsCookie },
+    })
+  ).json();
+  check('**期間で絞り込める**', past.total === 0, `${past.total} 件`);
+
+  let bad = await fetch(`${API}/tickets?createdFrom=2026/01/01`, {
+    headers: { cookie: opsCookie },
+  });
+  check('日付の形式が不正なら 400', bad.status === 400, `status=${bad.status}`);
+  bad = await fetch(`${API}/tickets?createdFrom=2026-02-01&createdTo=2026-01-01`, {
+    headers: { cookie: opsCookie },
+  });
+  check(
+    '**終わりが始まりより前なら 400**(0件で誤りに気付かせない、をしない)',
+    bad.status === 400,
+    `status=${bad.status}`,
+  );
+  bad = await fetch(`${API}/tickets?requester=someone`, { headers: { cookie: opsCookie } });
+  check('依頼者がUUID以外なら 400', bad.status === 400, `status=${bad.status}`);
+
+  const opsPage = await fetch(`${WEB}/ops`, { headers: { cookie: opsCookie } });
+  const opsHtml = await opsPage.text();
+  check('一覧に受付日の絞り込みがある', opsHtml.includes('受付日(から)'));
+}
+
 console.log(
   failed === 0 ? '\nOK: 通し確認はすべて期待どおりです' : `\n${failed} 件の問題があります`,
 );

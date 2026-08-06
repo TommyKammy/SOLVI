@@ -606,3 +606,144 @@ describe('初回応答の記録 (FR-TKT-008)', () => {
     expect(second[0].first_responded_at.getTime()).toBe(first[0].first_responded_at.getTime());
   });
 });
+
+/**
+ * 期間と依頼者の絞り込み (FR-TKT-006 / WP-P2-SEARCH-017)。
+ *
+ * 要求は「番号・件名・**依頼者**・状態・担当・**期間**で検索」。
+ * `TicketFilter` には最初から条件があったが、**クエリパラメータとして
+ * 読んでいなかった** — 条件は書けるのに外から指定する経路が無かった。
+ */
+describe('期間の絞り込み (FR-TKT-006)', () => {
+  it('受付日の範囲で絞り込める', async () => {
+    await createUser('per-a@example.com', ORG_A, 'agent');
+    const agent = await loginAs('per-a@example.com', ORG_A);
+    const oldOne = await newTicket(agent, { subject: '古い問い合わせ' });
+    const newOne = await newTicket(agent, { subject: '新しい問い合わせ' });
+    await admin.query("UPDATE ticket SET created_at = '2026-01-15T10:00:00Z' WHERE id = $1", [
+      oldOne,
+    ]);
+
+    const result = await run(() =>
+      tickets.list(
+        agent,
+        new URLSearchParams({ createdFrom: '2026-01-01', createdTo: '2026-01-31' }),
+      ),
+    );
+    const ids = result.body.items.map((t) => t.id);
+    expect(ids).toContain(oldOne);
+    expect(ids).not.toContain(newOne);
+  });
+
+  it('**「まで」はその日の終わりまで含む**', async () => {
+    await createUser('per-b@example.com', ORG_A, 'agent');
+    const agent = await loginAs('per-b@example.com', ORG_A);
+    const id = await newTicket(agent, { subject: '当日の夜' });
+    await admin.query("UPDATE ticket SET created_at = '2026-01-15T23:30:00Z' WHERE id = $1", [id]);
+
+    // 「2026-01-15 まで」と指定した人は、その日に受け付けた分も見たい。
+    const result = await run(() =>
+      tickets.list(agent, new URLSearchParams({ createdTo: '2026-01-15' })),
+    );
+    expect(result.body.items.map((t) => t.id)).toContain(id);
+  });
+
+  it('日付の形式が不正なら 400', async () => {
+    await createUser('per-c@example.com', ORG_A, 'agent');
+    const agent = await loginAs('per-c@example.com', ORG_A);
+    await expect(
+      run(() => tickets.list(agent, new URLSearchParams({ createdFrom: '2026/01/01' }))),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('**終わりが始まりより前なら 400**(0件を返して誤りに気付かせない、をしない)', async () => {
+    await createUser('per-d@example.com', ORG_A, 'agent');
+    const agent = await loginAs('per-d@example.com', ORG_A);
+    await expect(
+      run(() =>
+        tickets.list(
+          agent,
+          new URLSearchParams({ createdFrom: '2026-02-01', createdTo: '2026-01-01' }),
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe('依頼者の絞り込み (FR-TKT-006)', () => {
+  it('依頼者を指定して絞り込める', async () => {
+    const reqId = await createUser('rq-a@example.com', ORG_A, 'requester');
+    await createUser('rq-b@example.com', ORG_A, 'requester');
+    await createUser('rq-ops@example.com', ORG_A, 'agent');
+    const requester = await loginAs('rq-a@example.com', ORG_A);
+    const other = await loginAs('rq-b@example.com', ORG_A);
+    const agent = await loginAs('rq-ops@example.com', ORG_A);
+
+    const mine = await newTicket(requester, { subject: 'この人の問い合わせ' });
+    const theirs = await newTicket(other, { subject: '別の人の問い合わせ' });
+
+    const result = await run(() => tickets.list(agent, new URLSearchParams({ requester: reqId })));
+    const ids = result.body.items.map((t) => t.id);
+    expect(ids).toContain(mine);
+    expect(ids).not.toContain(theirs);
+  });
+
+  it('**存在しないIDでも0件を返すだけ**(実在の有無が漏れない)', async () => {
+    await createUser('rq-ops2@example.com', ORG_A, 'agent');
+    const agent = await loginAs('rq-ops2@example.com', ORG_A);
+
+    // 「その利用者が居ない」と「その利用者の問い合わせが無い」を区別しない。
+    const result = await run(() =>
+      tickets.list(
+        agent,
+        new URLSearchParams({ requester: '00000000-0000-4000-9000-0000000000ff' }),
+      ),
+    );
+    expect(result.body.items).toHaveLength(0);
+  });
+
+  it('**依頼者が他人のIDを指定しても自分の分しか出ない**', async () => {
+    const otherId = await createUser('rq-c@example.com', ORG_A, 'requester');
+    await createUser('rq-d@example.com', ORG_A, 'requester');
+    const other = await loginAs('rq-c@example.com', ORG_A);
+    const me = await loginAs('rq-d@example.com', ORG_A);
+    await newTicket(other, { subject: '他人の問い合わせ' });
+
+    // 認可条件で自分の分に絞られるため、他人のIDを名乗っても0件。
+    const result = await run(() => tickets.list(me, new URLSearchParams({ requester: otherId })));
+    expect(result.body.items).toHaveLength(0);
+  });
+
+  it('**他組織の依頼者のチケットは出ない**', async () => {
+    const foreignId = await createUser('rq-e@example.com', ORG_B, 'requester');
+    await createUser('rq-ops3@example.com', ORG_A, 'agent');
+    const foreign = await loginAs('rq-e@example.com', ORG_B);
+    const agent = await loginAs('rq-ops3@example.com', ORG_A);
+    await newTicket(foreign, { subject: '他組織の問い合わせ' });
+
+    const result = await run(() =>
+      tickets.list(agent, new URLSearchParams({ requester: foreignId })),
+    );
+    expect(result.body.items).toHaveLength(0);
+  });
+
+  it('UUID以外は 400(黙って無視しない)', async () => {
+    await createUser('rq-ops4@example.com', ORG_A, 'agent');
+    const agent = await loginAs('rq-ops4@example.com', ORG_A);
+    await expect(
+      run(() => tickets.list(agent, new URLSearchParams({ requester: 'someone' }))),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('絞り込んだ条件が応答に含まれる', async () => {
+    const reqId = await createUser('rq-f@example.com', ORG_A, 'requester');
+    await createUser('rq-ops5@example.com', ORG_A, 'agent');
+    const agent = await loginAs('rq-ops5@example.com', ORG_A);
+
+    const result = await run(() =>
+      tickets.list(agent, new URLSearchParams({ requester: reqId, createdFrom: '2026-01-01' })),
+    );
+    expect(result.body.appliedFilter).toMatchObject({ requesterId: reqId });
+    expect(result.body.appliedFilter.createdFrom).toBeDefined();
+  });
+});

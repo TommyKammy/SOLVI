@@ -1,5 +1,6 @@
 import type pg from 'pg';
 import { Problems, validateAttachment, MAX_ATTACHMENT_BYTES } from '@solvi/shared';
+import { TicketService } from './ticket.service.js';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import { enqueueOutboxEvent } from '../../common/outbox/outbox.js';
 import { NoopDenialRecorder, type DenialRecorder } from '../../common/audit/denial-recorder.js';
@@ -159,13 +160,10 @@ export class CollaborationService {
     //   * 内部メモは依頼者に届かない。応答ではない
     //   * 依頼者自身の追記は応答ではない
     if (input.visibility === 'public') {
-      // 「依頼者ではないこと」もSQLの条件に入れる。JavaScript側で判定するために
-      // チケットを引き直すと、その間に担当が変わる余地ができる。
-      await this.client.query(
-        `UPDATE ticket SET first_responded_at = now()
-          WHERE id = $1 AND first_responded_at IS NULL AND requester_id <> $2`,
-        [input.ticketId, ctx.principal.userId],
-      );
+      // **同じSQLを書き写さない。** 「何を初回応答と数えるか」は
+      // `TicketService` が持つ業務の定義である。ここに書き写すと、
+      // 定義が変わったときに片方だけ直る。
+      await new TicketService(this.client).recordFirstResponse(ctx, input.ticketId);
     }
 
     await recordAuditEvent(this.client, {

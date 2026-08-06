@@ -205,6 +205,15 @@ export default async function OpsWorkspace({
         <dt>担当</dt>
         <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
 
+        <dt>依頼者</dt>
+        <dd>
+          {/* **IDを出さない。** 読めない値を見せても意味が無い。
+              「他の問い合わせ」への導線としてだけ使う (FR-TKT-006)。 */}
+          <Link href={`/ops?requester=${encodeURIComponent(ticket.requesterId)}`}>
+            この依頼者の他の問い合わせ
+          </Link>
+        </dd>
+
         <dt>担当グループ</dt>
         <dd>
           {/* **グループと個人は別の軸である。** グループはキュー、個人は

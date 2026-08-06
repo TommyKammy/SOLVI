@@ -19,6 +19,35 @@ import { TicketFilters } from '../../components/TicketFilters';
  * 優先度と受付日時を出し、未割当が分かるようにする。
  */
 
+/**
+ * APIへ渡す絞り込みのキー。
+ *
+ * **許可リストにする理由。** 画面のURLに現れた値をそのまま転送すると、
+ * 将来APIが受け付ける別の項目(内部向けの指定など)を、
+ * URLを書き換えるだけで渡せてしまう。
+ *
+ * **ただし追加を忘れると、絞り込みが黙って効かなくなる。**
+ * 実際 `group` `sla` `sort` を足したとき、ここへ追加していなかったため
+ * **画面のプルダウンは動くのに結果が変わらない**状態だった。
+ * フォームは送っているのに、この画面が捨てていた。
+ *
+ * 絞り込みを増やすときは、ここと `TicketFilters` の両方を直す。
+ * 通し確認で「条件を変えると件数が変わる」ことを必ず確かめる。
+ */
+const FORWARDED_PARAMS = new Set([
+  'state',
+  'kind',
+  'priority',
+  'assignment',
+  'keyword',
+  'group',
+  'sla',
+  'sort',
+  'requester',
+  'createdFrom',
+  'createdTo',
+]);
+
 export const dynamic = 'force-dynamic';
 
 export default async function OpsQueue({
@@ -33,7 +62,7 @@ export default async function OpsQueue({
   // 突き合わせられるようにする。
   const filter = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (!['state', 'kind', 'priority', 'assignment', 'keyword'].includes(key)) continue;
+    if (!FORWARDED_PARAMS.has(key)) continue;
     for (const v of Array.isArray(value) ? value : value ? [value] : []) {
       filter.append(key, v);
     }

@@ -29,6 +29,9 @@ export function TicketFilters({
   const group = applied.get('group') ?? '';
   const sla = applied.get('sla') ?? '';
   const sort = applied.get('sort') ?? '';
+  const createdFrom = applied.get('createdFrom') ?? '';
+  const createdTo = applied.get('createdTo') ?? '';
+  const requester = applied.get('requester') ?? '';
 
   return (
     <form className="filters" method="get" action="/ops">
@@ -149,6 +152,41 @@ export function TicketFilters({
         </select>
       </div>
 
+      <div className="field">
+        <label htmlFor="createdFrom">受付日(から)</label>
+        {/* 日付だけを受け取る。時刻まで指定させると、「9:00 から」と
+            入れた人が前日の夜間を取りこぼす。 */}
+        <input id="createdFrom" name="createdFrom" type="date" defaultValue={createdFrom} />
+      </div>
+
+      <div className="field">
+        <label htmlFor="createdTo">受付日(まで)</label>
+        <span className="hint" id="created-to-hint">
+          その日に受け付けた分まで含みます
+        </span>
+        <input
+          id="createdTo"
+          name="createdTo"
+          type="date"
+          defaultValue={createdTo}
+          aria-describedby="created-to-hint"
+        />
+      </div>
+
+      {/* 依頼者は画面から選ばせない。**在籍者の一覧は名簿である。**
+          作業画面の「この依頼者の他の問い合わせ」から辿ってくる。
+          指定されている間だけ、外せるように見せる。 */}
+      {requester.length > 0 && (
+        <div className="field">
+          <label htmlFor="requester">依頼者</label>
+          <span className="hint">特定の依頼者で絞り込んでいます</span>
+          <input id="requester" name="requester" type="hidden" value={requester} readOnly />
+          <a className="clear-filters" href={clearRequesterHref(applied)}>
+            依頼者の指定を外す
+          </a>
+        </div>
+      )}
+
       <div className="filter-actions">
         <button type="submit">絞り込む</button>
         {/* 解除は空のGETで行う。「すべて外す」を手作業でやらせない。 */}
@@ -158,4 +196,12 @@ export function TicketFilters({
       </div>
     </form>
   );
+}
+
+/** 依頼者の指定だけを外したURL。他の条件は保つ。 */
+function clearRequesterHref(applied: URLSearchParams): string {
+  const next = new URLSearchParams(applied);
+  next.delete('requester');
+  const query = next.toString();
+  return query.length > 0 ? `/ops?${query}` : '/ops';
 }
