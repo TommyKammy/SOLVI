@@ -734,3 +734,15 @@ button.danger {
 .offline-notice span {
   color: var(--text-muted);
 }
+
+/* 期限つきの役割 (FR-IDM-006 / WP-P1-IDM-014) */
+.temporary-roles {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.temporary-roles .soon {
+  /* **色だけに頼らない。** 残り日数の文言が先にあり、これは補助である。 */
+  color: var(--danger);
+}

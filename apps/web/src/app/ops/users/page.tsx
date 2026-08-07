@@ -128,6 +128,29 @@ export default async function ManageUsers({
                 </div>
                 <strong>{member.displayName}</strong>
                 <p style={{ margin: '0.25rem 0 0' }}>{member.email}</p>
+
+                {member.temporaryRoles.length > 0 && (
+                  // **期限は静かに来る** (FR-IDM-006)。
+                  // 出しておかないと、切れた日に本人も管理者も理由が分からない。
+                  <ul className="temporary-roles">
+                    {member.temporaryRoles.map((t) => {
+                      const days = Math.ceil(
+                        (new Date(t.validUntil).getTime() - Date.now()) / 86_400_000,
+                      );
+                      return (
+                        <li
+                          key={`${t.roleCode}:${t.validUntil}`}
+                          className={days <= 30 ? 'soon' : ''}
+                        >
+                          {ROLE_LABELS[t.roleCode] ?? t.roleCode} は {formatDateTime(t.validUntil)}{' '}
+                          まで
+                          {/* 色だけに頼らない。**残り日数を文言で言う。** */}
+                          {days <= 30 && <strong>(あと {Math.max(days, 0)} 日)</strong>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
                 {stopped && member.deactivatedAt && (
                   <p className="hint" style={{ margin: '0.25rem 0 0' }}>
                     {formatDateTime(member.deactivatedAt)} に停止

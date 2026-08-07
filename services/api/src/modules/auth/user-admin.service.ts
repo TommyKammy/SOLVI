@@ -37,6 +37,13 @@ export interface OrganizationMember {
   status: 'active' | 'deactivated';
   deactivatedAt: Date | null;
   roleCodes: string[];
+  /**
+   * 期限つきの役割 (FR-IDM-006)。兼務・出向はここに出る。
+   *
+   * **切れてから気付く状態を作らない。** 期限は静かに来る。
+   * 一覧に出しておけば、管理者は切れる前に延長を判断できる。
+   */
+  temporaryRoles: Array<{ roleCode: string; validUntil: string }>;
   /** 対応中(終端でない)のチケット件数。停止前に振り直しを促すために出す。 */
   openTicketCount: number;
 }
@@ -62,6 +69,14 @@ export class UserAdminService {
     const { rows } = await this.client.query(
       `SELECT u.id, u.display_name, u.primary_email, u.status, u.deactivated_at,
               array_remove(array_agg(DISTINCT r.code), NULL) AS role_codes,
+              -- 期限つきの役割。**まだ効力のあるものだけ**を出す。
+              -- 切れたものを混ぜると「いま何ができる人か」が読めなくなる。
+              COALESCE(
+                jsonb_agg(
+                  DISTINCT jsonb_build_object('roleCode', r.code, 'validUntil', rb.valid_until)
+                ) FILTER (WHERE rb.valid_until IS NOT NULL),
+                '[]'::jsonb
+              ) AS temporary_roles,
               (SELECT count(*)::int FROM ticket t
                 WHERE t.assignee_id = u.id
                   AND t.organization_id = $1
@@ -84,6 +99,9 @@ export class UserAdminService {
       status: r.status as 'active' | 'deactivated',
       deactivatedAt: (r.deactivated_at as Date | null) ?? null,
       roleCodes: (r.role_codes as string[]) ?? [],
+      temporaryRoles: ((r.temporary_roles as Array<{ roleCode: string; validUntil: string }>) ?? [])
+        .map((t) => ({ roleCode: t.roleCode, validUntil: new Date(t.validUntil).toISOString() }))
+        .sort((a, b) => a.validUntil.localeCompare(b.validUntil)),
       openTicketCount: Number(r.open_tickets ?? 0),
     }));
   }
