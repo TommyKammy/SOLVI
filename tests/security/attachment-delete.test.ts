@@ -29,6 +29,7 @@ import { beginAuthTransaction } from '../../services/api/src/modules/auth/auth-c
 import { uuidv7 } from '../../services/api/src/common/audit/audit.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
 import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
+import { markScanned } from '../support/scan.js';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
 const PASSWORD = 'a-perfectly-fine-password';
@@ -244,11 +245,7 @@ describe('実体を本当に消す', () => {
     const { attachmentId } = await attach(user, ticketId, 'gone.txt', '内容');
 
     // スキャン済みにしてダウンロード可能な状態にしてから削除する
-    // scan_status と scanned_at は整合が制約で強制されている
-    await admin.query(
-      "UPDATE ticket_attachment SET scan_status = 'clean', scanned_at = now() WHERE id = $1",
-      [attachmentId],
-    );
+    await markScanned(admin, attachmentId, 'clean');
     await run(() => collab.deleteAttachment(user, attachmentId, { reason: '誤添付' }));
 
     await expect(run(() => collab.createDownloadUrl(user, attachmentId))).rejects.toMatchObject({

@@ -462,20 +462,6 @@ export class CollaborationService {
       afterState: { deleted: true, reason: trimmed.slice(0, 500) },
     });
   }
-
-  /**
-   * スキャン結果の反映。スキャナ本体の統合は後続WP。
-   * ここでは結果を受け取る口だけを用意し、clean 以外は配布されない状態を保つ。
-   */
-  async recordScanResult(
-    attachmentId: string,
-    status: Exclude<ScanStatus, 'pending'>,
-  ): Promise<void> {
-    await this.client.query(
-      `UPDATE ticket_attachment SET scan_status = $2, scanned_at = now() WHERE id = $1`,
-      [attachmentId, status],
-    );
-  }
 }
 
 function toComment(row: Record<string, unknown>): TicketComment {

@@ -255,8 +255,7 @@ const ACCEPTED_UNWIRED = {
   // `createCredential` は WP-P1-IDM-012 で seed と管理ツールの両方から
   // 呼ぶようにしたので外した。**繋いだら消す。**
   purgeExpired: '期限切れセッションの掃除が動いていない。溜まり続ける',
-  recordScanResult:
-    '添付スキャンの結果記録。worker の `AttachmentScanner` が自前のSQLで書いており、**同じ判定が二か所にある**',
+  // `recordScanResult` は WP-P2-SCAN-012 で削除した。書くのは worker だけである。
   findComment: 'コメント1件の取得。呼ぶ画面が無い',
   // RelationService は WP-P2-RELUI-012 で繋いだので、この表から外した。
   // 繋いだら消す — 残したままだと、次に見た人が「まだ未接続」と読む。
@@ -497,6 +496,11 @@ process.stdout.write('\nF. 同じ手続きが二か所に書かれていない�
       pattern: /UPDATE session[\s\S]{0,60}SET revoked_at/,
       what: 'セッションの失効',
       why: '失効の条件が分かれると、片方の経路だけ「止めたのに使える」が残る',
+    },
+    {
+      pattern: /UPDATE ticket_attachment[\s\S]{0,80}SET scan_status/,
+      what: '添付のスキャン結果の書き込み',
+      why: '列が増えたときに片方だけ取り残される。実際 scan_signature / scan_attempts / scan_last_error を知らない写しが残っていた',
     },
   ];
 
