@@ -480,7 +480,209 @@ describe('復帰 (FR-IDM-007)', () => {
   });
 });
 
-describe('役割の付与と取り消し (FR-IDM-005 / WP-P1-IDM-015)', () => {
+describe('利用者の作成 (WP-P1-IDM-016)', () => {
+  it('**管理者が利用者を作れる**(これまで人を作る経路が無かった)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    const created = await run(() =>
+      users.createUser(orgAdmin, {
+        email: 'newcomer@example.com',
+        displayName: '新入 太郎',
+        roleCode: 'requester',
+        reason: '入社のため',
+      }),
+    );
+    expect(created.status).toBe(201);
+
+    const list = await run(() => users.list(orgAdmin));
+    const member = list.body.items.find((m) => m.email === 'newcomer@example.com');
+    expect(member).toBeDefined();
+    expect(member!.roleCodes).toContain('requester');
+    expect(member!.status).toBe('active');
+  });
+
+  it('**作っただけではログインできない**(資格情報は別の手順)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await run(() =>
+      users.createUser(orgAdmin, {
+        email: 'nopass@example.com',
+        displayName: 'パスワード未設定',
+        roleCode: 'agent',
+        reason: '入社のため',
+      }),
+    );
+
+    // identity も local_credential も作らない。**作ることと入れるようにすることを分ける。**
+    const { rows } = await admin.query(
+      `SELECT
+         (SELECT count(*)::int FROM identity i JOIN app_user u ON u.id = i.user_id
+           WHERE u.primary_email = 'nopass@example.com') AS identities,
+         (SELECT count(*)::int FROM local_credential c JOIN app_user u ON u.id = c.user_id
+           WHERE u.primary_email = 'nopass@example.com') AS credentials`,
+    );
+    expect(rows[0].identities).toBe(0);
+    expect(rows[0].credentials).toBe(0);
+  });
+
+  it('**同じ組織に同じ連絡先の人は作れない** (409)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('dup@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await expect(
+      run(() =>
+        users.createUser(orgAdmin, {
+          email: 'dup@example.com',
+          displayName: '重複',
+          roleCode: 'requester',
+          reason: '二重作成',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('**他組織の重複は検出しない**(検出できないことを隠さない)', async () => {
+    // 検出するには組織をまたいでメールを引く必要があり、それは
+    // **在籍者の総当たりができる経路**になる。作れてしまうのは承知のうえで、
+    // 「検出したふり」をしない。この検査はその判断を固定する。
+    await createUser('adm-a@example.com', ORG_A, 'org_admin');
+    await createUser('only-b@example.com', ORG_B, 'agent');
+    const admA = await loginAs('adm-a@example.com', ORG_A);
+
+    const created = await run(() =>
+      users.createUser(admA, {
+        email: 'only-b@example.com',
+        displayName: '同じ連絡先の別人',
+        roleCode: 'requester',
+        reason: '他組織の重複は見えない',
+      }),
+    );
+    expect(created.status).toBe(201);
+
+    // **別の行として作られる。** 同じ人を指しているかどうかは分からない。
+    const { rows } = await admin.query(
+      "SELECT count(*)::int AS n FROM app_user WHERE lower(primary_email) = 'only-b@example.com'",
+    );
+    expect(rows[0].n).toBe(2);
+  });
+
+  it('**platform ロールでは作れない**(二重承認が要る)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await expect(
+      run(() =>
+        users.createUser(orgAdmin, {
+          email: 'evil@example.com',
+          displayName: '奪取',
+          roleCode: 'platform_admin',
+          reason: '奪取の試み',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('メールの形式を見る', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await expect(
+      run(() =>
+        users.createUser(orgAdmin, {
+          email: 'not-an-email',
+          displayName: '形式不正',
+          roleCode: 'requester',
+          reason: '検査',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('理由なしでは作れない', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await expect(
+      run(() =>
+        users.createUser(orgAdmin, {
+          email: 'noreason@example.com',
+          displayName: '理由なし',
+          roleCode: 'requester',
+          reason: '   ',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('**担当者は利用者を作れない**', async () => {
+    await createUser('ops@example.com', ORG_A, 'agent');
+    const agent = await loginAs('ops@example.com', ORG_A);
+
+    await expect(
+      run(() =>
+        users.createUser(agent, {
+          email: 'byagent@example.com',
+          displayName: '担当者が作る',
+          roleCode: 'agent',
+          reason: '権限外',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('**作成と最初の役割を別々に記録する**(人を作ったことと権限は別の事実)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    const created = await run(() =>
+      users.createUser(orgAdmin, {
+        email: 'audited@example.com',
+        displayName: '監査対象',
+        roleCode: 'agent',
+        reason: '中途入社',
+      }),
+    );
+
+    const { rows } = await admin.query(
+      `SELECT event_type, action FROM audit_event
+        WHERE subject_user_id = $1 ORDER BY event_id`,
+      [created.body.userId],
+    );
+    const types = rows.map((r) => `${r.event_type}:${r.action}`);
+    expect(types).toContain('user.created:create');
+    expect(types).toContain('role.binding.created:grant');
+  });
+
+  it('メールの大文字小文字を揃える(同じ人を二人作らない)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await run(() =>
+      users.createUser(orgAdmin, {
+        email: 'Mixed.Case@Example.com',
+        displayName: '大文字混じり',
+        roleCode: 'requester',
+        reason: '入社',
+      }),
+    );
+
+    await expect(
+      run(() =>
+        users.createUser(orgAdmin, {
+          email: 'mixed.case@example.com',
+          displayName: '小文字',
+          roleCode: 'requester',
+          reason: '二重',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe('役割の付与と取り消し (WP-P1-IDM-015)', () => {
   it('**管理者が役割を与えられる**(これまで配る経路が無かった)', async () => {
     await createUser('adm@example.com', ORG_A, 'org_admin');
     await createUser('member@example.com', ORG_A, 'requester');
@@ -672,7 +874,7 @@ describe('役割の付与と取り消し (FR-IDM-005 / WP-P1-IDM-015)', () => {
   });
 });
 
-describe('役割の取り消し (FR-IDM-005)', () => {
+describe('役割の取り消し (WP-P1-IDM-015)', () => {
   it('**取り消すと権限を失う。行は残る**', async () => {
     await createUser('adm@example.com', ORG_A, 'org_admin');
     await createUser('rev@example.com', ORG_A, 'agent');

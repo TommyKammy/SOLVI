@@ -384,13 +384,17 @@ export const api = {
       }>;
     }>('/users'),
 
+  /** 利用者を作る (WP-P1-IDM-016)。作るだけで、入れるようにはしない。 */
+  createUser: (body: { email: string; displayName: string; roleCode: string; reason: string }) =>
+    call<{ userId: string }>('/users', { method: 'POST', body: JSON.stringify(body) }),
+
   deactivateUser: (userId: string, reason: string) =>
     call<{ revokedSessions: number; openTicketCount: number }>(
       `/users/${encodeURIComponent(userId)}/deactivate`,
       { method: 'POST', body: JSON.stringify({ reason }) },
     ),
 
-  /** 役割を与える (FR-IDM-005)。org スコープのみ。 */
+  /** 役割を与える (WP-P1-IDM-015)。org スコープのみ。 */
   grantRole: (userId: string, roleCode: string, reason: string, validUntil?: string) =>
     call<void>(`/users/${encodeURIComponent(userId)}/roles`, {
       method: 'POST',

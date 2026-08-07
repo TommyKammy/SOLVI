@@ -19,7 +19,7 @@ import { formatDateTime } from '../../../lib/labels';
 export const dynamic = 'force-dynamic';
 
 /**
- * この画面から配れる役割 (FR-IDM-005)。
+ * この画面から配れる役割 (WP-P1-IDM-015)。
  *
  * サーバ側の `GRANTABLE_ROLES` と揃えている。**画面で隠すことを防御にしない** —
  * 配れない役割を送っても API が 400 を返す。
@@ -76,6 +76,22 @@ export default async function ManageUsers({
         ? `/ops/users?stopped=${done.data.openTicketCount}`
         : '/ops/users?stopped=0',
     );
+  }
+
+  async function createUser(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.createUser({
+      email: String(formData.get('email') ?? ''),
+      displayName: String(formData.get('displayName') ?? ''),
+      roleCode: String(formData.get('roleCode') ?? ''),
+      reason: String(formData.get('reason') ?? ''),
+    });
+    if (!done.ok) {
+      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
+      redirect(`/ops/users?error=${encodeURIComponent(detail)}`);
+    }
+    revalidatePath('/ops/users');
+    redirect('/ops/users?created=1');
   }
 
   async function grantRole(formData: FormData): Promise<void> {
@@ -139,6 +155,19 @@ export default async function ManageUsers({
         </div>
       )}
 
+      {query.created !== undefined && (
+        <div className="notice" role="status">
+          <h2 style={{ marginTop: 0 }}>利用者を作りました</h2>
+          <p style={{ margin: 0 }}>
+            {/* **作っただけではログインできない。** 半分だけ終わった状態を
+                「完了」と読ませない。 */}
+            まだログインはできません。ログインできるようにするには、
+            管理者が資格情報を設定する必要があります (
+            <code>npm run user:create -- --email &lt;メールアドレス&gt;</code>)。
+          </p>
+        </div>
+      )}
+
       {query.granted !== undefined && (
         <div className="notice" role="status">
           <p style={{ margin: 0 }}>
@@ -167,6 +196,56 @@ export default async function ManageUsers({
           </p>
         </div>
       )}
+
+      {/* 利用者を作る (WP-P1-IDM-016)。
+          **これまで人を作る経路が無かった。** 役割は配れるようになったが、
+          配る相手をシードとSQLでしか用意できなかった。 */}
+      <details className="user-action" style={{ margin: '1.5rem 0' }}>
+        <summary>利用者を追加する</summary>
+
+        <form action={createUser} className="stack" style={{ maxWidth: '30rem' }}>
+          <div className="field">
+            <label htmlFor="new-name">表示名</label>
+            <input id="new-name" name="displayName" type="text" required maxLength={200} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-email">メールアドレス</label>
+            <span className="hint" id="new-email-hint">
+              {/* FR-IDM-002: メールは識別子ではない。**連絡先である。** */}
+              連絡先として使います。本人の識別には使いません。
+            </span>
+            <input
+              id="new-email"
+              name="email"
+              type="email"
+              required
+              aria-describedby="new-email-hint"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-role">最初の役割</label>
+            <select id="new-role" name="roleCode" defaultValue="requester" required>
+              {GRANTABLE.map((code) => (
+                <option key={code} value={code}>
+                  {ROLE_LABELS[code] ?? code}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-reason">追加の理由</label>
+            <input id="new-reason" name="reason" type="text" required maxLength={500} />
+          </div>
+
+          <p className="field-error" style={{ margin: 0 }}>
+            作成しただけではログインできません。資格情報の設定は別の手順です。
+          </p>
+          <button type="submit">利用者を追加する</button>
+        </form>
+      </details>
 
       {members.length === 0 ? (
         <p className="empty">在籍者を取得できませんでした。</p>
@@ -214,7 +293,7 @@ export default async function ManageUsers({
                   </p>
                 )}
 
-                {/* 役割の付け外し (FR-IDM-005 / WP-P1-IDM-015)。
+                {/* 役割の付け外し (WP-P1-IDM-015)。
                     **停止された利用者には配らない** — 止めた人の権限を
                     増やす操作に意味は無い。 */}
                 {!stopped && (

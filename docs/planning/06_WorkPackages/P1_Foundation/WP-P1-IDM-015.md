@@ -17,7 +17,7 @@ workstream: "IDM"
 risk: "high"
 story_points: 5
 depends_on: ["WP-P1-IDM-011", "WP-P1-IDM-014"]
-requirement_ids: ["FR-IDM-005", "FR-IDM-006"]
+requirement_ids: ["FR-IDM-006"]
 aliases: ["WP-P1-IDM-015"]
 ---
 
@@ -124,7 +124,28 @@ aliases: ["WP-P1-IDM-015"]
 - `user.created` は依然として未使用。**利用者を作る経路がまだ無い** —
   役割は配れるようになったが、人はシードとSQLでしか作れない
 
-## 8. 関連
+## 8. 訂正 (2026-08-08): 要求IDを1つ誤って名乗っていた
+
+当初この WP に `FR-IDM-005` を書いた。**誤りである。**
+
+`FR-IDM-005` は「**SCIM Group/Membership 同期**」であり、
+この WP が作ったのは管理画面からの手動の役割付与である。SCIM は未実装。
+
+結果として、[[03.18_Requirements_Traceability_Matrix]] が
+「SCIM Group 同期は検査あり」と表示した。
+**台帳が嘘をつく状態を、台帳を作った次のWPで作った。**
+
+`requirement_ids` から外し、台帳の Work Package 欄からも消した。
+
+### 導出の仕組みは、古さは防ぐが誤りは防がない
+
+`check_traceability` は「書いてあることと導出値が食い違えば落ちる」。
+**しかし導出の入力そのものが誤っていれば、誤ったまま一貫する。**
+
+`--write` は追加しかしない。誤って書いた要求IDは自動では剥がれない。
+→ [[04.23_Wiring_Verification]] §19 / [[99.4_Decision_Log|DL-047]]
+
+## 9. 関連
 
 - [[WP-P1-IDM-011]] — 退職者のアクセス停止(締め出しを作らない防御)
 - [[WP-P1-IDM-014]] — 期限到来の記録(失権の仕組みを共有)
