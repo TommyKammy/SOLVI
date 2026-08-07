@@ -17,7 +17,7 @@ workstream: "RAG"
 risk: "critical"
 story_points: 8
 depends_on: ["WP-P3-AI-004", "WP-P3-SRCH-002"]
-requirement_ids: ["FR-AI-003", "FR-AI-004"]
+requirement_ids: ["FR-AI-003", "FR-AI-004", "NFR-UX-005"]
 aliases: ["WP-P8-RAG-002"]
 ---
 

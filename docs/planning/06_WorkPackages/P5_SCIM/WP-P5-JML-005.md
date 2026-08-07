@@ -17,7 +17,7 @@ workstream: "JML"
 risk: "critical"
 story_points: 8
 depends_on: ["WP-P5-IDP-004"]
-requirement_ids: ["FR-IDM-006", "FR-IDM-007", "BR-006"]
+requirement_ids: ["BR-006", "FR-IDM-006", "FR-IDM-007", "FR-IDM-008"]
 aliases: ["WP-P5-JML-005"]
 ---
 

@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["NFR-UX-001", "NFR-UX-002", "NFR-UX-003"]
 ---
 
 # WP-P0-UX-006: UI/UX baselineとPrototype計画

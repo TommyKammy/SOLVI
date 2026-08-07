@@ -17,7 +17,7 @@ workstream: "AI"
 risk: "high"
 story_points: 8
 depends_on: ["WP-P3-SRCH-002", "WP-P3-LINK-003"]
-requirement_ids: ["FR-AI-003", "FR-AI-004", "BR-005"]
+requirement_ids: ["BR-005", "FR-AI-003", "FR-AI-004", "NFR-UX-005"]
 aliases: ["WP-P3-AI-004"]
 ---
 

@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["FR-AUT-003", "FR-AUT-005"]
 ---
 
 # WP-P4-EXEC-008: 冪等ストアとExecution Receipt

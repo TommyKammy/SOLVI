@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["NFR-SEC-001", "NFR-SEC-010"]
 ---
 
 # WP-P0-SEC-003: Threat ModelとSecurity Requirement

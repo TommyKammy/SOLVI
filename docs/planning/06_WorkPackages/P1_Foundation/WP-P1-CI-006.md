@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "in-progress"
+requirement_ids: ["NFR-MNT-001", "NFR-SEC-004", "NFR-SEC-005", "NFR-SEC-008"]
 ---
 
 # WP-P1-CI-006: CI Quality GateとClean-host

@@ -17,7 +17,7 @@ workstream: "PORTAL"
 risk: "medium"
 story_points: 8
 depends_on: ["WP-P2-TKT-001", "WP-P1-IDM-009"]
-requirement_ids: ["BR-001", "FR-TKT-001", "FR-TKT-002", "NFR-UX-001", "NFR-UX-003", "NFR-SEC-006"]
+requirement_ids: ["BR-001", "FR-TKT-001", "FR-TKT-002", "NFR-SEC-006", "NFR-UX-001", "NFR-UX-002", "NFR-UX-003", "NFR-UX-004"]
 aliases: ["WP-P2-PORTAL-002"]
 ---
 

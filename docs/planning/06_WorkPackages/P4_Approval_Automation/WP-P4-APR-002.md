@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["FR-CAT-004", "FR-CAT-005", "FR-CAT-006", "FR-CAT-007", "FR-CAT-008", "FR-CAT-009", "FR-CAT-010", "FR-CAT-011"]
 ---
 
 # WP-P4-APR-002: 承認統制(多段・代理・SoD・再承認)

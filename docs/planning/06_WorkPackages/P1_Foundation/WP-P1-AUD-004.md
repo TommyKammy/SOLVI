@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["BR-004", "NFR-OPS-003", "NFR-SEC-003"]
 ---
 
 # WP-P1-AUD-004: Append-only Audit基盤とアンカー

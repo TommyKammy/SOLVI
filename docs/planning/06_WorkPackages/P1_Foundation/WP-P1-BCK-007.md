@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["NFR-OPS-002", "NFR-SEC-009"]
 ---
 
 # WP-P1-BCK-007: Backup/Restore基盤とDrill

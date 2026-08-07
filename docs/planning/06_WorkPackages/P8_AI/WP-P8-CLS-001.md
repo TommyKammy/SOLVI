@@ -17,7 +17,7 @@ workstream: "CLS"
 risk: "high"
 story_points: 8
 depends_on: ["WP-P2-TKT-001"]
-requirement_ids: ["FR-AI-001", "FR-AI-002"]
+requirement_ids: ["FR-AI-001", "FR-AI-002", "FR-TKT-009"]
 aliases: ["WP-P8-CLS-001"]
 ---
 

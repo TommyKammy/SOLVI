@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["FR-TKT-010", "FR-TKT-011"]
 ---
 
 # WP-P2-REL-009: Ticket関連付けとMerge

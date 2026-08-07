@@ -17,7 +17,7 @@ workstream: "EVAL"
 risk: "high"
 story_points: 8
 depends_on: ["WP-P8-CLS-001", "WP-P8-RAG-002", "WP-P8-SEC-003"]
-requirement_ids: ["FR-AI-006"]
+requirement_ids: ["BR-005", "FR-AI-006"]
 aliases: ["WP-P8-EVAL-004"]
 ---
 

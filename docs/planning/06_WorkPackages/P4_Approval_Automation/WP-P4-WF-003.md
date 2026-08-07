@@ -17,7 +17,7 @@ workstream: "WF"
 risk: "high"
 story_points: 13
 depends_on: ["WP-P4-APR-002", "WP-P1-AUD-004"]
-requirement_ids: ["FR-AUT-001", "NFR-OPS-003"]
+requirement_ids: ["FR-AUT-001", "FR-CAT-009", "NFR-OPS-003", "NFR-PERF-003", "NFR-SEC-007"]
 aliases: ["WP-P4-WF-003"]
 ---
 

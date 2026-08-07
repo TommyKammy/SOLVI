@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["FR-TKT-007", "NFR-SEC-007"]
 ---
 
 # WP-P2-NTF-005: Ticket NotificationとWebhook認証

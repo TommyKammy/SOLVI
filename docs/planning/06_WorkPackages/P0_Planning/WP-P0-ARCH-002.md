@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["NFR-MNT-001"]
 ---
 
 # WP-P0-ARCH-002: Architecture baselineとADR承認

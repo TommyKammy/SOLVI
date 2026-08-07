@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["NFR-OPS-003", "NFR-SEC-004"]
 ---
 
 # WP-P1-OBS-005: Log/Metric/Trace

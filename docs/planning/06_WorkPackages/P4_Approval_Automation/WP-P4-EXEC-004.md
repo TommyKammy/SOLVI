@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["BR-003", "FR-AUT-001", "FR-AUT-002", "FR-AUT-004", "FR-CAT-008", "NFR-SEC-002", "NFR-SEC-010"]
 ---
 
 # WP-P4-EXEC-004: Executor契約・署名検証・Policy評価
