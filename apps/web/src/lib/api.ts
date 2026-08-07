@@ -363,6 +363,32 @@ export const api = {
       body: JSON.stringify({ userId }),
     }),
 
+  /** 在籍者の一覧 (FR-IDM-007)。org_admin のみ。 */
+  listMembers: () =>
+    call<{
+      items: Array<{
+        userId: string;
+        displayName: string;
+        email: string;
+        status: 'active' | 'deactivated';
+        deactivatedAt: string | null;
+        roleCodes: string[];
+        openTicketCount: number;
+      }>;
+    }>('/users'),
+
+  deactivateUser: (userId: string, reason: string) =>
+    call<{ revokedSessions: number; openTicketCount: number }>(
+      `/users/${encodeURIComponent(userId)}/deactivate`,
+      { method: 'POST', body: JSON.stringify({ reason }) },
+    ),
+
+  reactivateUser: (userId: string, reason: string) =>
+    call<void>(`/users/${encodeURIComponent(userId)}/reactivate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
   assign: (id: string, assigneeId: string | null) =>
     call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {
       method: 'POST',
