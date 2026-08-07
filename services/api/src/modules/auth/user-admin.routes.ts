@@ -51,6 +51,7 @@ export class UserAdminController {
           status: m.status,
           deactivatedAt: m.deactivatedAt?.toISOString() ?? null,
           roleCodes: m.roleCodes,
+          temporaryRoles: m.temporaryRoles,
           openTicketCount: m.openTicketCount,
         })),
       },

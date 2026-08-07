@@ -20,6 +20,10 @@ import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
+import {
+  RoleBindingExpirySweeper,
+  startRoleBindingExpiryLoop,
+} from './common/identity/binding-expiry.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
 import { NotificationService } from './modules/notification/notification.service.js';
@@ -470,6 +474,16 @@ async function bootstrap(): Promise<void> {
     6 * 60 * 60 * 1000,
   );
 
+  // 役割の期限到来 (FR-IDM-006 / WP-P1-IDM-014)。
+  //
+  // 1時間おき。期限は日単位で切られるため、1時間の粒度で十分細かい。
+  // **起動時に1周走る** — 落ちていた間に切れた分を取りこぼさない。
+  const expiryTimer = startRoleBindingExpiryLoop(
+    new RoleBindingExpirySweeper(db.authPool(), logger),
+    logger,
+    60 * 60 * 1000,
+  );
+
   dispatchTick();
 
   const server = app.listen(env.API_PORT);
@@ -481,6 +495,7 @@ async function bootstrap(): Promise<void> {
     clearInterval(dispatchTimer);
     clearInterval(autoCloseTimer);
     clearInterval(sessionPurgeTimer);
+    clearInterval(expiryTimer);
     server.close();
     await app.close();
     await db.close();

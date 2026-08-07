@@ -17,6 +17,7 @@
 const API = 'http://127.0.0.1:3001';
 const WEB = 'http://127.0.0.1:3000';
 const ORG_A = '00000000-0000-4000-9000-000000000001';
+const ORG_B = '00000000-0000-4000-9000-000000000002';
 
 let failed = 0;
 const check = (n, ok, d = '') => {
@@ -159,7 +160,38 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-// 6. 復帰 — 通し確認の後始末でもある
+// 6. 期限つきの役割 (FR-IDM-006 / WP-P1-IDM-014)
+// ---------------------------------------------------------------------------
+// 兼務・出向の期限は静かに来る。**切れてから気付く状態を作らない。**
+// シードは acme の担当者へ beta の依頼者役を90日期限で与えている。
+const betaAdmin = (await login('org_admin@beta.example.test', 'local-dev-password-1', ORG_B))
+  .cookie;
+r = await call('/users', betaAdmin);
+const betaList = r.ok ? await r.json() : { items: [] };
+const withTemporary = betaList.items.filter((m) => (m.temporaryRoles ?? []).length > 0);
+check(
+  '**期限つきの役割が一覧に出る**',
+  withTemporary.length > 0,
+  `該当 ${withTemporary.length} 件`,
+);
+check(
+  '期限つきの役割に期限日が付く',
+  withTemporary.every((m) => m.temporaryRoles.every((t) => typeof t.validUntil === 'string')),
+);
+
+const betaWeb = await page('/ops/users', betaAdmin);
+check('画面にも期限が出る', betaWeb.html.includes('まで'), `status=${betaWeb.status}`);
+
+// 期限の無い役割を期限つきとして出さない。
+const permanentOnly = betaList.items.filter((m) => (m.temporaryRoles ?? []).length === 0);
+check(
+  '**期限の無い役割を期限つきとして出さない**',
+  permanentOnly.length > 0,
+  `該当 ${permanentOnly.length} 件`,
+);
+
+// ---------------------------------------------------------------------------
+// 7. 復帰 — 通し確認の後始末でもある
 // ---------------------------------------------------------------------------
 r = await call(`/users/${target.userId}/reactivate`, orgAdmin, {
   method: 'POST',

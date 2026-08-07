@@ -378,6 +378,8 @@ export const api = {
         status: 'active' | 'deactivated';
         deactivatedAt: string | null;
         roleCodes: string[];
+        /** 期限つきの役割 (FR-IDM-006)。兼務・出向。 */
+        temporaryRoles: Array<{ roleCode: string; validUntil: string }>;
         openTicketCount: number;
       }>;
     }>('/users'),
