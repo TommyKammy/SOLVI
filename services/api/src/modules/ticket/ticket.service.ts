@@ -63,6 +63,15 @@ export interface Ticket {
   resolvedAt: Date | null;
   closedAt: Date | null;
   createdAt: Date;
+  /**
+   * 見ていた内容の版 (WP-P2-UISTATE-020)。`updated_at` をそのまま使う。
+   *
+   * 画面はこれを持ったまま操作を送る。送られた版が現在と違えば、
+   * **その間に誰かが変更している**。連番の列を足さないのは、
+   * `updated_at` に既に更新トリガが付いており、
+   * **版が2つあると片方だけ進む**からである。
+   */
+  version: string;
   /** SLAクロック。停止中は startedAt が null(FR-TKT-008)。 */
   slaClock: SlaClockState;
   firstRespondedAt: Date | null;
@@ -105,6 +114,8 @@ export interface TransitionInput {
   reason: TransitionReason;
   /** 利用者向けの補足。監査には保存せず、コメントとして残すのは WP-P2-COLLAB-004。 */
   note?: string;
+  /** 画面が見ていた版 (WP-P2-UISTATE-020)。省略すると照合しない。 */
+  expectedVersion?: string;
 }
 
 /**
@@ -145,6 +156,7 @@ function toTicket(row: Record<string, unknown>): Ticket {
     resolvedAt: (row.resolved_at as Date | null) ?? null,
     closedAt: (row.closed_at as Date | null) ?? null,
     createdAt: row.created_at as Date,
+    version: (row.updated_at as Date).toISOString(),
     slaClock: {
       startedAt: (row.sla_clock_started_at as Date | null) ?? null,
       elapsedSeconds: Number(row.sla_elapsed_seconds ?? 0),
@@ -290,6 +302,9 @@ export class TicketService {
     ]);
     if (rows.length === 0) throw Problems.notFound('チケット');
     const ticket = toTicket(rows[0]!);
+    // **状態機械へ問う前に照合する。** 遷移が妥当でも、
+    // 見ていた内容が古ければ「何に対する遷移か」が違っている。
+    this.assertFresh(ticket, input.expectedVersion);
 
     // 依頼者に許す操作は2つだけ。
     //
@@ -352,6 +367,23 @@ export class TicketService {
    * 実際、状態機械には `auto_close` の規則があるのに**実行する経路が無く**、
    * 解決済みチケットが永久に閉じない状態が続いていた(WP-P2-CLOSE-014)。
    */
+  /**
+   * 見ていた内容が最新かを確かめる (NFR-UX-004 / WP-P2-UISTATE-020)。
+   *
+   * **版を送ってこない呼び出しは素通しする。** 定期処理(自動クローズ)や
+   * APIを直接叩く運用があり、そこへ版を強制すると
+   * 「取ってから送るまでの間に自分の更新が挟まる」だけの手間になる。
+   *
+   * 守りたいのは**画面から操作する人**である。
+   * 二人が同じチケットを開き、片方の変更をもう片方が
+   * 気付かずに上書きすることを止める。
+   */
+  private assertFresh(ticket: Ticket, expectedVersion?: string): void {
+    if (expectedVersion === undefined) return;
+    if (expectedVersion === ticket.version) return;
+    throw Problems.stale('この問い合わせ');
+  }
+
   private async applyTransition(
     ctx: AuthzContext,
     ticket: Ticket,
@@ -475,7 +507,12 @@ export class TicketService {
    *
    * @param assigneeId null を渡すと割当解除
    */
-  async assign(ctx: AuthzContext, ticketId: string, assigneeId: string | null): Promise<Ticket> {
+  async assign(
+    ctx: AuthzContext,
+    ticketId: string,
+    assigneeId: string | null,
+    expectedVersion?: string,
+  ): Promise<Ticket> {
     requireRole(ctx, 'agent', 'org_admin', 'platform_admin');
 
     const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1 FOR UPDATE', [
@@ -483,6 +520,7 @@ export class TicketService {
     ]);
     if (rows.length === 0) throw Problems.notFound('チケット');
     const ticket = toTicket(rows[0]!);
+    this.assertFresh(ticket, expectedVersion);
 
     if (assigneeId !== null) {
       // 所属の検証。RLSにより他組織のrole_bindingは見えないため、
@@ -571,7 +609,12 @@ export class TicketService {
    *
    * @param groupId null を渡すとキューから外す
    */
-  async assignGroup(ctx: AuthzContext, ticketId: string, groupId: string | null): Promise<Ticket> {
+  async assignGroup(
+    ctx: AuthzContext,
+    ticketId: string,
+    groupId: string | null,
+    expectedVersion?: string,
+  ): Promise<Ticket> {
     requireRole(ctx, 'agent', 'org_admin', 'platform_admin');
 
     const { rows } = await this.client.query('SELECT * FROM ticket WHERE id = $1 FOR UPDATE', [
@@ -579,6 +622,7 @@ export class TicketService {
     ]);
     if (rows.length === 0) throw Problems.notFound('チケット');
     const ticket = toTicket(rows[0]!);
+    this.assertFresh(ticket, expectedVersion);
 
     if (groupId !== null) {
       // RLS により他組織のグループは見えない。
@@ -662,7 +706,13 @@ export class TicketService {
    */
   async reassess(
     ctx: AuthzContext,
-    input: { ticketId: string; impact: Impact; urgency: Urgency; reason: string },
+    input: {
+      ticketId: string;
+      impact: Impact;
+      urgency: Urgency;
+      reason: string;
+      expectedVersion?: string;
+    },
   ): Promise<Ticket> {
     requireRole(ctx, 'agent', 'org_admin', 'platform_admin');
 
@@ -682,6 +732,7 @@ export class TicketService {
     ]);
     if (rows.length === 0) throw Problems.notFound('チケット');
     const ticket = toTicket(rows[0]!);
+    this.assertFresh(ticket, input.expectedVersion);
 
     requireAccess(
       ctx,

@@ -30,6 +30,28 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * 競合したときの行き先 (NFR-UX-004 / WP-P2-UISTATE-020)。
+ *
+ * **「失敗しました」で終わらせない。** 二人が同じ問い合わせを開いていて
+ * 片方が先に変更した、というのは日常的に起きる。
+ * そのとき利用者がやるべきことは「もう一度押す」ではなく
+ * 「最新を読んでから考え直す」である。
+ *
+ * **モジュール直下に置く。** コンポーネントの中に置くと、
+ * サーバアクションがこれを閉包に取り込もうとして
+ * 「Functions cannot be passed directly to Client Components」で落ちる。
+ * 閉包へ入れてよいのは**値**であって、関数ではない。
+ */
+function failWith(
+  ticketId: string,
+  problem: { type?: string; detail?: string; title: string },
+): never {
+  if (problem.type?.endsWith('/stale')) redirect(`/ops/${ticketId}?stale=1`);
+  const detail = problem.detail ?? problem.title;
+  redirect(`/ops/${ticketId}?actionError=${encodeURIComponent(detail)}`);
+}
+
 export default async function OpsWorkspace({
   params,
   searchParams,
@@ -85,11 +107,9 @@ export default async function OpsWorkspace({
     const done = await api.transition(id, {
       to: String(formData.get('to') ?? ''),
       reason: String(formData.get('reason') ?? ''),
+      expectedVersion: String(formData.get('expectedVersion') ?? ''),
     });
-    if (!done.ok) {
-      // 状態が既に変わっていた場合など。画面を作り直せば正しい選択肢が出る。
-      redirect(`/ops/${id}?actionError=1`);
-    }
+    if (!done.ok) failWith(id, done.problem);
     revalidatePath(`/ops/${id}`);
     redirect(`/ops/${id}`);
   }
@@ -108,8 +128,13 @@ export default async function OpsWorkspace({
   async function routeToGroup(formData: FormData): Promise<void> {
     'use server';
     const raw = String(formData.get('groupId') ?? '');
-    const done = await api.assignGroup(id, raw.length > 0 ? raw : null);
+    const done = await api.assignGroup(
+      id,
+      raw.length > 0 ? raw : null,
+      String(formData.get('expectedVersion') ?? ''),
+    );
     if (!done.ok) {
+      if (done.problem.type?.endsWith('/stale')) redirect(`/ops/${id}?stale=1`);
       const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
       redirect(`/ops/${id}?groupError=${encodeURIComponent(detail)}`);
     }
@@ -123,8 +148,10 @@ export default async function OpsWorkspace({
       impact: String(formData.get('impact') ?? ''),
       urgency: String(formData.get('urgency') ?? ''),
       reason: String(formData.get('reason') ?? ''),
+      expectedVersion: String(formData.get('expectedVersion') ?? ''),
     });
     if (!done.ok) {
+      if (done.problem.type?.endsWith('/stale')) redirect(`/ops/${id}?stale=1`);
       const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
       redirect(`/ops/${id}?assessError=${encodeURIComponent(detail)}`);
     }
@@ -188,11 +215,27 @@ export default async function OpsWorkspace({
         </div>
       )}
 
+      {query.stale !== undefined && (
+        // **競合を「失敗」と一緒にしない** (NFR-UX-004)。
+        // 二人が同じ問い合わせを開いていて片方が先に変更した、というのは
+        // 日常的に起きる。利用者がやるべきことは「もう一度押す」ではなく
+        // 「最新を読んでから考え直す」である。
+        <div className="error-summary" role="alert" tabIndex={-1}>
+          <h2>他の人がこの問い合わせを変更しました</h2>
+          <p style={{ margin: 0 }}>
+            あなたの操作は反映していません。この画面は最新の内容に更新されています。
+            内容を確認したうえで、必要であればもう一度操作してください。
+          </p>
+        </div>
+      )}
+
       {query.actionError !== undefined && (
         <div className="error-summary" role="alert" tabIndex={-1}>
           <h2>操作できませんでした</h2>
           <p style={{ margin: 0 }}>
-            状況が変わっている可能性があります。最新の状態を確認してください。
+            {typeof query.actionError === 'string' && query.actionError !== '1'
+              ? query.actionError
+              : '状況が変わっている可能性があります。最新の状態を確認してください。'}
           </p>
         </div>
       )}
@@ -259,6 +302,8 @@ export default async function OpsWorkspace({
             <form key={`${action.to}:${action.reason}`} action={runTransition}>
               <input type="hidden" name="to" value={action.to} />
               <input type="hidden" name="reason" value={action.reason} />
+              {/* 見ていた版。送り返して、その間の変更を検出する。 */}
+              <input type="hidden" name="expectedVersion" value={ticket.version} />
               <button type="submit" className="secondary">
                 {action.label}
               </button>
@@ -290,6 +335,7 @@ export default async function OpsWorkspace({
         </div>
       )}
       <form action={routeToGroup} className="stack" style={{ maxWidth: '28rem' }}>
+        <input type="hidden" name="expectedVersion" value={ticket.version} />
         <div className="field">
           <label htmlFor="group-select">担当グループ</label>
           <span className="hint" id="group-select-hint">
@@ -321,6 +367,7 @@ export default async function OpsWorkspace({
         priority={ticket.priority}
         priorityIsDerived={priorityIsDerived}
         action={reassess}
+        expectedVersion={ticket.version}
         errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
       />
 

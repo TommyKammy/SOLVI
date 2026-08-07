@@ -108,7 +108,82 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-// 3. 基盤が落ちているとき — **実際に止めて確かめる**
+// 3. 競合 — 二人が同じ問い合わせを開いている
+// ---------------------------------------------------------------------------
+const created = await (
+  await fetch(`${API}/tickets`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie },
+    body: JSON.stringify({
+      kind: 'incident',
+      subject: '通し確認: 同時に触る',
+      body: '本文です。',
+      impact: 'medium',
+      urgency: 'medium',
+    }),
+  })
+).json();
+
+const workspace = await (
+  await fetch(`${API}/tickets/${created.id}/workspace`, { headers: { cookie } })
+).json();
+const staleVersion = workspace.ticket.version;
+check('作業画面が版を返す', typeof staleVersion === 'string' && staleVersion.length > 0);
+
+// 先に別の操作が入る。**実際に値が変わる操作にする** —
+// 何も変わらない操作では版が動かず、競合を作れない。
+const groups = await (await fetch(`${API}/groups`, { headers: { cookie } })).json();
+const targetGroup = groups.items.find((g) => g.id);
+let r = await fetch(`${API}/tickets/${created.id}/group`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', cookie },
+  body: JSON.stringify({ groupId: targetGroup.id, expectedVersion: staleVersion }),
+});
+check('先に操作したほうは通る', r.status === 200, `status=${r.status}`);
+
+// 古い版のまま送る
+r = await fetch(`${API}/tickets/${created.id}/assignee`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', cookie },
+  body: JSON.stringify({ assigneeId: null, expectedVersion: staleVersion }),
+});
+const staleProblem = r.status === 409 ? await r.json() : {};
+check('**古い版で送ると 409**', r.status === 409, `status=${r.status}`);
+check(
+  '**業務規則の競合と別の型で返す**',
+  typeof staleProblem.type === 'string' && staleProblem.type.endsWith('/stale'),
+  `type=${staleProblem.type}`,
+);
+check(
+  '何が起きたかを日本語で書く',
+  (staleProblem.title ?? '').includes('他の人が変更しました'),
+  `title=${staleProblem.title}`,
+);
+
+// 版を渡さなければ止めない(定期処理・API直叩き)
+r = await fetch(`${API}/tickets/${created.id}/assignee`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', cookie },
+  body: JSON.stringify({ assigneeId: null }),
+});
+check('**版を送らない呼び出しは素通しする**', r.status === 200, `status=${r.status}`);
+
+// 画面: 競合の告知
+const stalePage = await (
+  await fetch(`${WEB}/ops/${created.id}?stale=1`, { headers: { cookie } })
+).text();
+check(
+  '画面が競合を専用の文面で伝える',
+  delivered(stalePage, '他の人がこの問い合わせを変更しました'),
+);
+check(
+  '**「もう一度押す」ではなく「読み直す」と言う**',
+  delivered(stalePage, '内容を確認したうえで'),
+);
+check('作業画面のフォームが版を持っている', delivered(stalePage, 'expectedVersion'));
+
+// ---------------------------------------------------------------------------
+// 4. 基盤が落ちているとき — **実際に止めて確かめる**
 // ---------------------------------------------------------------------------
 process.stdout.write('\n--- APIを停止して確認します ---\n');
 await run('docker', ['stop', 'solvi-api-1']);
@@ -151,7 +226,7 @@ try {
 }
 
 // ---------------------------------------------------------------------------
-// 4. 復旧したら元通りに使える
+// 5. 復旧したら元通りに使える
 // ---------------------------------------------------------------------------
 const recovered = await page('/ops', cookie);
 check(
