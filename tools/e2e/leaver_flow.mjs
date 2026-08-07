@@ -191,7 +191,98 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-// 7. 役割の付与と取り消し (FR-IDM-005 / WP-P1-IDM-015)
+// 7. 利用者を作る (WP-P1-IDM-016)
+// ---------------------------------------------------------------------------
+// **これまで人を作る経路が無かった。** 役割は配れるようになったが、
+// 配る相手をシードとSQLでしか用意できなかった。
+const newEmail = `e2e-newcomer-${Date.now().toString(36)}@acme.example.test`;
+
+r = await call('/users', agent, {
+  method: 'POST',
+  body: JSON.stringify({
+    email: newEmail,
+    displayName: '通し確認の新人',
+    roleCode: 'requester',
+    reason: '担当者が作る',
+  }),
+});
+check('**担当者は利用者を作れない**', r.status === 403, `status=${r.status}`);
+
+r = await call('/users', orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({
+    email: 'not-an-email',
+    displayName: '形式不正',
+    roleCode: 'requester',
+    reason: '検査',
+  }),
+});
+check('メールの形式を見る', r.status === 400, `status=${r.status}`);
+
+r = await call('/users', orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({
+    email: newEmail,
+    displayName: '通し確認の新人',
+    roleCode: 'platform_admin',
+    reason: '奪取の試み',
+  }),
+});
+check('**platform ロールでは作れない**', r.status === 400, `status=${r.status}`);
+
+r = await call('/users', orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({
+    email: newEmail,
+    displayName: '通し確認の新人',
+    roleCode: 'requester',
+    reason: '通し確認: 入社',
+  }),
+});
+check('**管理者が利用者を作れる**', r.status === 201, `status=${r.status}`);
+const newcomer = r.ok ? await r.json() : {};
+
+r = await call('/users', orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({
+    email: newEmail,
+    displayName: '重複',
+    roleCode: 'requester',
+    reason: '二重作成',
+  }),
+});
+check('同じ組織の重複は 409', r.status === 409, `status=${r.status}`);
+
+r = await call('/users', orgAdmin);
+const afterCreate = await r.json();
+const made = afterCreate.items.find((m) => m.userId === newcomer.userId);
+check('作った利用者が一覧に出る', Boolean(made), made ? '' : '見つからない');
+check('最初の役割が付いている', (made?.roleCodes ?? []).includes('requester'));
+
+// **作っただけでは入れない。**
+const tryLogin = await login(newEmail, 'local-dev-password-1');
+check(
+  '**作っただけではログインできない**(資格情報は別の手順)',
+  tryLogin.status === 401,
+  `status=${tryLogin.status}`,
+);
+
+const createWeb = await page('/ops/users', orgAdmin);
+check('画面に利用者を追加する導線がある', createWeb.html.includes('利用者を追加する'));
+check(
+  '**資格情報が別手順であることを画面が言う**',
+  createWeb.html.includes('資格情報の設定は別の手順です'),
+);
+
+// 後始末: 作った利用者を止める(消す経路は無い — 履歴を残す設計)
+r = await call(`/users/${newcomer.userId}/deactivate`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({ reason: '通し確認の後始末' }),
+});
+check('作った利用者を止められる', r.status === 200, `status=${r.status}`);
+
+// ---------------------------------------------------------------------------
+// 8. 役割の付与と取り消し (WP-P1-IDM-015)
 // ---------------------------------------------------------------------------
 // **これまで役割を配る経路が無かった。** シードとSQLでしか付けられず、
 // 新しく構築した環境では誰にも権限を与えられなかった。
@@ -276,7 +367,7 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-// 8. 復帰 — 通し確認の後始末でもある
+// 9. 復帰 — 通し確認の後始末でもある
 // ---------------------------------------------------------------------------
 r = await call(`/users/${target.userId}/reactivate`, orgAdmin, {
   method: 'POST',

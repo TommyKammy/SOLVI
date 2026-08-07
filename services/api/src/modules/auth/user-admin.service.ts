@@ -51,7 +51,7 @@ export interface OrganizationMember {
 const MANAGE_ROLES = ['org_admin', 'platform_admin'] as const;
 
 /**
- * この画面から配れる役割 (FR-IDM-005 / WP-P1-IDM-015)。
+ * この画面から配れる役割 (WP-P1-IDM-015)。
  *
  * **platform スコープは含めない。** 02.18 §2 は platform ロールの付与を
  * 「手動+**二重承認**+監査のみ」と定めており、二重承認の仕組みが無い。
@@ -275,7 +275,7 @@ export class UserAdminService {
   }
 
   /**
-   * 役割を与える (FR-IDM-005)。
+   * 役割を与える (WP-P1-IDM-015)。
    *
    * **既に組織に居る人にだけ配れる。** 別の組織の人を招き入れる操作
    * (兼務の開始)は、他組織の利用者を名前やメールで探せることを意味し、
@@ -373,7 +373,7 @@ export class UserAdminService {
   }
 
   /**
-   * 役割を取り消す (FR-IDM-005)。
+   * 役割を取り消す (WP-P1-IDM-015)。
    *
    * **行を消さない。期限を「今」にする。**
    *
@@ -452,5 +452,134 @@ export class UserAdminService {
         afterState: { effective: false, reason: trimmed },
       });
     }
+  }
+
+  /**
+   * 利用者を作る (ADR-0019 の検証段階運用 / WP-P1-IDM-016)。
+   *
+   * **これまで人を作る経路が無かった。** `app_user` を作れるのは
+   * `tools/seed.mjs` と手書きのSQLだけであり、
+   * 新しく構築した環境では**誰も招き入れられなかった。**
+   *
+   * [[WP-P1-IDM-015]] で役割は配れるようにしたが、配る相手が居ない。
+   * 「機能を作るとき、それを管理する手段を同時に作る」(DL-022)の
+   * 連鎖が、もう一段残っていた。
+   *
+   * ## これは FR-IDM-004(SCIM User)ではない
+   *
+   * SCIM は外部IdPが利用者を押し込む仕組みであり、本番の経路である。
+   * これは**検証段階で人を招き入れるための管理操作**にすぎない。
+   * 要求IDを借りない。
+   *
+   * ## メールは識別子ではない (FR-IDM-002)
+   *
+   * `primary_email` は連絡先であって本人性の根拠ではない。
+   * ここで作る利用者は `identity` を持たない —
+   * 資格情報は `create_local_user` が別に設定する([[WP-P1-IDM-012]])。
+   * **作ることと入れるようにすることを分ける。**
+   */
+  async createUser(
+    ctx: AuthzContext,
+    input: { email: string; displayName: string; roleCode: string; reason: string },
+  ): Promise<{ userId: string }> {
+    requireRole(ctx, ...MANAGE_ROLES);
+
+    const email = input.email.trim().toLowerCase();
+    const displayName = input.displayName.trim();
+    const reason = input.reason.trim();
+
+    if (reason.length === 0) {
+      throw Problems.validation([{ field: 'reason', message: '作成の理由を入力してください' }]);
+    }
+    if (displayName.length === 0 || displayName.length > 200) {
+      throw Problems.validation([
+        { field: 'displayName', message: '表示名を200文字以内で入力してください' },
+      ]);
+    }
+    // 形式だけを見る。**到達性は確かめられない** — 確かめたふりをしない。
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) {
+      throw Problems.validation([
+        { field: 'email', message: 'メールアドレスの形式が正しくありません' },
+      ]);
+    }
+    if (!(GRANTABLE_ROLES as readonly string[]).includes(input.roleCode)) {
+      throw Problems.validation([
+        {
+          field: 'roleCode',
+          message:
+            'この画面から配れない役割です。プラットフォーム管理者・監査者は二重承認の手続きが必要です。',
+        },
+      ]);
+    }
+
+    const { rows: roles } = await this.client.query(
+      "SELECT id FROM role WHERE code = $1 AND scope = 'org'",
+      [input.roleCode],
+    );
+    if (roles.length === 0) throw Problems.notFound('役割');
+
+    // **同じ組織に同じ連絡先の人を二重に作らない。**
+    //
+    // ここで見えるのは自組織の利用者だけである(RLS の
+    // `app_user_visible_within_org`)。それで足りる — 二重登録が起きるのは
+    // 「同じ人をもう一度追加した」ときであり、それは自組織の中で起きる。
+    //
+    // **他組織の重複は検出しない。できない。** 検出するには組織をまたいで
+    // メールを引く必要があり、それは**在籍者の総当たりができる経路**になる。
+    // 検出できないことを、検出したふりで隠さない(§残っている制約)。
+    //
+    // なお `primary_email` に一意制約は無い。連絡先であって識別子ではない
+    // (FR-IDM-002 / 0002 のコメント)。制約に頼れないので、ここで見る。
+    const { rows: existing } = await this.client.query(
+      'SELECT 1 FROM app_user WHERE lower(primary_email) = $1 LIMIT 1',
+      [email],
+    );
+    if (existing.length > 0) {
+      throw Problems.conflict('その連絡先の利用者は既にこの組織に居ます');
+    }
+
+    const userId = uuidv7();
+    await this.client.query(
+      `INSERT INTO app_user (id, primary_email, display_name, status, created_via)
+       VALUES ($1, $2, $3, 'active', 'admin')`,
+      [userId, email, displayName],
+    );
+
+    const bindingId = uuidv7();
+    await this.client.query(
+      `INSERT INTO role_binding
+         (id, user_id, role_id, role_scope, organization_id, source, valid_from)
+       VALUES ($1, $2, $3, 'org', $4, 'manual', now())`,
+      [bindingId, userId, roles[0]!.id, ctx.organizationId],
+    );
+
+    await recordAuditEvent(this.client, {
+      eventType: 'user.created',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      subjectUserId: userId,
+      targetType: 'app_user',
+      targetId: userId,
+      action: 'create',
+      outcome: 'success',
+      afterState: { email, displayName, roleCode: input.roleCode, reason },
+    });
+
+    // 最初の役割も付与として残す。**人を作ったことと権限を与えたことは別の事実である。**
+    await recordAuditEvent(this.client, {
+      eventType: 'role.binding.created',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      subjectUserId: userId,
+      targetType: 'role_binding',
+      targetId: bindingId,
+      action: 'grant',
+      outcome: 'success',
+      afterState: { roleCode: input.roleCode, source: 'manual', reason: '利用者の作成時' },
+    });
+
+    return { userId };
   }
 }

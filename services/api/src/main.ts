@@ -295,6 +295,12 @@ async function bootstrap(): Promise<void> {
       const result = await userAdmin.list(authenticated);
       return result.body;
     })
+    .post('/users', async (req, res) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.createUser(authenticated, await readJsonBody(req));
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+    })
     .post('/users/:id/deactivate', async (req, _res, params) => {
       // **その場でセッションが切れる。** リンクを踏んだだけで起きる経路を作らない。
       const authenticated = await auth.authenticate(req.headers);

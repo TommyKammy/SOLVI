@@ -80,13 +80,35 @@ export class UserAdminController {
   }
 
   /**
-   * 役割を与える (FR-IDM-005 / WP-P1-IDM-015)。
+   * 役割を与える (WP-P1-IDM-015)。
    *
    * **これまで役割を配る経路が無かった。** シードとSQLでしか付けられず、
    * 新しく構築した環境では誰にも権限を与えられなかった。
    * [[WP-P2-GRP-015]] で「機能を作るとき、それを管理する手段を同時に作る」と
    * 決めた原則(DL-022)が、役割そのものには適用されていなかった。
    */
+  /**
+   * 利用者を作る (WP-P1-IDM-016)。
+   *
+   * **作るだけで、入れるようにはしない。** 資格情報の設定は
+   * `create_local_user` が別に行う([[WP-P1-IDM-012]])。
+   */
+  async createUser(auth: AuthenticatedRequest, body: unknown) {
+    const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
+      string,
+      unknown
+    >;
+    const result = await this.run(auth, (service) =>
+      service.createUser(auth.authz, {
+        email: typeof record.email === 'string' ? record.email : '',
+        displayName: typeof record.displayName === 'string' ? record.displayName : '',
+        roleCode: typeof record.roleCode === 'string' ? record.roleCode : '',
+        reason: typeof record.reason === 'string' ? record.reason : '',
+      }),
+    );
+    return { status: 201, body: { userId: result.userId } };
+  }
+
   async grantRole(auth: AuthenticatedRequest, userId: string, body: unknown) {
     const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
       string,
