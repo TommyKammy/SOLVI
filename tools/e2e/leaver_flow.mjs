@@ -191,7 +191,92 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-// 7. 復帰 — 通し確認の後始末でもある
+// 7. 役割の付与と取り消し (FR-IDM-005 / WP-P1-IDM-015)
+// ---------------------------------------------------------------------------
+// **これまで役割を配る経路が無かった。** シードとSQLでしか付けられず、
+// 新しく構築した環境では誰にも権限を与えられなかった。
+const requesterUser = list.items.find((m) => m.email === 'requester@acme.example.test');
+
+r = await call(`/users/${requesterUser.userId}/roles`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({ roleCode: 'platform_admin', reason: '奪取の試み' }),
+});
+check(
+  '**platform ロールは配れない**(二重承認が要る / 02.18 §2)',
+  r.status === 400,
+  `status=${r.status}`,
+);
+
+r = await call(`/users/${requesterUser.userId}/roles`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({ roleCode: 'auditor', reason: '' }),
+});
+check('理由なしでは配れない', r.status === 400, `status=${r.status}`);
+
+r = await call(`/users/${requesterUser.userId}/roles`, agent, {
+  method: 'POST',
+  body: JSON.stringify({ roleCode: 'auditor', reason: '担当者が配る' }),
+});
+check('**担当者は役割を配れない**', r.status === 403, `status=${r.status}`);
+
+r = await call(`/users/${requesterUser.userId}/roles`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({ roleCode: 'auditor', reason: '通し確認: 監査担当を追加' }),
+});
+check('管理者が役割を配れる', r.status === 204, `status=${r.status}`);
+
+r = await call('/users', orgAdmin);
+const afterGrant = await r.json();
+check(
+  '与えた役割が一覧に出る',
+  afterGrant.items.find((m) => m.userId === requesterUser.userId).roleCodes.includes('auditor'),
+);
+
+// 期限つき
+r = await call(`/users/${requesterUser.userId}/roles`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({
+    roleCode: 'approver',
+    reason: '通し確認: 期限つき',
+    validUntil: '2026-12-31',
+  }),
+});
+check('**期限つきで配れる**(兼務・出向)', r.status === 204, `status=${r.status}`);
+
+r = await call('/users', orgAdmin);
+const withTemp = (await r.json()).items.find((m) => m.userId === requesterUser.userId);
+check(
+  '期限つきの役割として一覧に出る',
+  (withTemp.temporaryRoles ?? []).some((t) => t.roleCode === 'approver'),
+);
+
+// 取り消し
+r = await call(`/users/${requesterUser.userId}/roles/revoke`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({ roleCode: 'auditor', reason: '通し確認の後始末' }),
+});
+check('管理者が役割を取り消せる', r.status === 204, `status=${r.status}`);
+
+r = await call(`/users/${requesterUser.userId}/roles/revoke`, orgAdmin, {
+  method: 'POST',
+  body: JSON.stringify({ roleCode: 'approver', reason: '通し確認の後始末' }),
+});
+check('期限つきの役割も取り消せる', r.status === 204, `status=${r.status}`);
+
+r = await call('/users', orgAdmin);
+const afterRevoke = (await r.json()).items.find((m) => m.userId === requesterUser.userId);
+check('取り消した役割は一覧から消える', !afterRevoke.roleCodes.includes('auditor'));
+check('取り消した期限つきの役割も消える', (afterRevoke.temporaryRoles ?? []).length === 0);
+
+const roleWeb = await page('/ops/users', orgAdmin);
+check('画面に役割を変える導線がある', roleWeb.html.includes('役割を変える'));
+check(
+  '**配れない役割の理由が書いてある**(選べないだけでは諦め方が分からない)',
+  roleWeb.html.includes('二重承認'),
+);
+
+// ---------------------------------------------------------------------------
+// 8. 復帰 — 通し確認の後始末でもある
 // ---------------------------------------------------------------------------
 r = await call(`/users/${target.userId}/reactivate`, orgAdmin, {
   method: 'POST',

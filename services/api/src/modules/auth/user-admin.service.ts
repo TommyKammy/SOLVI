@@ -1,6 +1,6 @@
 import type pg from 'pg';
 import { Problems } from '@solvi/shared';
-import { recordAuditEvent } from '../../common/audit/audit.js';
+import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import { requireRole, type AuthzContext } from '../../common/authz/authz.js';
 import { SessionService } from './session.service.js';
 
@@ -49,6 +49,18 @@ export interface OrganizationMember {
 }
 
 const MANAGE_ROLES = ['org_admin', 'platform_admin'] as const;
+
+/**
+ * この画面から配れる役割 (FR-IDM-005 / WP-P1-IDM-015)。
+ *
+ * **platform スコープは含めない。** 02.18 §2 は platform ロールの付与を
+ * 「手動+**二重承認**+監査のみ」と定めており、二重承認の仕組みが無い。
+ *
+ * 承認を伴わない経路をここに作ると、**組織の管理者一人が
+ * プラットフォーム全体を奪える。** 仕組みが出来るまで配らない。
+ */
+const GRANTABLE_ROLES = ['org_admin', 'agent', 'approver', 'auditor', 'requester'] as const;
+export type GrantableRole = (typeof GRANTABLE_ROLES)[number];
 
 export class UserAdminService {
   constructor(private readonly client: pg.PoolClient | pg.Client) {}
@@ -260,5 +272,185 @@ export class UserAdminService {
       beforeState: { status: 'deactivated' },
       afterState: { status: 'active', reason: trimmed },
     });
+  }
+
+  /**
+   * 役割を与える (FR-IDM-005)。
+   *
+   * **既に組織に居る人にだけ配れる。** 別の組織の人を招き入れる操作
+   * (兼務の開始)は、他組織の利用者を名前やメールで探せることを意味し、
+   * **在籍者の総当たりができる経路**になる。危険の質が違うので分けた。
+   *
+   * @param validUntil 期限。兼務・出向はここを入れる (FR-IDM-006)
+   */
+  async grantRole(
+    ctx: AuthzContext,
+    userId: string,
+    roleCode: string,
+    params: { validUntil: Date | null; reason: string },
+  ): Promise<void> {
+    requireRole(ctx, ...MANAGE_ROLES);
+
+    const reason = params.reason.trim();
+    if (reason.length === 0) {
+      // 権限を配ることは、その人にできることを増やす操作である。
+      // **理由の無い付与を残さない。**
+      throw Problems.validation([{ field: 'reason', message: '付与の理由を入力してください' }]);
+    }
+    if (reason.length > 500) {
+      throw Problems.validation([
+        { field: 'reason', message: '理由は500文字以内で入力してください' },
+      ]);
+    }
+
+    if (!(GRANTABLE_ROLES as readonly string[]).includes(roleCode)) {
+      // platform ロールは二重承認が要る(02.18 §2)。**何が足りないかを言う。**
+      throw Problems.validation([
+        {
+          field: 'roleCode',
+          message:
+            'この画面から配れない役割です。プラットフォーム管理者・監査者は二重承認の手続きが必要です。',
+        },
+      ]);
+    }
+
+    if (params.validUntil !== null && params.validUntil.getTime() <= Date.now()) {
+      // 過ぎた期限で与えると、与えた瞬間に失効する。
+      // **「与えたのに使えない」を作らない。**
+      throw Problems.validation([
+        { field: 'validUntil', message: '期限は未来の日付にしてください' },
+      ]);
+    }
+
+    const member = await this.requireMember(ctx, userId);
+    if (member.status !== 'active') {
+      throw Problems.conflict('停止された利用者には役割を与えられません');
+    }
+
+    const { rows: roles } = await this.client.query(
+      "SELECT id, scope FROM role WHERE code = $1 AND scope = 'org'",
+      [roleCode],
+    );
+    if (roles.length === 0) throw Problems.notFound('役割');
+
+    // 既に有効な同じ役割があれば何もしない。**二重に与えても意味が無い。**
+    const { rows: existing } = await this.client.query(
+      `SELECT 1 FROM role_binding
+        WHERE user_id = $1 AND organization_id = $2 AND role_id = $3
+          AND valid_from <= now() AND (valid_until IS NULL OR valid_until > now())
+        LIMIT 1`,
+      [userId, ctx.organizationId, roles[0]!.id],
+    );
+    if (existing.length > 0) {
+      throw Problems.conflict('その役割は既に与えられています');
+    }
+
+    const bindingId = uuidv7();
+    await this.client.query(
+      `INSERT INTO role_binding
+         (id, user_id, role_id, role_scope, organization_id, source, valid_from, valid_until)
+       VALUES ($1, $2, $3, 'org', $4, 'manual', now(), $5)`,
+      [bindingId, userId, roles[0]!.id, ctx.organizationId, params.validUntil],
+    );
+
+    await recordAuditEvent(this.client, {
+      eventType: 'role.binding.created',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      subjectUserId: userId,
+      targetType: 'role_binding',
+      targetId: bindingId,
+      action: 'grant',
+      outcome: 'success',
+      afterState: {
+        roleCode,
+        source: 'manual',
+        validUntil: params.validUntil?.toISOString() ?? null,
+        reason,
+      },
+    });
+  }
+
+  /**
+   * 役割を取り消す (FR-IDM-005)。
+   *
+   * **行を消さない。期限を「今」にする。**
+   *
+   * 失権の仕組みは既に `valid_until` で動いている([[WP-P1-IDM-014]])。
+   * 取り消しをそこへ寄せれば、**1つの仕組みに2つの理由**
+   * (人が取り消した / 期限が来た)が乗るだけで済む。
+   * 別に消す経路を作ると、片方だけ直したときに食い違う。
+   *
+   * 期限到来の記録済みの印も同時に付ける。付けないと、
+   * 定期処理が**同じ失権をもう一度 `expire` として記録する。**
+   */
+  async revokeRole(
+    ctx: AuthzContext,
+    userId: string,
+    roleCode: string,
+    reason: string,
+  ): Promise<void> {
+    requireRole(ctx, ...MANAGE_ROLES);
+
+    const trimmed = reason.trim();
+    if (trimmed.length === 0) {
+      throw Problems.validation([{ field: 'reason', message: '取り消しの理由を入力してください' }]);
+    }
+
+    await this.requireMember(ctx, userId);
+
+    const { rows } = await this.client.query(
+      `SELECT rb.id
+         FROM role_binding rb
+         JOIN role r ON r.id = rb.role_id
+        WHERE rb.user_id = $1 AND rb.organization_id = $2 AND r.code = $3
+          AND rb.valid_from <= now() AND (rb.valid_until IS NULL OR rb.valid_until > now())`,
+      [userId, ctx.organizationId, roleCode],
+    );
+    if (rows.length === 0) throw Problems.notFound('役割');
+
+    if ((GRANTABLE_ROLES as readonly string[]).includes(roleCode) === false) {
+      throw Problems.validation([
+        { field: 'roleCode', message: 'この画面から取り消せない役割です' },
+      ]);
+    }
+
+    // 締め出しを作らない ([[WP-P1-IDM-011]] と同じ防御)。
+    if (roleCode === 'org_admin') {
+      if (userId === ctx.principal.userId) {
+        throw Problems.validation([
+          { field: 'userId', message: '自分自身の組織管理者は取り消せません' },
+        ]);
+      }
+      if ((await this.activeAdminCount(ctx, userId)) === 0) {
+        throw Problems.conflict('この組織で最後の管理者です。先に別の管理者を用意してください。');
+      }
+    }
+
+    for (const row of rows) {
+      await this.client.query(
+        `UPDATE role_binding
+            SET valid_until = now(),
+                expiry_recorded_at = now()
+          WHERE id = $1`,
+        [row.id],
+      );
+
+      await recordAuditEvent(this.client, {
+        eventType: 'role.binding.deleted',
+        organizationId: ctx.organizationId,
+        actorType: 'user',
+        actorId: ctx.principal.userId,
+        subjectUserId: userId,
+        targetType: 'role_binding',
+        targetId: row.id as string,
+        // **期限到来と区別する。** 「切れた」と「取り消した」は別の出来事である。
+        action: 'revoke',
+        outcome: 'success',
+        beforeState: { roleCode },
+        afterState: { effective: false, reason: trimmed },
+      });
+    }
   }
 }

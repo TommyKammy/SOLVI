@@ -79,11 +79,67 @@ export class UserAdminController {
     };
   }
 
+  /**
+   * 役割を与える (FR-IDM-005 / WP-P1-IDM-015)。
+   *
+   * **これまで役割を配る経路が無かった。** シードとSQLでしか付けられず、
+   * 新しく構築した環境では誰にも権限を与えられなかった。
+   * [[WP-P2-GRP-015]] で「機能を作るとき、それを管理する手段を同時に作る」と
+   * 決めた原則(DL-022)が、役割そのものには適用されていなかった。
+   */
+  async grantRole(auth: AuthenticatedRequest, userId: string, body: unknown) {
+    const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
+      string,
+      unknown
+    >;
+    const roleCode = typeof record.roleCode === 'string' ? record.roleCode : '';
+    const reason = typeof record.reason === 'string' ? record.reason : '';
+    const validUntil = readValidUntil(record.validUntil);
+
+    await this.run(auth, (service) =>
+      service.grantRole(auth.authz, userId, roleCode, { validUntil, reason }),
+    );
+    return { status: 204, body: null };
+  }
+
+  async revokeRole(auth: AuthenticatedRequest, userId: string, body: unknown) {
+    const record = (typeof body === 'object' && body !== null ? body : {}) as Record<
+      string,
+      unknown
+    >;
+    const roleCode = typeof record.roleCode === 'string' ? record.roleCode : '';
+    const reason = typeof record.reason === 'string' ? record.reason : '';
+
+    await this.run(auth, (service) => service.revokeRole(auth.authz, userId, roleCode, reason));
+    return { status: 204, body: null };
+  }
+
   async reactivate(auth: AuthenticatedRequest, userId: string, body: unknown) {
     const reason = readReason(body);
     await this.run(auth, (service) => service.reactivate(auth.authz, userId, reason));
     return { status: 204, body: null };
   }
+}
+
+/**
+ * 期限の読み取り (FR-IDM-006)。
+ *
+ * **日付だけを受け取る。** 時刻まで指定させると、
+ * 「その日いっぱい使える」つもりの人が朝で切られる。
+ * 指定された日の終わりまでを有効とする。
+ */
+function readValidUntil(value: unknown): Date | null {
+  if (typeof value !== 'string' || value.length === 0) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw Problems.validation([
+      { field: 'validUntil', message: '期限は YYYY-MM-DD で入力してください' },
+    ]);
+  }
+  const parsed = new Date(`${value}T23:59:59.999Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw Problems.validation([{ field: 'validUntil', message: '期限の日付が正しくありません' }]);
+  }
+  return parsed;
 }
 
 function readReason(body: unknown): string {

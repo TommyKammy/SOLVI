@@ -390,6 +390,19 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ reason }) },
     ),
 
+  /** 役割を与える (FR-IDM-005)。org スコープのみ。 */
+  grantRole: (userId: string, roleCode: string, reason: string, validUntil?: string) =>
+    call<void>(`/users/${encodeURIComponent(userId)}/roles`, {
+      method: 'POST',
+      body: JSON.stringify({ roleCode, reason, validUntil: validUntil || undefined }),
+    }),
+
+  revokeRole: (userId: string, roleCode: string, reason: string) =>
+    call<void>(`/users/${encodeURIComponent(userId)}/roles/revoke`, {
+      method: 'POST',
+      body: JSON.stringify({ roleCode, reason }),
+    }),
+
   reactivateUser: (userId: string, reason: string) =>
     call<void>(`/users/${encodeURIComponent(userId)}/reactivate`, {
       method: 'POST',

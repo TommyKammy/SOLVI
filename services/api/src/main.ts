@@ -305,6 +305,27 @@ async function bootstrap(): Promise<void> {
       );
       return result.body;
     })
+    .post('/users/:id/roles', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.grantRole(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
+    .post('/users/:id/roles/revoke', async (req, res, params) => {
+      // **DELETE ではなく POST。** 取り消せない見た目の操作をリンクに置かない。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.revokeRole(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
     .post('/users/:id/reactivate', async (req, res, params) => {
       const authenticated = await auth.authenticate(req.headers);
       const result = await userAdmin.reactivate(
