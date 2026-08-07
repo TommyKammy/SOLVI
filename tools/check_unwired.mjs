@@ -252,8 +252,8 @@ const ACCEPTED_UNWIRED = {
   // ---------------------------------------------------------------------------
   // `deactivateUser` は WP-P1-IDM-011 で `/ops/users` から繋いだので外した。
   // **繋いだら消す** — 残したままだと、次に見た人が「まだ未接続」と読む。
-  createCredential:
-    'パスワード設定の経路が無い。`tools/create_local_user.mjs` が同じ処理を自前で持っており、**scryptの形式が二重に定義されている**',
+  // `createCredential` は WP-P1-IDM-012 で seed と管理ツールの両方から
+  // 呼ぶようにしたので外した。**繋いだら消す。**
   purgeExpired: '期限切れセッションの掃除が動いていない。溜まり続ける',
   recordScanResult:
     '添付スキャンの結果記録。worker の `AttachmentScanner` が自前のSQLで書いており、**同じ判定が二か所にある**',
@@ -465,6 +465,59 @@ process.stdout.write('\nE. マイグレーションの巻き戻し\n');
       report('ok', `マイグレーション ${files.length} 件すべてに down がある`);
     } else {
       report('ng', `${withoutDown.length} 件に down が無い`, withoutDown.join(', '));
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+process.stdout.write('\nF. 同じ手続きが二か所に書かれていないか\n');
+{
+  /**
+   * 「未接続」の裏返しの欠陥である。
+   *
+   * `createCredential` は誰からも呼ばれていなかったが、その処理自体は
+   * 動いていた — **管理ツールと seed が同じ手順を書き写していた**からである。
+   * しかも内容が食い違っていた(seed は `password_changed_at` を更新せず、
+   * セッションも失効させていなかった)。
+   *
+   * 書き写した先は、書き写した時点から少しずつずれていく。
+   * scryptのコストを上げれば、片方の経路で作った利用者だけが
+   * ログインできなくなる。**どちらも「動いている」ので誰も気付かない。**
+   *
+   * ここでは、security に関わる書き込みが1か所からしか行われないことを見る。
+   * 検査そのもの(tests/)は対象外 — 検査は前提を作るために直接書いてよい。
+   */
+  const SINGLE_WRITER = [
+    {
+      pattern: /INSERT INTO local_credential/,
+      what: 'ローカル資格情報の書き込み',
+      why: 'scryptの形式・セッションの失効・停止利用者の拒否が分かれると、片方だけずれる',
+    },
+    {
+      pattern: /UPDATE session[\s\S]{0,60}SET revoked_at/,
+      what: 'セッションの失効',
+      why: '失効の条件が分かれると、片方の経路だけ「止めたのに使える」が残る',
+    },
+  ];
+
+  for (const rule of SINGLE_WRITER) {
+    const writers = sourceText
+      // 検査自身は対象外(この規則の文字列を持っているため)。
+      // 検査(tests/)も対象外 — 前提を作るために直接書いてよい。
+      .filter(({ path }) => !path.includes('tests/') && !path.endsWith('check_unwired.mjs'))
+      .filter(({ text }) => rule.pattern.test(text))
+      .map(({ path }) => path.replace(`${ROOT}/`, ''));
+
+    if (writers.length === 0) {
+      report('ng', `${rule.what}がどこにも無い`, '検査の対象が消えた可能性がある');
+    } else if (writers.length === 1) {
+      report('ok', `${rule.what}は1か所だけ`, writers[0]);
+    } else {
+      report(
+        'ng',
+        `${rule.what}が ${writers.length} か所にある`,
+        `${writers.join(', ')} — ${rule.why}`,
+      );
     }
   }
 }

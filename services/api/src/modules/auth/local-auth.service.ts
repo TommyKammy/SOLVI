@@ -384,10 +384,16 @@ export class LocalAuthService {
   }
 
   /**
-   * ローカルアカウントの作成。管理ツールから呼ぶ。
+   * ローカルアカウントの作成。管理ツール (`tools/create_local_user.mjs`) から呼ぶ。
    *
    * `identity` も同時に作る。issuer は予約値に固定されており、
    * DB制約が外部IdPのissuerを騙ることを防いでいる。
+   *
+   * **ここが資格情報を設定する唯一の場所である。**
+   * 以前は管理ツールが同じ手順(scryptの形式・identityの登録・
+   * セッションの失効)を自前で書き写しており、**scryptの形式が
+   * 二か所に定義されていた**。片方だけコストを上げれば、
+   * その経路で作った利用者だけがログインできなくなる。
    */
   async createCredential(params: {
     userId: string;
@@ -396,6 +402,20 @@ export class LocalAuthService {
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
     const strength = validatePasswordStrength(params.password);
     if (!strength.ok) return { ok: false, reason: strength.reason ?? 'パスワードが不正です' };
+
+    // **停止された利用者に新しいパスワードを与えない。**
+    // 退職者のアクセスを止めた([[WP-P1-IDM-011]])直後に、
+    // 管理ツールで資格情報を設定し直せば入れてしまう。
+    //
+    // この判定は管理ツール側にだけ書かれていた。**規則は操作のある場所に置く** —
+    // 呼び出し側の1つに置くと、次の呼び出し側が現れたときに漏れる。
+    const { rows } = await this.client.query('SELECT status FROM app_user WHERE id = $1', [
+      params.userId,
+    ]);
+    if (rows.length === 0) return { ok: false, reason: '利用者が見つかりません' };
+    if (rows[0]!.status !== 'active') {
+      return { ok: false, reason: '停止された利用者には資格情報を設定できません' };
+    }
 
     const hash = await hashPassword(params.password);
 
@@ -421,6 +441,28 @@ export class LocalAuthService {
     // 変更の動機が「漏えいしたかもしれない」である以上、
     // 古いセッションを生かしたままでは変更した意味が無い。
     await this.sessions.revokeAllForUser(params.userId, 'password_changed');
+
+    // **設定したことを記録する。** 残さないと、後から
+    // 「誰かがパスワードを差し替えた」ことに気付く手段が無い。
+    //
+    // 実行者は管理ツールであり、認証された利用者ではない。
+    // `system` として残す — 人の名前を騙るより、
+    // **「ツールが実行した」と正直に書くほうが調査の役に立つ。**
+    //
+    // 資格情報は組織に属さないため platform スコープ(organization_id は null)。
+    await recordAuditEvent(this.client, {
+      eventType: 'user.updated',
+      organizationId: null,
+      actorType: 'system',
+      actorDisplay: 'create_local_user',
+      subjectUserId: params.userId,
+      targetType: 'local_credential',
+      targetId: params.userId,
+      action: 'credential.set',
+      outcome: 'success',
+      // **パスワードもハッシュも載せない。** 監査は読まれる前提の記録である。
+      afterState: { authMethod: 'local', subject: params.subject },
+    });
 
     return { ok: true };
   }

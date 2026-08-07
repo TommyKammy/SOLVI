@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
 import { z } from 'zod';
-import { hashPassword } from '../../packages/shared/src/auth/password.js';
+import { hashPassword, verifyPassword } from '../../packages/shared/src/auth/password.js';
 import { apiEnvSchema } from '../../packages/shared/src/config/env.js';
 import { runWithContext, newContext } from '../../packages/shared/src/correlation/context.js';
 import { SessionService } from '../../services/api/src/modules/auth/session.service.js';
@@ -630,6 +630,182 @@ describe('セッション失効の即時性 (FR-IDM-008 / Gate 1 G1-9)', () => {
     const validation = await withAuth(({ sessions }) => sessions.validate(login.token));
     expect(validation.valid).toBe(false);
     if (!validation.valid) expect(validation.reason).toBe('revoked');
+  });
+
+  // ---------------------------------------------------------------------------
+  // 資格情報の設定は1か所に集めた (WP-P1-IDM-012)。
+  //
+  // 以前は `tools/create_local_user.mjs` と `tools/seed.mjs` が
+  // 同じ手順を書き写しており、**scryptの形式が二重に定義され、
+  // しかも内容が食い違っていた**(seed は `password_changed_at` を
+  // 更新せず、セッションも失効させていなかった)。
+  // ---------------------------------------------------------------------------
+
+  it('**停止された利用者には資格情報を設定できない**', async () => {
+    const userId = await createUser({
+      email: 'stopped@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+    await admin.query(
+      `UPDATE app_user SET status = 'deactivated', deactivated_at = now() WHERE id = $1`,
+      [userId],
+    );
+
+    // 退職者のアクセスを止めた直後に、管理ツールで設定し直せば入れてしまう。
+    const result = await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({
+        userId,
+        password: 'a-brand-new-password-value',
+        subject: 'stopped@example.com',
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain('停止');
+
+    // 既存の資格情報も書き換わっていない(検査の下準備で作られている)
+    const { rows } = await admin.query(
+      'SELECT password_hash FROM local_credential WHERE user_id = $1',
+      [userId],
+    );
+    const stillOld = await verifyPassword(PASSWORD, rows[0].password_hash);
+    expect(stillOld).toBe(true);
+  });
+
+  it('存在しない利用者には設定できない', async () => {
+    const result = await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({
+        userId: '00000000-0000-4000-8000-00000000dead',
+        password: 'a-brand-new-password-value',
+        subject: 'ghost@example.com',
+      }),
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it('短すぎるパスワードは拒否される', async () => {
+    const userId = await createUser({ email: 'weak@example.com', orgId: ORG_A, roleCode: 'agent' });
+    const result = await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({ userId, password: 'short', subject: 'weak@example.com' }),
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it('**極端に長いパスワードも拒否される**(scryptの計算時間を通じた資源枯渇)', async () => {
+    const userId = await createUser({ email: 'long@example.com', orgId: ORG_A, roleCode: 'agent' });
+    const result = await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({ userId, password: 'x'.repeat(2000), subject: 'long@example.com' }),
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it('設定したパスワードでそのままログインできる(形式が食い違っていない)', async () => {
+    const userId = await createUser({
+      email: 'fresh@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+    await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({
+        userId,
+        password: 'another-valid-password-x',
+        subject: 'fresh@example.com',
+      }),
+    );
+
+    const login = await withAuth(({ auth }) =>
+      auth.authenticate({
+        email: 'fresh@example.com',
+        password: 'another-valid-password-x',
+        organizationId: ORG_A,
+      }),
+    );
+    expect(login.ok).toBe(true);
+  });
+
+  it('**設定したことが監査に残る。パスワードもハッシュも載らない**', async () => {
+    const userId = await createUser({
+      email: 'audit@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+    await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({
+        userId,
+        password: 'yet-another-password-1',
+        subject: 'audit@example.com',
+      }),
+    );
+
+    const { rows } = await admin.query(
+      `SELECT organization_id, actor_type, actor_display, after_state
+         FROM audit_event
+        WHERE subject_user_id = $1 AND action = 'credential.set'`,
+      [userId],
+    );
+    expect(rows).toHaveLength(1);
+    // 実行者は認証された利用者ではない。人の名前を騙らず system と書く。
+    expect(rows[0].actor_type).toBe('system');
+    // 資格情報は組織に属さない
+    expect(rows[0].organization_id).toBeNull();
+
+    const serialized = JSON.stringify(rows[0].after_state);
+    expect(serialized).not.toContain('yet-another-password-1');
+    expect(serialized).not.toContain('scrypt');
+  });
+
+  it('再設定でも失効理由は password_changed のまま', async () => {
+    const userId = await createUser({
+      email: 'again@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+    const login = await withAuth(({ auth }) =>
+      auth.authenticate({ email: 'again@example.com', password: PASSWORD, organizationId: ORG_A }),
+    );
+    if (!login.ok) throw new Error('ログインに失敗しました');
+
+    await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({
+        userId,
+        password: 'replacement-password-99',
+        subject: 'again@example.com',
+      }),
+    );
+
+    const { rows } = await admin.query(
+      `SELECT revoked_reason FROM session WHERE user_id = $1 AND revoked_at IS NOT NULL`,
+      [userId],
+    );
+    expect(rows.every((r) => r.revoked_reason === 'password_changed')).toBe(true);
+  });
+
+  it('**設定するとロックが解ける**(締め出されたまま直せないと困る)', async () => {
+    const userId = await createUser({
+      email: 'locked@example.com',
+      orgId: ORG_A,
+      roleCode: 'agent',
+    });
+    await admin.query(
+      `UPDATE local_credential SET failed_attempts = 5, locked_until = now() + interval '1 hour'
+        WHERE user_id = $1`,
+      [userId],
+    );
+
+    await withOrg(ORG_A, ({ auth }) =>
+      auth.createCredential({
+        userId,
+        password: 'unlocking-password-42',
+        subject: 'locked@example.com',
+      }),
+    );
+
+    const { rows } = await admin.query(
+      'SELECT failed_attempts, locked_until FROM local_credential WHERE user_id = $1',
+      [userId],
+    );
+    expect(rows[0].failed_attempts).toBe(0);
+    expect(rows[0].locked_until).toBeNull();
   });
 });
 

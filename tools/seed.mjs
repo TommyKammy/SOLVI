@@ -7,7 +7,20 @@
  * 冪等に実行できる(再実行しても増殖しない)。
  */
 import pg from 'pg';
-import { hashPassword } from '../packages/shared/src/auth/password.js';
+import { LocalAuthService } from '../services/api/src/modules/auth/local-auth.service.js';
+import { SessionService } from '../services/api/src/modules/auth/session.service.js';
+
+/**
+ * 資格情報を設定する経路は1つにする。
+ *
+ * scryptの形式もセッションの失効も監査も、すべて
+ * `LocalAuthService.createCredential` が持つ。seed はそれを呼ぶだけである。
+ */
+const auth = (client) =>
+  new LocalAuthService(client, new SessionService(client), {
+    maxFailedAttempts: 5,
+    lockoutSeconds: 900,
+  });
 
 /**
  * 開発用の共通パスワード。
@@ -88,21 +101,19 @@ try {
       // 立ち上げ手順のどこにも書かれておらず、テストが
       // `local_credential` を消したあとは seed を再実行しても戻らなかった。
       // 画面は正常に出るのに全員が 401 になり、原因は認証の不具合に見える。
-      await client.query(
-        `INSERT INTO identity (id, user_id, idp_type, issuer, subject)
-         VALUES ($1, $2, 'local', 'urn:solvi:local', $3)
-         ON CONFLICT (issuer, subject) DO NOTHING`,
-        [id(seq + 3000), userId, email],
-      );
-      await client.query(
-        `INSERT INTO local_credential (id, user_id, password_hash)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (user_id) DO UPDATE
-            SET password_hash = EXCLUDED.password_hash,
-                failed_attempts = 0,
-                locked_until = NULL`,
-        [id(seq + 4000), userId, await hashPassword(DEV_PASSWORD)],
-      );
+      //
+      // 手順そのものは `LocalAuthService.createCredential` が持つ。
+      // **以前はここと `create_local_user.mjs` に書き写されており、
+      // しかも内容が食い違っていた** — こちらは `password_changed_at` を
+      // 更新せず、セッションも失効させていなかった。
+      // 書き写した先は、書き写した時点から少しずつずれていく。
+      const credential = await auth(client).createCredential({
+        userId,
+        password: DEV_PASSWORD,
+        subject: email,
+      });
+      if (!credential.ok)
+        throw new Error(`資格情報を設定できません (${email}): ${credential.reason}`);
 
       created.push({ org: org.code, role: code, userId, email });
     }
