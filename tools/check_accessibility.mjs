@@ -79,6 +79,12 @@ async function main() {
   const screens = [
     { name: 'ログイン', path: '/login', requiresAuth: false },
     { name: 'ログイン(エラー表示)', path: '/login?error=1', requiresAuth: false },
+    // 状態表示 (NFR-UX-004 / WP-P2-UISTATE-018)。
+    // **異常時の画面ほど読み上げで使われる。** 目で追える人は
+    // 見出しの色で気付くが、そうでない人は文言だけが頼りになる。
+    { name: 'ログイン(期限切れ)', path: '/login?expired=1', requiresAuth: false },
+    { name: '接続できません', path: '/unavailable', requiresAuth: false },
+    { name: '見つかりません', path: '/does-not-exist', requiresAuth: false },
     { name: 'Portalトップ', path: '/', requiresAuth: true },
     { name: '起票フォーム(障害)', path: '/tickets/new?kind=incident', requiresAuth: true },
     { name: '起票フォーム(依頼)', path: '/tickets/new?kind=request', requiresAuth: true },

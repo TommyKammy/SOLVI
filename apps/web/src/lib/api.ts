@@ -403,7 +403,17 @@ export const api = {
  * 送り返すと、正しい資格情報で何度ログインしても同じ画面に戻ってくる。
  * 利用者から見て**直しようのない行き止まり**になる。
  *
- * 各画面が個別に判定すると、新しい画面を足した人が片方を書き忘れる。
+ * **「基盤へ届かない」も同じ扱いにしない。** ここが本WPで直した欠陥である。
+ * 以前は `api.me()` が失敗すれば理由を問わずログイン画面へ送っていた。
+ * APIが落ちているとき、利用者は黙ってログアウトさせられ、
+ * **そのログイン画面でも同じ理由で失敗する。**
+ * 画面上は「パスワードが違う」ようにしか見えず、
+ * 全員が自分の資格情報を疑いながら何度も試すことになる。
+ *
+ * `call()` は最初から 503 を返していた(`ApiResult.problem.status`)。
+ * **判別できる情報はあり、呼ぶ側が捨てていた。**
+ *
+ * 各画面が個別に判定すると、新しい画面を足した人が書き忘れる。
  * 判定はここ1か所に閉じる。
  */
 export async function requireSession(): Promise<SessionView> {
@@ -413,5 +423,23 @@ export async function requireSession(): Promise<SessionView> {
   if (session.problem.type?.endsWith('/organization-not-selected')) {
     redirect('/select-organization');
   }
-  redirect('/login');
+
+  // 5xx は「あなたが誰か分からない」ではなく「こちらの都合で答えられない」。
+  //
+  // **投げずに専用の画面へ送る。** サーバ側の描画中に投げた例外は
+  // `error.tsx` へ届かず、Next.js の既定の500画面(日本語ですらない)が出る。
+  // `error.tsx` が効くのは画面遷移中とハイドレーション後であり、
+  // 最初の1枚には効かない。
+  if (session.problem.status >= 500) {
+    redirect('/unavailable');
+  }
+
+  // ここまで来たら本当に認証が要る。
+  // **一度入っていた人と、まだ入っていない人を区別する。**
+  // セッションの Cookie を持っているのに 401 なら、期限切れか失効である。
+  // 「なぜ画面から追い出されたのか」が分からないまま戻されると、
+  // 利用者は自分の操作を疑う。
+  const jar = await cookies();
+  const hadSession = jar.getAll().some((c) => c.name.startsWith('solvi_session'));
+  redirect(hadSession ? '/login?expired=1' : '/login');
 }
