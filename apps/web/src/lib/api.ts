@@ -163,6 +163,8 @@ export interface WorkspaceView {
     requesterId: string;
     assigneeId: string | null;
     assigneeGroupId: string | null;
+    /** 見ていた版 (WP-P2-UISTATE-020)。操作と一緒に送り返す。 */
+    version: string;
   };
   comments: CommentView[];
   attachments: AttachmentView[];
@@ -251,7 +253,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  transition: (id: string, body: { to: string; reason: string }) =>
+  transition: (id: string, body: { to: string; reason: string; expectedVersion?: string }) =>
     call<{ state: string }>(`/tickets/${encodeURIComponent(id)}/transitions`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -306,17 +308,20 @@ export const api = {
     }>(`/tickets/${encodeURIComponent(id)}/merge`, { method: 'POST', body: JSON.stringify(body) }),
 
   /** 影響度・緊急度の見直し。**優先度は送らない** — サーバが導く。 */
-  reassess: (id: string, body: { impact: string; urgency: string; reason: string }) =>
+  reassess: (
+    id: string,
+    body: { impact: string; urgency: string; reason: string; expectedVersion?: string },
+  ) =>
     call<{ impact: string; urgency: string; priority: string }>(
       `/tickets/${encodeURIComponent(id)}/assessment`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
   /** 担当グループの割当。**個人の担当とは別の経路** (FR-TKT-003)。 */
-  assignGroup: (id: string, groupId: string | null) =>
+  assignGroup: (id: string, groupId: string | null, expectedVersion?: string) =>
     call<{ assigneeGroupId: string | null }>(`/tickets/${encodeURIComponent(id)}/group`, {
       method: 'POST',
-      body: JSON.stringify({ groupId }),
+      body: JSON.stringify({ groupId, expectedVersion }),
     }),
 
   listGroups: (includeInactive = false) =>
@@ -389,10 +394,10 @@ export const api = {
       body: JSON.stringify({ reason }),
     }),
 
-  assign: (id: string, assigneeId: string | null) =>
+  assign: (id: string, assigneeId: string | null, expectedVersion?: string) =>
     call<{ assigneeId: string | null }>(`/tickets/${encodeURIComponent(id)}/assignee`, {
       method: 'POST',
-      body: JSON.stringify({ assigneeId }),
+      body: JSON.stringify({ assigneeId, expectedVersion }),
     }),
 };
 

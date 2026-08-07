@@ -21,6 +21,7 @@ export function AssessmentForm({
   priority,
   priorityIsDerived,
   action,
+  expectedVersion,
   errorMessage,
 }: {
   impact: string;
@@ -29,6 +30,8 @@ export function AssessmentForm({
   /** 保存されている優先度が規則どおりかどうか。 */
   priorityIsDerived: boolean;
   action: (formData: FormData) => Promise<void>;
+  /** 見ていた版 (WP-P2-UISTATE-020)。送り返して競合を検出する。 */
+  expectedVersion: string;
   errorMessage?: string;
 }) {
   return (
@@ -68,6 +71,7 @@ export function AssessmentForm({
         )}
 
         <form action={action} className="stack">
+          <input type="hidden" name="expectedVersion" value={expectedVersion} />
           <div className="field">
             <label htmlFor="assess-impact">影響の範囲</label>
             <span className="hint" id="assess-impact-hint">

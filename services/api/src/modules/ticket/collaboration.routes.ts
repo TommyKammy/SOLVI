@@ -230,6 +230,8 @@ export class CollaborationController {
           assigneeGroupId: result.ticket.assigneeGroupId,
           createdAt: result.ticket.createdAt.toISOString(),
           resolvedAt: result.ticket.resolvedAt?.toISOString() ?? null,
+          // 画面はこれを持ったまま操作を送る (WP-P2-UISTATE-020)。
+          version: result.ticket.version,
         },
         comments: result.comments.map(toCommentView),
         attachments: result.attachments.map(toAttachmentView),
@@ -344,6 +346,7 @@ export class CollaborationController {
         ticketId,
         to: input.to as never,
         reason: input.reason as never,
+        expectedVersion: readVersion(body),
       }),
     );
     recordDomainEvent('ticket.transitioned', 'success');
@@ -365,6 +368,7 @@ export class CollaborationController {
         impact: input.impact,
         urgency: input.urgency,
         reason: input.reason,
+        expectedVersion: readVersion(body),
       }),
     );
     recordDomainEvent('ticket.reassessed', 'success');
@@ -395,7 +399,7 @@ export class CollaborationController {
     const groupId = typeof raw === 'string' && raw.length > 0 ? raw : null;
 
     const ticket = await this.run(auth, ({ tickets }) =>
-      tickets.assignGroup(auth.authz, ticketId, groupId),
+      tickets.assignGroup(auth.authz, ticketId, groupId, readVersion(body)),
     );
     recordDomainEvent('ticket.assigned', 'success');
     return { status: 200, body: { assigneeGroupId: ticket.assigneeGroupId } };
@@ -429,7 +433,7 @@ export class CollaborationController {
     const assigneeId = typeof raw === 'string' && raw.length > 0 ? raw : null;
 
     const ticket = await this.run(auth, ({ tickets }) =>
-      tickets.assign(auth.authz, ticketId, assigneeId),
+      tickets.assign(auth.authz, ticketId, assigneeId, readVersion(body)),
     );
     recordDomainEvent('ticket.assigned', 'success');
     return { status: 200, body: { assigneeId: ticket.assigneeId } };
@@ -513,6 +517,19 @@ function parseReassessBody(body: unknown): { impact: Impact; urgency: Urgency; r
 
   if (errors.length > 0) throw Problems.validation(errors);
   return { impact: impact as Impact, urgency: urgency as Urgency, reason };
+}
+
+/**
+ * 画面が見ていた版 (WP-P2-UISTATE-020)。
+ *
+ * **省略を許す。** 定期処理やAPIを直接叩く運用があり、
+ * そこへ版を強制しても「取ってから送るまでの間に自分の更新が挟まる」
+ * だけの手間になる。守りたいのは画面から操作する人である。
+ */
+function readVersion(body: unknown): string | undefined {
+  const record = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>;
+  const value = record.expectedVersion;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function parseTransitionBody(body: unknown): { to: string; reason: string } {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SiteHeader } from '../components/SiteHeader';
+import { OfflineNotice } from '../components/OfflineNotice';
 
 export const metadata: Metadata = {
   title: 'SOLVI',
@@ -21,6 +22,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           本文へ移動
         </a>
         <SiteHeader />
+        {/* 回線が切れていることは全画面で伝える。**画面ごとに書くと書き忘れる。** */}
+        <OfflineNotice />
         {children}
       </body>
     </html>

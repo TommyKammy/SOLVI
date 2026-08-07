@@ -93,6 +93,27 @@ export const Problems = {
       detail,
     }),
 
+  /**
+   * 見ていた内容が古い (WP-P2-UISTATE-020 / NFR-UX-004)。
+   *
+   * 業務規則による競合(「その記号のグループは既にある」等)と**別の型にする**。
+   * 利用者がとるべき行動が違うためである。
+   *
+   *   - 業務規則の競合 → 入力を変える
+   *   - 見ていた内容が古い → **画面を読み直してから、もう一度考える**
+   *
+   * 同じ 409 にまとめると、画面は「競合が発生しました」としか言えない。
+   * 何と競合したのかが分からなければ、利用者は同じ操作を繰り返す。
+   */
+  stale: (resource: string) =>
+    new ProblemError({
+      status: 409,
+      type: `${TYPE_BASE}/stale`,
+      title: `${resource}は他の人が変更しました`,
+      detail:
+        '表示していた内容が最新ではありません。最新の内容を確認してから、もう一度操作してください。',
+    }),
+
   invalidTransition: (from: string, to: string) =>
     new ProblemError({
       status: 422,
