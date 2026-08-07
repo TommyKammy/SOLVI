@@ -17,6 +17,7 @@ import { TicketController } from './modules/ticket/ticket.routes.js';
 import { CollaborationController } from './modules/ticket/collaboration.routes.js';
 import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
+import { UserAdminController } from './modules/auth/user-admin.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
@@ -120,6 +121,7 @@ async function bootstrap(): Promise<void> {
 
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });
+  const userAdmin = new UserAdminController({ pool: db.authPool() });
 
   const app = new HttpServer(logger)
     .get('/healthz', () => health.liveness())
@@ -281,6 +283,32 @@ async function bootstrap(): Promise<void> {
       const authenticated = await auth.authenticate(req.headers);
       const result = await relations.merge(authenticated, params.id ?? '', await readJsonBody(req));
       return result.body;
+    })
+    // ---- 在籍者の管理 (FR-IDM-007 / WP-P1-IDM-011) --------------------------
+    .get('/users', async (req) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.list(authenticated);
+      return result.body;
+    })
+    .post('/users/:id/deactivate', async (req, _res, params) => {
+      // **その場でセッションが切れる。** リンクを踏んだだけで起きる経路を作らない。
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.deactivate(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      return result.body;
+    })
+    .post('/users/:id/reactivate', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.reactivate(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
     })
     // ---- 担当グループ (WP-P2-GRP-015) --------------------------------------
     .get('/groups', async (req) => {

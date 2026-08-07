@@ -704,3 +704,17 @@ button.danger {
   border-left-color: var(--danger);
   background: var(--danger-bg);
 }
+
+/* 在籍者の管理 (FR-IDM-007 / WP-P1-IDM-011) */
+.user-action {
+  margin-top: 0.5rem;
+}
+.user-action summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.user-action form {
+  margin-top: 0.75rem;
+  max-width: 30rem;
+}

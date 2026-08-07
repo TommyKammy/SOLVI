@@ -105,6 +105,8 @@ export default async function OpsQueue({
       {session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode)) && (
         <p>
           <Link href="/ops/groups">担当グループを管理する</Link>
+          {' ・ '}
+          <Link href="/ops/users">在籍者を管理する</Link>
         </p>
       )}
 
