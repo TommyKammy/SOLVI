@@ -27,6 +27,7 @@
     "db:rollback": "node tools/migrate.mjs down",
     "db:status": "node tools/migrate.mjs status",
     "db:seed": "tsx tools/seed.mjs",
+    "user:create": "tsx tools/create_local_user.mjs",
     "check:rls": "node tools/check_rls.mjs",
     "check:requirements": "python3 tools/check_requirements.py",
     "check:paths": "node tools/check_allowed_paths.mjs",
