@@ -18,6 +18,14 @@ import { formatDateTime } from '../../../lib/labels';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * この画面から配れる役割 (FR-IDM-005)。
+ *
+ * サーバ側の `GRANTABLE_ROLES` と揃えている。**画面で隠すことを防御にしない** —
+ * 配れない役割を送っても API が 400 を返す。
+ */
+const GRANTABLE = ['org_admin', 'agent', 'approver', 'auditor', 'requester'];
+
 const ROLE_LABELS: Record<string, string> = {
   requester: '依頼者',
   agent: '担当者',
@@ -70,6 +78,37 @@ export default async function ManageUsers({
     );
   }
 
+  async function grantRole(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.grantRole(
+      String(formData.get('userId') ?? ''),
+      String(formData.get('roleCode') ?? ''),
+      String(formData.get('reason') ?? ''),
+      String(formData.get('validUntil') ?? ''),
+    );
+    if (!done.ok) {
+      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
+      redirect(`/ops/users?error=${encodeURIComponent(detail)}`);
+    }
+    revalidatePath('/ops/users');
+    redirect('/ops/users?granted=1');
+  }
+
+  async function revokeRole(formData: FormData): Promise<void> {
+    'use server';
+    const done = await api.revokeRole(
+      String(formData.get('userId') ?? ''),
+      String(formData.get('roleCode') ?? ''),
+      String(formData.get('reason') ?? ''),
+    );
+    if (!done.ok) {
+      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
+      redirect(`/ops/users?error=${encodeURIComponent(detail)}`);
+    }
+    revalidatePath('/ops/users');
+    redirect('/ops/users?revoked=1');
+  }
+
   async function reactivate(formData: FormData): Promise<void> {
     'use server';
     const userId = String(formData.get('userId') ?? '');
@@ -97,6 +136,24 @@ export default async function ManageUsers({
         <div className="error-summary" role="alert" tabIndex={-1} autoFocus>
           <h2>操作できませんでした</h2>
           <p style={{ margin: 0 }}>{query.error}</p>
+        </div>
+      )}
+
+      {query.granted !== undefined && (
+        <div className="notice" role="status">
+          <p style={{ margin: 0 }}>
+            役割を与えました。<strong>すぐに有効になります</strong> —
+            本人がログインし直す必要はありません。
+          </p>
+        </div>
+      )}
+
+      {query.revoked !== undefined && (
+        <div className="notice" role="status">
+          <p style={{ margin: 0 }}>
+            役割を取り消しました。<strong>すぐに反映されます</strong>。
+            与えた記録と取り消した記録は、どちらも残ります。
+          </p>
         </div>
       )}
 
@@ -155,6 +212,96 @@ export default async function ManageUsers({
                   <p className="hint" style={{ margin: '0.25rem 0 0' }}>
                     {formatDateTime(member.deactivatedAt)} に停止
                   </p>
+                )}
+
+                {/* 役割の付け外し (FR-IDM-005 / WP-P1-IDM-015)。
+                    **停止された利用者には配らない** — 止めた人の権限を
+                    増やす操作に意味は無い。 */}
+                {!stopped && (
+                  <details className="user-action">
+                    <summary>役割を変える</summary>
+
+                    <form action={grantRole} className="stack">
+                      <input type="hidden" name="userId" value={member.userId} />
+                      <div className="field">
+                        <label htmlFor={`grant-${member.userId}`}>与える役割</label>
+                        <select id={`grant-${member.userId}`} name="roleCode" required>
+                          {GRANTABLE.filter((code) => !member.roleCodes.includes(code)).map(
+                            (code) => (
+                              <option key={code} value={code}>
+                                {ROLE_LABELS[code] ?? code}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                        <span className="hint">
+                          {/* **何が足りないかを言う。** 「選べない」だけでは
+                              利用者は諦め方も分からない。 */}
+                          プラットフォーム管理者・監査者は二重承認の手続きが必要なため、
+                          この画面からは配れません。
+                        </span>
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`until-${member.userId}`}>期限(任意)</label>
+                        <span className="hint" id={`until-hint-${member.userId}`}>
+                          兼務・出向のように終わりが決まっている場合に入れます。
+                          期限が来ると自動で失効し、記録に残ります。
+                        </span>
+                        <input
+                          id={`until-${member.userId}`}
+                          name="validUntil"
+                          type="date"
+                          aria-describedby={`until-hint-${member.userId}`}
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`grant-reason-${member.userId}`}>付与の理由</label>
+                        <input
+                          id={`grant-reason-${member.userId}`}
+                          name="reason"
+                          type="text"
+                          required
+                          maxLength={500}
+                        />
+                      </div>
+                      <button type="submit" className="secondary">
+                        役割を与える
+                      </button>
+                    </form>
+
+                    {member.roleCodes.filter((code) => GRANTABLE.includes(code)).length > 0 && (
+                      <form action={revokeRole} className="stack" style={{ marginTop: '1.5rem' }}>
+                        <input type="hidden" name="userId" value={member.userId} />
+                        <div className="field">
+                          <label htmlFor={`revoke-${member.userId}`}>取り消す役割</label>
+                          <select id={`revoke-${member.userId}`} name="roleCode" required>
+                            {member.roleCodes
+                              .filter((code) => GRANTABLE.includes(code))
+                              .map((code) => (
+                                <option key={code} value={code}>
+                                  {ROLE_LABELS[code] ?? code}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`revoke-reason-${member.userId}`}>取り消しの理由</label>
+                          <input
+                            id={`revoke-reason-${member.userId}`}
+                            name="reason"
+                            type="text"
+                            required
+                            maxLength={500}
+                          />
+                        </div>
+                        <button type="submit" className="secondary">
+                          役割を取り消す
+                        </button>
+                      </form>
+                    )}
+                  </details>
                 )}
 
                 {isSelf ? (

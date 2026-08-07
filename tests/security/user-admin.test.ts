@@ -112,7 +112,10 @@ async function tryLogin(email: string, orgId: string): Promise<{ ok: boolean; re
   }
 }
 
-async function loginAs(email: string, orgId: string): Promise<AuthenticatedRequest> {
+async function loginAs(
+  email: string,
+  orgId: string,
+): Promise<AuthenticatedRequest & { token: string }> {
   const client = await pool.connect();
   try {
     await beginAuthTransaction(client);
@@ -132,6 +135,7 @@ async function loginAs(email: string, orgId: string): Promise<AuthenticatedReque
       authz: { principal: validation.principal, organizationId: orgId },
       sessionId: validation.session.id,
       userId: validation.session.userId,
+      token: result.token,
     };
   } finally {
     client.release();
@@ -473,6 +477,303 @@ describe('復帰 (FR-IDM-007)', () => {
     await expect(
       run(() => users.reactivate(orgAdmin, backId, { reason: '' })),
     ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe('役割の付与と取り消し (FR-IDM-005 / WP-P1-IDM-015)', () => {
+  it('**管理者が役割を与えられる**(これまで配る経路が無かった)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('member@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const memberId = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['member@example.com'])
+    ).rows[0].id;
+
+    await run(() =>
+      users.grantRole(orgAdmin, memberId, { roleCode: 'agent', reason: 'ヘルプデスクへ異動' }),
+    );
+
+    const result = await run(() => users.list(orgAdmin));
+    const member = result.body.items.find((m) => m.userId === memberId);
+    expect(member!.roleCodes).toContain('agent');
+  });
+
+  it('**期限つきで与えられる**(兼務・出向 / FR-IDM-006)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('temp@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const tempId = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['temp@example.com'])
+    ).rows[0].id;
+
+    await run(() =>
+      users.grantRole(orgAdmin, tempId, {
+        roleCode: 'approver',
+        reason: '3か月の応援',
+        validUntil: '2026-12-31',
+      }),
+    );
+
+    const result = await run(() => users.list(orgAdmin));
+    const member = result.body.items.find((m) => m.userId === tempId);
+    expect(member!.temporaryRoles.map((t) => t.roleCode)).toContain('approver');
+  });
+
+  it('**platform ロールはこの画面から配れない**(二重承認が要る / 02.18 §2)', async () => {
+    // 承認を伴わない経路をここに作ると、組織の管理者一人が
+    // プラットフォーム全体を奪える。
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('target@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const targetId = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['target@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() =>
+        users.grantRole(orgAdmin, targetId, {
+          roleCode: 'platform_admin',
+          reason: '奪取の試み',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+
+    const { rows } = await admin.query(
+      `SELECT count(*)::int AS n FROM role_binding WHERE user_id = $1 AND role_scope = 'platform'`,
+      [targetId],
+    );
+    expect(rows[0].n).toBe(0);
+  });
+
+  it('理由なしでは与えられない', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('m@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['m@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() => users.grantRole(orgAdmin, id, { roleCode: 'agent', reason: '  ' })),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('**過ぎた期限では与えられない**(与えた瞬間に失効する)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('m@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['m@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() =>
+        users.grantRole(orgAdmin, id, {
+          roleCode: 'agent',
+          reason: '過去の期限',
+          validUntil: '2020-01-01',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('既に持っている役割は二重に与えない (409)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('dup@example.com', ORG_A, 'agent');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['dup@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() => users.grantRole(orgAdmin, id, { roleCode: 'agent', reason: '再付与' })),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('停止された利用者には与えられない (409)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('off@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['off@example.com'])
+    ).rows[0].id;
+    await run(() => users.deactivate(orgAdmin, id, { reason: '退職' }));
+
+    await expect(
+      run(() => users.grantRole(orgAdmin, id, { roleCode: 'agent', reason: '止めた人に付与' })),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('**担当者は役割を配れない**(体制を変えられるのは管理者)', async () => {
+    await createUser('ops@example.com', ORG_A, 'agent');
+    await createUser('m@example.com', ORG_A, 'requester');
+    const agent = await loginAs('ops@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['m@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() => users.grantRole(agent, id, { roleCode: 'agent', reason: '自分で増やす' })),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('**与えた役割はすぐ効く**(画面がそう書いている)', async () => {
+    // 役割は毎回のセッション検証で解決される。ログインし直す必要は無い。
+    // **画面の文言がこの挙動に依存している**ので、ここで固定する。
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('now@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const target = await loginAs('now@example.com', ORG_A);
+
+    const before = await run(() => users.list(orgAdmin));
+    expect(before.body.items.find((m) => m.userId === target.userId)!.roleCodes).not.toContain(
+      'agent',
+    );
+
+    await run(() =>
+      users.grantRole(orgAdmin, target.userId, { roleCode: 'agent', reason: '即時反映の確認' }),
+    );
+
+    // 同じセッションのまま、新しい役割が見える
+    const client = await pool.connect();
+    try {
+      await beginAuthTransaction(client);
+      const validation = await new SessionService(client).validate(target.token);
+      await client.query('COMMIT');
+      expect(validation.valid).toBe(true);
+      if (validation.valid) {
+        expect(validation.principal.bindings.map((b) => b.roleCode)).toContain('agent');
+      }
+    } finally {
+      client.release();
+    }
+  });
+
+  it('付与が監査に残る (`role.binding.created`)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('aud@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['aud@example.com'])
+    ).rows[0].id;
+
+    await run(() => users.grantRole(orgAdmin, id, { roleCode: 'agent', reason: '異動のため' }));
+
+    const { rows } = await admin.query(
+      `SELECT event_type, action, actor_id, after_state FROM audit_event
+        WHERE subject_user_id = $1 AND event_type = 'role.binding.created'`,
+      [id],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].action).toBe('grant');
+    // **誰が配ったかを残す。** 期限到来(system)と区別できなければ調査にならない。
+    expect(rows[0].actor_id).toBe(orgAdmin.userId);
+    expect(rows[0].after_state.reason).toContain('異動');
+  });
+});
+
+describe('役割の取り消し (FR-IDM-005)', () => {
+  it('**取り消すと権限を失う。行は残る**', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('rev@example.com', ORG_A, 'agent');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['rev@example.com'])
+    ).rows[0].id;
+
+    await run(() => users.revokeRole(orgAdmin, id, { roleCode: 'agent', reason: '異動のため' }));
+
+    const result = await run(() => users.list(orgAdmin));
+    const member = result.body.items.find((m) => m.userId === id);
+    expect(member?.roleCodes ?? []).not.toContain('agent');
+
+    // 行は消さない。**履歴として残す。**
+    const { rows } = await admin.query(
+      `SELECT valid_until, expiry_recorded_at FROM role_binding rb
+        JOIN role r ON r.id = rb.role_id
+       WHERE rb.user_id = $1 AND r.code = 'agent'`,
+      [id],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].valid_until).not.toBeNull();
+    // 期限到来の定期処理が同じ失権を二重に記録しないよう、印を付ける。
+    expect(rows[0].expiry_recorded_at).not.toBeNull();
+  });
+
+  it('**取り消しは期限到来と区別して記録する**', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('rev2@example.com', ORG_A, 'agent');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['rev2@example.com'])
+    ).rows[0].id;
+
+    await run(() => users.revokeRole(orgAdmin, id, { roleCode: 'agent', reason: '権限の見直し' }));
+
+    const { rows } = await admin.query(
+      `SELECT action, actor_type, actor_id FROM audit_event
+        WHERE subject_user_id = $1 AND event_type = 'role.binding.deleted'`,
+      [id],
+    );
+    expect(rows).toHaveLength(1);
+    // 「切れた」(system/expire)と「取り消した」(user/revoke)は別の出来事である。
+    expect(rows[0].action).toBe('revoke');
+    expect(rows[0].actor_type).toBe('user');
+    expect(rows[0].actor_id).toBe(orgAdmin.userId);
+  });
+
+  it('**自分自身の組織管理者は取り消せない**(締め出しを作らない)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('adm2@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await expect(
+      run(() =>
+        users.revokeRole(orgAdmin, orgAdmin.userId, {
+          roleCode: 'org_admin',
+          reason: '自分を外す',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('持っていない役割は取り消せない (404)', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('none@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['none@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() => users.revokeRole(orgAdmin, id, { roleCode: 'auditor', reason: '無い役割' })),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('理由なしでは取り消せない', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('r@example.com', ORG_A, 'agent');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const id = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['r@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() => users.revokeRole(orgAdmin, id, { roleCode: 'agent', reason: '' })),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('**他組織の利用者は触れない**', async () => {
+    await createUser('adm-a@example.com', ORG_A, 'org_admin');
+    await createUser('other@example.com', ORG_B, 'agent');
+    const admA = await loginAs('adm-a@example.com', ORG_A);
+    const foreignId = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['other@example.com'])
+    ).rows[0].id;
+
+    await expect(
+      run(() => users.grantRole(admA, foreignId, { roleCode: 'agent', reason: '越境の試み' })),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
 
