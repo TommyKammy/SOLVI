@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 267 |
-| Markdown | 259 |
+| 対象ファイル | 268 |
+| Markdown | 260 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,863,617 bytes |
+| 合計サイズ | 6,878,642 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3943 | `50ccdac4badf60bc06e335d5db3e66d757f987b14d6cd7dfbaf300262fcabc9a` |
-| `00_Index/00.8_Status_Dashboard.md` | 9172 | `33d5f552beec35c18e16f5ee0a0bb48e80f884fcfe825a6f1e491506cbd677d7` |
+| `00_Index/00.8_Status_Dashboard.md` | 9343 | `e3af24ea727bbaf247f4650e9ea4a20060791cb366394c0c414dc201cb85a770` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -90,7 +90,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 1335 | `7ab46cbb49782b6d5dcbc7ba8838cd160f1964a9e161a795ebefbd59c1877c9a` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 13901 | `bff138febd731cf7ebeda9a52454f29ac7a63af8c34453ab8000ac68566210eb` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 17323 | `0675f4086fef906ee0566ac38f5267d096c8c71a627d3737c69190c0d4998541` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3105 | `90e5bd7b75a0138a879ac6865beca5f1337eeb0035bde4ed18a56e1260e3ac8d` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -115,7 +115,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `04_Development/04.20_Migration_and_Cutover_Strategy.md` | 1587 | `da894bc0cbeceb9c402d1c46b06b23b11bdb9118e3e7e446ef7ff97848c181d6` |
 | `04_Development/04.21_Pilot_Strategy.md` | 1476 | `401de887efff0d14af0ca603f3a9a0c1ec104390a9f02118a247faac675718db` |
 | `04_Development/04.22_Gate_Definitions.md` | 13372 | `c3bbc3684d41a4ee859bc51dc34dbe66eac01b1cc8b249d21f340a461af7dc92` |
-| `04_Development/04.23_Wiring_Verification.md` | 26346 | `d1da03ebc059c1d93a938a49d2e3e093f47d3cc4c06f3443d942adb008d97e0b` |
+| `04_Development/04.23_Wiring_Verification.md` | 28996 | `68e1c7e8b4bd5ecf4df5a2cbf2449b965446a427594435932d8f41cb4470a0c6` |
 | `04_Development/04.2_Phase_0_Plan.md` | 2082 | `ebab14277498a5772b299b3e80ad7e74f4d7ce405bc88fa816603e46e9372ca3` |
 | `04_Development/04.3_Phase_1_Plan.md` | 2074 | `c02bda42dbde824b9bb8a15cc1ef8da1367e6da11112512263965cde85f5bd9f` |
 | `04_Development/04.4_Phase_2_Plan.md` | 2051 | `02ae7575f195c5eede36bbfd8483d364687d1245dac1fa67e2daa18a75f3ddd1` |
@@ -146,61 +146,62 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/06.1_Dependency_Map.md` | 4588 | `d2fd095278dc6d103e3db291c44e8de62d6d3a4202a594ca225bb720fc4d4147` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
-| `06_WorkPackages/P0_Planning/WP-P0-ARCH-002.md` | 4958 | `c20abf4249c479976407e052ba6f1d0d18b8f1f37a78c6254cc2bcc50717990b` |
-| `06_WorkPackages/P0_Planning/WP-P0-DEV-005.md` | 5669 | `a5bd71bfa911e00655a9aa7c66467bf98a76a4099aa4a5093306317655ffe552` |
-| `06_WorkPackages/P0_Planning/WP-P0-GOV-001.md` | 5309 | `72fc49db24f6208d42c8a7e4ad9202a2d378a9b6c501d11a1b08b0a4df640941` |
-| `06_WorkPackages/P0_Planning/WP-P0-REQ-004.md` | 4916 | `01383a3c678df43e3a87ea306707462a7e2234953a9b8d831f7771b5b32c556e` |
-| `06_WorkPackages/P0_Planning/WP-P0-SEC-003.md` | 5017 | `68fca8643f2a825dabf35483f597d82236bbe255bfe2ac0b67e2e56451c1cdd6` |
-| `06_WorkPackages/P0_Planning/WP-P0-UX-006.md` | 5243 | `340909f8e7546e8e950ac5b5a35590acfdc416ba10812e1343b6f501fcd02334` |
-| `06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md` | 9582 | `98ecd1f0c91f75dc0bfaf04bd93626d06fafcfcfe64c10f527b308d334345145` |
-| `06_WorkPackages/P1_Foundation/WP-P1-BCK-007.md` | 5471 | `61493fa17ca2b89d91f474eeff1d36c4838c52c56c500865fafae054e84cf3e2` |
-| `06_WorkPackages/P1_Foundation/WP-P1-CI-006.md` | 5859 | `6a68748540858a38a582d61c29c219526931aa8cdf8603307f8caa4b1404af30` |
-| `06_WorkPackages/P1_Foundation/WP-P1-DATA-002.md` | 6760 | `2159688b128334cf880d4fc6d7694988bf3ba2b312df9eda139d797d82679906` |
-| `06_WorkPackages/P1_Foundation/WP-P1-IDM-003.md` | 7314 | `f6ece4e1b3affd284da8bc55bb2ef86b3b5595b9b0baf00f4307b530b83546a5` |
+| `06_WorkPackages/P0_Planning/WP-P0-ARCH-002.md` | 4991 | `098a25b8f4643913fa36e362184a5d6b7929f5677195008a813bceae0604dc41` |
+| `06_WorkPackages/P0_Planning/WP-P0-DEV-005.md` | 5702 | `c31cef343ac860f2203d8684a1db7e0db166b24ef16aa510b44034979c2c220d` |
+| `06_WorkPackages/P0_Planning/WP-P0-GOV-001.md` | 5357 | `4bb3f4dfb92be5724b1e31ec4f670c1ce13a265170aa571c2a97cab568e029ca` |
+| `06_WorkPackages/P0_Planning/WP-P0-REQ-004.md` | 4964 | `f435d0c0a787fe48c0f720765458860876865294dc5d6cfcdb3e08c9c1d484e7` |
+| `06_WorkPackages/P0_Planning/WP-P0-SEC-003.md` | 5065 | `309e02bba55b7c2d0e8bf86600e04649601218908d25ed00e719128b3850ba70` |
+| `06_WorkPackages/P0_Planning/WP-P0-UX-006.md` | 5303 | `98563bd2836f611ba5ff39f11b29f05c07d1658a30270f0473a3edf7e22bba7d` |
+| `06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md` | 9640 | `9b2019ac473cc66daa1247862b5bff259c6b102f17a813d5260027e86d171cae` |
+| `06_WorkPackages/P1_Foundation/WP-P1-BCK-007.md` | 5519 | `9958e11bac24045fd0ab2d3ecbb677367f26a1dcafec12497790e8e9b723e293` |
+| `06_WorkPackages/P1_Foundation/WP-P1-CI-006.md` | 5937 | `c1aef35bbcaf8624e6d0c01f1d28b8b4b36fd1903f4c2cc572aa04b8bcdb62b7` |
+| `06_WorkPackages/P1_Foundation/WP-P1-DATA-002.md` | 6850 | `f56c51d3627ab6459d81a6ad0079d86977ae3459295e9d9d6c973f507c753060` |
+| `06_WorkPackages/P1_Foundation/WP-P1-IDM-003.md` | 7374 | `5faac6c64b20b003eb30ad349cdea0e3772286a267c4b6f36e5f629e7f26fa5b` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-009.md` | 9801 | `5f299631b2b213a10cada05323d6622b14f987ce7945f279de36b9a22242e089` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-010.md` | 9595 | `1377a376a181907a560f197e22d3dff91c450380850e670f5cc14c6d7826f765` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-011.md` | 6733 | `9c4cdc63a79e74c7efbb1ad545e2085ebfb7d47a5a1a391b3cd6e55d10f181b3` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-012.md` | 5570 | `dfda603eed192f4a371ff2e4c97f4159e7170c91f51eab6ef919640032a3b7f9` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-013.md` | 5242 | `ef6606cbd1439045556c4ef31505ea518e795118adb3ac69eddc994316a64a4e` |
-| `06_WorkPackages/P1_Foundation/WP-P1-OBS-005.md` | 6593 | `f09a186e6124cab73c8fdc1a5746ad375b20a9032a2ce8b8babe8d66456e113f` |
-| `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 5923 | `b2e7f5917cbaa40a58580bf9c23c8ac461d790057581b59dafc62b38b73eafe8` |
+| `06_WorkPackages/P1_Foundation/WP-P1-OBS-005.md` | 6641 | `b40ba009ac0f688ab81f3de84016a1e657c7ba95ad3e27c0681838be701e4e6c` |
+| `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 5956 | `ece30266694692475837eab429c86fefe5c7a7d3c38bd62cc24bcfa6e15c88ce` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-CLOSE-014.md` | 7874 | `88a9060d7883047a73e846e34baef79ea290df6673c963b91b3645e3a6e8970b` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 8423 | `10eb51a3d7b1d0a20a8090b2041d4dadf24e74e4e3d34fed6d1528c50c6f4dfa` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 8484 | `fdff120f273a12df59bde9ff8a495a68840c74afef1f3226a55c49e2a36864a9` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-GATE-007.md` | 6043 | `e7fb73a5b1c72e3b3f6d19ac23d0173a2021b19e6c65b7cda9cb4147e002d570` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-GRP-015.md` | 8246 | `a0c7208c32c4d5ac12ff2d8240a4524015bd1cbd85eb9837165b901088445d38` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 13785 | `12de6779d5f4e4d27fa0a8802b55c3c56acc50f627d9f0541b9222b851401245` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7688 | `8282ff4467c97035370ebc0da15cc818b09450ccf58fcd2fc0d75387c1a2746c` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 13832 | `36a8b26a9321d045debd9aeb72ca294f24719aeb0da28869bc0e24e9e5466315` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7720 | `871ca0b86f92f03f39bfc58ef9e608baafa85ec427f88607747917ea35439b2b` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPSUI-010.md` | 9283 | `9f3f15ec522600ef01db8c5d56f4c3e3850fa563cf13ed0fae6fdd7c4389c8e6` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8379 | `25553e787c59678870df301ebf7a037ba1670525d6dd5429ac9032407448822a` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8407 | `380d7fee1b27ac1c3e75ceea376f86252132b19192df8935cd4ec4ca9a51601e` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PRIO-013.md` | 7396 | `a2f4832c3bc67d9f25390f53d9c050ff875c367fba86d3b6bd4661513bb1dc77` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 10649 | `35e4e5fdddc3ccf58f023da1a36b5118f4e75578d2bc0531e9d7ef902fc45163` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 10695 | `64fa0d1ec3f38f7218f01f0e9d1e9e783372b057a3ff66c3e89aa9ba14dd0ded` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-RELUI-012.md` | 9572 | `e88ead4cc06ac8f481983e10bf11443480a9a4ac15a8538c0d3a2743e7a4aff4` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-RTM-019.md` | 5590 | `4a37340465e14160e49b4ba8973966513d4f3ecfbc677de342a74be809d30430` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SCAN-011.md` | 13071 | `7de75d9ba7a27fe2e490f4986f09112635c614c19401291ba2a82d78421fa616` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SCAN-012.md` | 4939 | `e0f52acf2d7f09bccd2ae6e2c3ac8b9b52e9ffbe73f22cb81ec7e9361fc10d81` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 8519 | `95e707373ed383a3aabcd88f883129eb080e6c58c81dcfb52852673ac1f693bf` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 8581 | `e2f1ed569765256cf164846d96b25ed1d4d78344dd648f1ab37c5f6ed9c48db0` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-017.md` | 7743 | `57764ef8d40f769456bccd90803d0bc98dcc4c081a1fc1efc65868cd9cd3ab76` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLAUI-016.md` | 8579 | `f832fa1e7ec0a21da05bcee2f528e06f07bc43c75ebb397ee457c5d5b98cf878` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLO-008.md` | 9192 | `d11e4f86eece5b042ad3848a24afa33849ec57c7c1f3e8817bb45f7e1b96e2d6` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 8356 | `dd50e0d5e4fa5ee259be3f912d09830af9570d5b6fdb7f3a9d1c89e13d35ac59` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-SLO-008.md` | 9240 | `a90bd3a31994f37d6aa0b9dab711ac69b88de59fc95d1f5ef20a2b7dfe2de19f` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-TKT-001.md` | 8445 | `5eec54fe3a84be5d4cbc08c290e7cabf9a5e39e14551f408f27c8a9d91658021` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UISTATE-018.md` | 6599 | `08a90dc264ef0670fa89256b8eb1f12c60b47912952d9ce7874c20e317e0eb00` |
-| `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2801 | `03d48931d82108cdb9bc6c036e6696285620df7a00907f8f299f492427edb4f0` |
+| `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2815 | `119612c14ce1623fedf5c3f1ceccf17c0e9c2ca2f233216458011a0f5a3659d0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-LINK-003.md` | 2680 | `698b45699928c6ecd0bbc51cc653d82aa09564026cad7c70afd05e2035ed9557` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md` | 2724 | `b64ae45c26c04532dccf21136cd750bd7e76c70882042186c7b52f73512e4821` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-SRCH-002.md` | 2711 | `a41a8720219a21b2c186a909828ced566eeff724216f32697d2c4009709b15ef` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-002.md` | 6967 | `43a744fa898494ccab3c8074a5dc180a6f6fb0c950b35f3aee50eecd159ee4d3` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-002.md` | 7097 | `15ed563b2301a786eff09443a23d7ec14973cb5a9b663c7fc4213746d4019eb8` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-ENTRA-006.md` | 2752 | `fb847d4895c7df5378a298d34548dc6b3701cee7ff24f09b7cf881e2b2b0d8d1` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-004.md` | 7009 | `db98bce4fd7e5554dcb2afd769a08a0533d072cbcf68392efc2e6fcad84719bd` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-008.md` | 6273 | `0d19cec54e1c0e1d6216e7dc6dd9e8fb3ae59597b6a5c6afa5bfa8b27683d63a` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-009.md` | 6367 | `89b534454e21ba91556b208b0b50c0fd4bcbe835f0358b2eefd1530dd69c625b` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-GATE-007.md` | 2931 | `a70ca63d14a1291913b2ce7816e181d2323f821e2b0aff6d651ca0f1a6f759e6` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-004.md` | 7123 | `364e64c3d480a23e15887e0590335d48e505225f678dafff1b8f4abd8dbda11f` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-008.md` | 6319 | `47a52ab41fc836cae3c0ea946d8d897b8b171766f99f783f7d168b4581f9b5c1` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-009.md` | 6413 | `4a5298d74d9c2cd06353f22435652892bcb93ba1681c310cf314dff290d7fb43` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-GATE-007.md` | 2973 | `5b8e3697f058f828ecb6aadaef8fde0b24ebe80f471844e74b4e12ad3232fff8` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-OKTA-005.md` | 2742 | `5ce3b926fbf3ef0ef906dfe6df1697ea6185f3e09b705b8894035935d2695a78` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-WF-003.md` | 3180 | `b531df8abea7d22702c88dc3e1516b17afd907d0421fdf94f2561a6afbc48724` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-WF-003.md` | 3225 | `2c5f9b0b8f1146530446b2adbab6f578d12bf0f069600a5a2bc840c2fa5ec1f2` |
 | `06_WorkPackages/P5_SCIM/WP-P5-GROUP-003.md` | 2727 | `855756aa2aa8a1f4d41fcc0c38a9d2328f85ddbf090e804d741bbc77c3862fee` |
 | `06_WorkPackages/P5_SCIM/WP-P5-IDP-004.md` | 2821 | `b83d9ea551973af8ab5873771711e95f99af3b01ae1503ab428c6d4608b73c0e` |
-| `06_WorkPackages/P5_SCIM/WP-P5-JML-005.md` | 2723 | `c524b67f9f45ed62d37e3a0ac52c18ae756e0e269ee8a36e8964b9675a7e980b` |
-| `06_WorkPackages/P5_SCIM/WP-P5-SCIM-001.md` | 2696 | `e053f0091a41bcae40fd6cf0fc8545e73dedfe466de46a018b5716220d0501a0` |
+| `06_WorkPackages/P5_SCIM/WP-P5-JML-005.md` | 2737 | `57515dbae0919cbb8001560b310ae877ce99982f455c8856ace657d5662dbd9a` |
+| `06_WorkPackages/P5_SCIM/WP-P5-SCIM-001.md` | 2710 | `6c9434140d6a9524ff85246a0342a1faf8663bd5b575d1c323cb4816566f774f` |
 | `06_WorkPackages/P5_SCIM/WP-P5-USER-002.md` | 2737 | `42f69c6e5cbabe9075632e5f569a7644b36ef59dc340be49ae1d473e8fb1710b` |
 | `06_WorkPackages/P6_Asset_CMDB/WP-P6-AST-001.md` | 2678 | `c5f80b0d609b96084e792a7ba124236060c5019c05069ad14a73a87f0bc6e66f` |
 | `06_WorkPackages/P6_Asset_CMDB/WP-P6-CSV-002.md` | 2662 | `6515266187ee95cf917a74a35acc4b8054ea0a65125de3e85bd0c0caf0ab7c7c` |
@@ -211,10 +212,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P7_Change/WP-P7-CAL-003.md` | 2633 | `a162a220df744e4d1a78490bb119ca519d9438e932d6de907d0eb7c4db09fe23` |
 | `06_WorkPackages/P7_Change/WP-P7-CHG-001.md` | 2699 | `21256196ec507b398f3b09f054b94964dcddc71ef28ede3747f7754c7d2a63f2` |
 | `06_WorkPackages/P7_Change/WP-P7-PIR-004.md` | 2760 | `3861e1ef3a66add71aa44d1f0fd15b85b4ba1afcb15a6e9bec70376a6efdf9d4` |
-| `06_WorkPackages/P8_AI/WP-P8-CLS-001.md` | 2732 | `ab886c10aef9995c5168dc81c0594e16e0d40f8ec5bbfb605a220b6681f7ca20` |
-| `06_WorkPackages/P8_AI/WP-P8-EVAL-004.md` | 2781 | `30a16ed60abda1e42a27a4a07e0bd662877daa6be81bf7ed6472cfbb82755076` |
+| `06_WorkPackages/P8_AI/WP-P8-CLS-001.md` | 2746 | `65dc3190f830d6cb3cd8370fbfb56b6ce1575bd4971010099cbf3c7992ce3eb5` |
+| `06_WorkPackages/P8_AI/WP-P8-EVAL-004.md` | 2791 | `1d604124859ae2c3495db18593fe83d573e0c214801cefb3ab4f2edfe354c45f` |
 | `06_WorkPackages/P8_AI/WP-P8-OPS-005.md` | 2776 | `c9633905ff489f2249a1d3c4df38f3d461e2b8e67826ad1f99415fcfe8669bca` |
-| `06_WorkPackages/P8_AI/WP-P8-RAG-002.md` | 2848 | `f9ab46a99e3326d6b12f47df8ee65f81fdcfc3eeba9ae49c0b8cef8445abcd5e` |
+| `06_WorkPackages/P8_AI/WP-P8-RAG-002.md` | 2862 | `e00bc1163174049a2907a3b1e4b3d9e2c47a9bf61c41bb8f3d95d33a8092fde2` |
 | `06_WorkPackages/P8_AI/WP-P8-SEC-003.md` | 2854 | `0136325c12fca0192e36a3cd2a38fd49753f9ee7f3659ccf8eefbf8ff4cd032a` |
 | `06_WorkPackages/P9_Migration/WP-P9-ADP-004.md` | 2765 | `b23886d874315ec181de20b0acecad89146158adaf0c9248ad346bdbdf1f69f4` |
 | `06_WorkPackages/P9_Migration/WP-P9-GATE-005.md` | 2870 | `592b505601b44fdb467aab7a1558e7b47df8cb14b864da26a095853fb02683cf` |
@@ -296,7 +297,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.1_Project_Charter.md` | 1618 | `d5ab4c80b5cf2c59f0a3ab2197a922e6c3fc5ba8eb846ec3af9821dbc06cb6ca` |
 | `99_Project_Files/99.2_Assumptions_and_Constraints.md` | 1372 | `83af0468573706bd83a680c4e733e0040f93d2a714945d418ef6111a4eea2022` |
 | `99_Project_Files/99.3_Risk_Register.md` | 2652 | `89379a0103d2629390332ee025f05fb21d4efb1fc5772aa6ca60ff407339994f` |
-| `99_Project_Files/99.4_Decision_Log.md` | 30124 | `1b5b7fdad9851aeba27228b0d13475d05a30a161a50e06487b5d1cdfbf8eb998` |
+| `99_Project_Files/99.4_Decision_Log.md` | 31715 | `a166bbb52b3f21a438e39b6747e4426de05ba63e51d2a83fa0fdc76f48625d69` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
 | `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |
