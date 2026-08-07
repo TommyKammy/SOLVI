@@ -81,6 +81,14 @@ export const apiEnvSchema = baseSchema
 
     /** ロックアウトの継続時間(秒)。 */
     AUTH_LOCKOUT_SECONDS: z.coerce.number().int().min(1).default(900),
+    /**
+     * 失効・期限切れセッションを保持する日数 (03.16)。
+     *
+     * **数値の根拠はまだ無い。** 03.16 は最終保持年数の確定を対象外としている。
+     * 法務の確認がついたらここを変える。0 にはできない —
+     * 即座に消すと、失効の直後に調べる手段が無くなる。
+     */
+    SESSION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   })
   .superRefine((env, ctx) => {
     // -----------------------------------------------------------------------
