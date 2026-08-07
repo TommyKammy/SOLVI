@@ -239,6 +239,35 @@ describe('判定できない場合に clean を安売りしない', () => {
     expect(summary.scanned).toBe(0);
     expect((await statusOf(id)).scan_status).toBe('pending');
   });
+
+  it('**一度失敗しても、次に成功すれば前回の失敗は消える**', async () => {
+    const id = await putAttachment(Buffer.from('内容'), 'retried.txt');
+
+    // 1周目: スキャナへ到達できない
+    const broken = new AttachmentScanner(
+      pool,
+      storage,
+      new ClamAvScanner({ host: '127.0.0.1', port: 1, timeoutMs: 2000 }),
+      logger,
+    );
+    await runWithContext(newContext(), () => broken.scanPending());
+    const afterFailure = await statusOf(id);
+    expect(afterFailure.scan_last_error).toBeTruthy();
+
+    // 2周目: 成功する
+    await runWithContext(newContext(), () => scanner.scanPending());
+    const afterSuccess = await statusOf(id);
+
+    expect(afterSuccess.scan_status).toBe('clean');
+    // **前回の失敗理由を消す。** 残したままだと、いま健全な添付が
+    // 「エラーを抱えている」ように見え、調べるべきものが埋もれる。
+    //
+    // 結果を書く経路が二か所にあったとき、片方(API側の写し)は
+    // この列を知らないまま `scan_status` だけを書いていた。
+    expect(afterSuccess.scan_last_error).toBeNull();
+    // 試行回数は消さない。何周かかったかは運用上の情報である。
+    expect(afterSuccess.scan_attempts).toBe(2);
+  });
 });
 
 describe('再スキャンしない', () => {

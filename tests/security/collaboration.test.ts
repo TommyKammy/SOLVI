@@ -13,6 +13,7 @@ import { S3CompatibleStorage, MAX_SIGNED_URL_TTL_SECONDS, generateStorageKey } f
 import type { AuthzContext, Principal } from '../../services/api/src/common/authz/authz.js';
 import { runWithContext, newContext } from '@solvi/shared';
 import { cleanBusinessData, cleanAuditData } from '../support/cleanup.js';
+import { markScanned } from '../support/scan.js';
 
 const ORG_A = '00000000-0000-4000-9000-000000000001';
 const ORG_B = '00000000-0000-4000-9000-000000000002';
@@ -301,7 +302,7 @@ describe('スキャン状態による配布制御 (FR-TKT-005 / 脅威 T-15)', (
         collab(c).createAttachment(agentCtx, { ticketId: ticket.id, ...pngUpload }),
       ),
     );
-    await inOrg(ORG_A, (c) => collab(c).recordScanResult(created.attachmentId, 'infected'));
+    await inOrg(ORG_A, (c) => markScanned(c, created.attachmentId, 'infected'));
     await expect(
       runWithContext(newContext(), () =>
         inOrg(ORG_A, (c) => collab(c).createDownloadUrl(agentCtx, created.attachmentId)),
@@ -316,7 +317,7 @@ describe('スキャン状態による配布制御 (FR-TKT-005 / 脅威 T-15)', (
         collab(c).createAttachment(agentCtx, { ticketId: ticket.id, ...pngUpload }),
       ),
     );
-    await inOrg(ORG_A, (c) => collab(c).recordScanResult(created.attachmentId, 'clean'));
+    await inOrg(ORG_A, (c) => markScanned(c, created.attachmentId, 'clean'));
     const url = await runWithContext(newContext(), () =>
       inOrg(ORG_A, (c) => collab(c).createDownloadUrl(agentCtx, created.attachmentId)),
     );
@@ -378,7 +379,7 @@ describe('組織境界 (TL-06)', () => {
     const created = await runWithContext(newContext(), () =>
       inOrg(ORG_B, (c) => collab(c).createAttachment(ctxB, { ticketId: ticketB.id, ...pngUpload })),
     );
-    await inOrg(ORG_B, (c) => collab(c).recordScanResult(created.attachmentId, 'clean'));
+    await inOrg(ORG_B, (c) => markScanned(c, created.attachmentId, 'clean'));
 
     const agentA = users.get(`${ORG_A}:agent`)!;
     await expect(
@@ -434,7 +435,7 @@ describe('監査 (AUD-001 / 02.17 §4)', () => {
         collab(c).createAttachment(agentCtx, { ticketId: ticket.id, ...pngUpload }),
       ),
     );
-    await inOrg(ORG_A, (c) => collab(c).recordScanResult(created.attachmentId, 'clean'));
+    await inOrg(ORG_A, (c) => markScanned(c, created.attachmentId, 'clean'));
     await runWithContext(newContext(), () =>
       inOrg(ORG_A, (c) => collab(c).createDownloadUrl(agentCtx, created.attachmentId)),
     );
