@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["FR-AUT-006", "FR-AUT-007"]
 ---
 
 # WP-P4-EXEC-009: Dry Run・Retry・エラー分類・Kill Switch

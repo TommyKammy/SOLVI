@@ -101,6 +101,7 @@ describe('effectiveRoles', () => {
 });
 
 describe('requireRole', () => {
+  // FR-IDM-003 Role Mapping(fail closed)。**役割が無いことを許可と読まない。**
   it('権限がなければ403を投げる', () => {
     const p = principal({
       bindings: [

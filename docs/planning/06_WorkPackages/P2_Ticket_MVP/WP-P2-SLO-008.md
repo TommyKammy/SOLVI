@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "partial"
+requirement_ids: ["NFR-OPS-001", "NFR-OPS-004"]
 ---
 
 # WP-P2-SLO-008: SLO・監視・オンコール整備

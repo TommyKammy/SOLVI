@@ -917,6 +917,7 @@ describe('監査 (Gate 1 G1-4)', () => {
 });
 
 describe('identity の取り違え防止', () => {
+  // FR-IDM-002 Identity Link(issuer+subject)。DB制約が予約 issuer を守る。
   it('**ローカルidentityは外部IdPのissuerを騙れない**', async () => {
     const userId = await createUser({
       email: 'iss@example.com',

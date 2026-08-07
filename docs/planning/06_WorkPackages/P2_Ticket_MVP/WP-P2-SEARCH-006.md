@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["FR-TKT-006", "FR-TKT-008", "NFR-PERF-001"]
 ---
 
 # WP-P2-SEARCH-006: Ticket SearchとSLA Lite

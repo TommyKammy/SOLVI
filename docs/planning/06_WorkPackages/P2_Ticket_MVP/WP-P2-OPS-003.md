@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["FR-TKT-003"]
 ---
 
 # WP-P2-OPS-003: Ticket一覧・フィルタ・担当割当

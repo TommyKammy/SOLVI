@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "not-started"
+requirement_ids: ["FR-IDM-001", "FR-IDM-002", "FR-IDM-008"]
 ---
 
 # WP-P1-IDM-003: Okta OIDC Loginとセッション失効

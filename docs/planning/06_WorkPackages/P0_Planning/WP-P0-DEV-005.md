@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["NFR-MNT-002"]
 ---
 
 # WP-P0-DEV-005: Repository・AGENTS・Issue規約

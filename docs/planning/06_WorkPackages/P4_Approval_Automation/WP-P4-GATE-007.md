@@ -17,7 +17,7 @@ workstream: "GATE"
 risk: "critical"
 story_points: 8
 depends_on: ["WP-P4-OKTA-005", "WP-P4-ENTRA-006"]
-requirement_ids: ["BR-003", "BR-004", "NFR-SEC-001", "NFR-SEC-002", "NFR-SEC-004", "NFR-SEC-005"]
+requirement_ids: ["BR-003", "BR-004", "FR-CAT-004", "FR-CAT-007", "FR-CAT-010", "NFR-SEC-001", "NFR-SEC-002", "NFR-SEC-004", "NFR-SEC-005"]
 aliases: ["WP-P4-GATE-007"]
 ---
 

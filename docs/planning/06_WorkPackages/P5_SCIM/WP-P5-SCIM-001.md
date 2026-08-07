@@ -17,7 +17,7 @@ workstream: "SCIM"
 risk: "high"
 story_points: 8
 depends_on: ["WP-P1-DATA-002"]
-requirement_ids: ["FR-IDM-004", "FR-IDM-005"]
+requirement_ids: ["FR-IDM-004", "FR-IDM-005", "FR-IDM-009"]
 aliases: ["WP-P5-SCIM-001"]
 ---
 

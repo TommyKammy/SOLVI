@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["FR-TKT-004", "FR-TKT-005", "NFR-SEC-005"]
 ---
 
 # WP-P2-COLLAB-004: Comment・Internal Note・Attachment

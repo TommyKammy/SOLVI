@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["NFR-MNT-002"]
 ---
 
 # WP-P1-PLAT-001: MonorepoとLocal基盤

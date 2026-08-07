@@ -12,6 +12,7 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+requirement_ids: ["FR-IDM-002", "FR-IDM-003", "FR-IDM-006", "NFR-SEC-001", "NFR-SEC-006"]
 ---
 
 # WP-P1-DATA-002: Organization/User/Role schemaとRLS
