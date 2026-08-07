@@ -59,11 +59,24 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const failed = params.error !== undefined;
+  // **なぜ戻されたのかを言う。** セッションを持っていたのに 401 だった場合は
+  // 期限切れか失効である。何も言わずにログイン画面へ戻すと、
+  // 利用者は自分の操作を疑う(NFR-UX-004)。
+  const expired = params.expired !== undefined;
 
   return (
     <main id="main" className="shell">
       <h1>ログイン</h1>
       <p className="lead">社内サポートポータルを利用するにはログインしてください。</p>
+
+      {expired && !failed && (
+        <div className="notice" role="status">
+          <h2 style={{ marginTop: 0 }}>ログインの有効期限が切れました</h2>
+          <p style={{ margin: 0 }}>
+            お手数ですが、もう一度ログインしてください。作業中だった内容は保存されています。
+          </p>
+        </div>
+      )}
 
       {failed && (
         // 送信直後にここへフォーカスを移し、何が起きたかを最初に読み上げさせる。
