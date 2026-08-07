@@ -19,6 +19,7 @@ import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
+import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
 import { S3CompatibleStorage } from '@solvi/shared';
 import { OutboxDispatcher, type OutboxHandler } from './common/outbox/dispatcher.js';
 import { NotificationService } from './modules/notification/notification.service.js';
@@ -459,6 +460,16 @@ async function bootstrap(): Promise<void> {
     logger,
     60 * 60 * 1000,
   );
+  // 期限切れセッションの掃除 (WP-P1-IDM-013)。
+  //
+  // 6時間おき。溜まる速さに対して十分であり、**再起動のたびに1周走る**ので
+  // 短期間で落ちて上がるときも取りこぼさない。
+  const sessionPurgeTimer = startSessionPurgeLoop(
+    new SessionPurger(db.authPool(), logger, env.SESSION_RETENTION_DAYS),
+    logger,
+    6 * 60 * 60 * 1000,
+  );
+
   dispatchTick();
 
   const server = app.listen(env.API_PORT);
@@ -469,6 +480,7 @@ async function bootstrap(): Promise<void> {
     // 新規受付を止めてから接続を閉じる。処理中のリクエストを切らない。
     clearInterval(dispatchTimer);
     clearInterval(autoCloseTimer);
+    clearInterval(sessionPurgeTimer);
     server.close();
     await app.close();
     await db.close();

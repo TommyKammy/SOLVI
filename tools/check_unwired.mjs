@@ -254,7 +254,7 @@ const ACCEPTED_UNWIRED = {
   // **繋いだら消す** — 残したままだと、次に見た人が「まだ未接続」と読む。
   // `createCredential` は WP-P1-IDM-012 で seed と管理ツールの両方から
   // 呼ぶようにしたので外した。**繋いだら消す。**
-  purgeExpired: '期限切れセッションの掃除が動いていない。溜まり続ける',
+  // `purgeExpired` は WP-P1-IDM-013 で定期実行へ繋いだので外した。
   // `recordScanResult` は WP-P2-SCAN-012 で削除した。書くのは worker だけである。
   findComment: 'コメント1件の取得。呼ぶ画面が無い',
   // RelationService は WP-P2-RELUI-012 で繋いだので、この表から外した。
