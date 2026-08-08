@@ -60,6 +60,8 @@ export function generateStorageKey(): string {
 export interface ObjectStorage {
   presignGet(key: string, ttlSeconds: number, downloadFileName: string): SignedUrl;
   presignPut(key: string, ttlSeconds: number, contentType: string): SignedUrl;
+  /** サーバからの直接書き込み。監査アンカーの外部保存に使う (WP-P1-AUD-019)。 */
+  putObject(key: string, body: Buffer, contentType: string): Promise<void>;
   /**
    * オブジェクトの実体をサーバ側で取得する。
    *
@@ -128,6 +130,28 @@ export class S3CompatibleStorage implements ObjectStorage {
       throw new Error(`オブジェクトを取得できません: ${response.status}`);
     }
     return Buffer.from(await response.arrayBuffer());
+  }
+
+  /**
+   * サーバからの直接書き込み (WP-P1-AUD-019)。
+   *
+   * 署名付きURLを使わない。**渡す相手が居ない**からである。
+   * 書くのはサーバ自身であり、URLを他人へ配る必要が無い。
+   *
+   * 監査アンカーの外部保存に使う。添付のアップロードは
+   * ブラウザが直接 PUT するため `presignPut` のままである
+   * (本文がサーバを経由しないほうが、漏れる経路が少ない)。
+   */
+  async putObject(key: string, body: Buffer, contentType: string): Promise<void> {
+    const signed = this.presign('PUT', key, 60, {}, contentType, this.config.endpoint);
+    const response = await fetch(signed.url, {
+      method: 'PUT',
+      headers: { 'content-type': contentType },
+      body: new Uint8Array(body),
+    });
+    if (!response.ok) {
+      throw new Error(`オブジェクトを保存できません: ${response.status}`);
+    }
   }
 
   /**

@@ -34,6 +34,15 @@ async function login(email, organizationId = ORG_A) {
 
 const get = (path, cookie) => fetch(`${API}${path}`, { headers: { cookie } });
 
+// 照合は DB のアンカーを引くため、接続情報が要る。
+// **無いまま走らせて「一致しなかった」と誤解しない。**
+if (!process.env.DATABASE_ADMIN_URL && !process.env.DATABASE_URL) {
+  process.stderr.write(
+    'DATABASE_ADMIN_URL または DATABASE_URL が必要です(照合が DB のアンカーを引くため)\n',
+  );
+  process.exit(78);
+}
+
 const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 const today = new Date().toISOString().slice(0, 10);
 
@@ -120,7 +129,14 @@ try {
     stdout.includes('一致しました') || stdout.includes('アンカーがまだありません'),
   );
 } catch (error) {
-  check('**再計算したルートがアンカーと一致する**', false, String(error.stdout ?? error.message));
+  // **失敗の理由を捨てない。** stdout だけを出すと、
+  // 「環境変数が無い」(stderr に出る)が「一致しなかった」に見える。
+  const detail = [error.stdout, error.stderr, error.message].filter(Boolean).join(' / ');
+  check(
+    '**再計算したルートがアンカーと一致する**',
+    false,
+    detail.replace(/\s+/g, ' ').slice(0, 240),
+  );
 } finally {
   unlinkSync(file);
 }

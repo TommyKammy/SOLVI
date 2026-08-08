@@ -1,6 +1,8 @@
 import type pg from 'pg';
 import { recordAuditAnchor, type Logger } from '@solvi/shared';
 import { computeDailyRoot, persistAnchor, verifyAnchor } from './anchor.js';
+import { uploadAnchorDocument, verifyExternalAnchor } from './external.js';
+import type { ObjectStorage } from '@solvi/shared';
 
 /**
  * 日次アンカーの実行 (ADR-0009 / WP-P1-AUD-004)。
@@ -64,6 +66,14 @@ export async function runDailyAnchor(
   pool: pg.Pool,
   logger: Logger,
   now = new Date(),
+  /**
+   * 外部保存 (WP-P1-AUD-019)。省略すると DB にだけ残る。
+   *
+   * **省略できるようにしてある。** ストレージが無い環境でも
+   * アンカーそのものは作れるべきである — 作れないより、
+   * 外に置けないほうがまだましである。
+   */
+  external?: { storage: ObjectStorage; bucket: string },
 ): Promise<AnchorRunSummary> {
   const client = await pool.connect();
   try {
@@ -73,7 +83,25 @@ export async function runDailyAnchor(
 
     const target = utcDate(-1, now);
     const result = await computeDailyRoot(client, target);
-    const outcome = await persistAnchor(client, result, null);
+
+    // **先に外へ置く。** `audit_anchor` は行を入れたあと更新できない
+    // (`audit_anchor_no_update`)ので、URI を持った状態で入れる必要がある。
+    // 鍵は日付から決まるため、置く前から URI が分かる。
+    //
+    // 置けなかったときは URI なしで保存する。
+    // **アンカーそのものを失うほうが重い** — 記録されない日は作り直せない。
+    let externalUri: string | null = null;
+    if (external) {
+      try {
+        externalUri = await uploadAnchorDocument(external.storage, external.bucket, result);
+      } catch (error) {
+        // **握り潰さない。** 外部保存が効いていないことは、
+        // 改ざん検知が効いていないことである。
+        logger.error('audit anchor upload failed', error, { message: target });
+      }
+    }
+
+    const outcome = await persistAnchor(client, result, externalUri);
 
     const mismatched: string[] = [];
     let verified = 0;
@@ -87,7 +115,34 @@ export async function runDailyAnchor(
 
     await client.query('COMMIT');
 
-    recordAuditAnchor(mismatched.length > 0 ? 'mismatch' : 'match');
+    // **外部への書き込みはトランザクションの外で行う。**
+    // 巻き戻せない操作をトランザクションに入れると、
+    // 「外部にはあるが DB では無かったことになった」が起きる。
+    let externalMismatch = false;
+    if (external) {
+      // **外部と DB を突き合わせる。これが改ざん検知の本体である。**
+      // DB だけを書き換えた者は、ここで食い違いとして現れる。
+      for (let back = 1; back <= VERIFY_WINDOW_DAYS; back += 1) {
+        const day = utcDate(-back, now);
+        const check = await verifyExternalAnchor(client, external.storage, day);
+        if (check.status === 'mismatch') {
+          externalMismatch = true;
+          // **握り潰さない。** 外部と食い違うことは、
+          // どちらかが書き換えられたということである。
+          logger.error(
+            'audit anchor external mismatch',
+            new Error(`stored=${check.stored} external=${check.external}`),
+            { message: day },
+          );
+          if (!mismatched.includes(day)) mismatched.push(day);
+        }
+      }
+      if (externalUri) {
+        logger.info('audit anchor externalized', { message: externalUri });
+      }
+    }
+
+    recordAuditAnchor(mismatched.length > 0 || externalMismatch ? 'mismatch' : 'match');
 
     if (mismatched.length > 0) {
       // **これは事故である。** 保存済みのアンカーと現在のイベントが食い違うのは、
