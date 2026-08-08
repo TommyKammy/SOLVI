@@ -10,6 +10,7 @@ import pg from 'pg';
 import { TicketService } from '../../services/api/src/modules/ticket/ticket.service.js';
 import { CollaborationService } from '../../services/api/src/modules/ticket/collaboration.service.js';
 import { enqueueOutboxEvent } from '../../services/api/src/common/outbox/outbox.js';
+import { uuidv7 } from '../../services/api/src/common/audit/audit.js';
 import {
   NotificationService,
   isNotifiable,
@@ -542,5 +543,121 @@ describe('監査 (AUD-001)', () => {
     );
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].outcome).toBe('failure');
+  });
+});
+
+describe('チケット以外の通知 (FR-IDM-006 / WP-P1-IDM-017)', () => {
+  /**
+   * **Outbox はチケットの仕組みではない。** 業務の状態が変わったことを
+   * 別プロセスへ確実に伝える仕組みであり、対象は問い合わせに限らない。
+   *
+   * 分けていなければ、チケット番号を持たない出来事は
+   * 「ペイロードが不足している」として恒久失敗になっていた。
+   */
+
+  /** 実際に Outbox へ積んでから配送する。**合成したIDでは外部キーを通れない。** */
+  async function deliverExpiryNotice(
+    sender: RecordingEmailSender,
+    payload: Record<string, string>,
+  ): Promise<{ sent: number; skipped: number }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT set_config($1, $2, true)', ['app.current_org', ORG_A]);
+      const eventId = await runWithContext(newContext(), () =>
+        enqueueOutboxEvent(client, {
+          eventType: 'role.binding.expiring',
+          organizationId: ORG_A,
+          payload,
+        }),
+      );
+      const { rows } = await client.query('SELECT * FROM outbox_event WHERE id = $1', [eventId]);
+      const service = new NotificationService(client, new Map([['email', sender]]));
+      const result = await service.deliverForEvent({
+        id: rows[0].id,
+        organizationId: rows[0].organization_id,
+        eventType: rows[0].event_type,
+        payload: rows[0].payload,
+      });
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  const seedUserWithRole = async (roleCode: string) => {
+    const { rows } = await admin.query(
+      `SELECT u.id, u.primary_email::text AS email FROM app_user u
+        JOIN role_binding rb ON rb.user_id = u.id AND rb.organization_id = $1
+        JOIN role r ON r.id = rb.role_id
+       WHERE r.code = $2 AND u.created_via = 'seed'
+         AND rb.valid_from <= now()
+         AND (rb.valid_until IS NULL OR rb.valid_until > now())
+       LIMIT 1`,
+      [ORG_A, roleCode],
+    );
+    return rows[0] as { id: string; email: string };
+  };
+
+  it('**本人と組織の管理者へ届く**', async () => {
+    const sender = new RecordingEmailSender();
+    const target = await seedUserWithRole('approver');
+
+    const result = await deliverExpiryNotice(sender, {
+      bindingId: uuidv7(),
+      userId: target.id,
+      roleCode: 'approver',
+      validUntil: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+    });
+
+    // 本人 … 予定を立てられる / 管理者 … 延長を決められる
+    expect(result.sent).toBeGreaterThanOrEqual(2);
+    const addresses = sender.sent.map((m) => m.to);
+    expect(addresses).toContain(target.email);
+    expect(addresses.some((a) => a.startsWith('org_admin@'))).toBe(true);
+  });
+
+  it('**他組織へは届かない**', async () => {
+    const sender = new RecordingEmailSender();
+    const target = await seedUserWithRole('approver');
+
+    await deliverExpiryNotice(sender, {
+      bindingId: uuidv7(),
+      userId: target.id,
+      roleCode: 'approver',
+      validUntil: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+    });
+
+    expect(sender.sent.every((m) => !m.to.includes('beta.example.test'))).toBe(true);
+  });
+
+  it('**件名に役割名を書かない**(メールの一覧にその人の権限が並ぶ)', async () => {
+    const sender = new RecordingEmailSender();
+    const target = await seedUserWithRole('auditor');
+
+    await deliverExpiryNotice(sender, {
+      bindingId: uuidv7(),
+      userId: target.id,
+      roleCode: 'auditor',
+      validUntil: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+    });
+
+    expect(sender.sent.length).toBeGreaterThan(0);
+    for (const message of sender.sent) {
+      expect(message.subject).not.toContain('auditor');
+      expect(message.subject).not.toContain('監査');
+      // 残り日数は書く。**いつまでかが分からなければ動けない。**
+      expect(message.subject).toContain('あと');
+    }
+  });
+
+  it('ペイロードが足りなければ恒久失敗として扱える', async () => {
+    await expect(
+      deliverExpiryNotice(new RecordingEmailSender(), { bindingId: uuidv7() }),
+    ).rejects.toThrow('ペイロードにありません');
   });
 });

@@ -1,6 +1,7 @@
 import type pg from 'pg';
-import { runWithContext, newContext, type Logger } from '@solvi/shared';
+import { runWithContext, newContext, ROLE_EXPIRY_WARNING_DAYS, type Logger } from '@solvi/shared';
 import { recordAuditEvent } from '../audit/audit.js';
+import { enqueueOutboxEvent } from '../outbox/outbox.js';
 
 /**
  * 役割の期限到来を記録する (FR-IDM-006 / WP-P1-IDM-014)。
@@ -28,6 +29,13 @@ import { recordAuditEvent } from '../audit/audit.js';
 
 /** 1周で扱う上限。**一度に全部を書かない** — 監査の連鎖に長い書き込みを作らない。 */
 const BATCH_LIMIT = 200;
+
+export interface ExpiryNoticeSummary {
+  /** 予告を積んだ件数 */
+  queued: number;
+  /** 対象外にした件数(platform スコープ)。**黙って飛ばさない。** */
+  skippedPlatform: number;
+}
 
 export interface ExpirySweepSummary {
   /** 記録した件数 */
@@ -165,6 +173,116 @@ export class RoleBindingExpirySweeper {
 
     return { recorded, skippedPlatform };
   }
+
+  /**
+   * まもなく切れる束縛を探し、予告を積む (WP-P1-IDM-017)。
+   *
+   * [[WP-P1-IDM-014]] は**切れたあと**を記録する。これは**切れる前**である。
+   *
+   * 画面には出したが、管理者が `/ops/users` を見に行かなければ分からない。
+   * **切れる前に知らせなければ、延長するかどうかを判断する機会が無い。**
+   *
+   * 閾値は画面と共有する(`ROLE_EXPIRY_WARNING_DAYS`)。
+   * 別々に持つと「画面は警告しているのに通知は来ない」が起きる。
+   */
+  private async findExpiringSoon(): Promise<PendingRow[]> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.expiry', 'on', true)");
+      const { rows } = await client.query(
+        `SELECT rb.id, rb.user_id, rb.organization_id, rb.role_scope,
+                rb.valid_until, rb.source, r.code AS role_code
+           FROM role_binding rb
+           JOIN role r ON r.id = rb.role_id
+          WHERE rb.valid_until IS NOT NULL
+            AND rb.expiry_notified_at IS NULL
+            -- **まだ切れていないもの**だけ。切れたあとの予告は予告ではない。
+            AND rb.valid_until > $1
+            AND rb.valid_until <= $1::timestamptz + ($2 || ' days')::interval
+          ORDER BY rb.valid_until
+          LIMIT ${BATCH_LIMIT}`,
+        [this.now(), String(ROLE_EXPIRY_WARNING_DAYS)],
+      );
+      await client.query('COMMIT');
+      return rows as PendingRow[];
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * 1件分の予告を積む。**その組織の文脈で行う。**
+   *
+   * 送るのは Outbox 経由である(ADR-0008)。ここで直接メールを出すと、
+   * 送信の失敗がこの周回を巻き戻し、**印だけ付いて通知が飛ばない**
+   * (あるいはその逆)が起きうる。
+   * 印と Outbox への追加を1つのトランザクションに入れる。
+   */
+  private async queueNoticeFor(row: PendingRow): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT set_config($1, $2, true)', [
+        'app.current_org',
+        row.organization_id,
+      ]);
+
+      const { rowCount } = await client.query(
+        `UPDATE role_binding SET expiry_notified_at = $2
+          WHERE id = $1 AND expiry_notified_at IS NULL`,
+        [row.id, this.now()],
+      );
+      if (rowCount === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      await enqueueOutboxEvent(client, {
+        eventType: 'role.binding.expiring',
+        organizationId: row.organization_id as string,
+        payload: {
+          bindingId: row.id,
+          userId: row.user_id,
+          roleCode: row.role_code,
+          validUntil: row.valid_until.toISOString(),
+        },
+      });
+
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async noticeOnce(): Promise<ExpiryNoticeSummary> {
+    const pending = await this.findExpiringSoon();
+    let queued = 0;
+    let skippedPlatform = 0;
+
+    for (const row of pending) {
+      if (row.organization_id === null) {
+        // [[WP-P1-IDM-014]] と同じ理由。組織の文脈が無く、
+        // 越境の例外を読み取りだけに保つため対象外にする。
+        skippedPlatform++;
+        continue;
+      }
+      try {
+        if (await this.queueNoticeFor(row)) queued++;
+      } catch (error) {
+        this.logger.error('role binding expiry notice failed', error);
+      }
+    }
+
+    return { queued, skippedPlatform };
+  }
 }
 
 export function startRoleBindingExpiryLoop(
@@ -175,6 +293,16 @@ export function startRoleBindingExpiryLoop(
   const tick = (): void => {
     void runWithContext(newContext(), async () => {
       try {
+        // **予告を先に回す。** 記録(切れたあと)を先にすると、
+        // 同じ周回で「切れた」と「まもなく切れる」の両方が出る瞬間がある。
+        const notice = await sweeper.noticeOnce();
+        if (notice.queued > 0) {
+          logger.info('role binding expiry notice', {
+            count: notice.queued,
+            message: `queued=${notice.queued} skippedPlatform=${notice.skippedPlatform}`,
+          });
+        }
+
         const summary = await sweeper.sweepOnce();
         if (summary.recorded > 0 || summary.skippedPlatform > 0) {
           logger.info('role binding expiry sweep', {

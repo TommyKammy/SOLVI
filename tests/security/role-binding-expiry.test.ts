@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
 import { runWithContext, newContext, type Logger } from '@solvi/shared';
 import { RoleBindingExpirySweeper } from '../../services/api/src/common/identity/binding-expiry.js';
+import { ROLE_EXPIRY_WARNING_DAYS } from '@solvi/shared';
 import { uuidv7 } from '../../services/api/src/common/audit/audit.js';
 import { cleanAuditData } from '../support/cleanup.js';
 
@@ -34,6 +35,20 @@ const silent: Logger = {
 
 const sweep = (): Promise<{ recorded: number; skippedPlatform: number }> =>
   runWithContext(newContext(), () => new RoleBindingExpirySweeper(pool, silent).sweepOnce());
+
+const notice = (): Promise<{ queued: number; skippedPlatform: number }> =>
+  runWithContext(newContext(), () => new RoleBindingExpirySweeper(pool, silent).noticeOnce());
+
+const outboxFor = async (bindingId: string) => {
+  const { rows } = await admin.query(
+    `SELECT event_type, organization_id, payload FROM outbox_event
+      WHERE payload->>'bindingId' = $1`,
+    [bindingId],
+  );
+  return rows;
+};
+
+const DAY = 86_400_000;
 
 /** 期限つきの束縛を作る。`validUntil` が過去なら既に切れている。 */
 async function makeBinding(params: {
@@ -102,6 +117,7 @@ beforeEach(async () => {
       WHERE user_id IN (SELECT id FROM app_user WHERE primary_email LIKE 'expiry-%@example.com')`,
   );
   await admin.query("DELETE FROM app_user WHERE primary_email LIKE 'expiry-%@example.com'");
+  await admin.query("DELETE FROM outbox_event WHERE event_type = 'role.binding.expiring'");
   // シードの束縛(兼務の例)は 90 日先なので、この検査では拾われない。
   // 拾われる状態になっていたら、その前提そのものが崩れている。
   await admin.query(`UPDATE role_binding SET expiry_recorded_at = NULL WHERE source = 'seed'`);
@@ -236,5 +252,120 @@ describe('束縛そのものは消さない', () => {
     ]);
     expect(before.rows[0].expiry_recorded_at).toBeNull();
     // 印が無くても失権している(authz の検査で固定済み)。ここは印の初期値のみ確認。
+  });
+});
+
+describe('切れる前に知らせる (FR-IDM-006 / WP-P1-IDM-017)', () => {
+  it('**まもなく切れる束縛の予告が積まれる**', async () => {
+    const { bindingId, userId } = await makeBinding({
+      orgId: ORG_A,
+      roleCode: 'requester',
+      validUntil: new Date(Date.now() + 10 * DAY),
+    });
+
+    const result = await notice();
+    expect(result.queued).toBe(1);
+
+    const events = await outboxFor(bindingId);
+    expect(events).toHaveLength(1);
+    expect(events[0].event_type).toBe('role.binding.expiring');
+    expect(events[0].organization_id).toBe(ORG_A);
+    expect(events[0].payload.userId).toBe(userId);
+    // **本文もPIIも積まない**(ADR-0008 §10)。誰の何がいつ切れるかだけ。
+    expect(Object.keys(events[0].payload).sort()).toEqual([
+      'bindingId',
+      'roleCode',
+      'userId',
+      'validUntil',
+    ]);
+  });
+
+  it('**まだ遠いものは知らせない**', async () => {
+    await makeBinding({
+      orgId: ORG_A,
+      roleCode: 'requester',
+      validUntil: new Date(Date.now() + (ROLE_EXPIRY_WARNING_DAYS + 5) * DAY),
+    });
+    expect((await notice()).queued).toBe(0);
+  });
+
+  it('**既に切れたものは知らせない**(予告ではなく事後である)', async () => {
+    await makeBinding({
+      orgId: ORG_A,
+      roleCode: 'requester',
+      validUntil: new Date(Date.now() - DAY),
+    });
+    expect((await notice()).queued).toBe(0);
+  });
+
+  it('期限の無い束縛は対象外', async () => {
+    await makeBinding({ orgId: ORG_A, roleCode: 'agent', validUntil: null });
+    expect((await notice()).queued).toBe(0);
+  });
+
+  it('**何度回しても1度しか知らせない**(あと N 日は状態であって出来事ではない)', async () => {
+    const { bindingId } = await makeBinding({
+      orgId: ORG_A,
+      roleCode: 'requester',
+      validUntil: new Date(Date.now() + 10 * DAY),
+    });
+
+    expect((await notice()).queued).toBe(1);
+    expect((await notice()).queued).toBe(0);
+    expect((await notice()).queued).toBe(0);
+    expect(await outboxFor(bindingId)).toHaveLength(1);
+  });
+
+  it('**予告の印と到来の印は別**(1つの列で2つの事実を表さない)', async () => {
+    const { bindingId } = await makeBinding({
+      orgId: ORG_A,
+      roleCode: 'requester',
+      validUntil: new Date(Date.now() + 10 * DAY),
+    });
+    await notice();
+
+    const { rows } = await admin.query(
+      'SELECT expiry_notified_at, expiry_recorded_at FROM role_binding WHERE id = $1',
+      [bindingId],
+    );
+    expect(rows[0].expiry_notified_at).not.toBeNull();
+    // まだ切れていないので、到来の印は付いていない。
+    expect(rows[0].expiry_recorded_at).toBeNull();
+  });
+
+  it('予告したものが後で切れれば、到来も記録される', async () => {
+    const { bindingId } = await makeBinding({
+      orgId: ORG_A,
+      roleCode: 'requester',
+      validUntil: new Date(Date.now() + 10 * DAY),
+    });
+    await notice();
+
+    // 期限を過去へ動かす(時間の経過を模す)
+    await admin.query(
+      "UPDATE role_binding SET valid_until = now() - interval '1 day' WHERE id = $1",
+      [bindingId],
+    );
+
+    expect((await sweep()).recorded).toBe(1);
+
+    const { rows } = await admin.query(
+      'SELECT expiry_notified_at, expiry_recorded_at FROM role_binding WHERE id = $1',
+      [bindingId],
+    );
+    expect(rows[0].expiry_notified_at).not.toBeNull();
+    expect(rows[0].expiry_recorded_at).not.toBeNull();
+  });
+
+  it('**platform スコープは黙って飛ばさず件数で返す**', async () => {
+    await makeBinding({
+      orgId: null,
+      roleCode: 'platform_admin',
+      validUntil: new Date(Date.now() + 10 * DAY),
+    });
+
+    const result = await notice();
+    expect(result.queued).toBe(0);
+    expect(result.skippedPlatform).toBe(1);
   });
 });

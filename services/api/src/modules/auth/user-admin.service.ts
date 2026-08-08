@@ -1,5 +1,5 @@
 import type pg from 'pg';
-import { Problems } from '@solvi/shared';
+import { Problems, daysUntil, isExpiringSoon } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import { requireRole, type AuthzContext } from '../../common/authz/authz.js';
 import { SessionService } from './session.service.js';
@@ -43,7 +43,14 @@ export interface OrganizationMember {
    * **切れてから気付く状態を作らない。** 期限は静かに来る。
    * 一覧に出しておけば、管理者は切れる前に延長を判断できる。
    */
-  temporaryRoles: Array<{ roleCode: string; validUntil: string }>;
+  temporaryRoles: Array<{
+    roleCode: string;
+    validUntil: string;
+    /** 期限までの残り日数。**判定を画面へ持ち出さない。** */
+    daysRemaining: number;
+    /** まもなく切れるか。予告の通知と**同じ閾値**で決まる (WP-P1-IDM-017)。 */
+    expiringSoon: boolean;
+  }>;
   /** 対応中(終端でない)のチケット件数。停止前に振り直しを促すために出す。 */
   openTicketCount: number;
 }
@@ -112,7 +119,12 @@ export class UserAdminService {
       deactivatedAt: (r.deactivated_at as Date | null) ?? null,
       roleCodes: (r.role_codes as string[]) ?? [],
       temporaryRoles: ((r.temporary_roles as Array<{ roleCode: string; validUntil: string }>) ?? [])
-        .map((t) => ({ roleCode: t.roleCode, validUntil: new Date(t.validUntil).toISOString() }))
+        .map((t) => ({
+          roleCode: t.roleCode,
+          validUntil: new Date(t.validUntil).toISOString(),
+          daysRemaining: daysUntil(t.validUntil),
+          expiringSoon: isExpiringSoon(t.validUntil),
+        }))
         .sort((a, b) => a.validUntil.localeCompare(b.validUntil)),
       openTicketCount: Number(r.open_tickets ?? 0),
     }));

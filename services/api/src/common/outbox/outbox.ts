@@ -20,6 +20,10 @@ export const OUTBOX_EVENT_TYPES = [
   'ticket.transitioned',
   'ticket.assigned',
   'ticket.comment.added',
+  // チケット以外の出来事 (WP-P1-IDM-017)。
+  // **Outbox はチケットの仕組みではない。** 業務の状態が変わったことを
+  // 別プロセスへ確実に伝える仕組みであり、対象は問い合わせに限らない。
+  'role.binding.expiring',
   // 優先度の見直し (WP-P2-PRIO-013)。優先度が変わったときだけ積む。
   'ticket.reassessed',
   'ticket.merged',

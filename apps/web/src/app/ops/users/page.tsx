@@ -269,22 +269,22 @@ export default async function ManageUsers({
                   // **期限は静かに来る** (FR-IDM-006)。
                   // 出しておかないと、切れた日に本人も管理者も理由が分からない。
                   <ul className="temporary-roles">
-                    {member.temporaryRoles.map((t) => {
-                      const days = Math.ceil(
-                        (new Date(t.validUntil).getTime() - Date.now()) / 86_400_000,
-                      );
-                      return (
-                        <li
-                          key={`${t.roleCode}:${t.validUntil}`}
-                          className={days <= 30 ? 'soon' : ''}
-                        >
-                          {ROLE_LABELS[t.roleCode] ?? t.roleCode} は {formatDateTime(t.validUntil)}{' '}
-                          まで
-                          {/* 色だけに頼らない。**残り日数を文言で言う。** */}
-                          {days <= 30 && <strong>(あと {Math.max(days, 0)} 日)</strong>}
-                        </li>
-                      );
-                    })}
+                    {member.temporaryRoles.map((t) => (
+                      // **画面は閾値を持たない。** 「まもなく」の判定はサーバが行い、
+                      // 同じ判定で予告の通知も送る。画面が独自に数えると、
+                      // 「画面は警告しているのに通知は来ない」が起きる。
+                      <li
+                        key={`${t.roleCode}:${t.validUntil}`}
+                        className={t.expiringSoon ? 'soon' : ''}
+                      >
+                        {ROLE_LABELS[t.roleCode] ?? t.roleCode} は {formatDateTime(t.validUntil)}{' '}
+                        まで
+                        {/* 色だけに頼らない。**残り日数を文言で言う。** */}
+                        {t.expiringSoon && (
+                          <strong>(あと {Math.max(t.daysRemaining, 0)} 日)</strong>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 )}
                 {stopped && member.deactivatedAt && (
