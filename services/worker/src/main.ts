@@ -176,10 +176,28 @@ async function bootstrap(): Promise<void> {
   // (ON CONFLICT DO NOTHING)、1時間おきに回して取りこぼしを埋める。
   // 日次のスケジューラを別に用意すると、ワーカーが落ちていた日が
   // **恒久的に欠番になる**。
+  // 監査アンカーの外部保存 (ADR-0009 / WP-P1-AUD-019)。
+  //
+  // **DB の中だけで完結する照合は、DB を書ける者には破れる。**
+  // 外に置いて初めて、2か所を同時に偽る必要が生まれる。
+  //
+  // なお**ローカルの MinIO は Object Lock を有効にしていない**
+  // (`tools/ensure_buckets.mjs`)。ローカルで消せない保証は無い。
+  const anchorStorage = new S3CompatibleStorage({
+    endpoint: env.S3_ENDPOINT,
+    bucket: env.S3_BUCKET_AUDIT_ANCHOR,
+    accessKey: env.S3_ACCESS_KEY,
+    secretKey: env.S3_SECRET_KEY,
+    region: env.S3_REGION,
+  });
+
   const anchorTick = (): void => {
     void runWithContext(newContext(), async () => {
       try {
-        await runDailyAnchor(pool, logger);
+        await runDailyAnchor(pool, logger, new Date(), {
+          storage: anchorStorage,
+          bucket: env.S3_BUCKET_AUDIT_ANCHOR,
+        });
       } catch (error) {
         // アンカーの失敗でワーカーを落とさない。ただし**握り潰さない** —
         // 記録されないアンカーは、後からでは作り直せない日が増えるということ。
