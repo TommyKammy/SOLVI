@@ -119,6 +119,49 @@ try {
     }
   }
 
+  // 監査人 (AUD-002 / AUD-003 / WP-P1-AUD-018)。
+  //
+  // **これが居ないと、アンカーの照合手順を誰も実行できない。**
+  // 連鎖は組織をまたいで1本なので、日次ルートの再計算には
+  // プラットフォーム全体の書き出しが要り、それができるのは
+  // `platform_auditor` だけである。
+  //
+  // 組織の役割も併せて付ける。**platform 束縛だけでは組織を選べず、
+  // ログインできない**(所属の解決は role_binding の organization_id を見る)。
+  const platformAuditorId = id(9100);
+  const platformAuditorEmail = 'platform_auditor@solvi.example.test';
+  await client.query(
+    `INSERT INTO app_user (id, primary_email, display_name, status, created_via)
+     VALUES ($1, $2, 'プラットフォーム監査者', 'active', 'seed')
+     ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name`,
+    [platformAuditorId, platformAuditorEmail],
+  );
+  {
+    const platformRole = roleByCode.get('platform_auditor');
+    await client.query(
+      `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source)
+       VALUES ($1, $2, $3, $4, NULL, 'seed')
+       ON CONFLICT DO NOTHING`,
+      [id(9101), platformAuditorId, platformRole.id, platformRole.scope],
+    );
+    // 組織の監査者としても登録する(ログインに所属が要る)。
+    const orgAuditor = roleByCode.get('auditor');
+    await client.query(
+      `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source)
+       VALUES ($1, $2, $3, $4, $5, 'seed')
+       ON CONFLICT DO NOTHING`,
+      [id(9102), platformAuditorId, orgAuditor.id, orgAuditor.scope, ORGS[0].id],
+    );
+    const credential = await auth(client).createCredential({
+      userId: platformAuditorId,
+      password: DEV_PASSWORD,
+      subject: platformAuditorEmail,
+    });
+    if (!credential.ok) {
+      throw new Error(`資格情報を設定できません (${platformAuditorEmail}): ${credential.reason}`);
+    }
+  }
+
   // 兼務の例(FR-IDM-006): acme の agent が beta の requester も兼ねる。
   //
   // `source` は 'seed' にする。合成データであって手動付与ではない。
