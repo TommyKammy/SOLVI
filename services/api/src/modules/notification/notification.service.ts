@@ -1,5 +1,5 @@
 import type pg from 'pg';
-import { scrubFreeText } from '@solvi/shared';
+import { scrubFreeText, daysUntil } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { OutboxRecordLike } from './types.js';
 
@@ -119,6 +119,15 @@ export class NotificationService {
    */
   async deliverForEvent(record: OutboxRecordLike): Promise<{ sent: number; skipped: number }> {
     const organizationId = record.organizationId;
+
+    // **チケット以外の通知がある** (WP-P1-IDM-017)。
+    // 役割の期限が近いことを本人と組織の管理者へ知らせる。
+    // ここを分けないと、チケット番号を持たない出来事が
+    // 「ペイロードが不足している」として恒久失敗になる。
+    if (record.eventType === 'role.binding.expiring') {
+      return this.deliverRoleExpiryNotice(record);
+    }
+
     const ticketId = String(record.payload.ticketId ?? '');
     const ticketNumber = String(record.payload.ticketNumber ?? '');
 
@@ -161,6 +170,75 @@ export class NotificationService {
         continue;
       }
 
+      await this.dispatch(created, organizationId, recipient, subject, linkPath);
+      sent += 1;
+    }
+
+    return { sent, skipped };
+  }
+
+  /**
+   * 役割の期限が近いことを知らせる (FR-IDM-006 / WP-P1-IDM-017)。
+   *
+   * 宛先は**本人と、その組織の管理者**である。
+   *
+   *   - 本人 … 予定を立てられる。切れてから「入れない」と気付くのを防ぐ
+   *   - 管理者 … 延長するかどうかを決められる。決められるのは管理者だけである
+   *
+   * **役割名を件名に書かない。** 「監査者の権限が切れます」と件名に出ると、
+   * メールの一覧にその人の権限が並ぶ。何の期限かは画面で見てもらう。
+   */
+  private async deliverRoleExpiryNotice(
+    record: OutboxRecordLike,
+  ): Promise<{ sent: number; skipped: number }> {
+    const organizationId = record.organizationId;
+    const userId = String(record.payload.userId ?? '');
+    const validUntil = String(record.payload.validUntil ?? '');
+
+    if (!organizationId || !userId || !validUntil) {
+      throw new Error('通知に必要な情報がペイロードにありません');
+    }
+
+    const { rows } = await this.client.query<{ user_id: string; email: string | null }>(
+      `SELECT DISTINCT u.id AS user_id, u.primary_email::text AS email
+         FROM app_user u
+         JOIN role_binding rb
+           ON rb.user_id = u.id
+          AND rb.organization_id = $1
+          AND rb.valid_from <= now()
+          AND (rb.valid_until IS NULL OR rb.valid_until > now())
+         LEFT JOIN role r ON r.id = rb.role_id
+        WHERE u.status = 'active'
+          -- 本人、または**この組織の管理者**。
+          -- 越境しない: role_binding を組織で絞っているため、
+          -- 他組織の管理者は候補に上がらない。
+          AND (u.id = $2 OR r.code = 'org_admin')`,
+      [organizationId, userId],
+    );
+
+    const days = daysUntil(validUntil);
+    const subject = `[SOLVI] 権限の期限が近づいています(あと ${Math.max(days, 0)} 日)`;
+    // 一覧へ送る。**その人の役割を名指ししない。**
+    const linkPath = '/ops/users';
+
+    let sent = 0;
+    let skipped = 0;
+    for (const row of rows) {
+      if (!row.email) {
+        skipped += 1;
+        continue;
+      }
+      const recipient = { userId: row.user_id, address: row.email };
+      const created = await this.insertNotification(organizationId, record.id, {
+        channel: 'email',
+        recipient,
+        subject,
+        linkPath,
+      });
+      if (!created) {
+        skipped += 1;
+        continue;
+      }
       await this.dispatch(created, organizationId, recipient, subject, linkPath);
       sent += 1;
     }

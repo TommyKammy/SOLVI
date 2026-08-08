@@ -453,6 +453,9 @@ async function bootstrap(): Promise<void> {
         'ticket.assigned',
         'ticket.comment.added',
         'ticket.reassessed',
+        // チケット以外 (WP-P1-IDM-017)。**登録し忘れると、
+        // Outbox に積まれたまま誰も処理しない**(欠陥1と同じ形)。
+        'role.binding.expiring',
       ].map((type) => [type, notificationHandler]),
     ),
     logger,

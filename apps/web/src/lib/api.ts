@@ -379,7 +379,13 @@ export const api = {
         deactivatedAt: string | null;
         roleCodes: string[];
         /** 期限つきの役割 (FR-IDM-006)。兼務・出向。 */
-        temporaryRoles: Array<{ roleCode: string; validUntil: string }>;
+        temporaryRoles: Array<{
+          roleCode: string;
+          validUntil: string;
+          daysRemaining: number;
+          /** まもなく切れるか。**判定はサーバが持つ** (WP-P1-IDM-017)。 */
+          expiringSoon: boolean;
+        }>;
         openTicketCount: number;
       }>;
     }>('/users'),
