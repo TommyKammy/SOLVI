@@ -18,6 +18,7 @@ import { CollaborationController } from './modules/ticket/collaboration.routes.j
 import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
+import { AuditExportController } from './modules/audit/audit-export.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
 import {
@@ -127,6 +128,7 @@ async function bootstrap(): Promise<void> {
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });
   const userAdmin = new UserAdminController({ pool: db.authPool() });
+  const auditExport = new AuditExportController({ pool: db.authPool() });
 
   const app = new HttpServer(logger)
     .get('/healthz', () => health.liveness())
@@ -288,6 +290,19 @@ async function bootstrap(): Promise<void> {
       const authenticated = await auth.authenticate(req.headers);
       const result = await relations.merge(authenticated, params.id ?? '', await readJsonBody(req));
       return result.body;
+    })
+    // ---- 監査の書き出し (AUD-002 / AUD-003 / WP-P1-AUD-018) -----------------
+    .get('/audit/export', async (req, res) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const date = url.searchParams.get('date') ?? '';
+      const result = await auditExport.exportDay(authenticated, date);
+      // **JSONL として返す。** ブラウザに描かせるものではない。
+      res.writeHead(result.status, {
+        'content-type': 'application/x-ndjson; charset=utf-8',
+        'content-disposition': `attachment; filename="audit-${date}.jsonl"`,
+      });
+      res.end(result.body);
     })
     // ---- 在籍者の管理 (FR-IDM-007 / WP-P1-IDM-011) --------------------------
     .get('/users', async (req) => {

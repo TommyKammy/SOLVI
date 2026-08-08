@@ -498,6 +498,17 @@ process.stdout.write('\nF. 同じ手続きが二か所に書かれていない�
       why: '失効の条件が分かれると、片方の経路だけ「止めたのに使える」が残る',
     },
     {
+      // **正準形は2か所にある**(アンカー計算と書き出し)。
+      // 契約として同じ式でなければならず、片方だけ変えると
+      // 「改ざんされた」ように見える — 最悪の誤報である。
+      // ここでは**2か所を超えないこと**を見る(1か所に寄せられない理由は
+      // worker と api がプロセスを跨ぐため)。
+      pattern: /concat_ws\('\|',[\s\S]{0,120}event_id::text/,
+      what: '監査の正準形',
+      why: 'アンカーの計算と書き出しで式がずれると、照合が合わず改ざんと誤読される',
+      allowed: 2,
+    },
+    {
       pattern: /UPDATE ticket_attachment[\s\S]{0,80}SET scan_status/,
       what: '添付のスキャン結果の書き込み',
       why: '列が増えたときに片方だけ取り残される。実際 scan_signature / scan_attempts / scan_last_error を知らない写しが残っていた',
@@ -514,8 +525,12 @@ process.stdout.write('\nF. 同じ手続きが二か所に書かれていない�
 
     if (writers.length === 0) {
       report('ng', `${rule.what}がどこにも無い`, '検査の対象が消えた可能性がある');
-    } else if (writers.length === 1) {
-      report('ok', `${rule.what}は1か所だけ`, writers[0]);
+    } else if (writers.length <= (rule.allowed ?? 1)) {
+      report(
+        'ok',
+        `${rule.what}は${rule.allowed ? `${writers.length}/${rule.allowed} か所` : '1か所だけ'}`,
+        writers.join(', '),
+      );
     } else {
       report(
         'ng',
