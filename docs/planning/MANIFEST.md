@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 276 |
 | Markdown | 268 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,955,863 bytes |
+| 合計サイズ | 6,957,550 bytes |
 
 ## ファイル一覧
 
@@ -84,13 +84,13 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `02_Architecture/02.9_Identity_and_Access.md` | 1633 | `ec02c30e563358484301bb45567cd7a5b0a5ed6475b23976e0e51735f68e238a` |
 | `03_Requirements/03.10_AI_Requirements.md` | 1779 | `762002d89f9f4b18233d15eb7f26a317f647f34bcfc7f317c650c840b48bcb70` |
 | `03_Requirements/03.11_Security_Requirements.md` | 2939 | `5c88f65941efec01b7ebaa8caf473d80e724bf7361aa6529bfef9b48d9c0508d` |
-| `03_Requirements/03.12_Operations_Performance_Requirements.md` | 2362 | `c19144ada28d792ed468d3803912f66c89543ae29aa1221caa38633e76c95354` |
+| `03_Requirements/03.12_Operations_Performance_Requirements.md` | 3439 | `ceac6f9ffe728309b6e72ae7eb13ca673bcda4985888ca90456c0eed1411962f` |
 | `03_Requirements/03.13_UX_Accessibility_Requirements.md` | 2584 | `8f08b26a9a1f480f806dbe276256cd1ba66bf8de0a1a2343d00baea6376c6213` |
 | `03_Requirements/03.14_Maintainability_Requirements.md` | 1139 | `7dbd0248be421b2bf3acf1cf4eeb532e109be9b17d3bdd09554c2e6c70fe3e94` |
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 1335 | `7ab46cbb49782b6d5dcbc7ba8838cd160f1964a9e161a795ebefbd59c1877c9a` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 17517 | `bd193f6fbda9fd47aab61ccff28ac05cbbc18e63e78bab03a6555076c47b7001` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 17537 | `a9b21c4b9c2ce74714f1996a9377d6fe8ea6adb922565f26004dd8d1c9f71a65` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -305,7 +305,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.1_Project_Charter.md` | 1618 | `d5ab4c80b5cf2c59f0a3ab2197a922e6c3fc5ba8eb846ec3af9821dbc06cb6ca` |
 | `99_Project_Files/99.2_Assumptions_and_Constraints.md` | 1372 | `83af0468573706bd83a680c4e733e0040f93d2a714945d418ef6111a4eea2022` |
 | `99_Project_Files/99.3_Risk_Register.md` | 2652 | `89379a0103d2629390332ee025f05fb21d4efb1fc5772aa6ca60ff407339994f` |
-| `99_Project_Files/99.4_Decision_Log.md` | 42835 | `eb5bd509226856b70ecb280e9d789dee6101f344cb0576d8bc9e56f43d9ce853` |
+| `99_Project_Files/99.4_Decision_Log.md` | 43425 | `94b04354bbae5cdbab8257c6cfe9c5b54eb7987a83cc050986b8bb1aba9a21ea` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
 | `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |
