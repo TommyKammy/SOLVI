@@ -27,7 +27,20 @@ export class Database {
   ) {
     this.pool = new pg.Pool({
       connectionString,
-      max: 10,
+      /**
+       * 接続プールの大きさ (NFR-PERF-001 / WP-P2-PERF-021)。
+       *
+       * **定数だった。** 本番はリソースをスケールできる前提なのに、
+       * ここだけが 10 で固定されており、プロセスを増やしても
+       * 1プロセスあたりの並列度は増えなかった。
+       *
+       * 同時50の要求に対して10本しか無いと、5波に分かれて待つ。
+       * **DBは空いているのに、入口で行列ができる。**
+       *
+       * 上限はDB側の `max_connections`(既定100)で決まる。
+       * **プロセス数 × このプール ≤ max_connections** を守ること。
+       */
+      max: Number(process.env.PG_POOL_MAX ?? 10),
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 5_000,
       ...poolConfig,

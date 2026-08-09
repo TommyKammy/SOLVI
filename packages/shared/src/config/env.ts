@@ -77,6 +77,13 @@ export const apiEnvSchema = baseSchema
       .transform((v) => v === 'true'),
 
     /** ログイン失敗の許容回数。超えるとロックアウトする。 */
+    /**
+     * 1プロセスあたりのDB接続プール (NFR-PERF-001)。
+     *
+     * **プロセス数 × この値 ≤ PostgreSQL の max_connections**。
+     * 増やしすぎるとDB側で接続を拒否される。
+     */
+    PG_POOL_MAX: z.coerce.number().int().min(1).max(200).default(10),
     AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(100).default(5),
 
     /** ロックアウトの継続時間(秒)。 */
