@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 275 |
-| Markdown | 267 |
+| 対象ファイル | 276 |
+| Markdown | 268 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,947,340 bytes |
+| 合計サイズ | 6,955,863 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3943 | `50ccdac4badf60bc06e335d5db3e66d757f987b14d6cd7dfbaf300262fcabc9a` |
-| `00_Index/00.8_Status_Dashboard.md` | 10558 | `d631792222d19b1691f1d809cf97ff219cbe3a33336ee57febdf112829296280` |
+| `00_Index/00.8_Status_Dashboard.md` | 10715 | `3ce15c082c2e1db7be78b56a0642ef6960c8fa01ecb05229dc62524c2bdec34f` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -84,7 +84,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `02_Architecture/02.9_Identity_and_Access.md` | 1633 | `ec02c30e563358484301bb45567cd7a5b0a5ed6475b23976e0e51735f68e238a` |
 | `03_Requirements/03.10_AI_Requirements.md` | 1779 | `762002d89f9f4b18233d15eb7f26a317f647f34bcfc7f317c650c840b48bcb70` |
 | `03_Requirements/03.11_Security_Requirements.md` | 2939 | `5c88f65941efec01b7ebaa8caf473d80e724bf7361aa6529bfef9b48d9c0508d` |
-| `03_Requirements/03.12_Operations_Performance_Requirements.md` | 2095 | `97f889ca2b536d80e953cf7bbb345e591ec3eebb8f2dc4d19dae36cb0b2a1a57` |
+| `03_Requirements/03.12_Operations_Performance_Requirements.md` | 2362 | `c19144ada28d792ed468d3803912f66c89543ae29aa1221caa38633e76c95354` |
 | `03_Requirements/03.13_UX_Accessibility_Requirements.md` | 2584 | `8f08b26a9a1f480f806dbe276256cd1ba66bf8de0a1a2343d00baea6376c6213` |
 | `03_Requirements/03.14_Maintainability_Requirements.md` | 1139 | `7dbd0248be421b2bf3acf1cf4eeb532e109be9b17d3bdd09554c2e6c70fe3e94` |
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
@@ -115,7 +115,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `04_Development/04.20_Migration_and_Cutover_Strategy.md` | 1587 | `da894bc0cbeceb9c402d1c46b06b23b11bdb9118e3e7e446ef7ff97848c181d6` |
 | `04_Development/04.21_Pilot_Strategy.md` | 1476 | `401de887efff0d14af0ca603f3a9a0c1ec104390a9f02118a247faac675718db` |
 | `04_Development/04.22_Gate_Definitions.md` | 13372 | `c3bbc3684d41a4ee859bc51dc34dbe66eac01b1cc8b249d21f340a461af7dc92` |
-| `04_Development/04.23_Wiring_Verification.md` | 45780 | `8a536928ab861aa9106b5dcb66885c0c8972baf2ced1055f776a0975f10ec6a5` |
+| `04_Development/04.23_Wiring_Verification.md` | 48614 | `8147ddddce01d729595897d1ecf64066969a86e1ce6a5d42235a9bc4825434c1` |
 | `04_Development/04.2_Phase_0_Plan.md` | 2082 | `ebab14277498a5772b299b3e80ad7e74f4d7ce405bc88fa816603e46e9372ca3` |
 | `04_Development/04.3_Phase_1_Plan.md` | 2074 | `c02bda42dbde824b9bb8a15cc1ef8da1367e6da11112512263965cde85f5bd9f` |
 | `04_Development/04.4_Phase_2_Plan.md` | 2051 | `02ae7575f195c5eede36bbfd8483d364687d1245dac1fa67e2daa18a75f3ddd1` |
@@ -177,6 +177,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-NTF-005.md` | 13832 | `36a8b26a9321d045debd9aeb72ca294f24719aeb0da28869bc0e24e9e5466315` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7720 | `871ca0b86f92f03f39bfc58ef9e608baafa85ec427f88607747917ea35439b2b` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPSUI-010.md` | 9283 | `9f3f15ec522600ef01db8c5d56f4c3e3850fa563cf13ed0fae6fdd7c4389c8e6` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-PERF-020.md` | 3941 | `37e94d16d277faae0b84db8dbb47eebd70574bb6bddc79241a1090212a2f369c` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8407 | `380d7fee1b27ac1c3e75ceea376f86252132b19192df8935cd4ec4ca9a51601e` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PRIO-013.md` | 7396 | `a2f4832c3bc67d9f25390f53d9c050ff875c367fba86d3b6bd4661513bb1dc77` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 10695 | `64fa0d1ec3f38f7218f01f0e9d1e9e783372b057a3ff66c3e89aa9ba14dd0ded` |
@@ -304,7 +305,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.1_Project_Charter.md` | 1618 | `d5ab4c80b5cf2c59f0a3ab2197a922e6c3fc5ba8eb846ec3af9821dbc06cb6ca` |
 | `99_Project_Files/99.2_Assumptions_and_Constraints.md` | 1372 | `83af0468573706bd83a680c4e733e0040f93d2a714945d418ef6111a4eea2022` |
 | `99_Project_Files/99.3_Risk_Register.md` | 2652 | `89379a0103d2629390332ee025f05fb21d4efb1fc5772aa6ca60ff407339994f` |
-| `99_Project_Files/99.4_Decision_Log.md` | 41511 | `2933a75152cd17b5ddedbb87b0f0efe64dbc6a6fc3f5077b49f5afe68c52a414` |
+| `99_Project_Files/99.4_Decision_Log.md` | 42835 | `eb5bd509226856b70ecb280e9d789dee6101f344cb0576d8bc9e56f43d9ce853` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
 | `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |
