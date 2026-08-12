@@ -17,7 +17,7 @@ workstream: "OPS"
 risk: "critical"
 story_points: 8
 depends_on: ["WP-P9-PAR-002"]
-requirement_ids: ["NFR-OPS-001", "NFR-OPS-002", "NFR-OPS-003"]
+requirement_ids: ["AUD-003", "MIG-005", "NFR-OPS-001", "NFR-OPS-002", "NFR-OPS-003"]
 aliases: ["WP-P9-OPS-003"]
 ---
 

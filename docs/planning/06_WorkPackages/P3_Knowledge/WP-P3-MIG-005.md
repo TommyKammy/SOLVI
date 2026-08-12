@@ -17,7 +17,7 @@ workstream: "MIG"
 risk: "medium"
 story_points: 5
 depends_on: ["WP-P3-KNW-001"]
-requirement_ids: ["BR-002", "FR-KNW-001"]
+requirement_ids: ["BR-002", "FR-KNW-001", "MIG-001"]
 aliases: ["WP-P3-MIG-005"]
 ---
 

@@ -17,7 +17,7 @@ workstream: "PAR"
 risk: "high"
 story_points: 8
 depends_on: ["WP-P9-MIG-001"]
-requirement_ids: ["BR-002", "BR-006"]
+requirement_ids: ["BR-002", "BR-006", "MIG-002", "MIG-004", "MIG-005"]
 aliases: ["WP-P9-PAR-002"]
 ---
 

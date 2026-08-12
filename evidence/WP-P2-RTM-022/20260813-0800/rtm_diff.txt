@@ -1,0 +1,95 @@
+diff --git a/docs/planning/03_Requirements/03.18_Requirements_Traceability_Matrix.md b/docs/planning/03_Requirements/03.18_Requirements_Traceability_Matrix.md
+index abfd7d6..51a7668 100644
+--- a/docs/planning/03_Requirements/03.18_Requirements_Traceability_Matrix.md
++++ b/docs/planning/03_Requirements/03.18_Requirements_Traceability_Matrix.md
+@@ -141,16 +141,16 @@ Work Package 欄も同様に、WPノートの `requirement_ids` と
+ | NFR-UX-003 | 日本語優先 | UX | [[WP-P0-UX-006]], [[WP-P2-PORTAL-002]], [[WP-P2-UISTATE-018]], [[WP-P9-ADP-004]] | - | TL-12 | Gate A | 実装済み・検査の名指し無し |
+ | NFR-UX-004 | 状態表示(Loading/Empty/権限/競合) | UX | [[WP-P2-PORTAL-002]], [[WP-P2-UISTATE-018]], [[WP-P2-UISTATE-020]] | - | TL-12, TL-13 | Gate A | 検査あり (4ファイル) |
+ | NFR-UX-005 | AI表示の識別と根拠 | UX | [[WP-P3-AI-004]], [[WP-P8-RAG-002]] | ADR-0007 | TL-12 | Gate 3 | 未着手 |
+-| NFR-MNT-001 | 保守性(禁止依存検査) | Maintainability | [[WP-P0-ARCH-002]], [[WP-P1-CI-006]], [[WP-P1-IDM-012]], [[WP-P2-RTM-019]], [[WP-P2-SCAN-012]] | ADR-0001 | TL-16 | Gate 1 | 検査あり (1ファイル) |
++| NFR-MNT-001 | 保守性(禁止依存検査) | Maintainability | [[WP-P0-ARCH-002]], [[WP-P1-CI-006]], [[WP-P1-IDM-012]], [[WP-P2-RTM-019]], [[WP-P2-RTM-022]], [[WP-P2-SCAN-012]] | ADR-0001 | TL-16 | Gate 1 | 検査あり (1ファイル) |
+ | NFR-MNT-002 | 再現性(clean-host) | Maintainability | [[WP-P0-DEV-005]], [[WP-P1-IDM-016]], [[WP-P1-PLAT-001]] | ADR-0018 | TL-04 | Gate 1 | 実装済み・検査の名指し無し |
+-| MIG-001 | 移行対象確定と実棚卸し | Migration | [[WP-P3-MIG-005]], [[WP-P9-MIG-001]] | - | TL-19 | Gate C | Not tested |
+-| MIG-002 | 完全性検証(件数/hash) | Migration | [[WP-P9-MIG-001]], [[WP-P9-PAR-002]] | - | TL-19 | Gate C | Not tested |
+-| MIG-003 | IDマッピングと旧番号参照 | Migration | [[WP-P9-MIG-001]] | - | TL-19 | Gate C | Not tested |
+-| MIG-004 | リハーサル(2回以上) | Migration | [[WP-P9-MIG-001]], [[WP-P9-PAR-002]] | - | TL-19, TL-05 | Gate C | Not tested |
+-| MIG-005 | Cutover/Rollback | Migration | [[WP-P9-PAR-002]], [[WP-P9-OPS-003]] | - | TL-19 | Gate C | Not tested |
+-| AUD-001 | 監査イベントカバレッジ | Audit | [[WP-P1-AUD-004]] | ADR-0009 | TL-04, TL-06 | Gate 1 | Not tested |
+-| AUD-002 | 監査閲覧権限と削除不能 | Audit | [[WP-P1-AUD-004]] | ADR-0009 | TL-06 | Gate 1 | Not tested |
+-| AUD-003 | Retention/Export/アンカー照合 | Audit | [[WP-P1-AUD-004]], [[WP-P9-OPS-003]] | ADR-0009 | TL-14 | Gate C | Not tested |
++| MIG-001 | 移行対象確定と実棚卸し | Migration | [[WP-P3-MIG-005]], [[WP-P9-MIG-001]] | - | TL-19 | Gate C | 未着手 |
++| MIG-002 | 完全性検証(件数/hash) | Migration | [[WP-P9-MIG-001]], [[WP-P9-PAR-002]] | - | TL-19 | Gate C | 未着手 |
++| MIG-003 | IDマッピングと旧番号参照 | Migration | [[WP-P9-MIG-001]] | - | TL-19 | Gate C | 未着手 |
++| MIG-004 | リハーサル(2回以上) | Migration | [[WP-P9-MIG-001]], [[WP-P9-PAR-002]] | - | TL-19, TL-05 | Gate C | 未着手 |
++| MIG-005 | Cutover/Rollback | Migration | [[WP-P9-PAR-002]], [[WP-P9-OPS-003]] | - | TL-19 | Gate C | 未着手 |
++| AUD-001 | 監査イベントカバレッジ | Audit | [[WP-P1-AUD-004]] | ADR-0009 | TL-04, TL-06 | Gate 1 | 検査あり (4ファイル) |
++| AUD-002 | 監査閲覧権限と削除不能 | Audit | [[WP-P1-AUD-004]], [[WP-P1-AUD-018]] | ADR-0009 | TL-06 | Gate 1 | 検査あり (2ファイル) |
++| AUD-003 | Retention/Export/アンカー照合 | Audit | [[WP-P1-AUD-004]], [[WP-P1-AUD-018]], [[WP-P1-AUD-019]], [[WP-P9-OPS-003]] | ADR-0009 | TL-14 | Gate C | 検査あり (3ファイル) |
+ 
+ ## 検証規則
+ 
+diff --git a/docs/planning/06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md b/docs/planning/06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md
+index aab50fa..20c78f2 100644
+--- a/docs/planning/06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md
++++ b/docs/planning/06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md
+@@ -12,7 +12,7 @@ owner: "SOLVI Product Team"
+ tags: ["workpackage", "p1"]
+ source_of_truth: true
+ implementation_status: "done"
+-requirement_ids: ["BR-004", "NFR-OPS-003", "NFR-SEC-003"]
++requirement_ids: ["AUD-001", "AUD-002", "AUD-003", "BR-004", "NFR-OPS-003", "NFR-SEC-003"]
+ ---
+ 
+ # WP-P1-AUD-004: Append-only Audit基盤とアンカー
+diff --git a/docs/planning/06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md b/docs/planning/06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md
+index 75310c3..df6e117 100644
+--- a/docs/planning/06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md
++++ b/docs/planning/06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md
+@@ -17,7 +17,7 @@ workstream: "MIG"
+ risk: "medium"
+ story_points: 5
+ depends_on: ["WP-P3-KNW-001"]
+-requirement_ids: ["BR-002", "FR-KNW-001"]
++requirement_ids: ["BR-002", "FR-KNW-001", "MIG-001"]
+ aliases: ["WP-P3-MIG-005"]
+ ---
+ 
+diff --git a/docs/planning/06_WorkPackages/P9_Migration/WP-P9-MIG-001.md b/docs/planning/06_WorkPackages/P9_Migration/WP-P9-MIG-001.md
+index 678e487..b2ad563 100644
+--- a/docs/planning/06_WorkPackages/P9_Migration/WP-P9-MIG-001.md
++++ b/docs/planning/06_WorkPackages/P9_Migration/WP-P9-MIG-001.md
+@@ -17,7 +17,7 @@ workstream: "MIG"
+ risk: "high"
+ story_points: 8
+ depends_on: ["WP-P3-MIG-005", "WP-P6-REL-005", "WP-P7-PIR-004"]
+-requirement_ids: ["BR-002", "NFR-OPS-002"]
++requirement_ids: ["BR-002", "MIG-001", "MIG-002", "MIG-003", "MIG-004", "NFR-OPS-002"]
+ aliases: ["WP-P9-MIG-001"]
+ ---
+ 
+diff --git a/docs/planning/06_WorkPackages/P9_Migration/WP-P9-OPS-003.md b/docs/planning/06_WorkPackages/P9_Migration/WP-P9-OPS-003.md
+index 29d86fe..8e8eca6 100644
+--- a/docs/planning/06_WorkPackages/P9_Migration/WP-P9-OPS-003.md
++++ b/docs/planning/06_WorkPackages/P9_Migration/WP-P9-OPS-003.md
+@@ -17,7 +17,7 @@ workstream: "OPS"
+ risk: "critical"
+ story_points: 8
+ depends_on: ["WP-P9-PAR-002"]
+-requirement_ids: ["NFR-OPS-001", "NFR-OPS-002", "NFR-OPS-003"]
++requirement_ids: ["AUD-003", "MIG-005", "NFR-OPS-001", "NFR-OPS-002", "NFR-OPS-003"]
+ aliases: ["WP-P9-OPS-003"]
+ ---
+ 
+diff --git a/docs/planning/06_WorkPackages/P9_Migration/WP-P9-PAR-002.md b/docs/planning/06_WorkPackages/P9_Migration/WP-P9-PAR-002.md
+index 1d4127e..3684422 100644
+--- a/docs/planning/06_WorkPackages/P9_Migration/WP-P9-PAR-002.md
++++ b/docs/planning/06_WorkPackages/P9_Migration/WP-P9-PAR-002.md
+@@ -17,7 +17,7 @@ workstream: "PAR"
+ risk: "high"
+ story_points: 8
+ depends_on: ["WP-P9-MIG-001"]
+-requirement_ids: ["BR-002", "BR-006"]
++requirement_ids: ["BR-002", "BR-006", "MIG-002", "MIG-004", "MIG-005"]
+ aliases: ["WP-P9-PAR-002"]
+ ---
+ 

@@ -1,0 +1,12 @@
+$ npm run test:unit
+
+ Test Files  10 passed (10)
+      Tests  886 passed (886)
+   Start at  08:43:16
+   Duration  1.95s (transform 98ms, setup 0ms, collect 380ms, tests 310ms, environment 1ms, prepare 225ms)
+
+
+$ npm run test:security   # 走らない — このcheckoutにローカルスタックが無い
+Error: DATABASE_URL と DATABASE_ADMIN_URL が必要です (tests/security/auth.test.ts:137)
+# 変更前から同じ。node_modules も未導入だった(npm ci をこの作業で実行した)。
+# 本WPは tools/check_traceability.mjs と markdown のみを変更しており、実行時コードに触れていない。

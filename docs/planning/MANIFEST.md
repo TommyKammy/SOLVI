@@ -5,9 +5,9 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.10.0"
+version: "0.10.2"
 created: "2026-07-27"
-updated: "2026-08-07"
+updated: "2026-08-13"
 owner: "SOLVI Product Team"
 tags: ["manifest"]
 source_of_truth: true
@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 277 |
-| Markdown | 269 |
+| 対象ファイル | 278 |
+| Markdown | 270 |
 | 画像・SVG | 8 |
-| 合計サイズ | 6,970,563 bytes |
+| 合計サイズ | 6,989,087 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3943 | `50ccdac4badf60bc06e335d5db3e66d757f987b14d6cd7dfbaf300262fcabc9a` |
-| `00_Index/00.8_Status_Dashboard.md` | 10907 | `9dc206aa1748d32b821dc57f0c1cf0c575ddcc3e16b6db9650d5120cca28dc29` |
+| `00_Index/00.8_Status_Dashboard.md` | 11146 | `245c93616fff8d32646f32fc1b1dcd57078a6a8b1d87c83047325fa78ccc38bd` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -90,7 +90,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 2242 | `0d401089ab3721724c50b13d3b5fa98fe4574cbf0b3d6ce967039f9cdce17f0f` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 17537 | `a9b21c4b9c2ce74714f1996a9377d6fe8ea6adb922565f26004dd8d1c9f71a65` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 17662 | `25b167de34b2a70cf76fc0fc679c15ecf9754fa46f21275d258b1a72e5917981` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -115,7 +115,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `04_Development/04.20_Migration_and_Cutover_Strategy.md` | 1587 | `da894bc0cbeceb9c402d1c46b06b23b11bdb9118e3e7e446ef7ff97848c181d6` |
 | `04_Development/04.21_Pilot_Strategy.md` | 1476 | `401de887efff0d14af0ca603f3a9a0c1ec104390a9f02118a247faac675718db` |
 | `04_Development/04.22_Gate_Definitions.md` | 13372 | `c3bbc3684d41a4ee859bc51dc34dbe66eac01b1cc8b249d21f340a461af7dc92` |
-| `04_Development/04.23_Wiring_Verification.md` | 50645 | `0f59fcaf269e69540d52aa7da8b3ba228a9a433bd91a4a5815077d09a2803968` |
+| `04_Development/04.23_Wiring_Verification.md` | 53394 | `7a9328d25f043ceaf605a25da1e14c66a8891cd6d5c2044965873739d00e38f5` |
 | `04_Development/04.2_Phase_0_Plan.md` | 2082 | `ebab14277498a5772b299b3e80ad7e74f4d7ce405bc88fa816603e46e9372ca3` |
 | `04_Development/04.3_Phase_1_Plan.md` | 2074 | `c02bda42dbde824b9bb8a15cc1ef8da1367e6da11112512263965cde85f5bd9f` |
 | `04_Development/04.4_Phase_2_Plan.md` | 2051 | `02ae7575f195c5eede36bbfd8483d364687d1245dac1fa67e2daa18a75f3ddd1` |
@@ -153,7 +153,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P0_Planning/WP-P0-REQ-004.md` | 4964 | `f435d0c0a787fe48c0f720765458860876865294dc5d6cfcdb3e08c9c1d484e7` |
 | `06_WorkPackages/P0_Planning/WP-P0-SEC-003.md` | 5065 | `309e02bba55b7c2d0e8bf86600e04649601218908d25ed00e719128b3850ba70` |
 | `06_WorkPackages/P0_Planning/WP-P0-UX-006.md` | 5303 | `98563bd2836f611ba5ff39f11b29f05c07d1658a30270f0473a3edf7e22bba7d` |
-| `06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md` | 9640 | `9b2019ac473cc66daa1247862b5bff259c6b102f17a813d5260027e86d171cae` |
+| `06_WorkPackages/P1_Foundation/WP-P1-AUD-004.md` | 9673 | `88e742f34479fd5434f3eb9423ad2544b42d24d36b2e8464652862030a3c62cd` |
 | `06_WorkPackages/P1_Foundation/WP-P1-AUD-018.md` | 4738 | `ccbe72af328e3d25aa8909b338cc1490f2bf568e2c018836235cc385df35deb0` |
 | `06_WorkPackages/P1_Foundation/WP-P1-AUD-019.md` | 4639 | `ef96218472c161ef5a871c91b25015c94f69709bead41e6bc063ee69b8284b18` |
 | `06_WorkPackages/P1_Foundation/WP-P1-BCK-007.md` | 5519 | `9958e11bac24045fd0ab2d3ecbb677367f26a1dcafec12497790e8e9b723e293` |
@@ -184,6 +184,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 10695 | `64fa0d1ec3f38f7218f01f0e9d1e9e783372b057a3ff66c3e89aa9ba14dd0ded` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-RELUI-012.md` | 9572 | `e88ead4cc06ac8f481983e10bf11443480a9a4ac15a8538c0d3a2743e7a4aff4` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-RTM-019.md` | 5590 | `4a37340465e14160e49b4ba8973966513d4f3ecfbc677de342a74be809d30430` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-RTM-022.md` | 14233 | `454ec73d2066c58c0074494dad76f6442efa165ad0b0fbc9075770049fe2dbfa` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SCAN-011.md` | 13071 | `7de75d9ba7a27fe2e490f4986f09112635c614c19401291ba2a82d78421fa616` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SCAN-012.md` | 4939 | `e0f52acf2d7f09bccd2ae6e2c3ac8b9b52e9ffbe73f22cb81ec7e9361fc10d81` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-SEARCH-006.md` | 8581 | `e2f1ed569765256cf164846d96b25ed1d4d78344dd648f1ab37c5f6ed9c48db0` |
@@ -196,7 +197,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2815 | `119612c14ce1623fedf5c3f1ceccf17c0e9c2ca2f233216458011a0f5a3659d0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-LINK-003.md` | 2680 | `698b45699928c6ecd0bbc51cc653d82aa09564026cad7c70afd05e2035ed9557` |
-| `06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md` | 2724 | `b64ae45c26c04532dccf21136cd750bd7e76c70882042186c7b52f73512e4821` |
+| `06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md` | 2735 | `82bac58cf9fec6cff161fddb40115ff3b48970598ba1880b3549742dd87af921` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-SRCH-002.md` | 2711 | `a41a8720219a21b2c186a909828ced566eeff724216f32697d2c4009709b15ef` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-002.md` | 7097 | `15ed563b2301a786eff09443a23d7ec14973cb5a9b663c7fc4213746d4019eb8` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
@@ -228,9 +229,9 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P8_AI/WP-P8-SEC-003.md` | 2854 | `0136325c12fca0192e36a3cd2a38fd49753f9ee7f3659ccf8eefbf8ff4cd032a` |
 | `06_WorkPackages/P9_Migration/WP-P9-ADP-004.md` | 2765 | `b23886d874315ec181de20b0acecad89146158adaf0c9248ad346bdbdf1f69f4` |
 | `06_WorkPackages/P9_Migration/WP-P9-GATE-005.md` | 2870 | `592b505601b44fdb467aab7a1558e7b47df8cb14b864da26a095853fb02683cf` |
-| `06_WorkPackages/P9_Migration/WP-P9-MIG-001.md` | 2807 | `fd52d88d6792a4d1c10bcf260004f8dd16c6c4e9a3259dfa9a9485359f6e6fc5` |
-| `06_WorkPackages/P9_Migration/WP-P9-OPS-003.md` | 2773 | `dde5a568bc28caaa152ae79ef0a9229ff6d2789cac832294162f5cef48635234` |
-| `06_WorkPackages/P9_Migration/WP-P9-PAR-002.md` | 2713 | `9b330a4af54d744267806e905c2da40d9c2a8bb85418eceb1e70d9b81a59a2f8` |
+| `06_WorkPackages/P9_Migration/WP-P9-MIG-001.md` | 2851 | `31269f5e476a248f577fee1dbf76cce7fc248965bfe102e1c4f2b61b18174584` |
+| `06_WorkPackages/P9_Migration/WP-P9-OPS-003.md` | 2795 | `ba0d5f4cee187b712a86b1600101da9bd2ffc34856337658d1461501f6572d46` |
+| `06_WorkPackages/P9_Migration/WP-P9-PAR-002.md` | 2746 | `e770e305931119ce830c5f10f279122f0751b5102ddecf15217e0ba3ea0d89db` |
 | `07_ADR/07.0_ADR_Index.md` | 4874 | `eefd58f9a5c780c7a0981489bf7edc357362685a558f24aebf21c3500d49a40b` |
 | `07_ADR/ADR-0001_Modular_Monolith_First.md` | 3381 | `fa08e6ec693de5fe82995b0e944504de53dfd88f380cb8c9d45c40ea88229259` |
 | `07_ADR/ADR-0002_TypeScript_Core_and_Python_AI.md` | 2443 | `e5cc4bbfd293d3b30cd0f87aba7607a7b07181f7db3df5f771f31ece70559f66` |
@@ -306,7 +307,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.1_Project_Charter.md` | 1618 | `d5ab4c80b5cf2c59f0a3ab2197a922e6c3fc5ba8eb846ec3af9821dbc06cb6ca` |
 | `99_Project_Files/99.2_Assumptions_and_Constraints.md` | 1372 | `83af0468573706bd83a680c4e733e0040f93d2a714945d418ef6111a4eea2022` |
 | `99_Project_Files/99.3_Risk_Register.md` | 2652 | `89379a0103d2629390332ee025f05fb21d4efb1fc5772aa6ca60ff407339994f` |
-| `99_Project_Files/99.4_Decision_Log.md` | 44763 | `b113413e918eac404dbd4bba0c95232286947110a53b6c29005e4777839ff5af` |
+| `99_Project_Files/99.4_Decision_Log.md` | 45798 | `a37fcc85b83eb576e2ef1fedac04ab7476d9cc262ceeed31108bd685d5b95526` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
 | `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |
