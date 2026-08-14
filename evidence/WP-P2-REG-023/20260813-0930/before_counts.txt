@@ -1,0 +1,8 @@
+# 変更前: Work Package の件数が書かれている場所
+docs/planning/04_Development/04.1_Master_Roadmap.md:21:WP 59件 / 457ポイント。期間は**Phase 0の実績でベロシティを較正してからGate 0で再確定**する(下記は初期見積り)。
+docs/planning/06_WorkPackages/06.0_WorkPackage_Register.md:86:- WP総数 **60** / Story Point合計 **457**
+docs/planning/README.md:40:7. [[06.0_WorkPackage_Register]] — 実行順序(WP 59件)
+docs/planning/README.md:83:| Work Package | 59件 / 457ポイント(P0・P1・P4 Executor系は実体化済み) |
+docs/planning/99_Project_Files/99.13_Vault_Validation_Report.md:28:| Work Package | 59 |
+docs/planning/00_Index/00.8_Status_Dashboard.md:127:| Work Package | 66件。P0/P1/P4 Executor系(18件)を実体化済み |
+docs/planning/00_Index/00.3_Project_Map.md:28:  Modules --> WP[06 WorkPackages<br/>59件]

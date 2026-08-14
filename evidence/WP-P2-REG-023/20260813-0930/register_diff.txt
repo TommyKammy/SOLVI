@@ -1,0 +1,55 @@
+diff --git a/docs/planning/06_WorkPackages/06.0_WorkPackage_Register.md b/docs/planning/06_WorkPackages/06.0_WorkPackage_Register.md
+index 9fe4200..baf9d3e 100644
+--- a/docs/planning/06_WorkPackages/06.0_WorkPackage_Register.md
++++ b/docs/planning/06_WorkPackages/06.0_WorkPackage_Register.md
+@@ -33,6 +33,17 @@ implementation_status: "not-started"
+ | [[WP-P1-OBS-005]] | P1 | OBS | Log/Metric/Trace | medium | 5 | NFR-SEC-004, NFR-OPS-003 | [[WP-P1-PLAT-001]], [[WP-P1-AUD-004]] |
+ | [[WP-P1-CI-006]] | P1 | CI | CI Quality GateとClean-host | medium | 5 | NFR-SEC-004, NFR-SEC-005, NFR-SEC-008, NFR-MNT-001 | [[WP-P1-PLAT-001]] |
+ | [[WP-P1-BCK-007]] | P1 | BCK | Backup/Restore基盤とDrill | high | 5 | NFR-SEC-009, NFR-OPS-002 | [[WP-P1-DATA-002]] |
++| [[WP-P1-AUD-018]] | P1 | AUD | 監査の書き出しとアンカー照合 | high | 8 | AUD-002, AUD-003 | [[WP-P1-AUD-004]] |
++| [[WP-P1-AUD-019]] | P1 | AUD | 監査アンカーの外部保存 | high | 5 | AUD-003 | [[WP-P1-AUD-018]] |
++| [[WP-P1-IDM-009]] | P1 | IDM | ローカルアカウント認証とセッション基盤 | high | 8 | FR-IDM-002, FR-IDM-008, NFR-SEC-003 | [[WP-P1-DATA-002]], [[WP-P1-AUD-004]] |
++| [[WP-P1-IDM-010]] | P1 | IDM | 組織IDの手入力を無くす | medium | 5 | FR-IDM-006, NFR-UX-001, NFR-UX-002 | [[WP-P1-IDM-009]] |
++| [[WP-P1-IDM-011]] | P1 | IDM | 退職者のアクセス停止 | high | 5 | FR-IDM-007, FR-IDM-008 | [[WP-P1-IDM-009]] |
++| [[WP-P1-IDM-012]] | P1 | IDM | 資格情報を設定する経路を1つにする | medium | 3 | FR-IDM-007, NFR-SEC-002, NFR-MNT-001 | [[WP-P1-IDM-009]], [[WP-P1-IDM-011]] |
++| [[WP-P1-IDM-013]] | P1 | IDM | 期限切れセッションの掃除 | medium | 3 | FR-IDM-008, NFR-SEC-002 | [[WP-P1-IDM-009]] |
++| [[WP-P1-IDM-014]] | P1 | IDM | 役割の期限到来を記録する | medium | 5 | FR-IDM-006 | [[WP-P1-DATA-002]], [[WP-P1-IDM-011]] |
++| [[WP-P1-IDM-015]] | P1 | IDM | 役割の付与と取り消し | high | 5 | FR-IDM-005, FR-IDM-006 | [[WP-P1-IDM-011]], [[WP-P1-IDM-014]] |
++| [[WP-P1-IDM-016]] | P1 | IDM | 利用者を作る経路と、要求IDの訂正 | medium | 5 | NFR-MNT-002 | [[WP-P1-IDM-012]], [[WP-P1-IDM-015]] |
++| [[WP-P1-IDM-017]] | P1 | IDM | 役割の期限を切れる前に知らせる | medium | 5 | FR-IDM-006 | [[WP-P1-IDM-014]], [[WP-P2-NTF-005]] |
+ | [[WP-P2-TKT-001]] | P2 | TKT | Ticket DomainとState Machine | high | 8 | FR-TKT-001, FR-TKT-002, FR-TKT-009, FR-TKT-012, NFR-SEC-006 | [[WP-P1-DATA-002]], [[WP-P1-AUD-004]] |
+ | [[WP-P2-PORTAL-002]] | P2 | PORTAL | PortalからTicket作成 | medium | 8 | BR-001, FR-TKT-001, NFR-UX-001, NFR-UX-002, NFR-UX-004 | [[WP-P2-TKT-001]], [[WP-P1-IDM-003]] |
+ | [[WP-P2-OPS-003]] | P2 | OPS | Ticket一覧・フィルタ・担当割当 | high | 8 | FR-TKT-003 | [[WP-P2-TKT-001]] |
+@@ -42,6 +53,21 @@ implementation_status: "not-started"
+ | [[WP-P2-SEARCH-006]] | P2 | SEARCH | Ticket SearchとSLA Lite | medium | 8 | FR-TKT-006, FR-TKT-008, NFR-PERF-001 | [[WP-P2-OPS-003]] |
+ | [[WP-P2-GATE-007]] | P2 | GATE | Gate A Limited Pilot | medium | 5 | BR-006 | [[WP-P2-PORTAL-002]], [[WP-P2-OPS-003]], [[WP-P2-REL-009]], [[WP-P2-COLLAB-004]], [[WP-P2-NTF-005]], [[WP-P2-SEARCH-006]], [[WP-P2-SLO-008]] |
+ | [[WP-P2-SLO-008]] | P2 | SLO | SLO・監視・オンコール整備 | medium | 5 | NFR-OPS-001, NFR-OPS-004 | [[WP-P1-OBS-005]] |
++| [[WP-P2-CLOSE-014]] | P2 | TICKET | 自動クローズの実行とReopenの導線 | medium | 5 | FR-TKT-012, FR-TKT-002 | [[WP-P2-TKT-001]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-GRP-015]] | P2 | TICKET | 担当グループ | medium | 8 | FR-TKT-003, FR-TKT-006 | [[WP-P2-OPS-003]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-OPSUI-010]] | P2 | PORTAL | 担当者向け操作画面とコメント往復 | medium | 8 | BR-001, FR-TKT-003, FR-TKT-004, FR-TKT-005, NFR-UX-001, NFR-UX-002 | [[WP-P2-PORTAL-002]], [[WP-P2-OPS-003]], [[WP-P2-COLLAB-004]] |
++| [[WP-P2-PERF-020]] | P2 | PERF | 画面応答の実測 | medium | 5 | NFR-PERF-001 | [[WP-P2-SLAUI-016]] |
++| [[WP-P2-PRIO-013]] | P2 | TICKET | 見立ての見直しと優先度の出どころ | medium | 5 | FR-TKT-009, NFR-UX-001 | [[WP-P2-TKT-001]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-REG-023]] | P2 | REG | WP台帳を実体と突き合わせ、件数の写しを無くす | low | 5 | NFR-MNT-001 | [[WP-P2-RTM-022]] |
++| [[WP-P2-RELUI-012]] | P2 | PORTAL | チケット関連付け・統合の経路と画面 | medium | 5 | FR-TKT-010, FR-TKT-011, NFR-UX-001, NFR-UX-002 | [[WP-P2-REL-009]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-RTM-019]] | P2 | RTM | 要求台帳の Status を導出値にする | low | 3 | NFR-MNT-001 | - |
++| [[WP-P2-RTM-022]] | P2 | RTM | 台帳の導出範囲を要求IDの全種別へ広げる | low | 3 | NFR-MNT-001 | [[WP-P2-RTM-019]] |
++| [[WP-P2-SCAN-011]] | P2 | SECURITY | ウイルススキャンと添付アップロード | high | 8 | FR-TKT-005, NFR-SEC-005 | [[WP-P2-COLLAB-004]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-SCAN-012]] | P2 | SCAN | スキャン結果を書く場所を1つにする | medium | 2 | FR-TKT-005, NFR-SEC-004, NFR-MNT-001 | [[WP-P2-SCAN-011]], [[WP-P1-IDM-012]] |
++| [[WP-P2-SEARCH-017]] | P2 | TICKET | 検索条件の公開(依頼者・期間) | low | 3 | FR-TKT-006 | [[WP-P2-SEARCH-006]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-SLAUI-016]] | P2 | TICKET | SLAの可視化と期限の追跡 | medium | 8 | FR-TKT-008, FR-TKT-006 | [[WP-P2-SEARCH-006]], [[WP-P2-OPSUI-010]] |
++| [[WP-P2-UISTATE-018]] | P2 | UISTATE | 画面の状態表示 | medium | 5 | NFR-UX-004, NFR-UX-003, NFR-UX-002 | [[WP-P1-IDM-010]], [[WP-P2-PORTAL-002]] |
++| [[WP-P2-UISTATE-020]] | P2 | UISTATE | 競合とオフライン — 状態モデルの残り | medium | 5 | NFR-UX-004, FR-TKT-002, FR-TKT-003 | [[WP-P2-UISTATE-018]], [[WP-P2-OPSUI-010]] |
+ | [[WP-P3-KNW-001]] | P3 | KNW | Knowledge Article/Version/Publish | high | 8 | FR-KNW-001, FR-KNW-002 | [[WP-P1-DATA-002]] |
+ | [[WP-P3-SRCH-002]] | P3 | SRCH | 日本語Knowledge全文検索 | medium | 8 | FR-KNW-003, NFR-PERF-002 | [[WP-P3-KNW-001]] |
+ | [[WP-P3-LINK-003]] | P3 | LINK | Ticket-Knowledge連携 | low | 5 | FR-KNW-004, FR-KNW-005 | [[WP-P2-TKT-001]], [[WP-P3-KNW-001]] |
+@@ -83,8 +109,8 @@ implementation_status: "not-started"
+ 
+ ## 集計
+ 
+-- WP総数 **60** / Story Point合計 **457**
+-- Phase別: P0 28 / P1 47 / P2 60 / P3 34 / P4 84 / P5 50 / P6 40 / P7 37 / P8 40 / P9 37
++- WP総数 **86** / Story Point合計 **592**
++- Phase別: P0 28 / P1 104 / P2 138 / P3 34 / P4 84 / P5 50 / P6 40 / P7 37 / P8 40 / P9 37
+ 
+ ## Issue化規則
+ 

@@ -1,0 +1,18 @@
+$ node tools/check_workpackages.mjs   # 変更後
+A. WPノートと台帳の突き合わせ
+  OK   WPノート 86 件すべてに台帳の行がある
+
+B. 台帳の行とノートの frontmatter
+  OK   すべてのWPノートが phase / workstream / risk / story_points を持つ
+
+C. 集計(台帳の記載と導出値)
+  OK   導出値: WP 86 件 / 592 ポイント
+       P0 28 / P1 104 / P2 138 / P3 34 / P4 84 / P5 50 / P6 40 / P7 37 / P8 40 / P9 37
+  OK   台帳の集計は導出値と一致している
+
+D. 件数の写し
+  OK   台帳の外にWP件数の写しは無い
+
+OK: WP台帳は実体と一致しています
+    件数は台帳が導出する。他の文書は数を持たず、台帳を指す。
+exit=0

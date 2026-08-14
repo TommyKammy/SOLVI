@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
 implementation_status: "not-started"
+story_points: 13
+risk: "high"
+workstream: "APR"
+phase: "P4"
 requirement_ids: ["FR-CAT-004", "FR-CAT-005", "FR-CAT-006", "FR-CAT-007", "FR-CAT-008", "FR-CAT-009", "FR-CAT-010", "FR-CAT-011"]
 ---
 

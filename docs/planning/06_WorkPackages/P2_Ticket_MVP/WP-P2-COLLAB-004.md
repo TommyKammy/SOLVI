@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+story_points: 8
+risk: "high"
+workstream: "COLLAB"
+phase: "P2"
 requirement_ids: ["FR-TKT-004", "FR-TKT-005", "NFR-SEC-005"]
 ---
 

@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+story_points: 8
+risk: "high"
+workstream: "AUD"
+phase: "P1"
 requirement_ids: ["AUD-001", "AUD-002", "AUD-003", "BR-004", "NFR-OPS-003", "NFR-SEC-003"]
 ---
 

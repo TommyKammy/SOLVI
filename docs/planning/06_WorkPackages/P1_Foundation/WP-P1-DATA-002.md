@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+story_points: 8
+risk: "high"
+workstream: "DATA"
+phase: "P1"
 requirement_ids: ["FR-IDM-002", "FR-IDM-003", "FR-IDM-006", "NFR-SEC-001", "NFR-SEC-006"]
 ---
 

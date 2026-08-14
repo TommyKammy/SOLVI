@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "partial"
+story_points: 5
+risk: "medium"
+workstream: "SLO"
+phase: "P2"
 requirement_ids: ["NFR-OPS-001", "NFR-OPS-004"]
 ---
 
