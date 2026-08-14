@@ -207,7 +207,7 @@ aliases: ["WP-P2-REG-023"]
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| 2026-08-13 | Opus 5 | `wp/WP-P2-REG-023` | 完了 | `evidence/WP-P2-REG-023/20260813-0930/` | 台帳 60→86 行。**Vaultへの反映は未完**(§13.1) |
+| 2026-08-13 | Opus 5 | `ce507d0` / merge `3369927` | 完了 | `evidence/WP-P2-REG-023/20260813-0930/` | 台帳 60→86 行。**Vaultへの反映は未完**(§13.1) |
 
 ### 変更したファイル
 
