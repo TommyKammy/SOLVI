@@ -239,7 +239,7 @@ TL-16 は Security(Replay/IDOR/依存脆弱性scan)であって、検査器そ�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| 2026-08-13 | Opus 5 | `wp/WP-P2-RTM-022` | 完了 | `evidence/WP-P2-RTM-022/20260813-0800/` | 93→101 件。幽霊ID 2 件は拾い方の誤りだった(§7.1) |
+| 2026-08-13 | Opus 5 | `f91d3e7` / merge `a212bb7` | 完了 | `evidence/WP-P2-RTM-022/20260813-0800/` | 93→101 件。幽霊ID 2 件は拾い方の誤りだった(§7.1) |
 
 ### 変更したファイル
 
