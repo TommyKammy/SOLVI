@@ -1,0 +1,27 @@
+# AC-3 の根拠: AUD-001〜003 を名指ししている検査ファイル
+# (WP ID との衝突を除くため、直前が - / 語中 のものは数えない)
+
+## AUD-001
+tests/security/audit-append-only.test.ts:2
+tests/security/collaboration.test.ts:395
+tests/security/notification.test.ts:504
+tests/security/ticket-service.test.ts:207
+
+## AUD-002
+tests/security/audit-export.test.ts:13
+tests/security/audit-export.test.ts:137
+tests/security/audit-export.test.ts:14
+tests/security/audit-export.test.ts:2
+tests/security/audit-export.test.ts:86
+tools/e2e/audit_export_flow.mjs:145
+tools/e2e/audit_export_flow.mjs:3
+tools/e2e/audit_export_flow.mjs:63
+
+## AUD-003
+tests/security/audit-anchor-external.test.ts:2
+tests/security/audit-export.test.ts:15
+tests/security/audit-export.test.ts:163
+tests/security/audit-export.test.ts:2
+tools/e2e/audit_export_flow.mjs:115
+tools/e2e/audit_export_flow.mjs:3
+tools/e2e/audit_export_flow.mjs:5

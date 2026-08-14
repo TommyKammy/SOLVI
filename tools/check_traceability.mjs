@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 要求と実装・検査の対応の検査 (WP-P2-RTM-019 / NFR-MNT-001)。
+ * 要求と実装・検査の対応の検査 (WP-P2-RTM-019, WP-P2-RTM-022 / NFR-MNT-001)。
  *
  * `03.18_Requirements_Traceability_Matrix.md` の Status 欄は**手で書かれていた**。
  * その結果、WPを28件完了し検査が1352件通っている時点でも、
@@ -25,6 +25,18 @@
  * 見当違いの検査に名前を書いても機械には分からない。
  * **この検査は台帳の鮮度を保つのであって、品質を保証しない。**
  *
+ * ## 何を要求と見なすか (WP-P2-RTM-022)
+ *
+ * **台帳の表に在る行が要求である。** 種別を列挙して選別しない。
+ *
+ * 以前はここに `BR|FR|NFR|CON` と書いていた。`AUD` と `MIG` が無く、
+ * 台帳 101 行のうち 93 行しか見ていなかった。
+ * **見ていない 8 行について、この検査は何も言わない。**
+ * だから緑のまま、8 件が導出以前の手書きの値 `Not tested` で残っていた。
+ * そのうち AUD-001〜003 は Gate 1 の要求である。
+ *
+ * 選別する条件を持つと、条件の外は「無い」ことになる(04.23 §16)。
+ *
  * 使い方:
  *   node tools/check_traceability.mjs          検査(食い違えば exit 1)
  *   node tools/check_traceability.mjs --write  台帳の Status を書き換える
@@ -38,7 +50,8 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const RTM = join(ROOT, 'docs/planning/03_Requirements/03.18_Requirements_Traceability_Matrix.md');
 const WRITE = process.argv.includes('--write');
 
-const REQ_ID = /\b(?:BR|FR|NFR|CON)-[A-Z]*-?\d+\b/g;
+/** 要求IDの一般形。**種別は書かない** — 形だけを決める。 */
+const ID_SHAPE = /^[A-Z]{2,5}(?:-[A-Z]{2,6})?-\d{3}$/;
 
 /** 追記によって導出値が変わったら、自分をもう一度回す。 */
 let rerunNeeded = false;
@@ -69,18 +82,58 @@ function walk(dir) {
 const rtmText = readFileSync(RTM, 'utf8');
 const rtmLines = rtmText.split('\n');
 
+/**
+ * 要求表を「どこからどこまでか」で捉える。
+ * 見出し行から、表が途切れるまでの行がすべて対象である。
+ */
+const headerIndex = rtmLines.findIndex((l) => /^\|\s*Requirement\s*\|/.test(l));
+if (headerIndex < 0) {
+  process.stdout.write('台帳に要求表の見出し行が見つかりません。\n');
+  process.exit(1);
+}
+
 /** @type {Array<{lineNo: number, id: string, cells: string[]}>} */
 const rows = [];
-rtmLines.forEach((line, index) => {
-  if (!line.startsWith('|')) return;
+/** **読めなかった行を捨てない。** 捨てると件数から消え、消えたことも消える。 */
+const unreadable = [];
+for (let i = headerIndex + 1; i < rtmLines.length; i++) {
+  const line = rtmLines[i];
+  if (!line.startsWith('|')) break;
   const cells = line
     .split('|')
     .slice(1, -1)
     .map((c) => c.trim());
-  if (cells.length < 8) return;
-  if (!/^(?:BR|FR|NFR|CON)-[A-Z]*-?\d+$/.test(cells[0])) return;
-  rows.push({ lineNo: index, id: cells[0], cells });
-});
+  if (cells.every((c) => /^:?-+:?$/.test(c))) continue; // 区切り行
+  if (cells.length < 8 || !ID_SHAPE.test(cells[0])) {
+    unreadable.push(`${i + 1}行目: ${line.slice(0, 72)}`);
+    continue;
+  }
+  rows.push({ lineNo: i, id: cells[0], cells });
+}
+
+/** 台帳に在るIDの集合。**照合の基準はここだけ**である。 */
+const known = new Set(rows.map((r) => r.id));
+
+/**
+ * 参照を探すための正規表現も、台帳から作る。
+ *
+ * 種別(`BR` `FR-TKT` `AUD` `MIG` …)は台帳の行から取り出す。
+ * 形だけで探すと `UC-001` `DL-030` `RISK-013` まで拾ってしまい、
+ * **要求でないものを「台帳に無い要求ID」として報告する**ことになる。
+ *
+ * 限界も書いておく。台帳に一行も無い種別は、この検査からは見えない。
+ * 新しい種別の要求は、**まず台帳に行を作ること**で見えるようになる。
+ *
+ * 前を見ないと **WP ID を要求IDとして拾う**。
+ * `WP-P9-MIG-001` の中に `MIG-001` が、`WP-P1-AUD-018` の中に `AUD-018` が在る。
+ * 拾うと二つ壊れる — WPを話題にしただけの検査が「要求を名指しした」ことになり、
+ * **台帳に無い WP 番号が「実在しない要求ID」として報告される**。
+ * 直前が `-` か語中なら、それは別のものの一部である。
+ */
+const families = [...new Set([...known].map((id) => id.replace(/-\d+$/, '')))].sort(
+  (a, b) => b.length - a.length,
+);
+const REQ_REF = new RegExp(`(?<![-\\w])(?:${families.join('|')})-\\d{3}\\b`, 'g');
 
 // ---------------------------------------------------------------------------
 // 2. WPノートの frontmatter を読む
@@ -100,7 +153,7 @@ for (const file of wpFiles) {
   if (!docId) continue;
   wpPath.set(docId, file);
   const done = /implementation_status:\s*"?done"?/.test(text);
-  const ids = (text.match(/requirement_ids:\s*\[([^\]]*)\]/)?.[1] ?? '').match(REQ_ID) ?? [];
+  const ids = (text.match(/requirement_ids:\s*\[([^\]]*)\]/)?.[1] ?? '').match(REQ_REF) ?? [];
   for (const id of ids) {
     if (!claimedBy.has(id)) claimedBy.set(id, []);
     claimedBy.get(id).push(docId);
@@ -136,7 +189,7 @@ const testFiles = [
 const namedBy = new Map();
 for (const file of testFiles) {
   const text = readFileSync(file, 'utf8');
-  for (const id of new Set(text.match(REQ_ID) ?? [])) {
+  for (const id of new Set(text.match(REQ_REF) ?? [])) {
     if (!namedBy.has(id)) namedBy.set(id, []);
     namedBy.get(id).push(relative(ROOT, file));
   }
@@ -174,11 +227,26 @@ for (const row of rows) {
 }
 report(
   'ok',
-  `要求 ${rows.length} 件の内訳`,
+  `要求 ${rows.length} 件の内訳(種別 ${families.length}: ${families.slice().sort().join(', ')})`,
   Object.entries(tally)
     .map(([k, v]) => `${k}: ${v}`)
     .join(' / '),
 );
+
+/**
+ * **読めなかった行を、件数から黙って消さない。**
+ *
+ * この検査が 8 件を見落としていたとき、出力は「93 件」とだけ言っていた。
+ * 表には 101 行あったのに、8 行が消えたことは**どこにも出ていなかった**。
+ * 表に在って読めない行は、無い行ではない。
+ */
+if (unreadable.length > 0) {
+  report(
+    'ng',
+    `要求表に、要求として読めない行が ${unreadable.length} 件ある`,
+    `${unreadable.slice(0, 8).join('\n       ')}\n       ID列の形(${ID_SHAPE.source})か列数を直す`,
+  );
+}
 
 // **名指しの無いものを見えるようにする。** 件数だけでは何を足せばよいか分からない。
 const unnamed = rows
@@ -278,7 +346,7 @@ if (oneSided.length === 0) {
     const file = wpPath.get(wp);
     const text = readFileSync(file, 'utf8');
     const match = text.match(/requirement_ids:\s*\[([^\]]*)\]/);
-    const existing = match ? (match[1].match(REQ_ID) ?? []) : [];
+    const existing = match ? (match[1].match(REQ_REF) ?? []) : [];
     const merged = [...new Set([...existing, ...ids])].sort();
     if (merged.length === existing.length) continue;
     const field = `requirement_ids: [${merged.map((i) => `"${i}"`).join(', ')}]`;
@@ -311,7 +379,8 @@ if (oneSided.length === 0) {
 // ---------------------------------------------------------------------------
 process.stdout.write('\nC. 実在しない要求IDの参照\n');
 
-const known = new Set(rows.map((r) => r.id));
+// `known` は §1 で台帳から作った集合をそのまま使う。
+// **照合の基準を二か所に持たない**(WP-P1-IDM-012 と同じ形)。
 const ghosts = [];
 for (const [id, files] of namedBy) {
   if (!known.has(id)) ghosts.push(`${id} (${files[0]})`);
