@@ -32,7 +32,7 @@
     "check:requirements": "python3 tools/check_requirements.py",
     "check:paths": "node tools/check_allowed_paths.mjs",
     "check:images": "node tools/check_image_pinning.mjs",
-    "check:all": "npm run check:paths && npm run check:architecture && npm run check:images && npm run check:skips && npm run check:unwired && npm run check:traceability",
+    "check:all": "npm run check:paths && npm run check:architecture && npm run check:images && npm run check:skips && npm run check:unwired && npm run check:traceability && npm run check:workpackages",
     "up": "docker compose up -d --wait",
     "down": "docker compose down -v",
     "logs": "docker compose logs -f",
@@ -41,7 +41,8 @@
     "check:a11y": "node tools/check_accessibility.mjs",
     "check:scanner": "node tools/check_scanner_freshness.mjs",
     "check:traceability": "node tools/check_traceability.mjs",
-    "check:unwired": "node tools/check_unwired.mjs"
+    "check:unwired": "node tools/check_unwired.mjs",
+    "check:workpackages": "node tools/check_workpackages.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

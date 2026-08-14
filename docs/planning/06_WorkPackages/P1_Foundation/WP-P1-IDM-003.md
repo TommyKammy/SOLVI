@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "not-started"
+story_points: 8
+risk: "high"
+workstream: "IDM"
+phase: "P1"
 requirement_ids: ["FR-IDM-001", "FR-IDM-002", "FR-IDM-008"]
 ---
 

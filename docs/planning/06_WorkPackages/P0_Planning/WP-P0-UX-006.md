@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
 implementation_status: "not-started"
+story_points: 5
+risk: "low"
+workstream: "UX"
+phase: "P0"
 requirement_ids: ["NFR-UX-001", "NFR-UX-002", "NFR-UX-003"]
 ---
 

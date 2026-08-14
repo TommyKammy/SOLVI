@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p0"]
 source_of_truth: true
 implementation_status: "not-started"
+story_points: 3
+risk: "low"
+workstream: "GOV"
+phase: "P0"
 requirement_ids: ["BR-001", "BR-002", "BR-006"]
 ---
 

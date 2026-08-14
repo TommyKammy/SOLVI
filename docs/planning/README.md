@@ -37,7 +37,7 @@ statusはfrontmatterで判定します。文書の見た目や分量で判断し
 4. [[01.5_Scope_and_Non_Goals]] — 作るもの・作らないもの
 5. [[02.1_Architecture_Overview]] — 全体構成と信頼境界
 6. [[03.1_Requirements_Baseline]] — 要求レジストリ(101件)
-7. [[06.0_WorkPackage_Register]] — 実行順序(WP 59件)
+7. [[06.0_WorkPackage_Register]] — 実行順序(件数とポイントはここが導出する)
 8. [[07.0_ADR_Index]] — 変更してはいけない決定(18件)
 9. [[99.12_Codex_First_Prompt]] — 実装への引き渡し
 
@@ -80,7 +80,7 @@ SOLVI/
 | 設計正本 | Phase 0/1の実装に必要な範囲を確立済み |
 | ADR | 18件 accepted |
 | 要求 | 101件(孤立0件) |
-| Work Package | 59件 / 457ポイント(P0・P1・P4 Executor系は実体化済み) |
+| Work Package | [[06.0_WorkPackage_Register]] を参照(件数・ポイントは台帳が導出する) |
 | 実装 | 未着手 |
 | 最初の実装対象 | `WP-P0-GOV-001` |
 | 最初の縦切りPoC | Oktaテストグループへのアクセス申請 → 承認 → 自動追加 → 証跡保存 |

@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "done"
+story_points: 5
+risk: "medium"
+workstream: "OBS"
+phase: "P1"
 requirement_ids: ["NFR-OPS-003", "NFR-SEC-004"]
 ---
 

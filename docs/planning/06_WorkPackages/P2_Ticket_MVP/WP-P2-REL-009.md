@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p2"]
 source_of_truth: true
 implementation_status: "done"
+story_points: 5
+risk: "medium"
+workstream: "REL"
+phase: "P2"
 requirement_ids: ["FR-TKT-010", "FR-TKT-011"]
 ---
 

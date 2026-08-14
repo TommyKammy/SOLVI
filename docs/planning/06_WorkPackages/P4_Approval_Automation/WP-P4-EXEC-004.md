@@ -12,6 +12,10 @@ owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
 implementation_status: "not-started"
+story_points: 8
+risk: "critical"
+workstream: "EXEC"
+phase: "P4"
 requirement_ids: ["BR-003", "FR-AUT-001", "FR-AUT-002", "FR-AUT-004", "FR-CAT-008", "NFR-SEC-002", "NFR-SEC-010"]
 ---
 

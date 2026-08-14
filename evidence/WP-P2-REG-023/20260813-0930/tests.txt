@@ -1,0 +1,8 @@
+$ npm run test:unit
+ Test Files  10 passed (10)
+      Tests  886 passed (886)
+   Start at  10:43:37
+   Duration  2.04s (transform 99ms, setup 0ms, collect 353ms, tests 336ms, environment 1ms, prepare 240ms)
+
+
+# test:security はローカルスタック未起動のため走らせていない(WP-P2-RTM-022 と同じ)
