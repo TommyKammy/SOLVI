@@ -18,6 +18,7 @@ import { CollaborationController } from './modules/ticket/collaboration.routes.j
 import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
+import { AccessReviewController } from './modules/auth/access-review.routes.js';
 import { AuditExportController } from './modules/audit/audit-export.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
@@ -128,6 +129,7 @@ async function bootstrap(): Promise<void> {
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });
   const userAdmin = new UserAdminController({ pool: db.authPool() });
+  const accessReview = new AccessReviewController({ pool: db.authPool() });
   const auditExport = new AuditExportController({ pool: db.authPool() });
 
   const app = new HttpServer(logger)
@@ -356,6 +358,40 @@ async function bootstrap(): Promise<void> {
       );
       res.writeHead(result.status);
       res.end();
+    })
+    // ---- アクセスレビュー (NFR-SEC-002 / WP-P1-SEC-024) ---------------------
+    .get('/access-reviews', async (req) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await accessReview.list(authenticated);
+      return result.body;
+    })
+    .post('/access-reviews', async (req, res) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await accessReview.open(authenticated, await readJsonBody(req));
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+    })
+    .get('/access-reviews/:id', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await accessReview.detail(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/access-reviews/:id/items/:itemId', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await accessReview.decide(
+        authenticated,
+        params.id ?? '',
+        params.itemId ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status);
+      res.end();
+    })
+    .post('/access-reviews/:id/complete', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await accessReview.complete(authenticated, params.id ?? '');
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
     })
     // ---- 担当グループ (WP-P2-GRP-015) --------------------------------------
     .get('/groups', async (req) => {

@@ -1,0 +1,9 @@
+$ npm run test:security
+ ✓ tests/security/cross-org.test.ts (18 tests) 53ms
+ ✓ tests/security/audit-anchor-external.test.ts (8 tests) 18ms
+
+ Test Files  25 passed (25)
+      Tests  556 passed (556)
+   Start at  11:28:18
+   Duration  36.73s (transform 265ms, setup 0ms, collect 2.30s, tests 31.31s, environment 2ms, prepare 536ms)
+

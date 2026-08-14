@@ -324,6 +324,66 @@ export const api = {
       body: JSON.stringify({ groupId, expectedVersion }),
     }),
 
+  // ---- アクセスレビュー (NFR-SEC-002 / WP-P1-SEC-024) -----------------------
+
+  listAccessReviews: () =>
+    call<{
+      items: Array<{
+        id: string;
+        periodLabel: string;
+        openedAt: string;
+        source: 'manual' | 'scheduled';
+        completedAt: string | null;
+        totalItems: number;
+        pendingItems: number;
+      }>;
+    }>('/access-reviews'),
+
+  openAccessReview: (periodLabel: string) =>
+    call<{ reviewId: string; items: number }>('/access-reviews', {
+      method: 'POST',
+      body: JSON.stringify({ periodLabel }),
+    }),
+
+  accessReview: (reviewId: string) =>
+    call<{
+      review: {
+        id: string;
+        periodLabel: string;
+        openedAt: string;
+        completedAt: string | null;
+        totalItems: number;
+        pendingItems: number;
+      };
+      items: Array<{
+        id: string;
+        userId: string;
+        displayName: string;
+        email: string;
+        roleCode: string;
+        validUntilAtOpen: string | null;
+        decision: 'pending' | 'keep' | 'revoke';
+        reason: string | null;
+        alreadyInactive: boolean;
+        selfReviewed: boolean;
+      }>;
+    }>(`/access-reviews/${encodeURIComponent(reviewId)}`),
+
+  decideAccessReviewItem: (
+    reviewId: string,
+    itemId: string,
+    body: { decision: 'keep' | 'revoke'; reason: string },
+  ) =>
+    call<void>(
+      `/access-reviews/${encodeURIComponent(reviewId)}/items/${encodeURIComponent(itemId)}`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  completeAccessReview: (reviewId: string) =>
+    call<{ decided: number }>(`/access-reviews/${encodeURIComponent(reviewId)}/complete`, {
+      method: 'POST',
+    }),
+
   listGroups: (includeInactive = false) =>
     call<{
       items: Array<{

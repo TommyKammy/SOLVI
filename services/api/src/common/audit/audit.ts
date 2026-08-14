@@ -30,6 +30,11 @@ export const AUDIT_EVENT_TYPES = [
   'config.changed',
   // 組織切替(02.18 §3 / 脅威 T-20)
   'platform.org_context.switched',
+  // アクセスレビュー (NFR-SEC-002 / WP-P1-SEC-024)。
+  // **実施したこと自体が Evidence である**(T-20 の対策記録)。
+  'access.review.opened',
+  'access.review.item.decided',
+  'access.review.completed',
   // Phase 2(WP-P2-TKT-001)
   'ticket.created',
   'ticket.transitioned',
