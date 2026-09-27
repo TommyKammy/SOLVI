@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 280 |
 | Markdown | 272 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,032,419 bytes |
+| 合計サイズ | 7,032,435 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3943 | `50ccdac4badf60bc06e335d5db3e66d757f987b14d6cd7dfbaf300262fcabc9a` |
-| `00_Index/00.8_Status_Dashboard.md` | 11617 | `0364b1114bd1563d7b388b457b3cec9339effbab3bac553ce65f2e64f350ed7a` |
+| `00_Index/00.8_Status_Dashboard.md` | 11623 | `83521c2275ac4675601df7816250891dcc98bdf488a616a092116c28c7bea832` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -171,7 +171,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-017.md` | 4947 | `66de1c01b95b4f10d66581d3527b7e35f3fde8f5085a46bea4ec4faca8f87f27` |
 | `06_WorkPackages/P1_Foundation/WP-P1-OBS-005.md` | 6702 | `a4882984473e21abaf32ada3a2659c793e4f1a7c1639c22395a2b017bb97b6d3` |
 | `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 6018 | `e94af8001f3671cf859a7a1fa75154bba95558f2e1d857304a1402339a88c108` |
-| `06_WorkPackages/P1_Foundation/WP-P1-SEC-024.md` | 17380 | `0cdeee2ccd1faa77b6f50b50e8470a2d414f6d21661661b504e56d609836a1e0` |
+| `06_WorkPackages/P1_Foundation/WP-P1-SEC-024.md` | 17390 | `65164fab288a8989c2aed6077e0761da54637ac20fb4866bace654ae9d219bfa` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-CLOSE-014.md` | 7874 | `88a9060d7883047a73e846e34baef79ea290df6673c963b91b3645e3a6e8970b` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 8546 | `58758a953a8623c7d423f265472e0eb22f3c44de072189fb638fcb935e672b20` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-GATE-007.md` | 6043 | `e7fb73a5b1c72e3b3f6d19ac23d0173a2021b19e6c65b7cda9cb4147e002d570` |

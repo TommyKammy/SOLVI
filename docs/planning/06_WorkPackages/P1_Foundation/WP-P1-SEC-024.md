@@ -224,7 +224,7 @@ platform 束縛は `organization_id` が NULL なので条件が NULL になる�
 |---|---|---|---|---|---|
 | 2026-08-14 | Opus 5 | `8f1cde8` | 実装完了(sign-off 待ち) | `evidence/WP-P1-SEC-024/20260814-1130/` | 検査 556件通過。platform 件数は出せないと判明(§7.1) |
 | 2026-09-28 | リポジトリ所有者 | — | **セキュリティレビュー済み** | — | `AGENTS.md` §1.16 の人間レビュー |
-| 2026-09-28 | Opus 5.5 | merge | main へ取り込み | — | Dashboard / MANIFEST の衝突を解決(§13.3) |
+| 2026-09-28 | Opus 5.5 | merge `65c8138` | main へ取り込み | — | Dashboard / MANIFEST の衝突を解決(§13.3) |
 
 ### 変更したファイル
 
