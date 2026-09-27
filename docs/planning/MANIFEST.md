@@ -5,7 +5,7 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.11.0"
+version: "0.11.1"
 created: "2026-07-27"
 updated: "2026-08-13"
 owner: "SOLVI Product Team"
@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 279 |
 | Markdown | 271 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,010,784 bytes |
+| 合計サイズ | 7,011,163 bytes |
 
 ## ファイル一覧
 
@@ -53,7 +53,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
 | `00_Index/00.7_Open_Questions.md` | 3943 | `50ccdac4badf60bc06e335d5db3e66d757f987b14d6cd7dfbaf300262fcabc9a` |
-| `00_Index/00.8_Status_Dashboard.md` | 11382 | `70db291ab9a6c37d6717ad108b390af56149998746634c60bf7c3ebc48ec837e` |
+| `00_Index/00.8_Status_Dashboard.md` | 11386 | `86987911816d7968917c3190fd80c0d54c509602964ce9c5a1c6ee72837d3f19` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
 | `01_Product/01.2_Problem_Statement.md` | 1835 | `03d33a4087989fe7decebd1dcdf2f94fb2c5b10f80b1d96ac02a320115d4d217` |
@@ -181,7 +181,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PERF-020.md` | 3941 | `37e94d16d277faae0b84db8dbb47eebd70574bb6bddc79241a1090212a2f369c` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8407 | `380d7fee1b27ac1c3e75ceea376f86252132b19192df8935cd4ec4ca9a51601e` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PRIO-013.md` | 7396 | `a2f4832c3bc67d9f25390f53d9c050ff875c367fba86d3b6bd4661513bb1dc77` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-REG-023.md` | 12075 | `b5010d23d807d19315e57115486db2c15855f418e3861c14411b67439a078bac` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-REG-023.md` | 12450 | `4a860e835789cb26c976455823cb5bc166ddcdc2b04be137b547800068fa66dd` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-REL-009.md` | 10756 | `b222ff1b72a59affd29e15b69e37b706268c2195de3194583e2d5b1d84d78aee` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-RELUI-012.md` | 9572 | `e88ead4cc06ac8f481983e10bf11443480a9a4ac15a8538c0d3a2743e7a4aff4` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-RTM-019.md` | 5590 | `4a37340465e14160e49b4ba8973966513d4f3ecfbc677de342a74be809d30430` |
