@@ -30,9 +30,7 @@ export default async function AccessReviewPage({
     return (
       <main id="main" className="shell">
         <h1>アクセスレビュー</h1>
-        <p className="empty">
-          この画面を表示する権限がありません。組織の管理者へご連絡ください。
-        </p>
+        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
         <p>
           <Link href="/ops">対応待ちの一覧へ戻る</Link>
         </p>
@@ -131,8 +129,18 @@ export default async function AccessReviewPage({
         <section>
           <h2>進行中: {open.periodLabel}</h2>
           <p>
-            開始 {new Date(open.openedAt).toLocaleString('ja-JP')} ・ 対象 {open.totalItems} 件 ・{' '}
-            <strong>未判断 {open.pendingItems} 件</strong>
+            開始 {new Date(open.openedAt).toLocaleString('ja-JP')}
+            {open.source === 'scheduled' ? '(四半期の定期起票)' : ''} ・ 対象 {open.totalItems} 件
+            ・ <strong>未判断 {open.pendingItems} 件</strong>
+          </p>
+          <p>
+            完了期日 {new Date(open.dueAt).toLocaleDateString('ja-JP')}
+            {open.overdue ? (
+              <strong role="status" className="error">
+                {' '}
+                ・期日を過ぎています
+              </strong>
+            ) : null}
           </p>
           <p className="note">
             プラットフォーム全体の役割(<code>platform_admin</code> ・ <code>platform_auditor</code>

@@ -1,0 +1,27 @@
+# 稼働中のスタックでの確認 (2026-09-28, colima + docker compose)
+
+## migration
+0025_access_review_schedule.sql  up → down → up  すべて ok
+
+## 定期処理(API 起動時に1周)
+API 再起動の直後、2組織に source=scheduled / period_label=2026-Q3 のレビューが開かれた(opened_by は NULL)
+
+## メトリクス(名前は /metrics の実出力で確認)
+solvi_access_review_overdue 0
+solvi_access_review_missing_this_quarter 0
+
+## Prometheus
+promtool check rules /etc/prometheus/alerts/slo.yml → SUCCESS: 14 rules found
+/api/v1/rules: SolviAccessReviewOverdue:ok, SolviAccessReviewNotStarted:ok
+/api/v1/query: 両メトリクスとも取得できている
+
+## 期日超過の経路(一時的に期日を過去へずらして確認し、元に戻した)
+画面 /ops/access-review: 「期日を過ぎています」が出る
+solvi_access_review_overdue: 0 → 1 → (戻した後) 0
+
+## 画面
+GET /ops/access-review 200 — 「四半期の定期起票」「完了期日」を表示
+
+## 確かめられなかったこと
+docker compose logs の絞り込みが、この環境では今日のログを安定して返さなかった。
+「平時にもログを出す」(AC-7)は、記録用ロガーを使った検査で確かめた。

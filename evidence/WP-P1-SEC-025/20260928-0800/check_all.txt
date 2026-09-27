@@ -1,0 +1,110 @@
+
+> solvi@0.1.0 check:all
+> npm run check:paths && npm run check:architecture && npm run check:images && npm run check:skips && npm run check:unwired && npm run check:traceability && npm run check:workpackages
+
+
+> solvi@0.1.0 check:paths
+> node tools/check_allowed_paths.mjs
+
+checked 54 baseline work packages, 217 allowed paths
+OK: すべてのAllowed Pathがリポジトリ構造と一致しています。
+
+> solvi@0.1.0 check:architecture
+> node tools/check_architecture.mjs
+
+アーキテクチャ検査: 97 ファイル / 5 ルール
+OK: 禁止依存はありません。
+
+> solvi@0.1.0 check:images
+> node tools/check_image_pinning.mjs
+
+checked 12 image references
+OK: すべてのイメージ参照が digest 固定されています。
+
+> solvi@0.1.0 check:skips
+> node tools/check_no_skipped_tests.mjs
+
+skip検査: 40 テストファイル
+OK: 未注釈・期限切れの skip はありません。
+
+> solvi@0.1.0 check:unwired
+> node tools/check_unwired.mjs
+
+
+A. 監査イベント型と実際の記録
+  OK   監査イベント型 30 件すべてが記録経路を持つ
+
+B. アラート式とメトリクスの実在
+  OK   アラートが参照する 10 件のメトリクスがすべて存在する
+
+C. 公開されているが本番経路から呼ばれない関数
+  OK   テストからしか呼ばれない公開関数は無い
+  注記  4 件がどこからも参照されていない
+       resetScannerSignatureAge, resetInstrumentsForTest, patch, concat_ws
+  注記  5 件は未接続を承知で残している
+       signWebhook — Webhook送信の受け口がまだ無い。署名だけ先に作った(WP-P2-NTF-005 §6)
+       verifyWebhook — signWebhook と同じ理由
+       InMemoryNonceStore — signWebhook と同じ理由。永続化版は受け口を作るときに決める
+       assertCanSwitchOrganization — platform_admin の組織横断操作の門番。横断操作の画面と経路がまだ無い
+       findComment — コメント1件の取得。呼ぶ画面が無い
+
+D. 環境変数の定義と参照
+  OK   環境変数 26 件すべてが参照されている
+
+E. マイグレーションの巻き戻し
+  OK   マイグレーション 25 件すべてに down がある
+
+F. 同じ手続きが二か所に書かれていないか
+  OK   ローカル資格情報の書き込みは1か所だけ
+       services/api/src/modules/auth/local-auth.service.ts
+  OK   セッションの失効は1か所だけ
+       services/api/src/modules/auth/session.service.ts
+  OK   監査の正準形は2/2 か所
+       services/api/src/modules/audit/audit-export.service.ts, services/worker/src/jobs/audit-anchor/anchor.ts
+  OK   添付のスキャン結果の書き込みは1か所だけ
+       services/worker/src/jobs/scan/attachment-scanner.ts
+
+OK: 「定義したが動いていない」箇所は見つかりませんでした(注記 2 件)
+    ただしこの検査は静的な突き合わせであり、実際に動くことの証明ではない。
+    実経路の確認は verify_tracing / verify_slo_pipeline / e2e が担う。
+
+> solvi@0.1.0 check:traceability
+> node tools/check_traceability.mjs
+
+A. 要求の状態(導出値と台帳の突き合わせ)
+  OK   要求 101 件の内訳(種別 16: AUD, BR, FR-AI, FR-AST, FR-AUT, FR-CAT, FR-CHG, FR-IDM, FR-KNW, FR-TKT, MIG, NFR-MNT, NFR-OPS, NFR-PERF, NFR-SEC, NFR-UX)
+       実装済み・検査の名指し無し: 8 / 未着手: 61 / 検査あり: 31 / 検査のみ(WP未完): 1
+  注記  8 件は実装済みだが検査が名指ししていない
+       BR-001, BR-004, BR-006, FR-IDM-005, NFR-PERF-001, NFR-UX-001, NFR-UX-003, NFR-MNT-002
+       検査のコメントへ要求IDを書くと対応が付く
+  OK   台帳の Status は導出値と一致している
+
+B. 台帳とWPノートの相互参照
+  OK   台帳とWPノートの主張が一致している
+
+C. 実在しない要求IDの参照
+  OK   参照されている要求IDはすべて台帳に存在する
+
+OK: 要求と実装・検査の対応は台帳と一致しています
+    ただし「検査あり」は**検査が要求IDを名指ししている**という意味であり、
+    要求を満たしている証明ではない。名指しは人が書く。
+
+> solvi@0.1.0 check:workpackages
+> node tools/check_workpackages.mjs
+
+A. WPノートと台帳の突き合わせ
+  OK   WPノート 88 件すべてに台帳の行がある
+
+B. 台帳の行とノートの frontmatter
+  OK   すべてのWPノートが phase / workstream / risk / story_points を持つ
+
+C. 集計(台帳の記載と導出値)
+  OK   導出値: WP 88 件 / 605 ポイント
+       P0 28 / P1 117 / P2 138 / P3 34 / P4 84 / P5 50 / P6 40 / P7 37 / P8 40 / P9 37
+  OK   台帳の集計は導出値と一致している
+
+D. 件数の写し
+  OK   台帳の外にWP件数の写しは無い
+
+OK: WP台帳は実体と一致しています
+    件数は台帳が導出する。他の文書は数を持たず、台帳を指す。

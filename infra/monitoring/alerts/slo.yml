@@ -183,6 +183,45 @@ groups:
             **どちらであっても利用者影響があります。** audit_event を確認してください。
           runbook: 'docs/ops/slo.md#認可拒否の急増'
 
+      # 四半期アクセスレビューが期日を過ぎても終わっていない (NFR-SEC-002 / WP-P1-SEC-025)。
+      #
+      # **遅れても、何も壊れて見えない。** 権限は付いたまま動き続け、
+      # 見直されていないことは誰の画面にも出ない。
+      # 期日(既定30日・仮値)は日単位なので、数時間の揺れで鳴らさない。
+      # メトリクス名は稼働中の /metrics 出力で確認済み(単位は付かない)。
+      - alert: SolviAccessReviewOverdue
+        expr: solvi_access_review_overdue > 0
+        for: 6h
+        labels:
+          severity: ticket
+          slo: security
+        annotations:
+          summary: 'アクセスレビューが期日を過ぎても完了していません'
+          description: >-
+            {{ $value | humanize }} 件のアクセスレビューが期日を過ぎています。
+            **自動では閉じません。** 組織の管理者に /ops/access-review での判断と完了を依頼してください。
+          runbook: 'docs/ops/slo.md#アクセスレビューの遅れ'
+
+      # この四半期のアクセスレビューが始まっていない組織がある。
+      #
+      # **遅れのアラートだけでは、始まらないことを捉えられない。**
+      # 定期処理が開けなければ期日を過ぎるレビューが存在せず、上のアラートは鳴らない。
+      # 定期処理は1時間おきに回るため、正常なら期の初めの1時間ほどで 0 になる。
+      # 前の期が終わっていない組織もここに数えられる(開けない = 始まっていない)。
+      - alert: SolviAccessReviewNotStarted
+        expr: solvi_access_review_missing_this_quarter > 0
+        for: 24h
+        labels:
+          severity: ticket
+          slo: security
+        annotations:
+          summary: 'この四半期のアクセスレビューが始まっていない組織があります'
+          description: >-
+            {{ $value | humanize }} 組織で、この四半期のアクセスレビューが開かれていません。
+            前の期のレビューが未完了で残っているか、定期起票が失敗しています。
+            API のログで `access review schedule` を確認してください。
+          runbook: 'docs/ops/slo.md#アクセスレビューが始まらない'
+
   # ---------------------------------------------------------------------------
   # 監視基盤そのもの
   #

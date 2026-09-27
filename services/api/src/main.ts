@@ -19,6 +19,10 @@ import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
 import { AccessReviewController } from './modules/auth/access-review.routes.js';
+import {
+  AccessReviewScheduler,
+  startAccessReviewScheduleLoop,
+} from './modules/auth/access-review-scheduler.js';
 import { AuditExportController } from './modules/audit/audit-export.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
@@ -129,7 +133,10 @@ async function bootstrap(): Promise<void> {
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });
   const userAdmin = new UserAdminController({ pool: db.authPool() });
-  const accessReview = new AccessReviewController({ pool: db.authPool() });
+  const accessReview = new AccessReviewController({
+    pool: db.authPool(),
+    dueDays: env.ACCESS_REVIEW_DUE_DAYS,
+  });
   const auditExport = new AuditExportController({ pool: db.authPool() });
 
   const app = new HttpServer(logger)
@@ -565,6 +572,17 @@ async function bootstrap(): Promise<void> {
     60 * 60 * 1000,
   );
 
+  // 四半期アクセスレビューの定期起票 (NFR-SEC-002 / WP-P1-SEC-025)。
+  //
+  // **開くのが人だけだと、誰も開かなければ何も起きない。**
+  // 1時間おき。四半期の境界に対して十分細かく、**起動時に1周走る** —
+  // 落ちていた間に期が替わっても取りこぼさない。
+  const accessReviewTimer = startAccessReviewScheduleLoop(
+    new AccessReviewScheduler(db.authPool(), logger, env.ACCESS_REVIEW_DUE_DAYS),
+    logger,
+    60 * 60 * 1000,
+  );
+
   dispatchTick();
 
   const server = app.listen(env.API_PORT);
@@ -577,6 +595,7 @@ async function bootstrap(): Promise<void> {
     clearInterval(autoCloseTimer);
     clearInterval(sessionPurgeTimer);
     clearInterval(expiryTimer);
+    clearInterval(accessReviewTimer);
     server.close();
     await app.close();
     await db.close();

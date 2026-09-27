@@ -333,6 +333,8 @@ export const api = {
         periodLabel: string;
         openedAt: string;
         source: 'manual' | 'scheduled';
+        dueAt: string;
+        overdue: boolean;
         completedAt: string | null;
         totalItems: number;
         pendingItems: number;
@@ -351,6 +353,9 @@ export const api = {
         id: string;
         periodLabel: string;
         openedAt: string;
+        source: 'manual' | 'scheduled';
+        dueAt: string;
+        overdue: boolean;
         completedAt: string | null;
         totalItems: number;
         pendingItems: number;

@@ -23,12 +23,12 @@ SLOは「速いほうがいい」「落ちないほうがいい」という願�
 CPU使用率やメモリ使用量はここに入れない。それらは原因の調査に使う値であって、
 利用者が困っているかどうかを表さない(CPU 90%でも業務が回っていれば問題ない)。
 
-| SLI | 定義 | メトリクス |
-|---|---|---|
-| 可用性 | 5xx を返さなかったリクエストの割合 | `solvi_http_requests_total{http_status_class}` |
-| レイテンシ | リクエスト処理時間の95パーセンタイル | `solvi_http_duration_bucket` |
-| 非同期遅延 | Outboxイベントの発行から処理開始までの時間(p95) | `solvi_outbox_lag_bucket` |
-| 到達性 | 外部から主要導線を実行できた割合 | `solvi_synthetic_success` |
+| SLI        | 定義                                            | メトリクス                                     |
+| ---------- | ----------------------------------------------- | ---------------------------------------------- |
+| 可用性     | 5xx を返さなかったリクエストの割合              | `solvi_http_requests_total{http_status_class}` |
+| レイテンシ | リクエスト処理時間の95パーセンタイル            | `solvi_http_duration_bucket`                   |
+| 非同期遅延 | Outboxイベントの発行から処理開始までの時間(p95) | `solvi_outbox_lag_bucket`                      |
+| 到達性     | 外部から主要導線を実行できた割合                | `solvi_synthetic_success`                      |
 
 ### ヘルスチェックを分母に入れない
 
@@ -55,12 +55,12 @@ CPU使用率やメモリ使用量はここに入れない。それらは原因�
 
 パイロット期間(Gate A 以降)の目標値。
 
-| SLO | 目標 | 測定窓 | 出典 |
-|---|---|---|---|
-| 可用性 | **99.5%** | 30日ローリング | NFR-OPS-001 |
+| SLO        | 目標                     | 測定窓         | 出典         |
+| ---------- | ------------------------ | -------------- | ------------ |
+| 可用性     | **99.5%**                | 30日ローリング | NFR-OPS-001  |
 | レイテンシ | 主要画面 **p95 ≤ 1.5秒** | 30日ローリング | NFR-PERF-001 |
-| エラー率 | **1% 未満** | 30日ローリング | NFR-OPS-001 |
-| 非同期遅延 | Outbox **p95 ≤ 30秒** | 30日ローリング | NFR-PERF-003 |
+| エラー率   | **1% 未満**              | 30日ローリング | NFR-OPS-001  |
+| 非同期遅延 | Outbox **p95 ≤ 30秒**    | 30日ローリング | NFR-PERF-003 |
 
 ### エラーバジェット
 
@@ -95,25 +95,27 @@ CPU使用率やメモリ使用量はここに入れない。それらは原因�
 そこで **短い窓と長い窓の両方**が閾値を超えたときだけ鳴らす。
 一過性の揺れでは鳴らず、継続的な悪化では確実に鳴る。
 
-| アラート | 燃焼速度 | 使い切るまで | severity |
-|---|---|---|---|
-| `SolviErrorBudgetBurnFast` | 14.4倍 | 約2日 | page(即時) |
-| `SolviErrorBudgetBurnSlow` | 6倍 | 約5日 | ticket(当日中) |
+| アラート                   | 燃焼速度 | 使い切るまで | severity       |
+| -------------------------- | -------- | ------------ | -------------- |
+| `SolviErrorBudgetBurnFast` | 14.4倍   | 約2日        | page(即時)     |
+| `SolviErrorBudgetBurnSlow` | 6倍      | 約5日        | ticket(当日中) |
 
 ### アラート一覧
 
-| アラート | 何を捕まえるか | severity |
-|---|---|---|
-| `SolviErrorBudgetBurnFast` | 高速なエラー増加 | page |
-| `SolviErrorBudgetBurnSlow` | 継続的なエラー増加 | ticket |
-| `SolviLatencyP95Degraded` | 応答遅延(p95 > 1.5秒) | ticket |
-| `SolviOutboxLagHigh` | 非同期処理の滞留 | ticket |
-| `SolviAttachmentScanStalled` | 添付のスキャンが判定できていない | ticket |
-| `SolviScannerSignaturesStale` | ウイルス定義が古い(見逃していても気付けない) | ticket |
-| `SolviAuthzDenialSpike` | 認可拒否の急増 | ticket |
-| `SolviTargetDown` | メトリクスが取得できない | page |
-| `SolviNoTraffic` | 15分間リクエストが0件 | ticket |
-| `SolviSyntheticCheckFailing` | 外部から主要導線が使えない | page |
+| アラート                      | 何を捕まえるか                                         | severity |
+| ----------------------------- | ------------------------------------------------------ | -------- |
+| `SolviErrorBudgetBurnFast`    | 高速なエラー増加                                       | page     |
+| `SolviErrorBudgetBurnSlow`    | 継続的なエラー増加                                     | ticket   |
+| `SolviLatencyP95Degraded`     | 応答遅延(p95 > 1.5秒)                                  | ticket   |
+| `SolviOutboxLagHigh`          | 非同期処理の滞留                                       | ticket   |
+| `SolviAttachmentScanStalled`  | 添付のスキャンが判定できていない                       | ticket   |
+| `SolviScannerSignaturesStale` | ウイルス定義が古い(見逃していても気付けない)           | ticket   |
+| `SolviAuthzDenialSpike`       | 認可拒否の急増                                         | ticket   |
+| `SolviAccessReviewOverdue`    | アクセスレビューが期日(既定30日・仮値)を過ぎても未完了 | ticket   |
+| `SolviAccessReviewNotStarted` | この四半期のアクセスレビューが始まっていない組織がある | ticket   |
+| `SolviTargetDown`             | メトリクスが取得できない                               | page     |
+| `SolviNoTraffic`              | 15分間リクエストが0件                                  | ticket   |
+| `SolviSyntheticCheckFailing`  | 外部から主要導線が使えない                             | page     |
 
 ### 通知に業務情報を載せない
 
@@ -138,12 +140,12 @@ LB・DNS・リバースプロキシ・認証基盤が落ちていると、リク
 アプリに届かないので、エラー率は0%のまま、レイテンシも正常のままになる。
 **数字は全部健全なのに、誰も使えていない**という状態が成立する。
 
-| チェック | 対象 | 状態 |
-|---|---|---|
-| `portal_top` | 依頼者ポータルのトップ | 実行中 |
-| `api_ready` | API の依存込みの可用性(`/readyz`) | 実行中 |
-| `login` | ログイン導線 | **未実行** — WP-P1-IDM-003 未実装 |
-| `ticket_create` | チケット作成 | **未実行** — 認証済みセッションが必要 |
+| チェック        | 対象                              | 状態                                  |
+| --------------- | --------------------------------- | ------------------------------------- |
+| `portal_top`    | 依頼者ポータルのトップ            | 実行中                                |
+| `api_ready`     | API の依存込みの可用性(`/readyz`) | 実行中                                |
+| `login`         | ログイン導線                      | **未実行** — WP-P1-IDM-003 未実装     |
+| `ticket_create` | チケット作成                      | **未実行** — 認証済みセッションが必要 |
 
 未実行のチェックは `solvi_synthetic_skipped` として公開しており、
 **成功として扱っていない**。監視できているつもりになるのを防ぐため。
@@ -224,10 +226,10 @@ node tools/synthetic_check.mjs --once
 
 3. **原因別の対処**
 
-   | 状況 | 対処 |
-   |---|---|
-   | ディスクも古い | freshclam が更新できていない。ネットワーク到達性を確認する |
-   | ディスクは新しいが clamd が古い | **clamd を再起動する**(下記) |
+   | 状況                            | 対処                                                       |
+   | ------------------------------- | ---------------------------------------------------------- |
+   | ディスクも古い                  | freshclam が更新できていない。ネットワーク到達性を確認する |
+   | ディスクは新しいが clamd が古い | **clamd を再起動する**(下記)                               |
 
    `RELOAD` コマンドでは直らないことを実測で確認している。
 
@@ -257,6 +259,24 @@ node tools/synthetic_check.mjs --once
 2. `audit_event` の `outcome = 'denied'` を actor 別に集計する
 3. 直前に role_binding の変更がなかったかを監査で確認する
 
+### アクセスレビューの遅れ
+
+NFR-SEC-002 / WP-P1-SEC-025。**遅れても、何も壊れて見えない** — 権限は付いたまま動き続ける。
+
+1. どの組織か確かめる。`access_review` の `completed_at IS NULL AND due_at < now()` を組織別に見る
+2. その組織の管理者に `/ops/access-review` での判断と完了を依頼する
+3. **自動で閉じない・自動で取り消さない。** 判断は人に残す(期日は仮値であり、遅れは判断の材料である)
+
+### アクセスレビューが始まらない
+
+遅れのアラートは「開かれたレビュー」が期日を過ぎたときしか鳴らない。
+こちらは**開かれていないこと**そのものを見る。
+
+1. 前の期のレビューが未完了で残っていないか(開いているレビューは組織に1つ。
+   残っていると新しい期を開けない — まず前の期を終わらせる)
+2. API のログで `access review schedule` の `failed=` を確認する
+3. 定期処理は1時間おき・起動時に1周する。API を再起動すれば直後に1周走る
+
 ### メトリクスが取れない
 
 1. プロセスが動いているか
@@ -285,10 +305,10 @@ node tools/synthetic_check.mjs --once
 docker compose up -d prometheus alertmanager alert-sink synthetic
 ```
 
-| 画面 | URL |
-|---|---|
-| Prometheus | http://localhost:9090 |
-| Alertmanager | http://localhost:9093 |
+| 画面             | URL                          |
+| ---------------- | ---------------------------- |
+| Prometheus       | http://localhost:9090        |
+| Alertmanager     | http://localhost:9093        |
 | アラート受信記録 | http://localhost:9466/alerts |
 
 配線の検証:
@@ -309,9 +329,9 @@ WP-P1-OBS-005 では計器を定義したものの MeterProvider を繋いでお
 
 ## 7. 未確定事項
 
-| 項目 | 状態 |
-|---|---|
-| 本番のアラート通知先(メール・チャット) | 未決定 — OQ-012。Gate A までに決める |
-| オンコール担当者と時間帯 | `08.3_SOLVI_Incident_Response` に記載。パイロット期間は営業時間内 |
-| `login` / `ticket_create` の合成監視 | WP-P1-IDM-003 待ち |
-| 1週間のノイズ観測 | 未実施 — 実運用データが必要。Gate A の前提 |
+| 項目                                   | 状態                                                              |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| 本番のアラート通知先(メール・チャット) | 未決定 — OQ-012。Gate A までに決める                              |
+| オンコール担当者と時間帯               | `08.3_SOLVI_Incident_Response` に記載。パイロット期間は営業時間内 |
+| `login` / `ticket_create` の合成監視   | WP-P1-IDM-003 待ち                                                |
+| 1週間のノイズ観測                      | 未実施 — 実運用データが必要。Gate A の前提                        |

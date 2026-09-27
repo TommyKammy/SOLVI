@@ -62,16 +62,27 @@ export interface AccessReviewSummary {
   id: string;
   periodLabel: string;
   openedAt: string;
-  openedBy: string;
+  /** 定期処理が開いた期は null。**人ではないものを人として記録しない。** */
+  openedBy: string | null;
   source: 'manual' | 'scheduled';
+  /** 完了期日 (WP-P1-SEC-025)。既定は開始から30日(仮値)。 */
+  dueAt: string;
+  /** 期日を過ぎて未完了か。**判定を画面へ持ち出さない。** */
+  overdue: boolean;
   completedAt: string | null;
   completedBy: string | null;
   totalItems: number;
   pendingItems: number;
 }
 
+/** 完了期日の既定。**仮値である**(`ACCESS_REVIEW_DUE_DAYS`)。 */
+export const DEFAULT_ACCESS_REVIEW_DUE_DAYS = 30;
+
 export class AccessReviewService {
-  constructor(private readonly client: pg.PoolClient | pg.Client) {}
+  constructor(
+    private readonly client: pg.PoolClient | pg.Client,
+    private readonly dueDays: number = DEFAULT_ACCESS_REVIEW_DUE_DAYS,
+  ) {}
 
   /**
    * 期を開く。
@@ -122,11 +133,50 @@ export class AccessReviewService {
       throw Problems.conflict('その期のレビューは既にあります');
     }
 
+    return this.createReview({
+      organizationId: ctx.organizationId,
+      periodLabel: label,
+      openedBy: ctx.principal.userId,
+    });
+  }
+
+  /**
+   * 定期処理が期を開く (WP-P1-SEC-025)。
+   *
+   * **呼ぶ側がその組織の文脈を張っていること。** 書き込みは越境させない。
+   * 認可を通さないのは、呼ぶのが人ではなく定期処理だからである —
+   * そのため HTTP の経路からは呼べない形にしている(経路はこのメソッドを持たない)。
+   */
+  async openScheduled(
+    organizationId: string,
+    periodLabel: string,
+  ): Promise<{ reviewId: string; items: number }> {
+    return this.createReview({ organizationId, periodLabel, openedBy: null });
+  }
+
+  /**
+   * 期を作る。**人が開く経路と定期処理が開く経路で、作り方を分けない。**
+   * 分けると、片方だけが対象の固定や期日を持つことになる。
+   */
+  private async createReview(input: {
+    organizationId: string;
+    periodLabel: string;
+    openedBy: string | null;
+  }): Promise<{ reviewId: string; items: number }> {
+    const source = input.openedBy === null ? 'scheduled' : 'manual';
     const reviewId = uuidv7();
     await this.client.query(
-      `INSERT INTO access_review (id, organization_id, period_label, opened_by, source)
-       VALUES ($1, $2, $3, $4, 'manual')`,
-      [reviewId, ctx.organizationId, label, ctx.principal.userId],
+      `INSERT INTO access_review
+         (id, organization_id, period_label, opened_by, source, due_at)
+       VALUES ($1, $2, $3, $4, $5, now() + ($6 || ' days')::interval)`,
+      [
+        reviewId,
+        input.organizationId,
+        input.periodLabel,
+        input.openedBy,
+        source,
+        String(this.dueDays),
+      ],
     );
 
     // 開いた時点の姿を写し取る。**停止された利用者の役割も対象にする** —
@@ -139,7 +189,7 @@ export class AccessReviewService {
           AND rb.role_scope = 'org'
           AND rb.valid_from <= now()
           AND (rb.valid_until IS NULL OR rb.valid_until > now())`,
-      [ctx.organizationId],
+      [input.organizationId],
     );
 
     for (const b of bindings) {
@@ -150,7 +200,7 @@ export class AccessReviewService {
         [
           uuidv7(),
           reviewId,
-          ctx.organizationId,
+          input.organizationId,
           b.user_id,
           b.id,
           b.code,
@@ -161,14 +211,20 @@ export class AccessReviewService {
 
     await recordAuditEvent(this.client, {
       eventType: 'access.review.opened',
-      organizationId: ctx.organizationId,
-      actorType: 'user',
-      actorId: ctx.principal.userId,
+      organizationId: input.organizationId,
+      // **定期処理が開いたものは system として残す。**
+      actorType: input.openedBy === null ? 'system' : 'user',
+      actorId: input.openedBy,
       targetType: 'access_review',
       targetId: reviewId,
       action: 'open',
       outcome: 'success',
-      afterState: { periodLabel: label, items: bindings.length },
+      afterState: {
+        periodLabel: input.periodLabel,
+        items: bindings.length,
+        source,
+        dueDays: this.dueDays,
+      },
     });
 
     return { reviewId, items: bindings.length };
@@ -196,8 +252,10 @@ export class AccessReviewService {
       id: r.id as string,
       periodLabel: r.period_label as string,
       openedAt: (r.opened_at as Date).toISOString(),
-      openedBy: r.opened_by as string,
+      openedBy: (r.opened_by as string | null) ?? null,
       source: r.source as 'manual' | 'scheduled',
+      dueAt: (r.due_at as Date).toISOString(),
+      overdue: r.completed_at === null && (r.due_at as Date).getTime() < Date.now(),
       completedAt: (r.completed_at as Date | null)?.toISOString() ?? null,
       completedBy: (r.completed_by as string | null) ?? null,
       totalItems: Number(r.total ?? 0),
@@ -373,7 +431,9 @@ export class AccessReviewService {
 
     const pending = Number(rows[0]!.pending ?? 0);
     if (pending > 0) {
-      throw Problems.conflict(`未判断が ${pending} 件あります。すべて判断してから完了してください。`);
+      throw Problems.conflict(
+        `未判断が ${pending} 件あります。すべて判断してから完了してください。`,
+      );
     }
 
     await this.client.query(

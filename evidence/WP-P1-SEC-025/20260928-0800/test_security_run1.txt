@@ -1,0 +1,44 @@
+
+> solvi@0.1.0 test:security
+> vitest run tests/security
+
+
+ RUN  v3.2.7 /Users/tomoakikawada/Dev/SOLVI/main
+
+ ✓ tests/security/user-admin.test.ts (46 tests) 4987ms
+ ✓ tests/security/collaboration-routes.test.ts (37 tests) 4734ms
+ ✓ tests/security/ticket-filters.test.ts (46 tests) 4049ms
+ ✓ tests/security/assignment-group.test.ts (28 tests) 3971ms
+stdout | tests/security/auth.test.ts > セッション失効の即時性 (FR-IDM-008 / Gate 1 G1-9) > **ユーザ無効化でセッションが即座に無効になる**
+REVOCATION_LATENCY_SECONDS=0.032
+
+ ✓ tests/security/auth.test.ts (54 tests) 3600ms
+   ✓ 情報の非対称性を作らない > **存在しないユーザと誤パスワードで応答時間が大きく変わらない**  312ms
+ ✓ tests/security/relation-routes.test.ts (26 tests) 2364ms
+ ✓ tests/security/ticket-routes.test.ts (19 tests) 1634ms
+ ✓ tests/security/object-storage.test.ts (11 tests) 1571ms
+   ✓ 署名付きURLで実際にやり取りできる > **期限切れの署名では取得できない**  1513ms
+ ✓ tests/security/attachment-delete.test.ts (14 tests) 1403ms
+ ✓ tests/security/ticket-list.test.ts (19 tests) 524ms
+ ✓ tests/security/vertical-slice.test.ts (3 tests) 428ms
+ ✓ tests/security/notification.test.ts (29 tests) 393ms
+ ✓ tests/security/ticket-relation.test.ts (24 tests) 364ms
+ ✓ tests/security/collaboration.test.ts (32 tests) 446ms
+ ✓ tests/security/access-review-schedule.test.ts (12 tests) 348ms
+ ✓ tests/security/ticket-search-sla.test.ts (25 tests) 333ms
+ ✓ tests/security/ticket-service.test.ts (19 tests) 278ms
+ ✓ tests/security/access-review.test.ts (10 tests) 248ms
+ ✓ tests/security/audit-append-only.test.ts (26 tests) 170ms
+ ✓ tests/security/role-binding-expiry.test.ts (17 tests) 177ms
+ ✓ tests/security/ticket-concurrency.test.ts (10 tests) 161ms
+ ✓ tests/security/attachment-scan.test.ts (8 tests) 131ms
+ ✓ tests/security/session-purge.test.ts (12 tests) 77ms
+ ✓ tests/security/audit-export.test.ts (15 tests) 58ms
+ ✓ tests/security/cross-org.test.ts (18 tests) 49ms
+ ✓ tests/security/audit-anchor-external.test.ts (8 tests) 17ms
+
+ Test Files  26 passed (26)
+      Tests  568 passed (568)
+   Start at  07:53:10
+   Duration  38.55s (transform 294ms, setup 0ms, collect 2.48s, tests 32.51s, environment 2ms, prepare 599ms)
+

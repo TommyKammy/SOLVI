@@ -96,6 +96,14 @@ export const apiEnvSchema = baseSchema
      * 即座に消すと、失効の直後に調べる手段が無くなる。
      */
     SESSION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
+    /**
+     * アクセスレビューの完了期日。開始からの日数 (NFR-SEC-002 / WP-P1-SEC-025)。
+     *
+     * **30日は仮値である。** 要求文書に数字が無い(DL-035 と同じ扱い)。
+     * 上限を四半期より短く取る — 期日が次の期の開始を越えると、
+     * 前の期が終わらないまま次の期が来て、遅れが遅れとして見えなくなる。
+     */
+    ACCESS_REVIEW_DUE_DAYS: z.coerce.number().int().min(1).max(89).default(30),
   })
   .superRefine((env, ctx) => {
     // -----------------------------------------------------------------------

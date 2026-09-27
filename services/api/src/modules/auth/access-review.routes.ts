@@ -13,6 +13,8 @@ import type { AuthenticatedRequest } from './auth.routes.js';
 
 export interface AccessReviewRouteDeps {
   pool: pg.Pool;
+  /** 完了期日(日)。**仮値**(`ACCESS_REVIEW_DUE_DAYS`)。人が開く期にも同じ期日を付ける。 */
+  dueDays?: number;
 }
 
 export class AccessReviewController {
@@ -29,7 +31,7 @@ export class AccessReviewController {
         'app.current_org',
         auth.authz.organizationId,
       ]);
-      const out = await fn(new AccessReviewService(client));
+      const out = await fn(new AccessReviewService(client, this.deps.dueDays));
       await client.query('COMMIT');
       return out;
     } catch (error) {
@@ -63,9 +65,7 @@ export class AccessReviewController {
     const input = (body ?? {}) as { decision?: unknown; reason?: unknown };
     if (input.decision !== 'keep' && input.decision !== 'revoke') {
       // **自由文字列を受け取らない。** 閉じた選択肢だけを通す。
-      throw Problems.validation([
-        { field: 'decision', message: '判断は keep または revoke です' },
-      ]);
+      throw Problems.validation([{ field: 'decision', message: '判断は keep または revoke です' }]);
     }
     if (typeof input.reason !== 'string') {
       throw Problems.validation([{ field: 'reason', message: '判断の理由を入力してください' }]);
