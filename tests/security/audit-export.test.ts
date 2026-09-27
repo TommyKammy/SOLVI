@@ -117,14 +117,25 @@ describe('見てよい人だけが見られる (AUD-002)', () => {
   });
 
   it('**プラットフォーム監査者には全組織が出る**', async () => {
+    // **測ることが対象を増やす。** 書き出しは `audit.export.executed` を自分で記録するので、
+    // 後から取った側が必ず1件多い(04.23 §26 と同じ形)。
+    //
+    // 以前は件数の大小で比べていた。これは**他組織の記録がたまたま在る日にだけ通る**
+    // 検査であり、その日が来ないと「プラットフォーム側のほうが少ない」と落ちる
+    // (WP-P1-SEC-024 で実際に落ちた — その組織の記録しか無い状態を作ったため)。
+    //
+    // 組織側を先に取り、**プラットフォーム側がその上位集合であること**を見る。
+    // 件数の比較より強い主張であり、測定の順序にも左右されない。
+    const orgScoped = await run(() => inOrg(ORG_A, (s) => s.exportDay(ctxFor('auditor'), TODAY)));
     const platform = await run(() =>
       inOrg(ORG_A, (s) => s.exportDay(ctxFor('platform_auditor'), TODAY)),
     );
-    const orgScoped = await run(() => inOrg(ORG_A, (s) => s.exportDay(ctxFor('auditor'), TODAY)));
 
     expect(platform.manifest.scope).toBe('platform');
     // 横断の読み取り例外(migration 0023)が効いている
-    expect(platform.events.length).toBeGreaterThanOrEqual(orgScoped.events.length);
+    const visibleToPlatform = new Set(platform.events.map((e) => e.eventId));
+    expect(orgScoped.events.every((e) => visibleToPlatform.has(e.eventId))).toBe(true);
+    expect(orgScoped.events.length).toBeGreaterThan(0);
   });
 
   it('日付の形式を見る', async () => {

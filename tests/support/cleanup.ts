@@ -10,6 +10,10 @@ import type pg from 'pg';
  * ここに新しいテーブルを追加するときは、**子から親の順**に並べること。
  */
 const DELETE_ORDER = [
+  // アクセスレビュー (WP-P1-SEC-024)。role_binding を ON DELETE RESTRICT で
+  // 参照するため、**役割を消す検査より先に**消す必要がある。
+  'access_review_item',
+  'access_review',
   'notification',
   'outbox_event',
   'ticket_relation',
