@@ -61,6 +61,38 @@
   margin-top: 16px;
 }
 
+.reuse {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--fs-border);
+}
+
+:global(body.fs-ui) .reuse :global(.field) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.reuse select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checklistItem {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);

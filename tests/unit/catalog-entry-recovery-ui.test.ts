@@ -50,6 +50,13 @@ const session: SessionView = {
   roles: [{ roleCode: 'org_admin', organizationId: org }],
 };
 const data = {
+  viewerId: session.userId,
+  owners: [],
+  groups: [],
+  questionSets: [],
+  canCreate: true,
+  canPublish: true,
+  canManageQuestionSets: true,
   items: [
     {
       id: '07700000-0000-4000-8000-000000000010',
@@ -203,9 +210,9 @@ describe('normal renderer boundary', () => {
     expect(html).toContain('まだサービスがありません。最初の下書きを作成してください。');
     expect(html).not.toContain('role="alert"');
   });
-  it.each([data.approvers, []])(
+  it.each([{ approvers: data.approvers }, { approvers: [] }])(
     'preserves new form props and simulation-only copy',
-    async (approvers) => {
+    async ({ approvers }) => {
       vi.mocked(api.catalogManagementRead).mockResolvedValue({
         ok: true,
         data: { ...data, approvers },
@@ -213,7 +220,11 @@ describe('normal renderer boundary', () => {
       const html = await render(New);
       expect(html).toContain('ローカルの模擬申請専用です。');
       expect(CatalogAdminForm).toHaveBeenCalled();
-      expect(vi.mocked(CatalogAdminForm).mock.calls[0][0]).toEqual({ approvers });
+      expect(vi.mocked(CatalogAdminForm).mock.calls[0][0]).toEqual({
+        approvers,
+        options: { ...data, approvers },
+        initialContent: undefined,
+      });
     },
   );
 });

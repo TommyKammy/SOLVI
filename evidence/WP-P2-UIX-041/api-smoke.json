@@ -1,0 +1,97 @@
+{
+  "workPackage": "WP-P2-UIX-041",
+  "success": true,
+  "checks": [
+    {
+      "name": "Legacy owner-less catalog administration still returns explicit capabilities and warnings",
+      "passed": true
+    },
+    {
+      "name": "Only an administrator can delegate the new org role to an existing synthetic member",
+      "passed": true
+    },
+    {
+      "name": "Shared question sets have administrator writes, editor reads, idempotency and conflicts",
+      "passed": true
+    },
+    {
+      "name": "Editor creation is self-owned and saved owner prevents direct URL and owner spoofing",
+      "passed": true
+    },
+    {
+      "name": "Expired editor bindings stop authoring without changing requester identity",
+      "passed": true
+    },
+    {
+      "name": "Published catalog routing initializes a new ticket queue without forged staff or manual assignment",
+      "passed": true
+    },
+    {
+      "name": "Checklist writes require staff and a currently approved request",
+      "passed": true
+    },
+    {
+      "name": "Checklist completion has an independent optimistic version and preserves frozen request/hash/approval",
+      "passed": true
+    },
+    {
+      "name": "A new request revision resets progress, keeps old progress and never re-routes an existing ticket",
+      "passed": true
+    },
+    {
+      "name": "Question-set revisions and later catalog metadata never propagate into copied services or requests",
+      "passed": true
+    },
+    {
+      "name": "Legacy admin create/replay/publication and no-checklist request detail stay compatible",
+      "passed": true
+    },
+    {
+      "name": "New immutable question-set history and revision progress enforce app-role RLS",
+      "passed": true
+    },
+    {
+      "name": "Migration down refuses to erase newly persisted operation data",
+      "passed": true
+    },
+    {
+      "name": "Revocation immediately removes editor authoring while other requester permissions remain",
+      "passed": true
+    }
+  ],
+  "syntheticUsers": [
+    {
+      "id": "01a1c5f0-439b-7000-bb2e-a102adcc2230",
+      "email": "ui041-syn-1794322219908-owner@acme.example.test"
+    },
+    {
+      "id": "01a1c5f0-44db-7000-af1a-b600b51a4870",
+      "email": "ui041-syn-1794322219908-temporary@acme.example.test"
+    }
+  ],
+  "catalogIds": [
+    "01a1c5f2-1e9a-7000-b281-7577ac5fb9be",
+    "01a1c5f2-2f71-7000-a923-66486f0eafe8"
+  ],
+  "requestIds": [
+    "01a1c5f2-2e91-7000-a5fa-5edaa48ac34c",
+    "01a1c5f2-2f82-7002-a64f-d464d4d7b993"
+  ],
+  "groupIds": [
+    "01a1c5f2-1e6a-7000-abe9-200876484cff",
+    "01a1c5f2-1e6e-7000-94fb-0bac52e77adb"
+  ],
+  "grantsRevoked": true,
+  "catalogsUnpublished": true,
+  "questionSetId": "01a1c5f2-1e76-7000-aed1-5b6e9e9a7d49",
+  "expirationFixture": "Only the task-owned synthetic binding was shortened after normal API delegation",
+  "reconciliation": {
+    "previousChecksRetained": 13,
+    "newCatalogs": 0,
+    "newRequests": 0,
+    "reusedSyntheticUsers": true,
+    "completedFinalRoleRevocationCheck": true,
+    "approvedHashGuardReadChecked": true,
+    "reason": "PostgreSQL/host clock skew; authorization now uses the database clock"
+  }
+}

@@ -16,6 +16,7 @@ export type RoleCode =
   | 'agent'
   | 'approver'
   | 'auditor'
+  | 'catalog_editor'
   | 'requester';
 
 export interface RoleBinding {

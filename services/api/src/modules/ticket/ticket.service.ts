@@ -250,7 +250,11 @@ export class TicketService {
     private readonly denialRecorder: DenialRecorder = new NoopDenialRecorder(),
   ) {}
 
-  async create(ctx: AuthzContext, input: CreateTicketInput): Promise<Ticket> {
+  async create(
+    ctx: AuthzContext,
+    input: CreateTicketInput,
+    initialCatalogRouting?: { groupId: string; itemId: string; revision: number },
+  ): Promise<Ticket> {
     // 起票は組織に所属していれば誰でもできる
     requireRole(ctx, 'requester', 'agent', 'approver', 'org_admin', 'auditor', 'platform_admin');
 
@@ -268,6 +272,21 @@ export class TicketService {
 
     const priority = derivePriority(input.impact, input.urgency);
     const id = uuidv7();
+    // Internal catalog routing comes from a server-resolved published definition,
+    // never from the public ticket creation body. It changes no requester role/state.
+    if (initialCatalogRouting) {
+      const group = await this.client.query(
+        'SELECT id FROM assignment_group WHERE id=$1 AND organization_id=$2 AND active FOR SHARE',
+        [initialCatalogRouting.groupId, ctx.organizationId],
+      );
+      if (input.kind !== 'request' || !group.rowCount)
+        throw Problems.validation([
+          {
+            field: 'fulfillmentGroupId',
+            message: '現在有効な同じ組織の処理グループを選んでください',
+          },
+        ]);
+    }
 
     const { rows: numberRows } = await this.client.query<{ number: string }>(
       'SELECT next_ticket_number($1, $2) AS number',
@@ -278,8 +297,8 @@ export class TicketService {
     const { rows } = await this.client.query(
       `INSERT INTO ticket
          (id, organization_id, number, kind, state, subject, body,
-          requester_id, impact, urgency, priority, sla_clock_started_at)
-       VALUES ($1, $2, $3, $4, 'new', $5, $6, $7, $8, $9, $10, now())
+          requester_id, impact, urgency, priority, sla_clock_started_at, assignee_group_id)
+       VALUES ($1, $2, $3, $4, 'new', $5, $6, $7, $8, $9, $10, now(), $11)
        RETURNING *`,
       [
         id,
@@ -292,6 +311,7 @@ export class TicketService {
         input.impact,
         input.urgency,
         priority,
+        initialCatalogRouting?.groupId ?? null,
       ],
     );
 
@@ -314,6 +334,14 @@ export class TicketService {
         priority,
         impact: input.impact,
         urgency: input.urgency,
+        ...(initialCatalogRouting
+          ? {
+              source: 'catalog',
+              groupId: initialCatalogRouting.groupId,
+              catalogItemId: initialCatalogRouting.itemId,
+              catalogRevision: initialCatalogRouting.revision,
+            }
+          : {}),
       },
     });
 

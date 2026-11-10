@@ -1,0 +1,185 @@
+{
+  "workPackage": "WP-P2-UIX-041",
+  "browser": "webkit",
+  "marker": "UI041-SYN-1794322763155-webkit",
+  "success": true,
+  "checks": [
+    {
+      "name": "Create one own synthetic source with a section and a conditional question",
+      "passed": true
+    },
+    {
+      "name": "Create an immutable shared question set from the selected saved revision",
+      "passed": true
+    },
+    {
+      "name": "Insert a remapped independent copy and save owner, group and required checklist",
+      "passed": true
+    },
+    {
+      "name": "Clone GET sends no write and saving creates one distinct unpublished service",
+      "passed": true
+    },
+    {
+      "name": "Publish only the own clone and show owner, update and readiness on its list row",
+      "passed": true
+    },
+    {
+      "name": "Requester submits the clone and sees responsible owner, routed group and read-only tasks",
+      "passed": true
+    },
+    {
+      "name": "The selected synthetic approver approves only this new request",
+      "passed": true
+    },
+    {
+      "name": "Agent sees a required-task gate and updating one task preserves request version and snapshot hash",
+      "passed": true
+    },
+    {
+      "name": "Required completion enables local simulation while optional work can remain unfinished",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "library-desktop",
+      "violations": []
+    },
+    {
+      "name": "library-mobile",
+      "violations": []
+    },
+    {
+      "name": "operations-editor-desktop",
+      "violations": []
+    },
+    {
+      "name": "operations-editor-mobile",
+      "violations": []
+    },
+    {
+      "name": "agent-checklist-desktop",
+      "violations": []
+    },
+    {
+      "name": "agent-checklist-mobile",
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "library-desktop-1440.png",
+    "library-mobile-375.png",
+    "operations-editor-desktop-1440.png",
+    "operations-editor-mobile-375.png",
+    "management-list-desktop-1440.png",
+    "requester-readonly-desktop-1440.png",
+    "agent-required-gate-desktop-1440.png",
+    "agent-checklist-mobile-375.png",
+    "agent-completed-desktop-1440.png",
+    "shared-set-controls-readonly-1440.png",
+    "operations-controls-readonly-1440.png",
+    "shared-set-controls-readonly-375.png",
+    "operations-controls-readonly-375.png",
+    "completed-checklist-controls-readonly-1440.png",
+    "completed-checklist-controls-readonly-375.png"
+  ],
+  "ids": {
+    "source": "01a1c5f8-9825-7000-adea-b49a5c806758",
+    "questionSet": "01a1c5f8-9ba2-7000-8fa3-ac0495d21f32",
+    "target": "01a1c602-08c4-7000-b958-1ff78319635e",
+    "clone": "01a1c602-0c7a-7000-9312-fe30dad2fa14",
+    "request": "01a1c602-1925-7000-9194-9604ff967e24"
+  },
+  "network": {
+    "authWrites": 7,
+    "writes": {
+      "source": 1,
+      "set": 1,
+      "target": 1,
+      "clone": 1,
+      "publish": 1,
+      "request": 1,
+      "approve": 1,
+      "checklist": 1,
+      "simulate": 1
+    },
+    "blocked": []
+  },
+  "browserVersion": "26.5",
+  "currentStep": "complete",
+  "sourceCode": "service-18a087e3-1935-41ce-af94-c670e356199c",
+  "keyboard": {
+    "forwardKey": "Alt+Tab",
+    "tag": "INPUT",
+    "visible": true
+  },
+  "libraryWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "recovery": {
+    "reusedSource": "01a1c5f8-9825-7000-adea-b49a5c806758",
+    "reusedQuestionSet": "01a1c5f8-9ba2-7000-8fa3-ac0495d21f32",
+    "additionalSourceCreates": 0,
+    "additionalSetCreates": 0,
+    "priorTargetWriteReachedServer": false,
+    "reason": "WebKit mobile layout corrected before target save; reuse the already saved synthetic source and set"
+  },
+  "operations-editorWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "targetCode": "service-03733073-e5c5-4d1d-b364-6694d8bc1ba1",
+  "cloneCode": "service-ab128d96-365a-4fad-881e-8161653396b7",
+  "cloneGetBusinessWrites": 0,
+  "agent-checklistWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "progressInvariant": {
+    "snapshotUnchanged": true,
+    "hashUnchanged": true,
+    "requestVersionUnchanged": true,
+    "independentChecklistVersion": 2
+  },
+  "completed": true,
+  "readOnlyEvidence": {
+    "businessWrites": 0,
+    "authWrites": 3,
+    "sourceTarget": "01a1c602-08c4-7000-b958-1ff78319635e",
+    "sourceRequest": "01a1c602-1925-7000-9194-9604ff967e24",
+    "captures": [
+      {
+        "file": "shared-set-controls-readonly-1440.png",
+        "document": 1440,
+        "viewport": 1440
+      },
+      {
+        "file": "operations-controls-readonly-1440.png",
+        "document": 1440,
+        "viewport": 1440
+      },
+      {
+        "file": "shared-set-controls-readonly-375.png",
+        "document": 375,
+        "viewport": 375
+      },
+      {
+        "file": "operations-controls-readonly-375.png",
+        "document": 375,
+        "viewport": 375
+      },
+      {
+        "file": "completed-checklist-controls-readonly-1440.png",
+        "document": 1440,
+        "viewport": 1440
+      },
+      {
+        "file": "completed-checklist-controls-readonly-375.png",
+        "document": 375,
+        "viewport": 375
+      }
+    ]
+  }
+}

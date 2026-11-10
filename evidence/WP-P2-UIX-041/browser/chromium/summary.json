@@ -1,0 +1,185 @@
+{
+  "workPackage": "WP-P2-UIX-041",
+  "browser": "chromium",
+  "marker": "UI041-SYN-1794322515009-chromium",
+  "success": true,
+  "checks": [
+    {
+      "name": "Create one own synthetic source with a section and a conditional question",
+      "passed": true
+    },
+    {
+      "name": "Create an immutable shared question set from the selected saved revision",
+      "passed": true
+    },
+    {
+      "name": "Insert a remapped independent copy and save owner, group and required checklist",
+      "passed": true
+    },
+    {
+      "name": "Clone GET sends no write and saving creates one distinct unpublished service",
+      "passed": true
+    },
+    {
+      "name": "Publish only the own clone and show owner, update and readiness on its list row",
+      "passed": true
+    },
+    {
+      "name": "Requester submits the clone and sees responsible owner, routed group and read-only tasks",
+      "passed": true
+    },
+    {
+      "name": "The selected synthetic approver approves only this new request",
+      "passed": true
+    },
+    {
+      "name": "Agent sees a required-task gate and updating one task preserves request version and snapshot hash",
+      "passed": true
+    },
+    {
+      "name": "Required completion enables local simulation while optional work can remain unfinished",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "library-desktop",
+      "violations": []
+    },
+    {
+      "name": "library-mobile",
+      "violations": []
+    },
+    {
+      "name": "operations-editor-desktop",
+      "violations": []
+    },
+    {
+      "name": "operations-editor-mobile",
+      "violations": []
+    },
+    {
+      "name": "agent-checklist-desktop",
+      "violations": []
+    },
+    {
+      "name": "agent-checklist-mobile",
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "library-desktop-1440.png",
+    "library-mobile-375.png",
+    "operations-editor-desktop-1440.png",
+    "operations-editor-mobile-375.png",
+    "management-list-desktop-1440.png",
+    "requester-readonly-desktop-1440.png",
+    "agent-required-gate-desktop-1440.png",
+    "agent-checklist-mobile-375.png",
+    "agent-completed-desktop-1440.png",
+    "shared-set-controls-readonly-1440.png",
+    "operations-controls-readonly-1440.png",
+    "shared-set-controls-readonly-375.png",
+    "operations-controls-readonly-375.png",
+    "completed-checklist-controls-readonly-1440.png",
+    "completed-checklist-controls-readonly-375.png"
+  ],
+  "ids": {
+    "source": "01a1c5f4-d924-7000-bdf3-00b68b0a2e20",
+    "questionSet": "01a1c5f4-ddf9-7000-981b-d9c338a1c8aa",
+    "target": "01a1c5f4-e92d-7000-a437-f5694c68008e",
+    "clone": "01a1c5f4-ebc9-7000-af2a-8079298b9c77",
+    "request": "01a1c5f4-fb6a-7001-8abe-c9bd8dd24460"
+  },
+  "network": {
+    "authWrites": 11,
+    "writes": {
+      "source": 1,
+      "set": 1,
+      "target": 1,
+      "clone": 1,
+      "publish": 1,
+      "request": 1,
+      "approve": 1,
+      "checklist": 1,
+      "simulate": 1
+    },
+    "blocked": []
+  },
+  "browserVersion": "157.0.8103.39",
+  "currentStep": "complete",
+  "sourceCode": "service-31547ff6-c41b-4d72-8bf7-9eb544fd5857",
+  "keyboard": {
+    "forwardKey": "Tab",
+    "tag": "INPUT",
+    "visible": true
+  },
+  "libraryWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "operations-editorWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "targetCode": "service-a50fd736-0b59-494a-86a4-10245f1b7337",
+  "cloneCode": "service-46d48208-edc8-4b05-849c-1ab7e8624e16",
+  "cloneGetBusinessWrites": 0,
+  "recovery": {
+    "reusedRequest": "01a1c5f4-fb6a-7001-8abe-c9bd8dd24460",
+    "additionalCatalogCreates": 0,
+    "additionalSetCreates": 0,
+    "additionalApprovals": 0,
+    "priorChecklistWriteReachedServer": false,
+    "reason": "TicketView omits optional group names; group was verified in fulfillment and API/DB evidence"
+  },
+  "agent-checklistWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "progressInvariant": {
+    "snapshotUnchanged": true,
+    "hashUnchanged": true,
+    "requestVersionUnchanged": true,
+    "independentChecklistVersion": 2
+  },
+  "completed": true,
+  "readOnlyEvidence": {
+    "businessWrites": 0,
+    "authWrites": 3,
+    "sourceTarget": "01a1c5f4-e92d-7000-a437-f5694c68008e",
+    "sourceRequest": "01a1c5f4-fb6a-7001-8abe-c9bd8dd24460",
+    "captures": [
+      {
+        "file": "shared-set-controls-readonly-1440.png",
+        "document": 1440,
+        "viewport": 1440
+      },
+      {
+        "file": "operations-controls-readonly-1440.png",
+        "document": 1440,
+        "viewport": 1440
+      },
+      {
+        "file": "shared-set-controls-readonly-375.png",
+        "document": 375,
+        "viewport": 375
+      },
+      {
+        "file": "operations-controls-readonly-375.png",
+        "document": 375,
+        "viewport": 375
+      },
+      {
+        "file": "completed-checklist-controls-readonly-1440.png",
+        "document": 1440,
+        "viewport": 1440
+      },
+      {
+        "file": "completed-checklist-controls-readonly-375.png",
+        "document": 375,
+        "viewport": 375
+      }
+    ]
+  }
+}

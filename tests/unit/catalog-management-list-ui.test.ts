@@ -52,7 +52,17 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.catalogManagementRead).mockResolvedValue({
     ok: true,
-    data: { items, approvers: [] },
+    data: {
+      items,
+      approvers: [],
+      viewerId: '08700000-0000-4000-8000-000000000001',
+      owners: [],
+      groups: [],
+      questionSets: [],
+      canCreate: true,
+      canPublish: true,
+      canManageQuestionSets: true,
+    },
   });
   vi.mocked(requireSession).mockResolvedValue({
     userId: 'synthetic',

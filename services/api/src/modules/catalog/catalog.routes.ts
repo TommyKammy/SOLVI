@@ -161,7 +161,7 @@ export class CatalogController {
         )
       ).rows,
       approvers: (await c.query(approverSql, [auth.authz.organizationId, auth.userId])).rows,
-      canManage: hasRole(auth.authz, 'org_admin', 'platform_admin'),
+      canManage: hasRole(auth.authz, 'org_admin', 'platform_admin', 'catalog_editor'),
       simulation: true,
     }));
   }
@@ -289,6 +289,70 @@ export class CatalogController {
     if (q.requester_id !== auth.userId && a.approver_id !== auth.userId && !this.staff(auth))
       throw Problems.notFound('申請');
   }
+  private async checklistProgress(c: pg.PoolClient, q: RequestRow) {
+    return (
+      (
+        await c.query<{
+          version: number;
+          completion: Record<
+            string,
+            { completed: boolean; completedBy: string; completedAt: string }
+          >;
+        }>(
+          'SELECT version,completion FROM local_request_checklist_progress WHERE request_id=$1 AND organization_id=$2 AND request_revision=$3',
+          [q.id, q.organization_id, q.revision],
+        )
+      ).rows[0] ?? { version: 1, completion: {} }
+    );
+  }
+  private approvalMatches(q: RequestRow, approval: ApprovalRow) {
+    return (
+      approval.snapshot_hash === q.snapshot_hash &&
+      hash(q.snapshot) === q.snapshot_hash &&
+      approval.revision === q.revision &&
+      (!q.snapshot.item.definition.approval ||
+        q.snapshot.item.definition.approval.approverId === approval.approver_id)
+    );
+  }
+  private async fulfillment(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    q: RequestRow,
+    approval: ApprovalRow,
+  ) {
+    const definition = q.snapshot.item.definition,
+      progress = await this.checklistProgress(c, q);
+    const owner = definition.ownerId
+      ? (
+          await c.query('SELECT display_name AS name FROM app_user WHERE id=$1', [
+            definition.ownerId,
+          ])
+        ).rows[0]
+      : undefined;
+    const group = definition.fulfillmentGroupId
+      ? (
+          await c.query('SELECT name FROM assignment_group WHERE id=$1 AND organization_id=$2', [
+            definition.fulfillmentGroupId,
+            q.organization_id,
+          ])
+        ).rows[0]
+      : undefined;
+    return {
+      ownerName: owner?.name ?? null,
+      groupName: group?.name ?? null,
+      checklistVersion: progress.version,
+      checks: (definition.checklist ?? []).map((item) => ({
+        ...item,
+        completed: progress.completion[item.key]?.completed === true,
+      })),
+      canUpdate:
+        this.staff(auth) &&
+        q.state === 'approved' &&
+        approval.state === 'approved' &&
+        approval.expires_at.getTime() > Date.now() &&
+        this.approvalMatches(q, approval),
+    };
+  }
   async detail(auth: AuthenticatedRequest, id: string) {
     return this.run(auth, async (c) => {
       const q = await this.lock(c, auth, id),
@@ -330,6 +394,7 @@ export class CatalogController {
             )
           ).rows[0] ?? null,
         approvers: (await c.query(approverSql, [q.organization_id, q.requester_id])).rows,
+        fulfillment: await this.fulfillment(c, auth, q, a),
         simulation: true,
       };
     });
@@ -405,6 +470,21 @@ export class CatalogController {
       if (item.version !== input.itemVersion)
         throw Problems.conflict('カタログが更新されました。画面を更新してください');
       const definition = parse(definitionSchema, item.definition);
+      if (
+        definition.fulfillmentGroupId &&
+        !(
+          await c.query(
+            'SELECT id FROM assignment_group WHERE id=$1 AND organization_id=$2 AND active FOR SHARE',
+            [definition.fulfillmentGroupId, auth.authz.organizationId],
+          )
+        ).rowCount
+      )
+        throw Problems.validation([
+          {
+            field: 'fulfillmentGroupId',
+            message: '処理グループが現在有効ではありません。担当者へ確認してください',
+          },
+        ]);
       this.validateInputs(definition, input);
       const values = validateValues(definition, input.values);
       if (definition.approval && definition.approval.approverId !== input.approverId)
@@ -419,13 +499,19 @@ export class CatalogController {
         },
         requesterId: auth.userId,
       };
-      const ticket = await new TicketService(c).create(auth.authz, {
-        kind: 'request',
-        subject: item.title,
-        body: `ローカル模擬申請（外部変更なし）\n利用日数: ${input.durationDays}\n理由: ${input.reason}`,
-        impact: 'low',
-        urgency: 'low',
-      });
+      const ticket = await new TicketService(c).create(
+        auth.authz,
+        {
+          kind: 'request',
+          subject: item.title,
+          body: `ローカル模擬申請（外部変更なし）\n利用日数: ${input.durationDays}\n理由: ${input.reason}`,
+          impact: 'low',
+          urgency: 'low',
+        },
+        definition.fulfillmentGroupId
+          ? { groupId: definition.fulfillmentGroupId, itemId: item.id, revision: item.version }
+          : undefined,
+      );
       const q: RequestRow = {
         id: uuidv7(),
         organization_id: auth.authz.organizationId,
@@ -560,6 +646,76 @@ export class CatalogController {
       return { id, state };
     });
   }
+  async updateChecklist(auth: AuthenticatedRequest, id: string, value: unknown) {
+    requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    const input = parse(
+      z
+        .object({
+          requestRevision: z.number().int().positive(),
+          expectedVersion: z.number().int().positive(),
+          key: z.string().regex(/^[a-z][a-z0-9_]{0,31}$/),
+          completed: z.boolean(),
+        })
+        .strict(),
+      value,
+    );
+    return this.run(auth, async (c) => {
+      const q = await this.lock(c, auth, id),
+        approval = await this.approval(c, q);
+      if (q.revision !== input.requestRevision) throw Problems.stale('申請の作業チェック');
+      if (
+        q.state !== 'approved' ||
+        approval.state !== 'approved' ||
+        approval.expires_at.getTime() <= Date.now()
+      )
+        throw Problems.conflict('有効な承認済み申請だけ作業チェックを更新できます');
+      if (!this.approvalMatches(q, approval))
+        throw Problems.conflict('承認対象の定義・内容・版が申請と一致しません');
+      await this.validateApprover(c, q.organization_id, q.requester_id, approval.approver_id);
+      if (!(q.snapshot.item.definition.checklist ?? []).some((item) => item.key === input.key))
+        throw Problems.validation([
+          { field: 'key', message: '申請時の定義にある作業項目を選んでください' },
+        ]);
+      const progress = await this.checklistProgress(c, q);
+      if (progress.version !== input.expectedVersion) throw Problems.stale('作業チェック');
+      const nextVersion = progress.version + 1;
+      const completion = {
+        ...progress.completion,
+        [input.key]: {
+          completed: input.completed,
+          completedBy: auth.userId,
+          completedAt: new Date().toISOString(),
+        },
+      };
+      await c.query(
+        'INSERT INTO local_request_checklist_progress(request_id,organization_id,request_revision,version,completion,updated_by) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(request_id,organization_id,request_revision) DO UPDATE SET version=EXCLUDED.version,completion=EXCLUDED.completion,updated_by=EXCLUDED.updated_by,updated_at=clock_timestamp()',
+        [q.id, q.organization_id, q.revision, nextVersion, completion, auth.userId],
+      );
+      await recordAuditEvent(c, {
+        eventType: 'request.checklist.updated',
+        organizationId: q.organization_id,
+        actorType: 'user',
+        actorId: auth.userId,
+        targetType: 'service_request',
+        targetId: q.id,
+        action: 'request.checklist.updated',
+        outcome: 'success',
+        beforeState: {
+          requestRevision: q.revision,
+          checklistVersion: progress.version,
+          key: input.key,
+          completed: progress.completion[input.key]?.completed === true,
+        },
+        afterState: {
+          requestRevision: q.revision,
+          checklistVersion: nextVersion,
+          key: input.key,
+          completed: input.completed,
+        },
+      });
+      return { id, checklistVersion: nextVersion };
+    });
+  }
   async simulate(auth: AuthenticatedRequest, id: string, value: unknown) {
     requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
     const input = parse(z.object({ expectedVersion: z.number().int().positive() }), value);
@@ -588,6 +744,13 @@ export class CatalogController {
       validateValues(definition, q.snapshot.inputs.values ?? {});
       if (definition.approval && definition.approval.approverId !== a.approver_id)
         throw Problems.conflict('固定承認者が申請版と一致しません');
+      const progress = await this.checklistProgress(c, q);
+      if (
+        (definition.checklist ?? []).some(
+          (item) => item.required && progress.completion[item.key]?.completed !== true,
+        )
+      )
+        throw Problems.conflict('必須の作業チェックを完了してから模擬実行してください');
       const key = hash({
         requestId: id,
         revision: q.revision,

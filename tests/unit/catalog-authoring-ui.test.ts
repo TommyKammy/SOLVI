@@ -2,7 +2,12 @@
 import React, { type FormHTMLAttributes, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CatalogAdminDetail, CatalogField } from '../../apps/web/src/lib/api';
+import type {
+  CatalogAdminDetail,
+  CatalogField,
+  CatalogQuestionSet,
+} from '../../apps/web/src/lib/api';
+import type { CatalogInitialContent } from '../../apps/web/src/lib/catalog-reuse';
 import type { FormFeedback } from '../../apps/web/src/lib/form-state';
 
 type FormProps = FormHTMLAttributes<HTMLFormElement> & {
@@ -109,6 +114,14 @@ const item: CatalogAdminDetail = {
   code: 'synthetic-catalog',
   editVersion: 7,
   active: true,
+  canEdit: true,
+  canCreate: true,
+  canPublish: true,
+  canManageQuestionSets: true,
+  viewerId: '03900000-0000-4000-8000-000000000020',
+  owners: [],
+  groups: [],
+  questionSets: [],
   publishedRevision: 3,
   draft: {
     revision: 5,
@@ -190,7 +203,7 @@ const expandedItem: CatalogAdminDetail = {
   },
 };
 
-function render(create = false, current = item) {
+function render(create = false, current = item, initialContent?: CatalogInitialContent) {
   for (let pass = 0; pass < 5; pass++) {
     hooks.states = hooks.references = hooks.effectIndex = hooks.actionIndex = 0;
     hooks.forms = [];
@@ -198,7 +211,19 @@ function render(create = false, current = item) {
     hooks.changed = false;
     const html = renderToStaticMarkup(
       create
-        ? React.createElement(CatalogAdminForm, { approvers: current.approvers })
+        ? React.createElement(CatalogAdminForm, {
+            approvers: current.approvers,
+            initialContent,
+            options: {
+              viewerId: current.viewerId ?? '',
+              owners: current.owners ?? [],
+              groups: current.groups ?? [],
+              questionSets: current.questionSets ?? [],
+              canCreate: current.canCreate === true,
+              canPublish: current.canPublish === true,
+              canManageQuestionSets: current.canManageQuestionSets === true,
+            },
+          })
         : React.createElement(CatalogManagement, { item: current }),
     );
     const effects = hooks.effects.splice(0);
@@ -292,6 +317,192 @@ beforeEach(() => {
   hooks.save.mockReset();
   hooks.publish.mockReset();
   hooks.randomUUID.mockReset().mockReturnValue(uuid);
+});
+
+const owner = '04100000-0000-4000-8000-000000000020';
+const otherOwner = '04100000-0000-4000-8000-000000000021';
+const group = '04100000-0000-4000-8000-000000000030';
+const otherGroup = '04100000-0000-4000-8000-000000000031';
+const questionSet: CatalogQuestionSet = {
+  id: '04100000-0000-4000-8000-000000000040',
+  revision: 2,
+  title: '合成配送質問',
+  description: '必要な場合だけ配送情報を聞きます。',
+  updatedAt: '2026-11-10T00:00:00Z',
+  sections: [{ key: 'shared', title: '配送の情報' }],
+  fields: [
+    {
+      key: 'purpose',
+      type: 'select',
+      label: '配送区分',
+      required: true,
+      options: ['配送', '窓口'],
+      section: 'shared',
+    },
+    {
+      key: 'address',
+      type: 'text',
+      label: '合成配送先',
+      required: true,
+      maxLength: 100,
+      section: 'shared',
+      visibleWhen: { field: 'purpose', equals: '配送' },
+    },
+  ],
+};
+const operationsItem: CatalogAdminDetail = {
+  ...expandedItem,
+  viewerId: owner,
+  owners: [
+    { id: owner, name: '合成責任者A' },
+    { id: otherOwner, name: '合成責任者B' },
+  ],
+  groups: [
+    { id: group, name: '合成IT担当A' },
+    { id: otherGroup, name: '合成IT担当B' },
+  ],
+  questionSets: [questionSet],
+  draft: {
+    ...expandedItem.draft,
+    definition: {
+      ...expandedItem.draft.definition,
+      ownerId: owner,
+      fulfillmentGroupId: group,
+      checklist: [
+        { key: 'stock', label: '合成在庫を確認する', required: true },
+        { key: 'contact', label: '合成連絡を記録する', required: false },
+      ],
+    },
+  },
+};
+
+describe('priority-three authoring capabilities, ownership and question reuse', () => {
+  it.each([false, undefined])(
+    'does not expose editing or publication controls when capabilities are %s',
+    (allowed) => {
+      const html = render(false, { ...operationsItem, canEdit: allowed, canPublish: allowed });
+      expect(html).toContain('保存済みの下書き版');
+      expect(hooks.forms).toHaveLength(0);
+      expect(hooks.previews).toHaveLength(0);
+      expect(html).not.toContain('name="state"');
+      expect(html).not.toContain('name="checklist"');
+      expect(hooks.save).not.toHaveBeenCalled();
+      expect(hooks.publish).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, undefined])(
+    'refuses a new editor when canCreate is %s despite an admin-shaped role fixture',
+    (canCreate) => {
+      const html = render(true, { ...operationsItem, canCreate });
+      expect(html).toContain('下書きを編集する権限がありません');
+      expect(hooks.forms).toHaveLength(0);
+      expect(hooks.previews).toHaveLength(0);
+      expect(hooks.save).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets a delegated owner edit the draft but offers no owner selector or publication form', () => {
+    const current = { ...operationsItem, canPublish: false, canManageQuestionSets: false };
+    const html = render(false, current);
+    expect(hooks.forms).toHaveLength(1);
+    expect(named('ownerId')).toHaveLength(1);
+    expect(named('ownerId')[0]!.props.type).toBe('hidden');
+    expect(hidden('ownerId')).toBe(owner);
+    expect(html).toContain('責任者の変更と公開は管理者が行います');
+    expect(html).not.toContain('name="state"');
+    change('catalog-title', '編集者が変更した下書き');
+    expect(render(false, current)).toContain('未保存の入力があります');
+    expect(control('catalog-title').value).toBe('編集者が変更した下書き');
+  });
+
+  it.each([
+    ['catalog-owner', otherOwner],
+    ['catalog-fulfillment-group', otherGroup],
+    ['catalog-check-label-0', '合成在庫の再確認'],
+  ])('tracks %s as an unpublished change and clears dirty after restoring it', (id, value) => {
+    render(false, operationsItem);
+    const original = control(id).value;
+    change(id, value);
+    expect(render(false, operationsItem)).toContain('未保存の入力があります');
+    expect(
+      capture(hooks.forms.find((candidate) => candidate !== editorForm())!).preventDefault,
+    ).toHaveBeenCalledOnce();
+    change(id, original);
+    expect(render(false, operationsItem)).not.toContain('未保存の入力があります');
+  });
+
+  it('reorders checklist entries with their required flags and keeps their immutable keys', () => {
+    render(false, operationsItem);
+    const original = operationsItem.draft.definition.checklist!;
+    expect(JSON.parse(hidden('checklist') as string)).toEqual(original);
+    click('作業項目2を上へ');
+    render(false, operationsItem);
+    expect(JSON.parse(hidden('checklist') as string)).toEqual([original[1], original[0]]);
+    expect(hidden('checklist.0.key')).toBe('contact');
+    change('catalog-check-label-0', '合成連絡を再確認する');
+    render(false, operationsItem);
+    click('作業項目1を下へ');
+    render(false, operationsItem);
+    expect(JSON.parse(hidden('checklist') as string)).toEqual([
+      original[0],
+      { ...original[1], label: '合成連絡を再確認する' },
+    ]);
+  });
+
+  it('inserts an independent question-set copy with remapped keys, section and condition references', () => {
+    let counter = 0;
+    hooks.randomUUID.mockImplementation(
+      () => `${String(++counter).padStart(8, '0')}-0000-4000-8000-000000000041`,
+    );
+    render(false, operationsItem);
+    const original = structuredClone(questionSet);
+    changeLabeled('追加する共有質問セット', questionSet.id);
+    render(false, operationsItem);
+    click('質問セットを追加する');
+    render(false, operationsItem);
+    const inserted = fields().slice(operationsItem.draft.definition.fields!.length);
+    expect(inserted).toHaveLength(2);
+    expect(inserted[0]!.key).not.toBe('purpose');
+    expect(inserted[1]!.key).not.toBe('address');
+    expect(inserted[1]!.visibleWhen).toEqual({ field: inserted[0]!.key, equals: '配送' });
+    const copiedSections = JSON.parse(hidden('sections') as string);
+    const copiedSection = copiedSections.at(-1);
+    expect(copiedSection.key).not.toBe('shared');
+    expect(inserted.every((field) => field.section === copiedSection.key)).toBe(true);
+    expect(new Set(fields().map((field) => field.key)).size).toBe(fields().length);
+    expect(questionSet).toEqual(original);
+    const fieldSnapshot = fields();
+    click('質問セットを追加する');
+    render(false, operationsItem);
+    expect(fields()).toEqual(fieldSnapshot);
+    expect(
+      nodes(editorForm().children)
+        .filter((node) => node.props.role === 'alert')
+        .map((node) => text(node.props.children as ReactNode))
+        .join(' '),
+    ).toMatch(/10|上限/);
+  });
+
+  it.each([0, 1])(
+    'keeps owner, group and checklist untouched while action %i is pending',
+    (action) => {
+      render(false, operationsItem);
+      hooks.pending[action] = true;
+      render(false, operationsItem);
+      change('catalog-owner', otherOwner);
+      change('catalog-fulfillment-group', otherGroup);
+      change('catalog-check-label-0', '処理中の変更');
+      click('作業項目2を上へ');
+      click('作業項目を追加する');
+      render(false, operationsItem);
+      expect(control('catalog-owner').value).toBe(owner);
+      expect(control('catalog-fulfillment-group').value).toBe(group);
+      expect(JSON.parse(hidden('checklist') as string)).toEqual(
+        operationsItem.draft.definition.checklist,
+      );
+    },
+  );
 });
 afterEach(() => vi.unstubAllGlobals());
 

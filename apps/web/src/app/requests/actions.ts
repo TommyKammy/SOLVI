@@ -77,3 +77,34 @@ export async function processServiceRequest(
   revalidatePath('/ops');
   redirect(withReturnTo(`/requests/${id}?saved=1`, form.get('returnTo')));
 }
+
+/** Progress has its own version; revalidation preserves the revision-keyed request editor. */
+export async function updateCatalogChecklist(
+  id: string,
+  requestRevision: number,
+  previous: FormFeedback,
+  form: FormData,
+): Promise<FormFeedback> {
+  const key = String(form.get('key') ?? '');
+  const completed = String(form.get('completed:' + key) ?? form.get('completed') ?? '');
+  if (!key || !['true', 'false'].includes(completed))
+    return { message: '更新する作業を選び直してください。', attempt: (previous.attempt ?? 0) + 1 };
+  const result = await api.updateRequestChecklist(id, {
+    requestRevision,
+    expectedVersion: Number(form.get('expectedVersion')),
+    key,
+    completed: completed === 'true',
+  });
+  if (!result.ok)
+    return {
+      message: result.problem.errors?.[0]?.message ?? result.problem.detail ?? result.problem.title,
+      errors: result.problem.errors,
+      attempt: (previous.attempt ?? 0) + 1,
+    };
+  revalidatePath(`/requests/${id}`);
+  return {
+    message: '',
+    success: '作業チェックを更新しました。',
+    attempt: (previous.attempt ?? 0) + 1,
+  };
+}

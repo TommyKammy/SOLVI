@@ -2,7 +2,12 @@ import type pg from 'pg';
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
 import { Problems } from '@solvi/shared';
-import { requireRole } from '../../common/authz/authz.js';
+import { hasRole, requireRole } from '../../common/authz/authz.js';
+import {
+  catalogFieldSchema,
+  catalogSectionSchema,
+  type CatalogDefinition,
+} from '@solvi/shared/catalog';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 import { definitionSchema } from './catalog-definition.js';
@@ -23,6 +28,28 @@ const publicationSchema = z
     state: z.enum(['published', 'unpublished']),
   })
   .strict();
+const questionContent = z
+  .object({
+    title: z.string().trim().min(1, '質問セット名を入力してください').max(200),
+    description: z.string().trim().max(2000),
+    fields: z.array(catalogFieldSchema).max(10),
+    sections: z.array(catalogSectionSchema).max(10).optional(),
+  })
+  .strict();
+const questionCreate = questionContent.extend({ creationKey: z.string().uuid() }).strict();
+const questionEdit = questionContent
+  .extend({ expectedVersion: z.number().int().positive() })
+  .strict();
+const fingerprint = (value: unknown) =>
+  createHash('sha256')
+    .update(
+      JSON.stringify(value, (_key, entry) =>
+        entry && typeof entry === 'object' && !Array.isArray(entry)
+          ? Object.fromEntries(Object.entries(entry).sort(([a], [b]) => a.localeCompare(b)))
+          : entry,
+      ),
+    )
+    .digest('hex');
 function parse<T extends z.ZodTypeAny>(s: T, v: unknown): z.output<T> {
   const r = s.safeParse(v);
   if (!r.success)
@@ -39,7 +66,7 @@ export class CatalogAdminController {
   ) {}
   private async run<T>(auth: AuthenticatedRequest, fn: (c: pg.PoolClient) => Promise<T>) {
     if (!this.enabled) throw Problems.notFound('ローカルカタログ管理');
-    requireRole(auth.authz, 'org_admin', 'platform_admin');
+    requireRole(auth.authz, 'org_admin', 'platform_admin', 'catalog_editor');
     const c = await this.pool.connect();
     try {
       await c.query('BEGIN');
@@ -53,6 +80,91 @@ export class CatalogAdminController {
     } finally {
       c.release();
     }
+  }
+  private administrator(auth: AuthenticatedRequest) {
+    return hasRole(auth.authz, 'org_admin', 'platform_admin');
+  }
+  private async questionSets(c: pg.PoolClient, organizationId: string) {
+    return (
+      await c.query(
+        `SELECT DISTINCT ON(set_id) set_id AS id,revision,title,description,fields,sections,created_at AS "updatedAt" FROM local_catalog_question_set_revision WHERE organization_id=$1 ORDER BY set_id,revision DESC`,
+        [organizationId],
+      )
+    ).rows;
+  }
+  private async options(c: pg.PoolClient, auth: AuthenticatedRequest) {
+    const owners = (
+      await c.query(
+        `SELECT DISTINCT u.id,u.display_name AS name FROM app_user u JOIN role_binding rb ON rb.user_id=u.id WHERE rb.organization_id=$1 AND u.status='active' AND rb.valid_from<=clock_timestamp() AND (rb.valid_until IS NULL OR rb.valid_until>clock_timestamp()) AND ($2::boolean OR u.id=$3) ORDER BY name,u.id`,
+        [auth.authz.organizationId, this.administrator(auth), auth.userId],
+      )
+    ).rows;
+    const groups = (
+      await c.query(
+        'SELECT id,name FROM assignment_group WHERE organization_id=$1 AND active ORDER BY name,id',
+        [auth.authz.organizationId],
+      )
+    ).rows;
+    return {
+      viewerId: auth.userId,
+      owners,
+      groups,
+      questionSets: await this.questionSets(c, auth.authz.organizationId),
+      approvers: (await c.query(approversSql, [auth.authz.organizationId])).rows,
+      canCreate: true,
+      canPublish: this.administrator(auth),
+      canManageQuestionSets: this.administrator(auth),
+    };
+  }
+  private readiness(
+    value: unknown,
+    options: {
+      owners: Array<{ id: string; name: string }>;
+      groups: Array<{ id: string; name: string }>;
+      approvers: Array<{ id: string; name: string }>;
+    },
+  ) {
+    const parsed = definitionSchema.safeParse(value),
+      issues: string[] = [],
+      warnings: string[] = [];
+    if (!parsed.success) issues.push(...parsed.error.issues.map((issue) => issue.message));
+    else {
+      const definition = parsed.data;
+      if (
+        !definition.approval ||
+        !options.approvers.some((person) => person.id === definition.approval!.approverId)
+      )
+        issues.push('現在有効な固定承認者を設定してください');
+      if (definition.ownerId && !options.owners.some((person) => person.id === definition.ownerId))
+        issues.push('責任者が現在有効な同じ組織の候補にありません');
+      if (
+        definition.fulfillmentGroupId &&
+        !options.groups.some((group) => group.id === definition.fulfillmentGroupId)
+      )
+        issues.push('処理グループが現在有効な同じ組織の候補にありません');
+      if (!definition.ownerId) warnings.push('責任者が未設定です');
+      if (!definition.fulfillmentGroupId) warnings.push('処理グループが未設定です');
+    }
+    return { ready: issues.length === 0, issues, warnings };
+  }
+  private async references(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    definition: CatalogDefinition,
+  ) {
+    const options = await this.options(c, auth),
+      readiness = this.readiness(definition, options);
+    if (!readiness.ready)
+      throw Problems.validation(
+        readiness.issues.map((message) => ({
+          field: message.startsWith('責任者')
+            ? 'definition.ownerId'
+            : message.startsWith('処理グループ')
+              ? 'definition.fulfillmentGroupId'
+              : 'definition.approval.approverId',
+          message,
+        })),
+      );
   }
   private async approver(c: pg.PoolClient, org: string, id: string) {
     if (!(await c.query(approversSql, [org])).rows.some((a) => a.id === id))
@@ -83,15 +195,23 @@ export class CatalogAdminController {
     });
   }
   async list(auth: AuthenticatedRequest) {
-    return this.run(auth, async (c) => ({
-      items: (
+    return this.run(auth, async (c) => {
+      const options = await this.options(c, auth);
+      const rows = (
         await c.query(
-          `SELECT i.id,i.code,i.edit_version AS "editVersion",i.draft_revision AS "draftRevision",i.published_revision AS "publishedRevision",i.active,r.title,r.description FROM local_catalog_item i JOIN local_catalog_revision r ON r.item_id=i.id AND r.organization_id=i.organization_id AND r.revision=i.draft_revision WHERE i.organization_id=$1 ORDER BY i.code`,
-          [auth.authz.organizationId],
+          `SELECT i.id,i.code,i.edit_version AS "editVersion",i.draft_revision AS "draftRevision",i.published_revision AS "publishedRevision",i.active,r.title,r.description,r.definition,r.created_at AS "updatedAt" FROM local_catalog_item i JOIN local_catalog_revision r ON r.item_id=i.id AND r.organization_id=i.organization_id AND r.revision=i.draft_revision WHERE i.organization_id=$1 AND ($2::boolean OR r.definition->>'ownerId'=$3) ORDER BY i.code`,
+          [auth.authz.organizationId, this.administrator(auth), auth.userId],
         )
-      ).rows,
-      approvers: (await c.query(approversSql, [auth.authz.organizationId])).rows,
-    }));
+      ).rows;
+      return {
+        ...options,
+        items: rows.map(({ definition, ...row }) => ({
+          ...row,
+          ownerName: options.owners.find((person) => person.id === definition.ownerId)?.name,
+          readiness: this.readiness(definition, options),
+        })),
+      };
+    });
   }
   private async lock(c: pg.PoolClient, auth: AuthenticatedRequest, id: string) {
     parse(z.string().uuid(), id);
@@ -102,6 +222,15 @@ export class CatalogAdminController {
       )
     ).rows[0];
     if (!r) throw Problems.notFound('カタログ項目');
+    if (!this.administrator(auth)) {
+      const draft = (
+        await c.query(
+          'SELECT definition FROM local_catalog_revision WHERE item_id=$1 AND organization_id=$2 AND revision=$3',
+          [id, auth.authz.organizationId, r.draft_revision],
+        )
+      ).rows[0];
+      if (draft?.definition?.ownerId !== auth.userId) throw Problems.notFound('カタログ項目');
+    }
     return r;
   }
   async detail(auth: AuthenticatedRequest, id: string) {
@@ -113,6 +242,7 @@ export class CatalogAdminController {
           [id, auth.authz.organizationId],
         )
       ).rows;
+      const options = await this.options(c, auth);
       return {
         id: i.id,
         code: i.code,
@@ -126,7 +256,12 @@ export class CatalogAdminController {
           title,
           createdAt,
         })),
-        approvers: (await c.query(approversSql, [auth.authz.organizationId])).rows,
+        ...options,
+        canEdit: true,
+        readiness: this.readiness(
+          revisions.find((revision) => revision.revision === i.draft_revision)?.definition,
+          options,
+        ),
       };
     });
   }
@@ -144,6 +279,11 @@ export class CatalogAdminController {
   }
   async create(auth: AuthenticatedRequest, value: unknown) {
     const v = parse(createSchema, value);
+    if (!this.administrator(auth)) {
+      if (v.definition.ownerId && v.definition.ownerId !== auth.userId)
+        throw Problems.forbidden('自分を責任者とする下書きだけ作成できます');
+      v.definition.ownerId = auth.userId;
+    }
     return this.run(auth, async (c) => {
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         'catalog-create:' + auth.authz.organizationId + ':' + auth.userId + ':' + v.creationKey,
@@ -174,7 +314,7 @@ export class CatalogAdminController {
           throw Problems.conflict('同じ作成キーで別の定義は保存できません');
         return { id: prior.id, replayed: true };
       }
-      await this.approver(c, auth.authz.organizationId, v.definition.approval!.approverId);
+      await this.references(c, auth, v.definition);
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         'catalog-code:' + auth.authz.organizationId + ':' + v.code,
       ]);
@@ -210,8 +350,10 @@ export class CatalogAdminController {
     const v = parse(editSchema, value);
     return this.run(auth, async (c) => {
       const i = await this.lock(c, auth, id);
+      if (!this.administrator(auth) && v.definition.ownerId !== auth.userId)
+        throw Problems.forbidden('責任者の変更は管理者が行えます');
       if (i.edit_version !== v.expectedVersion) throw Problems.stale('カタログ');
-      await this.approver(c, auth.authz.organizationId, v.definition.approval!.approverId);
+      await this.references(c, auth, v.definition);
       const revision = i.draft_revision + 1;
       await this.revision(c, auth, id, revision, v);
       await c.query(
@@ -223,6 +365,7 @@ export class CatalogAdminController {
     });
   }
   async publication(auth: AuthenticatedRequest, id: string, value: unknown) {
+    requireRole(auth.authz, 'org_admin', 'platform_admin');
     const v = parse(publicationSchema, value);
     return this.run(auth, async (c) => {
       const i = await this.lock(c, auth, id);
@@ -239,7 +382,7 @@ export class CatalogAdminController {
           throw Problems.validation([
             { field: 'approval', message: '下書きを編集して固定承認者を設定してください' },
           ]);
-        await this.approver(c, auth.authz.organizationId, d.approval.approverId);
+        await this.references(c, auth, d);
         await c.query(
           'UPDATE local_catalog_item SET version=$2,title=$3,description=$4,definition=$5,published_revision=$2,active=true,edit_version=edit_version+1 WHERE id=$1',
           [id, r.revision, r.title, r.description, d],
@@ -258,6 +401,95 @@ export class CatalogAdminController {
         v.state === 'published' ? i.draft_revision : (i.published_revision ?? i.draft_revision),
       );
       return { id, state: v.state };
+    });
+  }
+  async listQuestionSets(auth: AuthenticatedRequest) {
+    return this.run(auth, async (c) => ({
+      items: await this.questionSets(c, auth.authz.organizationId),
+      canManage: this.administrator(auth),
+    }));
+  }
+  async saveQuestionSet(auth: AuthenticatedRequest, id: string | null, value: unknown) {
+    requireRole(auth.authz, 'org_admin', 'platform_admin');
+    const input = id ? parse(questionEdit, value) : parse(questionCreate, value);
+    const normalized = parse(definitionSchema, {
+      mode: 'local_simulation',
+      action: 'simulate.access_grant',
+      targetLabel: '共有質問セット検証',
+      allowedDurations: [1],
+      maxReasonLength: 2000,
+      fields: input.fields,
+      ...(input.sections ? { sections: input.sections } : {}),
+    });
+    const stored = {
+      title: input.title,
+      description: input.description,
+      fields: normalized.fields ?? [],
+      sections: normalized.sections ?? [],
+    };
+    return this.run(auth, async (c) => {
+      let revision = 1;
+      const setId = id ?? uuidv7();
+      if (id) {
+        parse(z.string().uuid(), id);
+        await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+          `question-set:${auth.authz.organizationId}:${id}`,
+        ]);
+        const latest = (
+          await c.query(
+            'SELECT revision FROM local_catalog_question_set_revision WHERE set_id=$1 AND organization_id=$2 ORDER BY revision DESC LIMIT 1',
+            [id, auth.authz.organizationId],
+          )
+        ).rows[0];
+        if (!latest) throw Problems.notFound('共有質問セット');
+        if (latest.revision !== ('expectedVersion' in input ? input.expectedVersion : undefined))
+          throw Problems.stale('共有質問セット');
+        revision = latest.revision + 1;
+      } else {
+        const creationKey = 'creationKey' in input ? input.creationKey : undefined;
+        await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+          `question-set-create:${auth.authz.organizationId}:${auth.userId}:${creationKey}`,
+        ]);
+        const prior = (
+          await c.query(
+            'SELECT set_id,title,description,fields,sections FROM local_catalog_question_set_revision WHERE organization_id=$1 AND created_by=$2 AND creation_key=$3',
+            [auth.authz.organizationId, auth.userId, creationKey],
+          )
+        ).rows[0];
+        if (prior) {
+          const { set_id: priorId, ...priorContent } = prior;
+          if (fingerprint(priorContent) !== fingerprint(stored))
+            throw Problems.conflict('同じ作成キーで別の質問セットは保存できません');
+          return { id: priorId, revision: 1 };
+        }
+      }
+      await c.query(
+        'INSERT INTO local_catalog_question_set_revision(set_id,organization_id,revision,title,description,fields,sections,created_by,creation_key) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9)',
+        [
+          setId,
+          auth.authz.organizationId,
+          revision,
+          stored.title,
+          stored.description,
+          JSON.stringify(stored.fields),
+          JSON.stringify(stored.sections),
+          auth.userId,
+          !id && 'creationKey' in input ? input.creationKey : null,
+        ],
+      );
+      await recordAuditEvent(c, {
+        eventType: 'catalog.question_set.saved',
+        organizationId: auth.authz.organizationId,
+        actorType: 'user',
+        actorId: auth.userId,
+        targetType: 'catalog_question_set',
+        targetId: setId,
+        action: 'catalog.question_set.saved',
+        outcome: 'success',
+        ...(revision > 1 ? { beforeState: { revision: revision - 1 } } : {}),
+        afterState: { revision, fieldCount: stored.fields.length },
+      });
+      return { id: setId, revision };
     });
   }
 }

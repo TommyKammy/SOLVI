@@ -63,7 +63,7 @@ export function catalogListView(items: readonly CatalogAdminSummary[], query: Ca
     return (
       stateMatches &&
       (!needle ||
-        [item.title, item.description, item.code].some((value) =>
+        [item.title, item.description, item.code, item.ownerName ?? ''].some((value) =>
           value.toLowerCase().includes(needle),
         ))
     );

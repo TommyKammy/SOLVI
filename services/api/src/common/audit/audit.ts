@@ -18,6 +18,7 @@ export const AUDIT_EVENT_TYPES = [
   'catalog.saved',
   'catalog.published',
   'catalog.unpublished',
+  'catalog.question_set.saved',
   // Phase 1(Gate 1 G1-4 の判定対象)
   'auth.login.success',
   'auth.login.denied',
@@ -65,6 +66,7 @@ export const AUDIT_EVENT_TYPES = [
   'request.rejected',
   'request.revoked',
   'request.simulated',
+  'request.checklist.updated',
   'article.saved',
   'article.review',
   'article.restore',

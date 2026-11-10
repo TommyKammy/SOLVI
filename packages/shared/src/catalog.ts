@@ -203,6 +203,31 @@ export const catalogDefinitionSchema = z
       .array(catalogSectionSchema)
       .max(10, 'セクションは10件以内にしてください')
       .optional(),
+    ownerId: z.string().uuid('現在有効な同じ組織の責任者を選んでください').optional(),
+    fulfillmentGroupId: z
+      .string()
+      .uuid('現在有効な同じ組織の処理グループを選んでください')
+      .optional(),
+    checklist: z
+      .array(
+        z
+          .object({
+            key: keySchema,
+            label: z
+              .string()
+              .trim()
+              .min(1, '作業名を入力してください')
+              .max(200, '作業名は200文字以内にしてください'),
+            required: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(20, '作業チェックリストは20件以内にしてください')
+      .refine(
+        (items) => new Set(items.map((item) => item.key)).size === items.length,
+        '作業の保存キーは重複できません',
+      )
+      .optional(),
   })
   .strict()
   .superRefine((definition, context) => {

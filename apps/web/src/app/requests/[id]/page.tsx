@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { api, requireSession, type CatalogItem } from '../../../lib/api';
 import { formatDateTime } from '../../../lib/labels';
 import { CatalogValueSummary } from '../../../components/CatalogValueSummary';
+import { CatalogChecklistForm } from '../../../components/CatalogChecklistForm';
 import { formScope } from '../../../lib/form-scope';
 import { RequestForm, RequestActions } from '../../../components/RequestForms';
 import { safeReturnTo } from '../../../lib/navigation';
@@ -116,6 +117,13 @@ export default async function RequestPage({
         sections={s.item.definition.sections}
         values={s.inputs.values ?? {}}
       />
+      {data.fulfillment && (
+        <CatalogChecklistForm
+          requestId={q.id}
+          requestRevision={q.revision}
+          fulfillment={data.fulfillment}
+        />
+      )}
       {(own || staff) && (
         <p>
           <a href={`/${staff ? 'ops' : 'tickets'}/${q.ticketId}`}>関連する依頼チケットを開く</a>
@@ -133,12 +141,25 @@ export default async function RequestPage({
           />
         </details>
       )}
+      {staff &&
+        q.state === 'approved' &&
+        !expired &&
+        data.fulfillment?.checks.some((check) => check.required && !check.completed) && (
+          <p role="status" className="notice">
+            必須の作業チェックを完了すると、模擬結果を記録できます。
+          </p>
+        )}
       <RequestActions
         key={`actions-${q.version}`}
         request={data}
         canApprove={assigned && q.state === 'pending' && !expired}
         canRevoke={!own && (assigned || admin) && q.state === 'approved'}
-        canSimulate={staff && q.state === 'approved' && !expired}
+        canSimulate={
+          staff &&
+          q.state === 'approved' &&
+          !expired &&
+          !data.fulfillment?.checks.some((check) => check.required && !check.completed)
+        }
       />
       <h2>承認の記録</h2>
       <ul className="attachments">

@@ -73,6 +73,14 @@ const item: CatalogAdminDetail = {
   code: 'synthetic-catalog',
   editVersion: 7,
   active: true,
+  canEdit: true,
+  canCreate: true,
+  canPublish: true,
+  canManageQuestionSets: true,
+  viewerId: '08600000-0000-4000-8000-000000000020',
+  owners: [],
+  groups: [],
+  questionSets: [],
   publishedRevision: 3,
   draft: {
     revision: 5,
@@ -111,7 +119,18 @@ function render(current = item, create = false) {
   hooks.forms = [];
   return renderToStaticMarkup(
     create
-      ? React.createElement(CatalogAdminForm, { approvers: current.approvers })
+      ? React.createElement(CatalogAdminForm, {
+          approvers: current.approvers,
+          options: {
+            viewerId: current.viewerId ?? '',
+            owners: current.owners ?? [],
+            groups: current.groups ?? [],
+            questionSets: current.questionSets ?? [],
+            canCreate: current.canCreate === true,
+            canPublish: current.canPublish === true,
+            canManageQuestionSets: current.canManageQuestionSets === true,
+          },
+        })
       : React.createElement(CatalogManagement, { item: current }),
   );
 }

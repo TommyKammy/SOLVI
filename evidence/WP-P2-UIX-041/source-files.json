@@ -1,0 +1,154 @@
+{
+  "baseRevision": "dc717d8586f2412e62745b6f6ae1c0a1fbcffd16",
+  "verifiedAt": "2026-11-10T15:17:24.700611+00:00",
+  "files": [
+    {
+      "path": "apps/web/src/app/catalog/manage/[id]/page.tsx",
+      "sha256": "495da91267ceee2e2cd173f4c8755adb559d62f62ba9fdb945fc61ec612c8dc3"
+    },
+    {
+      "path": "apps/web/src/app/catalog/manage/actions.ts",
+      "sha256": "a1276fcdc76da9ac6d5f5b712812ab6f8849356f8aa5b8e6dbf6a97657f7959c"
+    },
+    {
+      "path": "apps/web/src/app/catalog/manage/new/page.tsx",
+      "sha256": "78055a931afe402b4bc595b313a701f2f3abde26686ab246177d2f66e86bc6b9"
+    },
+    {
+      "path": "apps/web/src/app/catalog/manage/page.tsx",
+      "sha256": "c0c8bd932a61e38403ee3f4e748e9532e7ba8678be983320625619db4d13479d"
+    },
+    {
+      "path": "apps/web/src/app/catalog/manage/question-sets/actions.ts",
+      "sha256": "c6e9cb944f11d85171186c2f59d90d7034d553f970ad7668d5bb3343847b3136"
+    },
+    {
+      "path": "apps/web/src/app/catalog/manage/question-sets/page.tsx",
+      "sha256": "2e35a7b93e7624c4d7fca4aaa14660f2034d55ee10fd7a82eeed203479cab0ae"
+    },
+    {
+      "path": "apps/web/src/app/requests/[id]/page.tsx",
+      "sha256": "21f8d41bcc28ac8ac22aaceaae3040715d55effb23156436262f27ea179a2cd2"
+    },
+    {
+      "path": "apps/web/src/app/requests/actions.ts",
+      "sha256": "c3e9d1b68f680056f00a53b56e64dd240efc07b65474f278f58a53248b51713f"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.module.css",
+      "sha256": "0f6d685b0e85ad794fc57e288b3db12235a81266ca3d4a2fc5b18d409eba295e"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.tsx",
+      "sha256": "1e5b78d34c6acf65afe8ad7cc5329492a271802e84e00a3c9b05ed5042436ef2"
+    },
+    {
+      "path": "apps/web/src/components/CatalogChecklistForm.tsx",
+      "sha256": "b852339e579fd439f7db30e13bf4904c62946da30c701b47199195b107f81651"
+    },
+    {
+      "path": "apps/web/src/components/CatalogQuestionSetForm.tsx",
+      "sha256": "f6f9f15552b0a1cb0c0a53024ddddeffc2684018fa396eb6777342830cd91bc4"
+    },
+    {
+      "path": "apps/web/src/lib/api.ts",
+      "sha256": "75e34151174389e083faebee36ea193a7fb67a9290948232a0b6e9c3aefb5437"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-management-list.ts",
+      "sha256": "417e1053e04fcf8c5eb66877c6da71590744b48c1b90d52e3131d12746c68f9c"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-reuse.ts",
+      "sha256": "e3e552b0d1b0bc49a4f215b502e409e6e344e6b8a367791e84ea66e256cb99d3"
+    },
+    {
+      "path": "apps/web/src/lib/user-directory.ts",
+      "sha256": "39bf7513427f801ddf7a90ab4269576dc5e9675133a335c4f1df25cc06c3281c"
+    },
+    {
+      "path": "db/migrations/0036_catalog_operations.sql",
+      "sha256": "22bc09b7dc72069587782ebaee510fec98fc852048264cddd19edbf7efc60f35"
+    },
+    {
+      "path": "packages/shared/src/catalog.ts",
+      "sha256": "593ef9c368d9ec4dd9b3e7294b292cce0ed04c8e897bbcccd2c906ba3f526037"
+    },
+    {
+      "path": "services/api/src/common/audit/audit.ts",
+      "sha256": "5e1fed291c962c4b579a406c281b00e57d51ec620cfa91b93575cc9029c772b4"
+    },
+    {
+      "path": "services/api/src/common/authz/authz.ts",
+      "sha256": "2961116e269113f5be1cb25c2c683e61938d9c7ebc1adcd1076f0439319342bf"
+    },
+    {
+      "path": "services/api/src/main.ts",
+      "sha256": "c1d5e7eb11af9185c982eacbf91bca03d7158e535791ea5e670f9812df28ddde"
+    },
+    {
+      "path": "services/api/src/modules/auth/auth.routes.ts",
+      "sha256": "999e0b7e7cb4f114e46b4ccf9a10059d6f57c25ddb22c0ef5a3e4b0b32ecc8ef"
+    },
+    {
+      "path": "services/api/src/modules/auth/user-admin.service.ts",
+      "sha256": "594d961cdae13b04205e1470fdf12e9f4175a3e80a9936d2179010df4340cbc0"
+    },
+    {
+      "path": "services/api/src/modules/catalog/catalog-admin.routes.ts",
+      "sha256": "5036b2386c38d16c43eb0db9f47019d2df327cfe7cfe660318e39e18bcb96523"
+    },
+    {
+      "path": "services/api/src/modules/catalog/catalog.routes.ts",
+      "sha256": "cf4f704624a795de925b10f614191623c9b4ea924a32d6dc40c5f639f3712b19"
+    },
+    {
+      "path": "services/api/src/modules/ticket/ticket.service.ts",
+      "sha256": "8421b3978ec6b583358ef265b398b0374f2f5a6ce813a3cf38b0f63ec55199df"
+    },
+    {
+      "path": "tests/unit/auth-role-clock.test.ts",
+      "sha256": "d076a0f0e7ec129b6f3c44d8094b862b0087d7fbd3650d10ee484753d23782b9"
+    },
+    {
+      "path": "tests/unit/catalog-authoring-ui.test.ts",
+      "sha256": "1d0ce9c4dbfb27bcc426e55bec35e75680e9af795575904e614f5b133ab95ac4"
+    },
+    {
+      "path": "tests/unit/catalog-detail-recovery-ui.test.ts",
+      "sha256": "d6f0dd491f77a421cb937d1cf94424a7653e2eada05da9734dba39d6d34b4acc"
+    },
+    {
+      "path": "tests/unit/catalog-edit-ui.test.ts",
+      "sha256": "8c33883af3a408a01bc759fb2a4c2927aedd7d16fecaec6f36e1820e25e37ccf"
+    },
+    {
+      "path": "tests/unit/catalog-entry-recovery-ui.test.ts",
+      "sha256": "d9597bf2f47aaad8c61d68a4e7e5c212d3abada686c77e461347d897afad7cc6"
+    },
+    {
+      "path": "tests/unit/catalog-management-list-ui.test.ts",
+      "sha256": "210b56e7199b122bd149106183041f205b735b65b86920dbbd278af79aed68fe"
+    },
+    {
+      "path": "tests/unit/catalog-operations-ui.test.ts",
+      "sha256": "538fe44f825212220f8d9e4c04c37aa73947605fe9fb6693b3511707085235f8"
+    },
+    {
+      "path": "tests/unit/catalog-operations.test.ts",
+      "sha256": "86e84950cde8833d0316b6370474995b3bb31b4dcf0b09ec2f4ed0460e43628b"
+    },
+    {
+      "path": "tests/unit/catalog-reuse.test.ts",
+      "sha256": "d4084640de8a482687f4ded85e49fb41ddab0c5398957c19c3e16ff55ca04fb2"
+    },
+    {
+      "path": "tools/smoke_catalog_operations.mjs",
+      "sha256": "b914f0c8dab3ac541ea84008f8d7209fa8fbe6195c90edfab3c94a2e30f8a333"
+    },
+    {
+      "path": "tools/ui_catalog_operations_check.mjs",
+      "sha256": "3a7fdacb2e63f450b3f32f1261976a4044b8b8c0bc78fba8485a550d12f52c22"
+    }
+  ]
+}

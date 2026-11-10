@@ -2,7 +2,7 @@ import { ContextLink } from '../../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../../lib/api';
 import { formatDateTime } from '../../../../lib/labels';
-import { safeReturnTo } from '../../../../lib/navigation';
+import { safeReturnTo, withReturnTo } from '../../../../lib/navigation';
 import { CatalogManagement } from '../../../../components/CatalogAdminForm';
 export const dynamic = 'force-dynamic';
 export default async function CatalogEditPage({
@@ -54,6 +54,18 @@ export default async function CatalogEditPage({
         カタログ管理へ戻る
       </ContextLink>
       <h1>{i.draft.title}</h1>
+      {i.canCreate && (
+        <p>
+          <a
+            href={withReturnTo(
+              `/catalog/manage/new?copyFrom=${encodeURIComponent(i.id)}`,
+              query.returnTo,
+            )}
+          >
+            このサービスを複製する
+          </a>
+        </p>
+      )}
       {saved === '1' && (
         <p role="status" className="success">
           カタログ設定を保存しました。

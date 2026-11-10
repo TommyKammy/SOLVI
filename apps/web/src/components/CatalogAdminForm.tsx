@@ -2,7 +2,12 @@
 import { useActionState, useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { FeedbackForm, FormField } from './FeedbackForm';
 import { ContextLink } from './ContextLink';
-import type { CatalogAdminDetail, CatalogField, CatalogItem } from '../lib/api';
+import type {
+  CatalogAdminDetail,
+  CatalogAuthoringOptions,
+  CatalogField,
+  CatalogItem,
+} from '../lib/api';
 import type { FormFeedback } from '../lib/form-state';
 import { saveCatalog, publishCatalog } from '../app/catalog/manage/actions';
 import { CatalogFieldInputs } from './CatalogFieldInputs';
@@ -10,6 +15,11 @@ import { catalogTemplates } from '../lib/catalog-templates';
 import styles from './CatalogAdminForm.module.css';
 import { CatalogLivePreview } from './CatalogLivePreview';
 import type { CatalogSection } from '@solvi/shared/catalog';
+import {
+  appendCatalogQuestionSet,
+  cloneCatalogContent,
+  type CatalogInitialContent,
+} from '../lib/catalog-reuse';
 
 type EditorValues = {
   code: string;
@@ -22,10 +32,18 @@ type EditorValues = {
   fields: CatalogField[];
   category: string;
   sections: CatalogSection[];
+  ownerId: string;
+  fulfillmentGroupId: string;
+  checklist: NonNullable<CatalogItem['definition']['checklist']>;
 };
 
-function editorValues(item?: CatalogAdminDetail): EditorValues {
-  const d = item?.draft;
+function editorValues(
+  item?: CatalogAdminDetail,
+  initialContent?: CatalogInitialContent,
+  viewerId = '',
+): EditorValues {
+  const d =
+    item?.draft ?? (initialContent ? cloneCatalogContent(initialContent, viewerId) : undefined);
   return {
     code: item?.code ?? '',
     title: d?.title ?? '',
@@ -37,6 +55,9 @@ function editorValues(item?: CatalogAdminDetail): EditorValues {
     fields: d?.definition.fields ?? [],
     category: d?.definition.category ?? '',
     sections: d?.definition.sections ?? [],
+    ownerId: item ? (d?.definition.ownerId ?? '') : viewerId,
+    fulfillmentGroupId: d?.definition.fulfillmentGroupId ?? '',
+    checklist: d?.definition.checklist ?? [],
   };
 }
 
@@ -51,6 +72,9 @@ function editProjection(values: EditorValues) {
       maxReason: values.maxReason,
       approver: values.approver,
       category: values.category,
+      ownerId: values.ownerId,
+      fulfillmentGroupId: values.fulfillmentGroupId,
+      checklist: values.checklist,
       sections: values.sections.map((section) => ({
         ...section,
         description: section.description || undefined,
@@ -93,13 +117,20 @@ function blockSubmission(blocked: () => boolean) {
   };
 }
 
-function useEditor(item?: CatalogAdminDetail, busy?: RefObject<boolean>) {
+function useEditor(
+  item?: CatalogAdminDetail,
+  busy?: RefObject<boolean>,
+  initialContent?: CatalogInitialContent,
+  options?: CatalogAuthoringOptions,
+) {
   const [feedback, action, pending] = useActionState(
     (previous: FormFeedback, form: FormData) =>
       exclusiveAction(busy, previous, () => saveCatalog(item?.id ?? null, previous, form)),
     { message: '' } as FormFeedback,
   );
-  const [values, setState] = useState<EditorValues>(editorValues(item));
+  const [values, setState] = useState<EditorValues>(
+    editorValues(item, initialContent, options?.viewerId),
+  );
   const current = useRef(values);
   function update<K extends keyof EditorValues>(
     key: K,
@@ -116,12 +147,26 @@ function useEditor(item?: CatalogAdminDetail, busy?: RefObject<boolean>) {
 export function CatalogAdminForm({
   item,
   approvers,
+  initialContent,
+  options,
 }: {
   item?: CatalogAdminDetail;
   approvers: Array<{ id: string; name: string }>;
+  initialContent?: CatalogInitialContent;
+  options?: CatalogAuthoringOptions;
 }) {
-  const editor = useEditor(item);
-  return <EditorForm item={item} approvers={approvers} editor={editor} busy={editor.pending} />;
+  const editor = useEditor(item, undefined, initialContent, options);
+  if (item ? item.canEdit !== true : options?.canCreate !== true)
+    return <p className="notice">現在、このサービスの下書きを編集する権限がありません。</p>;
+  return (
+    <EditorForm
+      item={item}
+      approvers={approvers}
+      editor={editor}
+      busy={editor.pending}
+      options={options ?? item}
+    />
+  );
 }
 
 function EditorForm({
@@ -129,12 +174,14 @@ function EditorForm({
   approvers,
   editor,
   busy,
+  options = {},
   isBusy = () => busy,
 }: {
   item?: CatalogAdminDetail;
   approvers: Array<{ id: string; name: string }>;
   editor: ReturnType<typeof useEditor>;
   busy: boolean;
+  options?: CatalogAuthoringOptions;
   isBusy?: () => boolean;
 }) {
   const { feedback, action, pending, values, update } = editor;
@@ -149,6 +196,9 @@ function EditorForm({
     fields,
     category,
     sections,
+    ownerId,
+    fulfillmentGroupId,
+    checklist,
   } = values;
   function edit<K extends keyof EditorValues>(
     key: K,
@@ -167,8 +217,18 @@ function EditorForm({
     edit('fields', value);
   const setCategory = (value: string) => edit('category', value);
   const setSections = (value: CatalogSection[]) => edit('sections', value);
+  const setOwnerId = (value: string) => edit('ownerId', value);
+  const setFulfillmentGroupId = (value: string) => edit('fulfillmentGroupId', value);
+  const setChecklist = (
+    value:
+      EditorValues['checklist'] | ((old: EditorValues['checklist']) => EditorValues['checklist']),
+  ) => edit('checklist', value);
   const [creationKey, setCreationKey] = useState('');
   const [templateCode, setTemplateCode] = useState('');
+  const [questionSetId, setQuestionSetId] = useState('');
+  const [reuseFeedback, setReuseFeedback] = useState<{ error: boolean; message: string } | null>(
+    null,
+  );
   useEffect(() => {
     const key = crypto.randomUUID();
     setCreationKey(key);
@@ -210,7 +270,32 @@ function EditorForm({
           : { type, maxLength: type === 'text' ? 200 : 2000 }),
     });
   };
+  function insertQuestionSet() {
+    if (isBusy()) return;
+    const selected = options.questionSets?.find((set) => set.id === questionSetId);
+    if (!selected) {
+      setReuseFeedback({ error: true, message: '追加する共有質問セットを選んでください。' });
+      return;
+    }
+    const current = editor.current.current;
+    const result = appendCatalogQuestionSet(
+      { fields: current.fields, sections: current.sections },
+      selected,
+    );
+    if (!result.ok) {
+      setReuseFeedback({ error: true, message: result.message });
+      return;
+    }
+    setFields(result.fields);
+    setSections(result.sections);
+    setReuseFeedback({
+      error: false,
+      message: `${selected.title}（版${selected.revision}）の質問を追加しました。`,
+    });
+  }
   function example() {
+    setReuseFeedback(null);
+    setQuestionSetId('');
     setCategory('アカウント・アクセス');
     setSections([]);
     setTitle('合成アクセス利用申請');
@@ -238,12 +323,14 @@ function EditorForm({
   function applyTemplate() {
     const template = catalogTemplates.find((t) => t.code === templateCode);
     if (!template) return;
+    setReuseFeedback(null);
+    setQuestionSetId('');
     setTitle(template.title);
     setDescription(template.description);
     setTarget(template.targetLabel);
     setDays(template.allowedDurations.join(', '));
     setMaxReason(2000);
-    setFields(template.fields.map((f) => ({ ...f })));
+    setFields(structuredClone(template.fields));
     setCategory(template.category ?? '');
     setSections(template.sections?.map((section) => ({ ...section })) ?? []);
   }
@@ -296,6 +383,7 @@ function EditorForm({
           <input type="hidden" name="expectedVersion" value={item?.editVersion ?? 1} />
           <input type="hidden" name="fields" value={JSON.stringify(fields)} />
           <input type="hidden" name="sections" value={JSON.stringify(sections)} />
+          <input type="hidden" name="checklist" value={JSON.stringify(checklist)} />
           <fieldset disabled={busy} className={styles.controls}>
             <legend>カタログの下書き入力</legend>
             <section className={styles.section} aria-labelledby="catalog-basic-settings">
@@ -425,6 +513,47 @@ function EditorForm({
                 />
               </FormField>
               <FormField name="fields">
+                {!!options.questionSets?.length && (
+                  <div className={styles.reuse}>
+                    <FormField>
+                      <label htmlFor="catalog-question-set">追加する共有質問セット</label>
+                      <select
+                        id="catalog-question-set"
+                        value={questionSetId}
+                        onChange={(event) => {
+                          setQuestionSetId(event.target.value);
+                          setReuseFeedback(null);
+                        }}
+                      >
+                        <option value="">質問セットを選ぶ</option>
+                        {options.questionSets.map((set) => (
+                          <option key={set.id} value={set.id}>
+                            {set.title}（版{set.revision}・{set.fields.length}問）
+                          </option>
+                        ))}
+                      </select>
+                    </FormField>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!questionSetId || busy}
+                      onClick={insertQuestionSet}
+                    >
+                      質問セットを追加する
+                    </button>
+                    <p className="hint">
+                      この下書きへ質問をコピーします。元の質問セットの更新は反映されません。
+                    </p>
+                    {reuseFeedback && (
+                      <p
+                        role={reuseFeedback.error ? 'alert' : 'status'}
+                        className={reuseFeedback.error ? 'field-error' : 'hint'}
+                      >
+                        {reuseFeedback.message}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <h3>追加の申請項目</h3>
               </FormField>
               <p className="hint">
@@ -899,6 +1028,156 @@ function EditorForm({
                   この版での申請先です。申請者本人が承認者になる申請は受け付けません。
                 </p>
               </FormField>
+              <h3>責任者と処理担当</h3>
+              <FormField name="ownerId">
+                {options.canPublish === true ? (
+                  <>
+                    <label htmlFor="catalog-owner">サービスの責任者</label>
+                    <select
+                      id="catalog-owner"
+                      name="ownerId"
+                      value={ownerId}
+                      onChange={(event) => setOwnerId(event.target.value)}
+                    >
+                      <option value="">責任者を選ぶ</option>
+                      {ownerId && !options.owners?.some((owner) => owner.id === ownerId) && (
+                        <option value={ownerId}>現在選べない責任者（選び直してください）</option>
+                      )}
+                      {options.owners?.map((owner) => (
+                        <option key={owner.id} value={owner.id}>
+                          {owner.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <input type="hidden" name="ownerId" value={ownerId} />
+                    <p>
+                      <strong>サービスの責任者：</strong>
+                      {options.owners?.find((owner) => owner.id === ownerId)?.name ?? '自分'}
+                    </p>
+                    <p className="hint">責任者の変更と公開は管理者が行います。</p>
+                  </>
+                )}
+              </FormField>
+              <FormField name="fulfillmentGroupId">
+                <label htmlFor="catalog-fulfillment-group">受付後の担当グループ</label>
+                <select
+                  id="catalog-fulfillment-group"
+                  name="fulfillmentGroupId"
+                  value={fulfillmentGroupId}
+                  onChange={(event) => setFulfillmentGroupId(event.target.value)}
+                >
+                  <option value="">担当グループを指定しない</option>
+                  {fulfillmentGroupId &&
+                    !options.groups?.some((group) => group.id === fulfillmentGroupId) && (
+                      <option value={fulfillmentGroupId}>
+                        現在選べないグループ（選び直してください）
+                      </option>
+                    )}
+                  {options.groups?.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="hint">
+                  新しい申請のチケットをこのグループへ振り分けます。個人の担当者は変更しません。
+                </p>
+              </FormField>
+              <h3>作業チェックリスト</h3>
+              <p className="hint">
+                受付後に担当者が確認する作業です。完了必須の作業が残っている間は、模擬完了できません。最大20件。
+              </p>
+              {checklist.map((check, index) => (
+                <fieldset className={styles.checklistItem} key={check.key}>
+                  <legend>作業 {index + 1}</legend>
+                  <input type="hidden" name={`checklist.${index}.key`} value={check.key} />
+                  <FormField name={`checklist.${index}.label`}>
+                    <label htmlFor={`catalog-check-label-${index}`}>作業項目 {index + 1}</label>
+                    <input
+                      type="text"
+                      id={`catalog-check-label-${index}`}
+                      name={`checklist.${index}.label`}
+                      value={check.label}
+                      maxLength={200}
+                      required
+                      onChange={(event) =>
+                        setChecklist((old) =>
+                          old.map((entry, position) =>
+                            position === index ? { ...entry, label: event.target.value } : entry,
+                          ),
+                        )
+                      }
+                    />
+                  </FormField>
+                  <label>
+                    <input
+                      type="checkbox"
+                      name={`checklist.${index}.required`}
+                      checked={check.required}
+                      onChange={(event) =>
+                        setChecklist((old) =>
+                          old.map((entry, position) =>
+                            position === index
+                              ? { ...entry, required: event.target.checked }
+                              : entry,
+                          ),
+                        )
+                      }
+                    />{' '}
+                    完了を必須にする
+                  </label>
+                  <div className={styles.fieldOrder}>
+                    {([-1, 1] as const).map((direction) => (
+                      <button
+                        key={direction}
+                        type="button"
+                        className="secondary"
+                        disabled={direction === -1 ? index === 0 : index === checklist.length - 1}
+                        onClick={() =>
+                          setChecklist((old) => {
+                            const next = [...old];
+                            const targetIndex = index + direction;
+                            if (targetIndex < 0 || targetIndex >= old.length) return old;
+                            [next[index], next[targetIndex]] = [next[targetIndex]!, next[index]!];
+                            return next;
+                          })
+                        }
+                      >
+                        作業項目{index + 1}を{direction === -1 ? '上へ' : '下へ'}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() =>
+                        setChecklist((old) => old.filter((_, position) => position !== index))
+                      }
+                    >
+                      作業項目{index + 1}を外す
+                    </button>
+                  </div>
+                </fieldset>
+              ))}
+              <button
+                type="button"
+                className="secondary"
+                disabled={checklist.length >= 20}
+                onClick={() =>
+                  setChecklist((old) => [
+                    ...old,
+                    {
+                      key: 'check_' + crypto.randomUUID().replaceAll('-', '').slice(0, 24),
+                      label: '',
+                      required: true,
+                    },
+                  ])
+                }
+              >
+                作業項目を追加する
+              </button>
             </section>
             <section className={styles.section} aria-labelledby="catalog-save-review">
               <h2 id="catalog-save-review" tabIndex={-1}>
@@ -963,6 +1242,7 @@ export function CatalogPublicationForm({
   pending: boolean;
   blocked: () => boolean;
 }) {
+  if (item.canPublish !== true) return null;
   const valid = Boolean(
     item.draft.definition.approval &&
     item.approvers.some((a) => a.id === item.draft.definition.approval?.approverId),
@@ -1034,23 +1314,30 @@ export function CatalogManagement({ item }: { item: CatalogAdminDetail }) {
         definition={item.draft.definition}
         approvers={item.approvers}
       />
-      <CatalogPublicationForm
-        item={item}
-        feedback={feedback}
-        action={action}
-        pending={pending}
-        blocked={() => isDirty() || isBusy()}
-      />
-      <details>
-        <summary>下書きの項目と承認者を編集する</summary>
-        <EditorForm
+      {item.canPublish === true && (
+        <CatalogPublicationForm
           item={item}
-          approvers={item.approvers}
-          editor={editor}
-          busy={busy}
-          isBusy={isBusy}
+          feedback={feedback}
+          action={action}
+          pending={pending}
+          blocked={() => isDirty() || isBusy()}
         />
-      </details>
+      )}
+      {item.canEdit === true ? (
+        <details>
+          <summary>下書きの項目と承認者を編集する</summary>
+          <EditorForm
+            item={item}
+            approvers={item.approvers}
+            editor={editor}
+            busy={busy}
+            isBusy={isBusy}
+            options={item}
+          />
+        </details>
+      ) : (
+        <p className="hint">保存済みの内容を表示しています。下書きの編集権限はありません。</p>
+      )}
     </section>
   );
 }

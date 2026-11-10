@@ -16,11 +16,19 @@ export interface DirectoryMember {
 }
 
 /** Existing grantable organization roles; platform roles are display filters only. */
-export const DIRECTORY_ROLES = ['org_admin', 'agent', 'approver', 'auditor', 'requester'] as const;
+export const DIRECTORY_ROLES = [
+  'org_admin',
+  'agent',
+  'approver',
+  'auditor',
+  'requester',
+  'catalog_editor',
+] as const;
 
 export const DIRECTORY_ROLE_LABELS: Record<string, string> = {
   requester: 'リクエスター',
   agent: 'オペレーター',
+  catalog_editor: 'カタログ編集者',
   approver: '承認者',
   auditor: '監査',
   org_admin: '組織管理者',

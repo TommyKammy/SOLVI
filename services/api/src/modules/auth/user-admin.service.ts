@@ -67,7 +67,14 @@ const MANAGE_ROLES = ['org_admin', 'platform_admin'] as const;
  * 承認を伴わない経路をここに作ると、**組織の管理者一人が
  * プラットフォーム全体を奪える。** 仕組みが出来るまで配らない。
  */
-const GRANTABLE_ROLES = ['org_admin', 'agent', 'approver', 'auditor', 'requester'] as const;
+const GRANTABLE_ROLES = [
+  'org_admin',
+  'agent',
+  'approver',
+  'auditor',
+  'requester',
+  'catalog_editor',
+] as const;
 export type GrantableRole = (typeof GRANTABLE_ROLES)[number];
 
 export class UserAdminService {

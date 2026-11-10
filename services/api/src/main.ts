@@ -380,6 +380,23 @@ async function bootstrap(): Promise<void> {
       ),
     )
     .get('/catalog-admin', async (req) => catalogAdmin.list(await auth.authenticate(req.headers)))
+    .get('/catalog-question-sets', async (req) =>
+      catalogAdmin.listQuestionSets(await auth.authenticate(req.headers)),
+    )
+    .post('/catalog-question-sets', async (req) =>
+      catalogAdmin.saveQuestionSet(
+        await auth.authenticate(req.headers),
+        null,
+        await readJsonBody(req),
+      ),
+    )
+    .post('/catalog-question-sets/:id/save', async (req, _res, params) =>
+      catalogAdmin.saveQuestionSet(
+        await auth.authenticate(req.headers),
+        params.id!,
+        await readJsonBody(req),
+      ),
+    )
     .get('/catalog-admin/:id', async (req, _res, params) =>
       catalogAdmin.detail(await auth.authenticate(req.headers), params['id']!),
     )
@@ -420,6 +437,13 @@ async function bootstrap(): Promise<void> {
     })
     .post('/service-requests/:id/edit', async (req, _res, params) =>
       catalog.edit(await auth.authenticate(req.headers), params.id ?? '', await readJsonBody(req)),
+    )
+    .post('/service-requests/:id/checklist', async (req, _res, params) =>
+      catalog.updateChecklist(
+        await auth.authenticate(req.headers),
+        params.id!,
+        await readJsonBody(req),
+      ),
     )
     .post('/service-requests/:id/decisions', async (req, _res, params) =>
       catalog.decide(

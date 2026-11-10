@@ -9,11 +9,13 @@ export async function saveCatalog(
   previous: FormFeedback,
   form: FormData,
 ): Promise<FormFeedback> {
-  let fields: unknown, sections: unknown;
+  let fields: unknown, sections: unknown, checklist: unknown;
   try {
     fields = JSON.parse(String(form.get('fields') ?? '[]'));
     sections = JSON.parse(String(form.get('sections') ?? '[]'));
+    checklist = JSON.parse(String(form.get('checklist') ?? '[]'));
     if (!Array.isArray(sections)) return { message: 'セクションの形式を確認してください' };
+    if (!Array.isArray(checklist)) return { message: '作業チェックの形式を確認してください' };
   } catch {
     return { message: '項目の形式を確認してください' };
   }
@@ -34,6 +36,13 @@ export async function saveCatalog(
         ? { category: String(form.get('category')).trim() }
         : {}),
       ...(Array.isArray(sections) && sections.length ? { sections } : {}),
+      ...(String(form.get('ownerId') ?? '').trim()
+        ? { ownerId: String(form.get('ownerId')).trim() }
+        : {}),
+      ...(String(form.get('fulfillmentGroupId') ?? '').trim()
+        ? { fulfillmentGroupId: String(form.get('fulfillmentGroupId')).trim() }
+        : {}),
+      ...(Array.isArray(checklist) && checklist.length ? { checklist } : {}),
     },
   };
   const r = await api.saveCatalogItem(id, {

@@ -809,12 +809,21 @@ export const api = {
       };
     }
   },
-  catalogAdmin: () =>
-    call<{ items: CatalogAdminSummary[]; approvers: Array<{ id: string; name: string }> }>(
-      '/catalog-admin',
-    ),
+  catalogAdmin: () => call<CatalogAdminList>('/catalog-admin'),
   catalogAdminItem: (id: string) =>
     call<CatalogAdminDetail>(`/catalog-admin/${encodeURIComponent(id)}`),
+  catalogQuestionSets: () =>
+    call<{ items: CatalogQuestionSet[]; canManage: boolean }>('/catalog-question-sets'),
+  saveCatalogQuestionSet: (id: string | null, body: Record<string, unknown>) =>
+    call<{ id: string; revision: number }>(
+      id ? `/catalog-question-sets/${encodeURIComponent(id)}/save` : '/catalog-question-sets',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  updateRequestChecklist: (id: string, body: Record<string, unknown>) =>
+    call<{ id: string; checklistVersion: number }>(
+      `/service-requests/${encodeURIComponent(id)}/checklist`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   catalogManagementDetail: async (id: string): Promise<ApiResult<CatalogAdminDetail>> => {
     if (
       typeof id !== 'string' ||
@@ -859,10 +868,8 @@ export const api = {
       return { ok: false, problem: { status: 503, title: 'カタログ項目を取得できませんでした' } };
     }
   },
-  catalogManagementRead: async (): Promise<
-    ApiResult<{ items: CatalogAdminSummary[]; approvers: Array<{ id: string; name: string }> }>
-  > => {
-    type Data = { items: CatalogAdminSummary[]; approvers: Array<{ id: string; name: string }> };
+  catalogManagementRead: async (): Promise<ApiResult<CatalogAdminList>> => {
+    type Data = CatalogAdminList;
     try {
       const controller = new AbortController();
       const headers = new Headers({ 'content-type': 'application/json' });
@@ -1662,6 +1669,35 @@ export type {
   CatalogValue,
   CatalogValues,
 } from '@solvi/shared/catalog';
+export interface CatalogQuestionSet {
+  id: string;
+  revision: number;
+  title: string;
+  description: string;
+  fields: import('@solvi/shared/catalog').CatalogField[];
+  sections: import('@solvi/shared/catalog').CatalogSection[];
+  updatedAt: string;
+}
+export interface CatalogAuthoringOptions {
+  viewerId?: string;
+  owners?: Array<{ id: string; name: string }>;
+  groups?: Array<{ id: string; name: string }>;
+  questionSets?: CatalogQuestionSet[];
+  canCreate?: boolean;
+  canPublish?: boolean;
+  canManageQuestionSets?: boolean;
+}
+export interface CatalogAdminList extends CatalogAuthoringOptions {
+  items: CatalogAdminSummary[];
+  approvers: Array<{ id: string; name: string }>;
+}
+export interface CatalogFulfillment {
+  ownerName: string | null;
+  groupName: string | null;
+  checklistVersion: number;
+  checks: Array<{ key: string; label: string; required: boolean; completed: boolean }>;
+  canUpdate: boolean;
+}
 export interface CatalogAdminSummary {
   id: string;
   code: string;
@@ -1671,8 +1707,11 @@ export interface CatalogAdminSummary {
   active: boolean;
   title: string;
   description: string;
+  ownerName?: string;
+  updatedAt?: string;
+  readiness?: { ready: boolean; issues: string[]; warnings?: string[] };
 }
-export interface CatalogAdminDetail {
+export interface CatalogAdminDetail extends CatalogAuthoringOptions {
   id: string;
   code: string;
   editVersion: number;
@@ -1692,6 +1731,8 @@ export interface CatalogAdminDetail {
   } | null;
   history: Array<{ revision: number; title: string; createdAt: string }>;
   approvers: Array<{ id: string; name: string }>;
+  canEdit?: boolean;
+  readiness?: { ready: boolean; issues: string[]; warnings?: string[] };
 }
 export interface CatalogItem {
   id: string;
@@ -1724,6 +1765,7 @@ export interface ServiceRequestSummary {
 export interface ServiceRequestDetail {
   requesterName: string;
   approverName: string;
+  fulfillment?: CatalogFulfillment;
   request: {
     id: string;
     state: string;

@@ -318,8 +318,18 @@ export class AuthController {
           '利用者または組織が変更されています。現在のログイン状態で画面を開き直してください。',
         );
       }
+      // RoleBinding validity is stored by PostgreSQL. Evaluate every role gate
+      // against that same clock, even when the host/VM clocks differ briefly.
+      // Session absolute/idle lifetime validation above keeps its existing clock.
+      const authorizationNow = (
+        await client.query<{ authorization_now: Date }>(
+          'SELECT clock_timestamp() AS authorization_now',
+        )
+      ).rows[0]?.authorization_now;
+      if (!(authorizationNow instanceof Date) || Number.isNaN(authorizationNow.getTime()))
+        throw Problems.internal();
       return {
-        authz: { principal: validation.principal, organizationId },
+        authz: { principal: validation.principal, organizationId, now: authorizationNow },
         sessionId: validation.session.id,
         userId: validation.session.userId,
       };
