@@ -3,6 +3,7 @@ import { api, requireSession } from '../../lib/api';
 import { stateLabel, kindLabel, formatDateTime } from '../../lib/labels';
 import { TicketPagination } from '../../components/TicketPagination';
 import { FreshserviceIcon } from '../../components/FreshserviceIcon';
+import { navigationRoles } from '../../lib/navigation';
 import {
   CATALOG_SEARCH_MAX_LENGTH,
   parsePortalQuery,
@@ -55,6 +56,7 @@ export default async function PortalHome({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireSession();
+  const hasWork = navigationRoles(session).inbox;
   const raw = await searchParams;
   const query = parsePortalQuery(raw);
   const tab: SupportTab =
@@ -92,9 +94,7 @@ export default async function PortalHome({
               maxLength={200}
               placeholder="ヘルプ記事を検索"
             />
-            <button type="submit" className="visually-hidden">
-              検索
-            </button>
+            <button type="submit">検索</button>
           </form>
         </div>
       </section>
@@ -137,13 +137,20 @@ export default async function PortalHome({
               <span>よくある質問や手順を調べて、自分で解決します。</span>
             </span>
           </Link>
-          <Link className="support-card support-card--approval" href="/requests?view=mine">
+          <Link
+            className="support-card support-card--approval"
+            href={hasWork ? '/inbox' : '/requests?view=mine'}
+          >
             <span className="support-card-icon" aria-hidden="true">
               <FreshserviceIcon name="change" size={30} />
             </span>
             <span className="support-card-text">
-              <strong>アクションアイテムを完了する</strong>
-              <span>保留中の承認と自分の申請を確認します。</span>
+              <strong>{hasWork ? '担当業務を確認する' : '申請状況を確認する'}</strong>
+              <span>
+                {hasWork
+                  ? '担当する問い合わせや承認待ちを確認します。'
+                  : '自分が申請したサービスの進捗を確認します。'}
+              </span>
             </span>
           </Link>
         </div>

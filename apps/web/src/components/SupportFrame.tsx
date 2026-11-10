@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
+import type { RailGroup } from '../lib/navigation-groups';
 
 type Props = {
   organizationName: string | null;
   canSwitchOrganization: boolean;
-  staff: boolean;
+  groups: RailGroup[];
   children: React.ReactNode;
 };
 
@@ -22,9 +23,14 @@ function closeDetails(event: React.MouseEvent<HTMLAnchorElement>) {
  * エージェント画面の左レールは出さない。Freshserviceのサポートポータルと
  * 同じく、ヒーローの上に重なる透過ヘッダーだけを置く。
  */
-export function SupportFrame({ organizationName, canSwitchOrganization, staff, children }: Props) {
+export function SupportFrame({ organizationName, canSwitchOrganization, groups, children }: Props) {
   const pathname = usePathname() ?? '/';
   const isPortalHome = pathname === '/portal';
+  // Reuse the existing role-scoped menu; staff alone excludes approvers and auditors.
+  const workLinks = groups
+    .flatMap((group) => group.items)
+    .filter((item) => ['/inbox', '/assets', '/changes'].includes(item.href));
+  const inbox = workLinks.find((item) => item.href === '/inbox');
 
   return (
     <div className={`fs-support${isPortalHome ? '' : ' fs-support--subpage'}`}>
@@ -54,12 +60,14 @@ export function SupportFrame({ organizationName, canSwitchOrganization, staff, c
               <Link href="/settings/notifications" onClick={closeDetails}>
                 通知設定
               </Link>
-              {staff && (
+              {workLinks.length > 0 && (
                 <>
                   <p className="fs-support-menu-title fs-support-menu-title--staff">担当業務</p>
-                  <Link href="/inbox" onClick={closeDetails}>
-                    担当業務へ
-                  </Link>
+                  {workLinks.map((item) => (
+                    <Link key={item.href} href={item.href} onClick={closeDetails}>
+                      {item.label}
+                    </Link>
+                  ))}
                 </>
               )}
             </nav>
@@ -106,7 +114,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, staff, c
               <nav className="fs-user-links" aria-label="アカウント">
                 <Link href="/settings/notifications">自分の通知設定</Link>
                 {canSwitchOrganization && <Link href="/select-organization">組織を切り替える</Link>}
-                {staff && <Link href="/inbox">担当業務へ</Link>}
+                {inbox && <Link href={inbox.href}>{inbox.label}</Link>}
               </nav>
               <div className="fs-user-logout">
                 <LogoutForm />

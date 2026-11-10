@@ -1788,12 +1788,11 @@ body.fs-ui .support-hero h1 {
   outline: none;
   box-shadow: none;
 }
-.support-search button {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+body.fs-ui .support-search button {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 40px;
+  margin-left: 12px;
 }
 
 .support-cards {
@@ -2003,9 +2002,7 @@ body.fs-ui .fs-support-content > main.shell {
 }
 /* 一覧(ナレッジ/カタログ)は各パネルを白くし、詳細・フォーム・設定は
    ページ全体を白い面にして読みやすくする。 */
-body.fs-ui
-  .fs-support-content
-  > main.shell:not(.fs-knowledge):not(.fs-catalog) {
+body.fs-ui .fs-support-content > main.shell:not(.fs-knowledge):not(.fs-catalog) {
   padding: 24px 28px;
   background: var(--fs-surface);
   border-radius: var(--fs-radius-md);

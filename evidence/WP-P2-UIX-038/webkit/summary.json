@@ -1,0 +1,173 @@
+{
+  "browser": "webkit",
+  "success": true,
+  "checks": [
+    {
+      "name": "requester-work-route",
+      "path": "/assets"
+    },
+    {
+      "name": "requester-personal-work-card",
+      "destination": "/requests?view=mine"
+    },
+    {
+      "name": "search-keyboard-desktop",
+      "forwardKey": "Alt+Tab",
+      "focus": {
+        "focused": true,
+        "focusVisible": true,
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "1",
+        "clip": "auto",
+        "clipPath": "none",
+        "outlineStyle": "solid",
+        "outlineWidth": 2,
+        "width": 54,
+        "height": 40
+      }
+    },
+    {
+      "name": "search-keyboard-mobile",
+      "forwardKey": "Alt+Tab",
+      "focus": {
+        "focused": true,
+        "focusVisible": true,
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "1",
+        "clip": "auto",
+        "clipPath": "none",
+        "outlineStyle": "solid",
+        "outlineWidth": 2,
+        "width": 54,
+        "height": 40
+      }
+    },
+    {
+      "name": "portal-mobile-width",
+      "body": 375,
+      "viewport": 375
+    },
+    {
+      "name": "approver-work-route",
+      "path": "/inbox"
+    },
+    {
+      "name": "approver-work-route",
+      "path": "/assets"
+    },
+    {
+      "name": "approver-work-route",
+      "path": "/changes"
+    },
+    {
+      "name": "approver-personal-work-card",
+      "destination": "/inbox"
+    },
+    {
+      "name": "auditor-work-route",
+      "path": "/assets"
+    },
+    {
+      "name": "auditor-work-route",
+      "path": "/changes"
+    },
+    {
+      "name": "auditor-personal-work-card",
+      "destination": "/requests?view=mine"
+    },
+    {
+      "name": "agent-work-route",
+      "path": "/inbox"
+    },
+    {
+      "name": "agent-work-route",
+      "path": "/assets"
+    },
+    {
+      "name": "agent-work-route",
+      "path": "/changes"
+    },
+    {
+      "name": "agent-personal-work-card",
+      "destination": "/inbox"
+    },
+    {
+      "name": "org_admin-work-route",
+      "path": "/inbox"
+    },
+    {
+      "name": "org_admin-work-route",
+      "path": "/assets"
+    },
+    {
+      "name": "org_admin-work-route",
+      "path": "/changes"
+    },
+    {
+      "name": "org_admin-personal-work-card",
+      "destination": "/inbox"
+    }
+  ],
+  "accessibility": [
+    {
+      "label": "requester-portal",
+      "violations": []
+    },
+    {
+      "label": "requester-knowledge",
+      "violations": []
+    },
+    {
+      "label": "requester-portal-mobile",
+      "violations": []
+    },
+    {
+      "label": "approver-portal",
+      "violations": []
+    },
+    {
+      "label": "approver-knowledge",
+      "violations": []
+    },
+    {
+      "label": "auditor-portal",
+      "violations": []
+    },
+    {
+      "label": "auditor-knowledge",
+      "violations": []
+    },
+    {
+      "label": "agent-portal",
+      "violations": []
+    },
+    {
+      "label": "agent-knowledge",
+      "violations": []
+    },
+    {
+      "label": "org_admin-portal",
+      "violations": []
+    },
+    {
+      "label": "org_admin-knowledge",
+      "violations": []
+    }
+  ],
+  "forbiddenRequests": [],
+  "currentRole": "org_admin",
+  "currentStep": "navigate /inbox",
+  "lastPath": "/inbox",
+  "screenshots": [
+    "requester-menu.png",
+    "search-keyboard-desktop.png",
+    "search-keyboard-mobile.png",
+    "portal-mobile.png",
+    "approver-menu.png",
+    "auditor-menu.png",
+    "agent-menu.png",
+    "org_admin-menu.png"
+  ]
+}

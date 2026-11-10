@@ -199,9 +199,9 @@ export function AppFrame({
   if (pathname === '/portal' || (isSupportPath(pathname) && !staff)) {
     return (
       <SupportFrame
+        groups={groups}
         organizationName={organizationName}
         canSwitchOrganization={canSwitchOrganization}
-        staff={staff}
       >
         {children}
       </SupportFrame>

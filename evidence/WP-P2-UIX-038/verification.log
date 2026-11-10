@@ -1,0 +1,83 @@
+related.log
+
+ RUN  v3.2.7 <repo>
+
+ ✓ tests/unit/support-portal-ui.test.ts (21 tests) 16ms
+ ✓ tests/unit/operations-overview.test.ts (48 tests) 8ms
+ ✓ tests/unit/portal-catalog.test.ts (26 tests) 5ms
+ ✓ tests/unit/ticket-queue.test.ts (24 tests) 5ms
+
+ Test Files  4 passed (4)
+      Tests  119 passed (119)
+   Start at  18:06:13
+   Duration  574ms (transform 91ms, setup 0ms, collect 139ms, tests 35ms, environment 0ms, prepare 89ms)
+
+
+
+test-types.log
+
+
+typecheck.log
+
+
+> @solvi/api@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/worker@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/executor@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/web@0.1.0 typecheck
+> tsc --noEmit
+
+
+
+lint.log
+
+> solvi@0.1.0 lint
+> eslint . --max-warnings=0
+
+
+
+check-all.log
+
+A. WPノートと台帳の突き合わせ
+  OK   WPノート 101 件すべてに台帳の行がある
+
+B. 台帳の行とノートの frontmatter
+  OK   すべてのWPノートが phase / workstream / risk / story_points を持つ
+
+C. 集計(台帳の記載と導出値)
+  OK   導出値: WP 101 件 / 661 ポイント
+       P0 28 / P1 112 / P2 199 / P3 34 / P4 84 / P5 50 / P6 40 / P7 37 / P8 40 / P9 37
+  OK   台帳の集計は導出値と一致している
+
+D. 件数の写し
+  OK   台帳の外にWP件数の写しは無い
+
+OK: WP台帳は実体と一致しています
+    件数は台帳が導出する。他の文書は数を持たず、台帳を指す。
+
+
+build.log
+├ ƒ /portal                                163 B         106 kB
+├ ƒ /requests                            1.13 kB         107 kB
+├ ƒ /requests/[id]                         172 B         116 kB
+├ ƒ /select-organization                   162 B         102 kB
+├ ƒ /settings/notifications              4.96 kB         110 kB
+├ ƒ /tickets/[id]                          966 B         117 kB
+├ ƒ /tickets/[id]/citations/[commentId]  1.14 kB         107 kB
+├ ƒ /tickets/new                         4.46 kB         114 kB
+└ ƒ /unavailable                           162 B         102 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/45bb6821-44d53b7890495b51.js  54.2 kB
+  ├ chunks/4687-77d89a5dbd314adc.js      45.9 kB
+  └ other shared chunks (total)          1.98 kB
+
+
+ƒ  (Dynamic)  server-rendered on demand
