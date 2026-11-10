@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { OperationsGroupSelect } from '../../../components/OperationsGroupSelect';
 import { TableRegion } from '../../../components/TableRegion';
+import { DonutChart } from '../../../components/DonutChart';
 import { api, requireSession } from '../../../lib/api';
 import { formatDateTime, priorityLabel, slaUrgency, stateLabel } from '../../../lib/labels';
 import { navigationRoles, withReturnTo } from '../../../lib/navigation';
@@ -59,10 +60,12 @@ export default async function OperationsOverview({
     : operationsHref(group);
   const metricQueries = OPERATIONS_METRICS.map((metric) => operationsMetricQuery(metric.id, group));
   const deadlineQuery = operationsDeadlineQuery(group);
-  const [groupList, overview, deadlines] = await Promise.all([
+  const chartQuery = operationsMetricQuery('open', group);
+  const [groupList, overview, deadlines, chartTickets] = await Promise.all([
     api.listGroups(),
     error ? Promise.resolve(null) : api.ticketOverview(group),
     error ? Promise.resolve(null) : api.listTickets(5, deadlineQuery),
+    error ? Promise.resolve(null) : api.listTickets(50, chartQuery),
   ]);
   const groups = groupList.ok ? groupList.data.items.map(({ id, name }) => ({ id, name })) : [];
   const scope = operationsScopeLabel(group, groups);
@@ -74,10 +77,52 @@ export default async function OperationsOverview({
   const retrievedAt = new Date().toISOString();
   const deadlineError = deadlines ? unavailableText(deadlines) : null;
   const overviewError = overview ? unavailableText(overview) : '取得できませんでした。';
+  const chartError = chartTickets ? unavailableText(chartTickets) : '取得できませんでした。';
   const counts = overview?.ok ? overview.data.counts : null;
+  const chartItems = chartTickets?.ok ? chartTickets.data.items : [];
+  const prioritySegments = [
+    {
+      label: '最優先',
+      value: chartItems.filter((t) => t.priority === 'critical').length,
+      color: '#cd2629',
+    },
+    {
+      label: '高',
+      value: chartItems.filter((t) => t.priority === 'high').length,
+      color: '#cf6121',
+    },
+    {
+      label: '中',
+      value: chartItems.filter((t) => t.priority === 'medium').length,
+      color: '#276cf0',
+    },
+    { label: '低', value: chartItems.filter((t) => t.priority === 'low').length, color: '#8e9dac' },
+  ];
+  const stateSegments = [
+    {
+      label: stateLabel('new'),
+      value: chartItems.filter((t) => t.state === 'new').length,
+      color: '#276cf0',
+    },
+    {
+      label: stateLabel('assigned'),
+      value: chartItems.filter((t) => t.state === 'assigned').length,
+      color: '#6aa8ff',
+    },
+    {
+      label: stateLabel('in_progress'),
+      value: chartItems.filter((t) => t.state === 'in_progress').length,
+      color: '#00513f',
+    },
+    {
+      label: stateLabel('pending'),
+      value: chartItems.filter((t) => t.state === 'pending').length,
+      color: '#cf6121',
+    },
+  ];
 
   return (
-    <main id="main" className="shell operations-overview">
+    <main id="main" className="shell operations-overview fs-dashboard">
       <header className="overview-heading">
         <div>
           <h1>運営状況</h1>
@@ -206,6 +251,30 @@ export default async function OperationsOverview({
                 解決期限超過には、停止前に目標を超過した確認・対応待ちも含みます。目標未設定の問い合わせは超過件数に含みません。
               </p>
             </details>
+          </section>
+
+          <section className="fs-dashboard-charts" aria-label="未完了チケットの内訳">
+            {chartError ? (
+              <div className="overview-message" role="alert">
+                <p>内訳を取得できませんでした。{chartError}</p>
+                <a href={currentHref}>内訳を再読み込み</a>
+              </div>
+            ) : (
+              <>
+                <DonutChart
+                  title="優先度の内訳"
+                  caption={`${scope}・未完了の先頭${chartItems.length}件`}
+                  segments={prioritySegments}
+                  emptyLabel="対象のチケットはありません"
+                />
+                <DonutChart
+                  title="状況の内訳"
+                  caption={`${scope}・未完了の先頭${chartItems.length}件`}
+                  segments={stateSegments}
+                  emptyLabel="対象のチケットはありません"
+                />
+              </>
+            )}
           </section>
 
           <section className="overview-deadlines" aria-labelledby="overview-deadlines-title">
