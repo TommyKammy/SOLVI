@@ -35,6 +35,21 @@ function isActive(pathname: string, item: RailItem): boolean {
   return matchesPath(pathname, normalizedPath(item.matchPath ?? item.href));
 }
 
+const SUPPORT_ROOTS = ['/portal', '/catalog', '/knowledge', '/tickets', '/requests', '/settings'];
+const SUPPORT_EXCLUDES = ['/catalog/manage', '/knowledge/new'];
+
+/**
+ * サポートポータルの利用者が遷移する画面かどうか (WP-P2-UIX-033)。
+ * 管理・編集画面は、誤ってセルフサービス画面として扱わないよう除外する。
+ */
+function isSupportPath(pathname: string): boolean {
+  const underRoot = SUPPORT_ROOTS.some(
+    (root) => pathname === root || pathname.startsWith(`${root}/`),
+  );
+  if (!underRoot) return false;
+  return !SUPPORT_EXCLUDES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 function findCurrent(pathname: string, groups: RailGroup[]) {
   let best: { group: RailGroup; item: RailItem | null; length: number } | null = null;
   for (const group of groups) {
@@ -139,7 +154,7 @@ export function AppFrame({
     return null;
   })();
 
-  if (pathname === '/portal') {
+  if (isSupportPath(pathname)) {
     return (
       <SupportFrame
         organizationName={organizationName}

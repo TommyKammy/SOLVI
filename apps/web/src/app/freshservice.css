@@ -13,7 +13,7 @@
   --fs-surface-hover: #f0f4f8;
   --fs-text: #12334c;
   --fs-text-secondary: #485a68;
-  --fs-text-muted: #5f7183;
+  --fs-text-muted: #596b7d;
   --fs-border: #eaeef2;
   --fs-border-strong: #dfe6ee;
   --fs-brand: #276cf0;
@@ -1571,6 +1571,8 @@ body.fs-ui a.fs-admin-card:hover {
 
 .fs-support {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: #ebeff3;
 }
 
@@ -1938,6 +1940,74 @@ body.fs-ui a.support-card:hover {
   border-top: 1px solid var(--fs-border);
   color: var(--fs-text-muted);
   font-size: 12px;
+}
+
+/* サポートポータル配下のサブ画面 (WP-P2-UIX-033) */
+.fs-support--subpage .fs-support-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  color: var(--fs-text);
+  background: var(--fs-surface);
+  border-bottom: 1px solid var(--fs-border);
+}
+body.fs-ui .fs-support--subpage a.fs-support-brand {
+  color: var(--fs-text);
+}
+body.fs-ui .fs-support--subpage a.fs-support-brand:hover {
+  color: var(--fs-text);
+}
+.fs-support--subpage .fs-support-brand-mark {
+  background: var(--fs-brand);
+  color: #fff;
+}
+body.fs-ui .fs-support--subpage .fs-support-org {
+  color: var(--fs-text-muted);
+}
+body.fs-ui .fs-support--subpage a.fs-support-icon-button {
+  color: var(--fs-text-secondary);
+}
+body.fs-ui .fs-support--subpage a.fs-support-icon-button:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+}
+.fs-support--subpage .fs-support-menu summary {
+  color: var(--fs-text-secondary);
+}
+.fs-support--subpage .fs-support-menu summary:hover {
+  background: var(--fs-surface-muted);
+}
+.fs-support--subpage .fs-support-user summary {
+  color: var(--fs-text-secondary);
+}
+.fs-support--subpage .fs-support-user .fs-avatar {
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+}
+.fs-support-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+body.fs-ui .fs-support-content > main.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+/* 一覧(ナレッジ/カタログ)は各パネルを白くし、詳細・フォーム・設定は
+   ページ全体を白い面にして読みやすくする。 */
+body.fs-ui
+  .fs-support-content
+  > main.shell:not(.fs-knowledge):not(.fs-catalog) {
+  padding: 24px 28px;
+  background: var(--fs-surface);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
 }
 
 /* ------------------------------------------------------------------------- */

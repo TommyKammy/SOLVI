@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
 
@@ -22,8 +23,11 @@ function closeDetails(event: React.MouseEvent<HTMLAnchorElement>) {
  * 同じく、ヒーローの上に重なる透過ヘッダーだけを置く。
  */
 export function SupportFrame({ organizationName, canSwitchOrganization, staff, children }: Props) {
+  const pathname = usePathname() ?? '/';
+  const isPortalHome = pathname === '/portal';
+
   return (
-    <div className="fs-support">
+    <div className={`fs-support${isPortalHome ? '' : ' fs-support--subpage'}`}>
       <header className="fs-support-header">
         <div className="fs-support-header-left">
           <details className="fs-support-menu">
@@ -111,7 +115,14 @@ export function SupportFrame({ organizationName, canSwitchOrganization, staff, c
           </details>
         </div>
       </header>
-      {children}
+      {isPortalHome ? (
+        children
+      ) : (
+        <>
+          <div className="fs-support-content">{children}</div>
+          <footer className="support-footer">SOLVI — 社内ITサービス管理</footer>
+        </>
+      )}
     </div>
   );
 }
