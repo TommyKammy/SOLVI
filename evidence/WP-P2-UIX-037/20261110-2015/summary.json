@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-11-10T08:19:06.809Z",
+  "visibleFields": [
+    "キーワード",
+    "担当",
+    "担当グループ",
+    "期限",
+    "並び順"
+  ],
+  "groupAboveSla": true,
+  "advancedFields": [
+    "状況",
+    "受付済み",
+    "担当決定",
+    "対応中",
+    "確認・対応待ち",
+    "解決済み",
+    "種別",
+    "障害の報告",
+    "依頼",
+    "優先度",
+    "最優先",
+    "高",
+    "中",
+    "低",
+    "受付日(から)",
+    "受付日(まで)"
+  ],
+  "groupDuplicated": 0,
+  "advancedSummary": "詳細な条件",
+  "groupFilter": {
+    "url": "/ops?keyword=&assignment=&group=mine&sla=&sort=&createdFrom=&createdTo=",
+    "chip": [],
+    "bodyHasChip": true
+  },
+  "missingGroup": {
+    "hiddenInput": 1,
+    "clearLink": 1,
+    "selectCount": 0
+  },
+  "axe": [],
+  "mobile": {
+    "bodyWidth": 375,
+    "viewportWidth": 375
+  }
+}

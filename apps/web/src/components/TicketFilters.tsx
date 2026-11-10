@@ -43,7 +43,7 @@ export function TicketFilters({
     !['mine', 'ungrouped'].includes(group) &&
     !groups?.some((item) => item.id === group);
   const advancedCount = ticketQueueConditions(applied).filter(({ key }) =>
-    ['state', 'kind', 'priority', 'group', 'createdFrom', 'createdTo', 'requester'].includes(key),
+    ['state', 'kind', 'priority', 'createdFrom', 'createdTo', 'requester'].includes(key),
   ).length;
   const extraValues = (key: string, known: readonly string[]) =>
     [...new Set(applied.getAll(key))].filter((value) => value !== '' && !known.includes(value));
@@ -89,6 +89,47 @@ export function TicketFilters({
           )}
         </select>
       </div>
+
+      {/* 担当グループは日常的に使う条件のため、詳細な条件ではなく
+          期限の直前に常時表示する。 */}
+      {missingGroup ? (
+        <div className="field">
+          <span>担当グループ</span>
+          <input type="hidden" name="group" value={group} />
+          <p className="hint">
+            {groupsUnavailable
+              ? 'グループ候補を取得できませんでした。'
+              : '選択済みグループが現在の候補にありません。'}
+            現在のグループ条件を保持して検索します。
+          </p>
+          <a className="clear-filters" href={removeTicketQueueCondition(applied, 'group')}>
+            グループの指定を外す
+          </a>
+        </div>
+      ) : (
+        <div className="field">
+          <label htmlFor="group">担当グループ</label>
+          <select id="group" name="group" defaultValue={group}>
+            <option value="">すべて</option>
+            {/* **「自分のグループ」を先頭に置く。** 担当者が日常的に見るのは
+            自分のキューであり、他のグループを覗くのは例外的な操作である。 */}
+            <option value="mine">自分のグループ</option>
+            {/* どこにも振られていないものは、誰も見ていない可能性が高い。
+            探せないと**放置されたことに気付けない**。 */}
+            <option value="ungrouped">グループ未割当</option>
+            {(groups ?? []).map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          {groupsUnavailable && (
+            <p className="hint">
+              グループ候補を取得できませんでした。自分のグループ・未割当は選べます。
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="field">
         <label htmlFor="sla">期限</label>
@@ -213,45 +254,6 @@ export function TicketFilters({
               </div>
             ))}
           </fieldset>
-
-          {missingGroup ? (
-            <div className="field">
-              <span>担当グループ</span>
-              <input type="hidden" name="group" value={group} />
-              <p className="hint">
-                {groupsUnavailable
-                  ? 'グループ候補を取得できませんでした。'
-                  : '選択済みグループが現在の候補にありません。'}
-                現在のグループ条件を保持して検索します。
-              </p>
-              <a className="clear-filters" href={removeTicketQueueCondition(applied, 'group')}>
-                グループの指定を外す
-              </a>
-            </div>
-          ) : (
-            <div className="field">
-              <label htmlFor="group">担当グループ</label>
-              <select id="group" name="group" defaultValue={group}>
-                <option value="">すべて</option>
-                {/* **「自分のグループ」を先頭に置く。** 担当者が日常的に見るのは
-                自分のキューであり、他のグループを覗くのは例外的な操作である。 */}
-                <option value="mine">自分のグループ</option>
-                {/* どこにも振られていないものは、誰も見ていない可能性が高い。
-                探せないと**放置されたことに気付けない**。 */}
-                <option value="ungrouped">グループ未割当</option>
-                {(groups ?? []).map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-              {groupsUnavailable && (
-                <p className="hint">
-                  グループ候補を取得できませんでした。自分のグループ・未割当は選べます。
-                </p>
-              )}
-            </div>
-          )}
 
           <div className="field">
             <label htmlFor="createdFrom">受付日(から)</label>
