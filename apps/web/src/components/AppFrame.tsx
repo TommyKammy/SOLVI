@@ -154,7 +154,9 @@ export function AppFrame({
     return null;
   })();
 
-  if (isSupportPath(pathname)) {
+  // サポートポータルは依頼者のセルフサービス画面。スタッフは同じURLでも
+  // エージェントUIを使う(管理者の左レールから開いた場合に元の画面へ戻す)。
+  if (pathname === '/portal' || (isSupportPath(pathname) && !staff)) {
     return (
       <SupportFrame
         organizationName={organizationName}

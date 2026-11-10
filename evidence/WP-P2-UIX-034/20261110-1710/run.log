@@ -1,0 +1,145 @@
+{
+  "generatedAt": "2026-11-10T06:57:53.465Z",
+  "admin": [
+    {
+      "name": "knowledge",
+      "path": "/knowledge",
+      "rail": 1,
+      "supportHeader": 0,
+      "subpage": 0,
+      "title": "ナレッジを探す",
+      "violations": []
+    },
+    {
+      "name": "catalog",
+      "path": "/catalog",
+      "rail": 1,
+      "supportHeader": 0,
+      "subpage": 0,
+      "title": "サービスカタログ",
+      "violations": []
+    },
+    {
+      "name": "ticket-new",
+      "path": "/tickets/new",
+      "rail": 1,
+      "supportHeader": 0,
+      "subpage": 0,
+      "title": "IT サービスを依頼する",
+      "violations": []
+    },
+    {
+      "name": "ticket-detail",
+      "path": "/tickets/01a1c363-78ca-7000-81eb-0fac1e61ae07",
+      "rail": 1,
+      "supportHeader": 0,
+      "subpage": 0,
+      "title": "添付検証: 接続エラー",
+      "violations": []
+    },
+    {
+      "name": "requests",
+      "path": "/requests?view=mine",
+      "rail": 1,
+      "supportHeader": 0,
+      "subpage": 0,
+      "title": "申請の状況",
+      "violations": []
+    },
+    {
+      "name": "settings",
+      "path": "/settings/notifications",
+      "rail": 1,
+      "supportHeader": 0,
+      "subpage": 0,
+      "title": "メール通知の設定",
+      "violations": []
+    },
+    {
+      "name": "portal",
+      "path": "/portal",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 0,
+      "title": "どういった事でお困りですか？",
+      "violations": []
+    }
+  ],
+  "requester": [
+    {
+      "name": "knowledge",
+      "path": "/knowledge",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 1,
+      "title": "ナレッジを探す",
+      "violations": []
+    },
+    {
+      "name": "catalog",
+      "path": "/catalog",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 1,
+      "title": "サービスカタログ",
+      "violations": []
+    },
+    {
+      "name": "ticket-new",
+      "path": "/tickets/new",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 1,
+      "title": "IT サービスを依頼する",
+      "violations": []
+    },
+    {
+      "name": "ticket-detail",
+      "path": "/tickets/01a1c3b8-08f6-7000-9fff-6e43b7aefaa8",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 1,
+      "title": "ローカル検証: モニターの手配",
+      "violations": []
+    },
+    {
+      "name": "requests",
+      "path": "/requests?view=mine",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 1,
+      "title": "申請の状況",
+      "violations": []
+    },
+    {
+      "name": "settings",
+      "path": "/settings/notifications",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 1,
+      "title": "メール通知の設定",
+      "violations": []
+    },
+    {
+      "name": "portal",
+      "path": "/portal",
+      "rail": 0,
+      "supportHeader": 1,
+      "subpage": 0,
+      "title": "どういった事でお困りですか？",
+      "violations": []
+    }
+  ],
+  "adminRail": {
+    "knowledge": {
+      "rail": 1,
+      "supportHeader": 0,
+      "title": "ナレッジを探す"
+    },
+    "catalog": {
+      "rail": 1,
+      "supportHeader": 0,
+      "title": "サービスカタログ"
+    }
+  }
+}
