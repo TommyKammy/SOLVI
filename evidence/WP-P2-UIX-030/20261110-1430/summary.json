@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-11-10T06:03:38.468Z",
+  "checks": [
+    {
+      "step": "hover ticket",
+      "visible": [
+        "チケット"
+      ]
+    },
+    {
+      "step": "after click item",
+      "visible": []
+    },
+    {
+      "step": "hover knowledge",
+      "visible": [
+        "ナレッジ"
+      ]
+    },
+    {
+      "step": "hover ticket again",
+      "visible": [
+        "チケット"
+      ]
+    },
+    {
+      "step": "after Escape",
+      "visible": []
+    },
+    {
+      "step": "keyboard focus ticket",
+      "visible": [
+        "チケット"
+      ]
+    }
+  ],
+  "keyboardFocus": "業務受信箱",
+  "axe": []
+}

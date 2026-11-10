@@ -66,12 +66,38 @@ export function AppFrame({
 }: Props) {
   const pathname = usePathname() ?? '/';
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const railItems = useRef(new Map<string, HTMLDivElement>());
   const current = findCurrent(pathname, groups);
 
   useEffect(() => {
     setMobileOpen(false);
+    // マウス操作で遷移したときは閉じる。キーボードでメニュー内のリンクを
+    // 実行した場合は、フォーカスを隠れた要素に残さないよう開いたままにする。
+    setOpenGroup((open) => {
+      if (!open) return null;
+      const item = railItems.current.get(open);
+      return item && item.contains(document.activeElement) ? open : null;
+    });
   }, [pathname]);
+
+  useEffect(() => {
+    if (!openGroup) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenGroup(null);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const item = railItems.current.get(openGroup);
+      if (item && !item.contains(event.target as Node)) setOpenGroup(null);
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [openGroup]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -139,12 +165,39 @@ export function AppFrame({
               current?.group.id === group.id ||
               group.items.some((item) => isActive(pathname, item));
             return (
-              <div className="fs-rail-item" key={group.id}>
+              <div
+                className={`fs-rail-item${openGroup === group.id ? ' is-open' : ''}`}
+                key={group.id}
+                ref={(element) => {
+                  if (element) railItems.current.set(group.id, element);
+                  else railItems.current.delete(group.id);
+                }}
+                onPointerEnter={() => setOpenGroup(group.id)}
+                onPointerLeave={() => {
+                  const item = railItems.current.get(group.id);
+                  // キーボードで中のリンクにフォーカスしている間は閉じない。
+                  if (item && item.contains(document.activeElement)) return;
+                  setOpenGroup((open) => (open === group.id ? null : open));
+                }}
+                onFocus={() => setOpenGroup(group.id)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    setOpenGroup((open) => (open === group.id ? null : open));
+                  }
+                }}
+              >
                 <Link
                   href={group.href}
                   className={`fs-rail-link${active ? ' is-active' : ''}`}
                   aria-label={group.label}
                   aria-current={active ? 'page' : undefined}
+                  onClick={(event) => {
+                    // マウスで選んだ後はフォーカスを残さず、メニューを閉じる。
+                    if (event.detail > 0) {
+                      setOpenGroup(null);
+                      event.currentTarget.blur();
+                    }
+                  }}
                 >
                   <FreshserviceIcon name={group.icon} size={20} />
                 </Link>
@@ -156,6 +209,14 @@ export function AppFrame({
                         <Link
                           href={item.href}
                           aria-current={isActive(pathname, item) ? 'page' : undefined}
+                          onClick={(event) => {
+                            // クリック後もフォーカスが残ると、次のホバーで
+                            // 前のメニューが重なって見える。マウス操作では閉じる。
+                            if (event.detail > 0) {
+                              setOpenGroup(null);
+                              event.currentTarget.blur();
+                            }
+                          }}
                         >
                           {item.label}
                         </Link>

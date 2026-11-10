@@ -231,8 +231,7 @@ body.fs-ui .fs-public-brand {
   bottom: 0;
   width: 12px;
 }
-.fs-rail-item:hover .fs-flyout,
-.fs-rail-item:focus-within .fs-flyout {
+.fs-rail-item.is-open .fs-flyout {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
