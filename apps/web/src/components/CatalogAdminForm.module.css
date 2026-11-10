@@ -115,6 +115,20 @@
   gap: 8px;
 }
 
+.sectionSettings {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding-block: 12px;
+}
+
+.rangeSettings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
 .livePreview {
   position: sticky;
   top: 80px;

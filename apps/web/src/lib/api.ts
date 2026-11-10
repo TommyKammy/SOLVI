@@ -1656,11 +1656,12 @@ export interface KnowledgeList {
   nextCursor: string | null;
 }
 
-export type CatalogField = { key: string; label: string; required: boolean } & (
-  | { type: 'text' | 'textarea'; maxLength: number }
-  | { type: 'select'; options: string[] }
-  | { type: 'checkbox' }
-);
+export type {
+  CatalogField,
+  CatalogSection,
+  CatalogValue,
+  CatalogValues,
+} from '@solvi/shared/catalog';
 export interface CatalogAdminSummary {
   id: string;
   code: string;
@@ -1697,14 +1698,8 @@ export interface CatalogItem {
   version: number;
   title: string;
   description: string;
-  definition: {
-    mode: 'local_simulation';
+  definition: Omit<import('@solvi/shared/catalog').CatalogDefinition, 'action'> & {
     action?: 'simulate.access_grant';
-    fields?: CatalogField[];
-    approval?: { mode: 'fixed'; approverId: string };
-    targetLabel: string;
-    allowedDurations: number[];
-    maxReasonLength: number;
   };
 }
 export interface ServiceRequestSummary {
@@ -1736,7 +1731,11 @@ export interface ServiceRequestDetail {
     revision: number;
     snapshot: {
       item: { id: string; version: number; title: string; definition: CatalogItem['definition'] };
-      inputs: { reason: string; durationDays: number; values?: Record<string, string | boolean> };
+      inputs: {
+        reason: string;
+        durationDays: number;
+        values?: import('@solvi/shared/catalog').CatalogValues;
+      };
       requesterId: string;
     };
     snapshotHash: string;
@@ -1758,7 +1757,11 @@ export interface ServiceRequestDetail {
     approverId: string;
     approverName: string;
     item: { version: number; definition: CatalogItem['definition'] };
-    inputs: { reason: string; durationDays: number; values?: Record<string, string | boolean> };
+    inputs: {
+      reason: string;
+      durationDays: number;
+      values?: import('@solvi/shared/catalog').CatalogValues;
+    };
     reason: string | null;
     decidedAt: string | null;
     expiresAt: string;

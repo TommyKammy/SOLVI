@@ -7,6 +7,8 @@ import { ContextLink } from './ContextLink';
 import { saveServiceRequest, processServiceRequest } from '../app/requests/actions';
 import type { CatalogItem, ServiceRequestDetail } from '../lib/api';
 import { CatalogFieldInputs } from './CatalogFieldInputs';
+import type { CatalogValues } from '@solvi/shared/catalog';
+import { catalogDraftValues, restoreCatalogDraftValues } from '../lib/catalog-form';
 import type { FormFeedback } from '../lib/form-state';
 export function RequestForm({
   item,
@@ -30,7 +32,7 @@ export function RequestForm({
   const available = fixedApprover
     ? approvers.some((a) => a.id === fixedApprover)
     : approvers.length > 0;
-  const [customValues, setCustomValues] = useState<Record<string, string | boolean>>(
+  const [customValues, setCustomValues] = useState<CatalogValues>(
     request?.request.snapshot.inputs.values ?? {},
   );
   const [reason, setReason] = useState(request?.request.snapshot.inputs.reason ?? '');
@@ -43,43 +45,19 @@ export function RequestForm({
     durationDays: String(
       request?.request.snapshot.inputs.durationDays ?? item.definition.allowedDurations[0],
     ),
-    ...Object.fromEntries(
-      fields.map((f) => [
-        'value:' + f.key,
-        String(request?.request.snapshot.inputs.values?.[f.key] ?? ''),
-      ]),
-    ),
+    ...catalogDraftValues(fields, request?.request.snapshot.inputs.values ?? {}),
   };
   const values: DraftValues = {
     reason,
     durationDays: days,
-    ...Object.fromEntries(fields.map((f) => ['value:' + f.key, String(customValues[f.key] ?? '')])),
+    ...catalogDraftValues(fields, customValues),
   };
   const formKey = request ? `request:edit:${request.request.id}` : `request:new:${item.id}`;
   const restore = (v: DraftValues) => {
     if (!fixedApprover) setApproverId('');
     if (v.reason !== undefined) setReason(v.reason.slice(0, item.definition.maxReasonLength));
     if (item.definition.allowedDurations.includes(Number(v.durationDays))) setDays(v.durationDays);
-    setCustomValues((current) => ({
-      ...current,
-      ...Object.fromEntries(
-        (item.definition.fields ?? [])
-          .filter((f) => f.type === 'checkbox')
-          .map((f) => [f.key, false]),
-      ),
-      ...Object.fromEntries(
-        fields
-          .filter(
-            (f) =>
-              v['value:' + f.key] !== undefined &&
-              (f.type !== 'select' || f.options.includes(v['value:' + f.key])),
-          )
-          .map((f) => [
-            f.key,
-            v['value:' + f.key].slice(0, f.type === 'select' ? 10000 : f.maxLength),
-          ]),
-      ),
-    }));
+    setCustomValues(restoreCatalogDraftValues(item.definition.fields ?? [], v));
   };
   return (
     <FeedbackForm
@@ -140,8 +118,11 @@ export function RequestForm({
       </FormField>
       <CatalogFieldInputs
         fields={item.definition.fields ?? []}
+        sections={item.definition.sections}
         values={customValues}
         onChange={setCustomValues}
+        disabled={pending}
+        idPrefix="request-field"
       />
       {fixedApprover ? (
         <FormField className="field">

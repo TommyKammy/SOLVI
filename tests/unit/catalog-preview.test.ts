@@ -9,6 +9,7 @@ import {
 } from '../../apps/web/src/lib/catalog-preview';
 import type { CatalogField } from '../../apps/web/src/lib/api';
 import { CatalogLivePreview } from '../../apps/web/src/components/CatalogLivePreview';
+import { CatalogFieldInputs } from '../../apps/web/src/components/CatalogFieldInputs';
 
 const hooks = vi.hoisted(() => ({ states: [] as unknown[], cursor: 0, changed: false }));
 vi.mock('react', async (importActual) => {
@@ -67,6 +68,22 @@ function field(changes: Partial<CatalogField> = {}): CatalogField {
     label: changes.label ?? 'プロジェクト名',
     required: changes.required ?? true,
   };
+  if (changes.type === 'multiselect')
+    return { ...base, type: 'multiselect', options: changes.options ?? ['国内', '海外'] };
+  if (changes.type === 'number')
+    return {
+      ...base,
+      type: 'number',
+      ...(changes.min !== undefined ? { min: changes.min } : {}),
+      ...(changes.max !== undefined ? { max: changes.max } : {}),
+    };
+  if (changes.type === 'date')
+    return {
+      ...base,
+      type: 'date',
+      ...(changes.minDate ? { minDate: changes.minDate } : {}),
+      ...(changes.maxDate ? { maxDate: changes.maxDate } : {}),
+    };
   if (changes.type === 'select')
     return { ...base, type: 'select', options: changes.options ?? ['国内', '海外'] };
   if (changes.type === 'checkbox') return { ...base, type: 'checkbox' };
@@ -82,6 +99,9 @@ const inputErrors = (config: CatalogPreviewConfig, changes: Partial<CatalogPrevi
   validateCatalogPreviewInput(config, input(changes)).map((issue) => issue.field);
 
 describe('catalog preview configuration', () => {
+  it('treats a blank optional category like the save action without adding a definition key', () => {
+    expect(validateCatalogPreviewConfig(configuration({ category: '   ' })).errors).toEqual([]);
+  });
   it('accepts the duration endpoints and exactly ten distinct candidates', () => {
     expect(validateCatalogPreviewConfig(configuration({ days: '1,2,3,4,5,6,7,8,9,365' }))).toEqual({
       durations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 365],
@@ -369,13 +389,22 @@ function nodes(value: unknown): PreviewNode[] {
   if (Array.isArray(value)) return value.flatMap(nodes);
   if (!value || typeof value !== 'object' || !('props' in value)) return [];
   const element = value as PreviewNode;
+  if (element.type === CatalogFieldInputs)
+    return [
+      element,
+      ...nodes(CatalogFieldInputs(element.props as Parameters<typeof CatalogFieldInputs>[0])),
+    ];
   return [element, ...nodes(element.props.children)];
 }
 function text(value: unknown): string {
   if (typeof value === 'string' || typeof value === 'number') return String(value);
   if (Array.isArray(value)) return value.map(text).join('');
-  if (value && typeof value === 'object' && 'props' in value)
-    return text((value as PreviewNode).props.children);
+  if (value && typeof value === 'object' && 'props' in value) {
+    const node = value as PreviewNode;
+    if (node.type === CatalogFieldInputs)
+      return text(CatalogFieldInputs(node.props as Parameters<typeof CatalogFieldInputs>[0]));
+    return text(node.props.children);
+  }
   return '';
 }
 function renderPreview(config: CatalogPreviewConfig) {
@@ -460,5 +489,196 @@ describe('catalog live preview definition changes', () => {
     renderPreview(config);
     config = configuration({ fields: [second, first] });
     expect(control(renderPreview(config), 1).props.value).toBe('');
+  });
+});
+
+describe('priority two shared preview contract', () => {
+  const expandedFields: CatalogField[] = [
+    {
+      key: 'loan',
+      label: '貸与区分',
+      type: 'select',
+      required: true,
+      options: ['標準貸与', '一時貸出'],
+    },
+    {
+      key: 'return_date',
+      label: '返却予定日',
+      type: 'date',
+      required: true,
+      minDate: '2026-01-01',
+      maxDate: '2030-12-31',
+      visibleWhen: { field: 'loan', equals: '一時貸出' },
+      section: 'equipment',
+      helpText: '返却可能な日を指定します。',
+    },
+    {
+      key: 'quantity',
+      label: '希望台数',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 5,
+      section: 'equipment',
+    },
+    {
+      key: 'extras',
+      label: '周辺機器',
+      type: 'multiselect',
+      required: true,
+      options: [' マウス ', 'アダプター'],
+      section: 'equipment',
+    },
+  ];
+  const expanded = () =>
+    configuration({
+      fields: expandedFields,
+      category: '機器・備品',
+      sections: [
+        { key: 'equipment', title: '必要な機器', description: '業務で必要な機器を選びます。' },
+      ],
+    });
+
+  it('accepts all new definition metadata and the three new typed sample values', () => {
+    const config = expanded();
+    expect(validateCatalogPreviewConfig(config).errors).toEqual([]);
+    expect(
+      inputErrors(config, {
+        values: {
+          loan: '一時貸出',
+          return_date: '2028-02-29',
+          quantity: '2.5',
+          extras: ['マウス', 'アダプター'],
+        },
+      }),
+    ).toEqual([]);
+    expect(
+      inputErrors(config, { values: { loan: '標準貸与', quantity: 2, extras: ['マウス'] } }),
+    ).toEqual([]);
+  });
+
+  it.each(['2027-02-29', '2028-02-30', '2025-12-31', '2031-01-01'])(
+    'rejects impossible or out-of-range date %s',
+    (return_date) => {
+      expect(
+        inputErrors(expanded(), {
+          values: { loan: '一時貸出', return_date, quantity: '2', extras: ['マウス'] },
+        }),
+      ).toEqual(['values.return_date']);
+    },
+  );
+
+  it.each(['', 'NaN', 'Infinity', '0x10', '6', '0', true])(
+    'does not accept empty, malformed, wrong-type or out-of-range numeric value %s',
+    (quantity) => {
+      expect(
+        inputErrors(expanded(), { values: { loan: '標準貸与', quantity, extras: ['マウス'] } }),
+      ).toEqual(['values.quantity']);
+    },
+  );
+
+  it.each([[], ['未知の候補'], ['マウス', ' マウス ']])(
+    'rejects empty, unknown or repeated multiple choices %j',
+    (...choices) => {
+      expect(
+        inputErrors(expanded(), {
+          values: { loan: '標準貸与', quantity: 2, extras: choices as string[] },
+        }),
+      ).toEqual(['values.extras']);
+    },
+  );
+
+  it('reports category, section and condition configuration errors before a sample can succeed', () => {
+    expect(configErrors({ category: 'x'.repeat(81) })).toContain('category');
+    expect(
+      configErrors({ fields: [{ ...expandedFields[1], section: 'missing' }], sections: [] }),
+    ).toContain('fields.0.section');
+    const cyclic: CatalogField[] = [
+      {
+        key: 'first',
+        label: '最初',
+        required: false,
+        type: 'checkbox',
+        visibleWhen: { field: 'second', equals: true },
+      },
+      {
+        key: 'second',
+        label: '次',
+        required: false,
+        type: 'checkbox',
+        visibleWhen: { field: 'first', equals: true },
+      },
+    ];
+    expect(configErrors({ fields: cyclic }).some((path) => path.endsWith('visibleWhen'))).toBe(
+      true,
+    );
+  });
+
+  it('normalizes multiple choices to trimmed current options and clears samples on type changes', () => {
+    const old: CatalogField = {
+      key: 'extras',
+      label: '周辺機器',
+      type: 'multiselect',
+      required: false,
+      options: ['マウス', '旧候補'],
+    };
+    const next: CatalogField = { ...old, options: [' マウス ', 'アダプター'] };
+    expect(normalizeCatalogPreviewValues([old], [next], { extras: ['マウス', '旧候補'] })).toEqual({
+      extras: ['マウス'],
+    });
+    expect(
+      normalizeCatalogPreviewValues([field({ key: 'extras' })], [next], { extras: 'old' }),
+    ).toEqual({ extras: [] });
+    expect(
+      normalizeCatalogPreviewValues([old], [field({ key: 'extras', type: 'number' })], {
+        extras: ['マウス'],
+      }),
+    ).toEqual({ extras: '' });
+  });
+
+  it('shows sections and hints, keeps controls unnamed, and clears hidden required values without resurrection', () => {
+    const config = expanded();
+    let tree = renderPreview(config);
+    expect(text(tree)).toContain('必要な機器');
+    expect(text(tree)).toContain('業務で必要な機器を選びます。');
+    expect(nodes(tree).some((node) => node.props.id === 'catalog-try-preview-unit-field-1')).toBe(
+      false,
+    );
+    changeSample(tree, 0, '一時貸出');
+    tree = renderPreview(config);
+    expect(text(tree)).toContain('返却可能な日を指定します。');
+    changeSample(tree, 1, '2028-02-29');
+    changeSample(renderPreview(config), 0, '標準貸与');
+    expect(
+      nodes(renderPreview(config)).some(
+        (node) => node.props.id === 'catalog-try-preview-unit-field-1',
+      ),
+    ).toBe(false);
+    changeSample(renderPreview(config), 0, '一時貸出');
+    tree = renderPreview(config);
+    expect(control(tree, 1).props.value).toBe('');
+    expect(
+      nodes(tree)
+        .filter((node) => ['input', 'select', 'textarea'].includes(String(node.type)))
+        .every((node) => !node.props.name),
+    ).toBe(true);
+  });
+
+  it('keeps a selected draft option with whitespace checked after another input changes', () => {
+    const config = expanded();
+    let tree = renderPreview(config);
+    changeSample(tree, 0, '標準貸与');
+    tree = renderPreview(config);
+    const mouse = nodes(tree).find(
+      (node) => node.props.id === 'catalog-try-preview-unit-field-3-0',
+    )!;
+    (mouse.props.onChange as (event: unknown) => void)({ target: { checked: true } });
+    changeSample(renderPreview(config), 2, '2.5');
+    tree = renderPreview(config);
+    expect(
+      nodes(tree).find((node) => node.props.id === 'catalog-try-preview-unit-field-3-0')?.props
+        .checked,
+    ).toBe(true);
+    expect(testSample(tree, config)).toBe('入力を確認しました。申請は送信されません。');
   });
 });

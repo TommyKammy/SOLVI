@@ -111,7 +111,11 @@ export default async function RequestPage({
       <p>
         カタログ定義版: {s.item.version} · 申請内容版: {q.revision}
       </p>
-      <CatalogValueSummary fields={s.item.definition.fields ?? []} values={s.inputs.values ?? {}} />
+      <CatalogValueSummary
+        fields={s.item.definition.fields ?? []}
+        sections={s.item.definition.sections}
+        values={s.inputs.values ?? {}}
+      />
       {(own || staff) && (
         <p>
           <a href={`/${staff ? 'ops' : 'tickets'}/${q.ticketId}`}>関連する依頼チケットを開く</a>
@@ -154,6 +158,7 @@ export default async function RequestPage({
               <p style={{ whiteSpace: 'pre-wrap' }}>{a.inputs.reason}</p>
               <CatalogValueSummary
                 fields={a.item.definition.fields ?? []}
+                sections={a.item.definition.sections}
                 values={a.inputs.values ?? {}}
               />
             </details>

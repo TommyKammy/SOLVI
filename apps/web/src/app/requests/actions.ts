@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { api } from '../../lib/api';
 import { formScopeError } from '../../lib/form-scope';
 import type { FormFeedback } from '../../lib/form-state';
+import { readCatalogFormValues } from '../../lib/catalog-form';
 export async function saveServiceRequest(
   id: string | null,
   previous: FormFeedback,
@@ -17,12 +18,7 @@ export async function saveServiceRequest(
     durationDays: String(form.get('durationDays') ?? ''),
     approverId: String(form.get('approverId') ?? ''),
   };
-  const customValues: Record<string, string | boolean> = {};
-  for (const [name, value] of form.entries())
-    if (name.startsWith('value:')) customValues[name.slice(6)] = String(value);
-  for (const [name] of form.entries())
-    if (name.startsWith('checkbox:'))
-      customValues[name.slice(9)] = form.get('value:' + name.slice(9)) === 'true';
+  const customValues = readCatalogFormValues(form);
   const input = { ...values, durationDays: Number(values.durationDays), values: customValues };
   const result = id
     ? await api.editRequest(

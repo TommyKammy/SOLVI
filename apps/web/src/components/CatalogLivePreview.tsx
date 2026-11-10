@@ -9,6 +9,8 @@ import {
   type CatalogPreviewIssue,
 } from '../lib/catalog-preview';
 import styles from './CatalogLivePreview.module.css';
+import { CatalogFieldInputs } from './CatalogFieldInputs';
+import type { CatalogValues } from '@solvi/shared/catalog';
 
 export type CatalogLivePreviewProps = CatalogPreviewConfig & { disabled?: boolean };
 
@@ -21,7 +23,7 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
   const [samples, setSamples] = useState(() => ({
     signature: fieldsSignature,
     fields: config.fields.map(({ key, type }) => ({ key, type })),
-    values: {} as Record<string, string | boolean>,
+    values: {} as CatalogValues,
   }));
   const values = normalizeCatalogPreviewValues(samples.fields, config.fields, samples.values);
   // Commit the new definition before another interaction, so removed values cannot reappear.
@@ -49,15 +51,12 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
       : definition.durations.includes(Number(selectedDuration))
         ? selectedDuration
         : '';
-  const change = (key: string, value: string | boolean) => {
-    setSamples((previous) => ({
+  const change = (next: CatalogValues) => {
+    setSamples({
       signature: fieldsSignature,
-      fields: config.fields.map(({ key: fieldKey, type }) => ({ key: fieldKey, type })),
-      values: {
-        ...normalizeCatalogPreviewValues(previous.fields, config.fields, previous.values),
-        [key]: value,
-      },
-    }));
+      fields: config.fields.map(({ key, type }) => ({ key, type })),
+      values: next,
+    });
     setResult(null);
   };
   const issueFor = (key: string) => issues?.find((issue) => issue.field === key)?.message;
@@ -156,76 +155,17 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
               </p>
             )}
           </div>
-          {config.fields.map((field, index) => {
-            const fieldId = controlId(index);
-            const error = issueFor(`values.${field.key}`);
-            const label = `${field.label.trim() || `項目${index + 1}`}（${field.required ? '必須' : '任意'}）`;
-            return (
-              <div className={styles.field} key={`${field.key}-${index}`}>
-                {field.type === 'checkbox' ? (
-                  <label className={styles.choice} htmlFor={fieldId}>
-                    <input
-                      id={fieldId}
-                      type="checkbox"
-                      checked={values[field.key] === true}
-                      required={field.required}
-                      aria-invalid={Boolean(error)}
-                      aria-describedby={error ? `${fieldId}-error` : undefined}
-                      onChange={(event) => change(field.key, event.target.checked)}
-                    />
-                    {label}
-                  </label>
-                ) : (
-                  <>
-                    <label htmlFor={fieldId}>{label}</label>
-                    {field.type === 'select' ? (
-                      <select
-                        id={fieldId}
-                        value={String(values[field.key] ?? '')}
-                        required={field.required}
-                        aria-invalid={Boolean(error)}
-                        aria-describedby={error ? `${fieldId}-error` : undefined}
-                        onChange={(event) => change(field.key, event.target.value)}
-                      >
-                        <option value="">選んでください</option>
-                        {field.options.map((option, optionIndex) => (
-                          <option key={optionIndex} value={option.trim()}>
-                            {option.trim() || '（空の候補）'}
-                          </option>
-                        ))}
-                      </select>
-                    ) : field.type === 'textarea' ? (
-                      <textarea
-                        id={fieldId}
-                        value={String(values[field.key] ?? '')}
-                        required={field.required}
-                        maxLength={field.maxLength > 0 ? field.maxLength : undefined}
-                        aria-invalid={Boolean(error)}
-                        aria-describedby={error ? `${fieldId}-error` : undefined}
-                        onChange={(event) => change(field.key, event.target.value)}
-                      />
-                    ) : (
-                      <input
-                        id={fieldId}
-                        type="text"
-                        value={String(values[field.key] ?? '')}
-                        required={field.required}
-                        maxLength={field.maxLength > 0 ? field.maxLength : undefined}
-                        aria-invalid={Boolean(error)}
-                        aria-describedby={error ? `${fieldId}-error` : undefined}
-                        onChange={(event) => change(field.key, event.target.value)}
-                      />
-                    )}
-                  </>
-                )}
-                {error && (
-                  <p className={styles.error} id={`${fieldId}-error`}>
-                    {error}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+          <CatalogFieldInputs
+            fields={config.fields}
+            sections={config.sections}
+            values={values}
+            onChange={change}
+            disabled={disabled}
+            idPrefix={id}
+            fieldId={(_field, index) => controlId(index)}
+            namedControls={false}
+            errors={issues ?? []}
+          />
           <p className={styles.approver}>
             承認を依頼する相手：
             {config.approvers.find((person) => person.id === config.approver)?.name ?? '未設定'}

@@ -23,12 +23,8 @@ export default async function CatalogPage({
   const result = await api.catalog();
   const selection = selectCatalogItems(result.ok ? result.data.items : [], query);
   const currentHref = catalogHref(query);
-  const missingTarget = query.target !== '' && !selection.targets.includes(query.target);
-  const targets = result.ok
-    ? [
-        ...new Set(result.data.items.map((item) => item.definition.targetLabel).filter(Boolean)),
-      ].sort((a, b) => a.localeCompare(b, 'ja'))
-    : [];
+  const missingCategory = !!query.category && !selection.categories.includes(query.category);
+  const categories = selection.categories;
 
   return (
     <main id="main" className="shell service-catalog fs-catalog">
@@ -37,25 +33,28 @@ export default async function CatalogPage({
           <p className="fs-side-nav-heading">サービスカタログ</p>
           <nav className="fs-side-nav-links">
             <Link
-              href={catalogHref(query, { target: '', page: 1 })}
-              aria-current={!query.target ? 'page' : undefined}
+              href={catalogHref(query, { category: '', target: '', page: 1 })}
+              aria-current={!query.category && !query.target ? 'page' : undefined}
             >
               すべてのアイテム
             </Link>
-            {targets.map((target) => (
+            {categories.map((category) => (
               <Link
-                key={target}
-                href={catalogHref(query, { target, page: 1 })}
-                aria-current={query.target === target ? 'page' : undefined}
+                key={category}
+                href={catalogHref(query, { category, target: '', page: 1 })}
+                aria-current={query.category === category && !query.target ? 'page' : undefined}
               >
-                <span>{target}</span>
+                <span>{category}</span>
               </Link>
             ))}
-            {missingTarget && (
-              <span className="fs-side-nav-note">指定中の対象を保持しています</span>
+            {missingCategory && (
+              <span className="fs-side-nav-note">指定中のカテゴリを保持しています</span>
+            )}
+            {query.target && (
+              <span className="fs-side-nav-note">以前のリンクの対象条件を保持しています</span>
             )}
           </nav>
-          {result.ok && result.data.canManage && (
+          {result.ok && result.data.canManage && !queryError && (
             <>
               <p className="fs-side-nav-heading">管理</p>
               <nav className="fs-side-nav-links">
@@ -102,13 +101,16 @@ export default async function CatalogPage({
                 }
               />
               <span id="catalog-search-hint" className="visually-hidden">
-                サービス名・説明・対象から探せます。
+                サービス名・説明・カテゴリ・対象から探せます。
               </span>
             </div>
             {query.target && <input type="hidden" name="target" value={query.target} />}
+            {query.category && <input type="hidden" name="category" value={query.category} />}
             <div className="catalog-filter-actions">
               <button type="submit">絞り込む</button>
-              <Link href={catalogHref(query, { q: '', target: '', page: 1 })}>条件を解除</Link>
+              <Link href={catalogHref(query, { q: '', target: '', category: '', page: 1 })}>
+                条件を解除
+              </Link>
             </div>
           </form>
 
@@ -162,7 +164,7 @@ export default async function CatalogPage({
                     {selection.total === 0
                       ? 'サービスの受付が始まるとここに表示されます。メニューにない依頼は一般相談から送れます。'
                       : selection.filtered === 0
-                        ? '検索語や対象を変えるか、条件を解除してお試しください。'
+                        ? '検索語やカテゴリを変えるか、条件を解除してお試しください。'
                         : '公開サービスが変わった可能性があります。同じ条件の最初のページから確認してください。'}
                   </p>
                   {selection.filtered > 0 ? (
@@ -190,7 +192,7 @@ export default async function CatalogPage({
                           <strong>{item.title}</strong>
                           <span className="fs-catalog-description">{item.description}</span>
                           <span className="fs-catalog-target">
-                            {item.definition.targetLabel || '対象未設定'}
+                            {item.definition.category?.trim() || '未分類'}
                           </span>
                         </span>
                         <FreshserviceIcon name="chevron" size={16} />

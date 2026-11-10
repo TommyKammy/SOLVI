@@ -1,0 +1,68 @@
+.section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.section h3,
+.description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  white-space: pre-wrap;
+  color: var(--fs-text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field label,
+.choiceGroup legend {
+  font-weight: 600;
+}
+
+.field input:not([type='checkbox']),
+.field textarea,
+.field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.choiceGroup {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  border: 0;
+}
+
+.choiceGroup legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.choice input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+.error {
+  margin: 0;
+  color: var(--fs-danger);
+  font-size: 13px;
+}

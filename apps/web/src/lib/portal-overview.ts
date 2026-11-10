@@ -7,7 +7,7 @@ export type PortalQuery = {
   page: number;
   cursor: { createdAt: string; id: string } | null;
 };
-export type CatalogQuery = { q: string; target: string; page: number };
+export type CatalogQuery = { q: string; target: string; category?: string; page: number };
 export const CATALOG_PAGE_SIZE = 12;
 export const CATALOG_SEARCH_MAX_LENGTH = 100;
 
@@ -87,13 +87,21 @@ export function portalTicketNextAction(
 }
 
 export function parseCatalogQuery(raw: QueryInput): CatalogQuery {
-  return { q: scalar(raw.q), target: scalar(raw.target), page: pageValue(raw.page) };
+  return {
+    q: scalar(raw.q),
+    target: scalar(raw.target),
+    category: scalar(raw.category),
+    page: pageValue(raw.page),
+  };
 }
 
 /** Keep supported catalog return URLs within the existing navigation length limit. */
 export function catalogQueryError(query: CatalogQuery): string | null {
   if (query.q.length > CATALOG_SEARCH_MAX_LENGTH) return '検索語は100文字以内で入力してください';
   if (query.target.length > 100) return '対象の指定は100文字以内で選び直してください';
+  if ((query.category?.length ?? 0) > 80) return 'カテゴリの指定は80文字以内で選び直してください';
+  if (catalogHref(query).length > 2000)
+    return '検索条件が長すぎます。検索語を短くするか条件を解除してください';
   return null;
 }
 
@@ -107,10 +115,16 @@ export function selectCatalogItems<
   const filteredItems = items.filter(
     (item) =>
       (!query.target || item.definition.targetLabel === query.target) &&
+      (!query.category || (item.definition.category?.trim() || '未分類') === query.category) &&
       (!needle ||
-        normalized([item.title, item.description, item.definition.targetLabel].join('\n')).includes(
-          needle,
-        )),
+        normalized(
+          [
+            item.title,
+            item.description,
+            item.definition.category ?? '',
+            item.definition.targetLabel,
+          ].join('\n'),
+        ).includes(needle)),
   );
   const page = Number.isSafeInteger(query.page) && query.page > 0 ? query.page : 1;
   const offset = (page - 1) * CATALOG_PAGE_SIZE;
@@ -126,6 +140,9 @@ export function selectCatalogItems<
     targets: [...new Set(items.map((item) => item.definition.targetLabel))].filter(
       (target) => target.trim().length > 0,
     ),
+    categories: [
+      ...new Set(items.map((item) => item.definition.category?.trim() || '未分類')),
+    ].sort((a, b) => a.localeCompare(b, 'ja')),
   };
 }
 
@@ -133,12 +150,14 @@ export function catalogHref(query: CatalogQuery, overrides: Partial<CatalogQuery
   const next = { ...query, ...overrides };
   if (
     (overrides.q !== undefined && overrides.q !== query.q) ||
-    (overrides.target !== undefined && overrides.target !== query.target)
+    (overrides.target !== undefined && overrides.target !== query.target) ||
+    (overrides.category !== undefined && overrides.category !== query.category)
   )
     next.page = 1;
   const params = new URLSearchParams();
   if (next.q) params.set('q', next.q);
   if (next.target) params.set('target', next.target);
+  if (next.category) params.set('category', next.category);
   if (Number.isSafeInteger(next.page) && next.page > 1) params.set('page', String(next.page));
   return `/catalog${params.size ? `?${params}` : ''}`;
 }

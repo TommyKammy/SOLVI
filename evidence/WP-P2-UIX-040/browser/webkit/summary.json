@@ -1,0 +1,129 @@
+{
+  "workPackage": "WP-P2-UIX-040",
+  "browser": "webkit",
+  "marker": "UI040-SYN-1794320218269-webkit",
+  "category": "UI040合成機器-webkit",
+  "success": true,
+  "checks": [
+    {
+      "name": "Operator creates category, sections, help and all new question types from the PC template",
+      "passed": true
+    },
+    {
+      "name": "Preview validates date and number bounds, accepts zero and keeps multiple selections without sending",
+      "passed": true
+    },
+    {
+      "name": "Changing the controlling answer prunes hidden required dates and never restores old samples",
+      "passed": true
+    },
+    {
+      "name": "Desktop and 375px authoring have unique IDs, keyboard access and no axe violations",
+      "passed": true
+    },
+    {
+      "name": "Exactly one synthetic draft save retains metadata and excludes preview answers while pending is locked",
+      "passed": true
+    },
+    {
+      "name": "Own synthetic saved version publishes once and is listed under its business category",
+      "passed": true
+    },
+    {
+      "name": "Requester filters by the new category independently of the legacy target parameter",
+      "passed": true
+    },
+    {
+      "name": "Requester sees sections and help and can clear a previously entered conditional date",
+      "passed": true
+    },
+    {
+      "name": "Requester submits exactly once with numeric zero, multiple choices and no hidden date",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "authoring-desktop",
+      "violations": []
+    },
+    {
+      "name": "authoring-mobile-375",
+      "violations": []
+    },
+    {
+      "name": "request-form-desktop",
+      "violations": []
+    },
+    {
+      "name": "request-form-mobile-375",
+      "violations": []
+    },
+    {
+      "name": "request-confirmation-desktop",
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "authoring-desktop-1440.png",
+    "authoring-mobile-375.png",
+    "category-desktop-1440.png",
+    "request-form-desktop-1440.png",
+    "request-form-mobile-375.png",
+    "request-fields-mobile-375.png",
+    "request-confirmation-desktop-1440.png"
+  ],
+  "network": {
+    "authWrites": 4,
+    "saves": 1,
+    "publications": 1,
+    "requests": 1,
+    "blocked": []
+  },
+  "browserVersion": "26.5",
+  "currentStep": "complete",
+  "managementCode": "service-4d173e9e-f032-4f79-8405-b4234b3ec5e9",
+  "previewBusinessWrites": 0,
+  "keyboard": {
+    "key": "Alt+Tab",
+    "tag": "SELECT",
+    "visible": true,
+    "ring": "none"
+  },
+  "authoringMobileWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "createdDraftId": "01a1c5d1-ca18-7000-8da1-323e3a627ff2",
+  "savedPayload": {
+    "fields": 9,
+    "sections": 2,
+    "categoryPreserved": true,
+    "fieldKeysPreserved": true,
+    "previewSamplesExcluded": true
+  },
+  "publishedRevision": 1,
+  "requestMobileWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "recovery": {
+    "reusedPublishedDraft": "01a1c5d1-ca18-7000-8da1-323e3a627ff2",
+    "additionalDraftCreates": 0,
+    "additionalPublications": 0,
+    "priorRequestReachedServer": false,
+    "reason": "Requester controls now wait for the hydrated form before the first fill"
+  },
+  "createdRequestId": "01a1c5d5-48fa-7000-9924-c284c4e68e8b",
+  "snapshot": {
+    "version": 1,
+    "category": "UI040合成機器-webkit",
+    "sections": 2,
+    "numericZero": true,
+    "multiselect": [
+      "マウス",
+      "モニター"
+    ],
+    "hiddenDateExcluded": true
+  }
+}

@@ -9,6 +9,7 @@ import { CatalogFieldInputs } from './CatalogFieldInputs';
 import { catalogTemplates } from '../lib/catalog-templates';
 import styles from './CatalogAdminForm.module.css';
 import { CatalogLivePreview } from './CatalogLivePreview';
+import type { CatalogSection } from '@solvi/shared/catalog';
 
 type EditorValues = {
   code: string;
@@ -19,6 +20,8 @@ type EditorValues = {
   maxReason: number;
   approver: string;
   fields: CatalogField[];
+  category: string;
+  sections: CatalogSection[];
 };
 
 function editorValues(item?: CatalogAdminDetail): EditorValues {
@@ -32,30 +35,33 @@ function editorValues(item?: CatalogAdminDetail): EditorValues {
     maxReason: d?.definition.maxReasonLength ?? 2000,
     approver: d?.definition.approval?.approverId ?? '',
     fields: d?.definition.fields ?? [],
+    category: d?.definition.category ?? '',
+    sections: d?.definition.sections ?? [],
   };
 }
 
 // Compare displayed edit values, retaining field and option array boundaries and order.
 function editProjection(values: EditorValues) {
-  return JSON.stringify({
-    title: values.title,
-    description: values.description.replace(/\r\n?/g, '\n'),
-    target: values.target,
-    days: values.days,
-    maxReason: values.maxReason,
-    approver: values.approver,
-    fields: values.fields.map((f) => ({
-      key: f.key,
-      label: f.label,
-      type: f.type,
-      required: f.required,
-      ...(f.type === 'select'
-        ? { options: f.options }
-        : f.type === 'checkbox'
-          ? {}
-          : { maxLength: f.maxLength }),
-    })),
-  });
+  return JSON.stringify(
+    {
+      title: values.title,
+      description: values.description.replace(/\r\n?/g, '\n'),
+      target: values.target,
+      days: values.days,
+      maxReason: values.maxReason,
+      approver: values.approver,
+      category: values.category,
+      sections: values.sections.map((section) => ({
+        ...section,
+        description: section.description || undefined,
+      })),
+      fields: values.fields.map((field) => ({ ...field, helpText: field.helpText || undefined })),
+    },
+    (_key, value: unknown) =>
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+        : value,
+  );
 }
 
 async function exclusiveAction(
@@ -132,7 +138,18 @@ function EditorForm({
   isBusy?: () => boolean;
 }) {
   const { feedback, action, pending, values, update } = editor;
-  const { code, title, description, target, days, maxReason, approver, fields } = values;
+  const {
+    code,
+    title,
+    description,
+    target,
+    days,
+    maxReason,
+    approver,
+    fields,
+    category,
+    sections,
+  } = values;
   function edit<K extends keyof EditorValues>(
     key: K,
     value: EditorValues[K] | ((old: EditorValues[K]) => EditorValues[K]),
@@ -148,6 +165,8 @@ function EditorForm({
   const setApprover = (value: string) => edit('approver', value);
   const setFields = (value: CatalogField[] | ((old: CatalogField[]) => CatalogField[])) =>
     edit('fields', value);
+  const setCategory = (value: string) => edit('category', value);
+  const setSections = (value: CatalogSection[]) => edit('sections', value);
   const [creationKey, setCreationKey] = useState('');
   const [templateCode, setTemplateCode] = useState('');
   useEffect(() => {
@@ -158,20 +177,42 @@ function EditorForm({
   }, []);
   const replace = (index: number, value: CatalogField) =>
     setFields((old) => old.map((f, i) => (i === index ? value : f)));
+  const neighbor = (index: number, direction: number, source = fields) => {
+    for (
+      let candidate = index + direction;
+      candidate >= 0 && candidate < source.length;
+      candidate += direction
+    )
+      if ((source[candidate]?.section ?? '') === (source[index]?.section ?? '')) return candidate;
+    return -1;
+  };
+  const moveField = (index: number, direction: number) =>
+    setFields((old) => {
+      const targetIndex = neighbor(index, direction, old);
+      if (targetIndex < 0) return old;
+      const next = [...old];
+      [next[index], next[targetIndex]] = [next[targetIndex]!, next[index]!];
+      return next;
+    });
   const changeType = (index: number, type: CatalogField['type']) => {
     const f = fields[index]!;
     replace(index, {
       key: f.key,
       label: f.label,
       required: f.required,
-      ...(type === 'select'
+      ...(f.helpText !== undefined ? { helpText: f.helpText } : {}),
+      ...(f.section !== undefined ? { section: f.section } : {}),
+      ...(f.visibleWhen !== undefined ? { visibleWhen: f.visibleWhen } : {}),
+      ...(type === 'select' || type === 'multiselect'
         ? { type, options: ['候補1', '候補2'] }
-        : type === 'checkbox'
+        : type === 'checkbox' || type === 'date' || type === 'number'
           ? { type }
           : { type, maxLength: type === 'text' ? 200 : 2000 }),
     });
   };
   function example() {
+    setCategory('アカウント・アクセス');
+    setSections([]);
     setTitle('合成アクセス利用申請');
     setDescription('項目定義と独立承認を確認するための合成申請です。外部変更はありません。');
     setTarget('検証用アクセス');
@@ -203,6 +244,8 @@ function EditorForm({
     setDays(template.allowedDurations.join(', '));
     setMaxReason(2000);
     setFields(template.fields.map((f) => ({ ...f })));
+    setCategory(template.category ?? '');
+    setSections(template.sections?.map((section) => ({ ...section })) ?? []);
   }
   const steps = [
     ['catalog-basic-settings', '基本情報'],
@@ -252,6 +295,7 @@ function EditorForm({
           <input type="hidden" name="creationKey" value={creationKey} />
           <input type="hidden" name="expectedVersion" value={item?.editVersion ?? 1} />
           <input type="hidden" name="fields" value={JSON.stringify(fields)} />
+          <input type="hidden" name="sections" value={JSON.stringify(sections)} />
           <fieldset disabled={busy} className={styles.controls}>
             <legend>カタログの下書き入力</legend>
             <section className={styles.section} aria-labelledby="catalog-basic-settings">
@@ -318,6 +362,20 @@ function EditorForm({
                 />
               </FormField>
               <FormField className="field">
+                <label htmlFor="catalog-category">業務カテゴリ</label>
+                <input
+                  id="catalog-category"
+                  name="category"
+                  value={category}
+                  maxLength={80}
+                  placeholder="例：PC・周辺機器"
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+                <p className="hint">
+                  利用者がサービスを探す分類です。未設定の場合は「未分類」に表示します。
+                </p>
+              </FormField>
+              <FormField className="field">
                 <label htmlFor="catalog-description">利用者への説明</label>
                 <textarea
                   id="catalog-description"
@@ -370,8 +428,114 @@ function EditorForm({
                 <h3>追加の申請項目</h3>
               </FormField>
               <p className="hint">
-                上の理由・利用日数に加える項目です。最大10件。利用者へこの順番で表示します。
+                上の理由・利用日数に加える質問です。最大10件。セクションは登録順、各セクションの質問は下の順番で表示します。
               </p>
+              <div className={styles.sectionSettings}>
+                <h3>フォームのセクション</h3>
+                <p className="hint">
+                  質問を用途ごとにまとめます。セクションを外しても質問は残ります。
+                </p>
+                {sections.map((section, index) => (
+                  <fieldset key={section.key} className="stack">
+                    <legend>セクション{index + 1}</legend>
+                    <FormField className="field">
+                      <label htmlFor={`catalog-section-title-${index}`}>
+                        セクション名 {index + 1}
+                      </label>
+                      <input
+                        id={`catalog-section-title-${index}`}
+                        name={`sections.${index}.title`}
+                        value={section.title}
+                        maxLength={100}
+                        required
+                        onChange={(e) =>
+                          setSections(
+                            sections.map((s, n) =>
+                              n === index ? { ...s, title: e.target.value } : s,
+                            ),
+                          )
+                        }
+                      />
+                    </FormField>
+                    <FormField className="field">
+                      <label htmlFor={`catalog-section-description-${index}`}>
+                        セクションの説明 {index + 1}
+                      </label>
+                      <textarea
+                        id={`catalog-section-description-${index}`}
+                        name={`sections.${index}.description`}
+                        value={section.description ?? ''}
+                        maxLength={500}
+                        onChange={(e) =>
+                          setSections(
+                            sections.map((s, n) =>
+                              n === index ? { ...s, description: e.target.value || undefined } : s,
+                            ),
+                          )
+                        }
+                      />
+                    </FormField>
+                    <div className={styles.fieldOrder}>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={index === 0}
+                        onClick={() => {
+                          const next = [...sections];
+                          [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
+                          setSections(next);
+                        }}
+                      >
+                        セクション{index + 1}を上へ
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={index === sections.length - 1}
+                        onClick={() => {
+                          const next = [...sections];
+                          [next[index + 1], next[index]] = [next[index]!, next[index + 1]!];
+                          setSections(next);
+                        }}
+                      >
+                        セクション{index + 1}を下へ
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => {
+                          setSections(sections.filter((s) => s.key !== section.key));
+                          setFields(
+                            fields.map((field) =>
+                              field.section === section.key
+                                ? { ...field, section: undefined }
+                                : field,
+                            ),
+                          );
+                        }}
+                      >
+                        セクション{index + 1}を外す
+                      </button>
+                    </div>
+                  </fieldset>
+                ))}
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={sections.length >= 10}
+                  onClick={() =>
+                    setSections([
+                      ...sections,
+                      {
+                        key: 'section_' + crypto.randomUUID().replaceAll('-', '').slice(0, 24),
+                        title: '',
+                      },
+                    ])
+                  }
+                >
+                  セクションを追加する
+                </button>
+              </div>
               {fields.map((f, i) => (
                 <fieldset key={f.key} className="catalog-editor-field">
                   <legend>項目{i + 1}</legend>
@@ -409,6 +573,9 @@ function EditorForm({
                       <option value="textarea">長文</option>
                       <option value="select">選択</option>
                       <option value="checkbox">確認チェック</option>
+                      <option value="date">日付</option>
+                      <option value="number">数値</option>
+                      <option value="multiselect">複数選択</option>
                     </select>
                   </FormField>
                   <label>
@@ -419,7 +586,139 @@ function EditorForm({
                     />{' '}
                     必須にする{f.type === 'checkbox' ? '（チェックが必要）' : ''}
                   </label>
-                  {f.type === 'select' ? (
+                  <FormField className="field">
+                    <label htmlFor={`field-help-${i}`}>補足説明 {i + 1}</label>
+                    <textarea
+                      id={`field-help-${i}`}
+                      name={`fields.${i}.helpText`}
+                      value={f.helpText ?? ''}
+                      maxLength={500}
+                      placeholder="例：配送先の部署・受取人をご記入ください。"
+                      onChange={(e) => replace(i, { ...f, helpText: e.target.value || undefined })}
+                    />
+                  </FormField>
+                  <FormField className="field">
+                    <label htmlFor={`field-section-${i}`}>セクション {i + 1}</label>
+                    <select
+                      id={`field-section-${i}`}
+                      name={`fields.${i}.section`}
+                      value={f.section ?? ''}
+                      onChange={(e) => replace(i, { ...f, section: e.target.value || undefined })}
+                    >
+                      <option value="">セクションなし</option>
+                      {sections.map((section) => (
+                        <option key={section.key} value={section.key}>
+                          {section.title || '名前を入力してください'}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <details className={styles.details} open={f.visibleWhen ? true : undefined}>
+                    <summary>項目{i + 1}の表示条件</summary>
+                    <div className="stack">
+                      <FormField className="field">
+                        <label htmlFor={`field-condition-${i}`}>表示条件 {i + 1}</label>
+                        <select
+                          id={`field-condition-${i}`}
+                          name={`fields.${i}.visibleWhen.field`}
+                          value={f.visibleWhen?.field ?? ''}
+                          onChange={(e) => {
+                            const source = fields.find((field) => field.key === e.target.value);
+                            replace(i, {
+                              ...f,
+                              visibleWhen: source
+                                ? {
+                                    field: source.key,
+                                    equals:
+                                      source.type === 'checkbox'
+                                        ? true
+                                        : source.type === 'select'
+                                          ? (source.options[0] ?? '')
+                                          : '',
+                                  }
+                                : undefined,
+                            });
+                          }}
+                        >
+                          <option value="">常に表示する</option>
+                          {f.visibleWhen &&
+                            !fields.some(
+                              (field) =>
+                                field.key !== f.key &&
+                                field.key === f.visibleWhen?.field &&
+                                (field.type === 'select' || field.type === 'checkbox'),
+                            ) && (
+                              <option value={f.visibleWhen.field}>
+                                利用できなくなった質問（条件を選び直してください）
+                              </option>
+                            )}
+                          {fields
+                            .filter(
+                              (field) =>
+                                field.key !== f.key &&
+                                (field.type === 'select' || field.type === 'checkbox'),
+                            )
+                            .map((field) => (
+                              <option key={field.key} value={field.key}>
+                                {field.label || '名前が未設定の質問'}
+                              </option>
+                            ))}
+                        </select>
+                      </FormField>
+                      {f.visibleWhen &&
+                        (() => {
+                          const source = fields.find((field) => field.key === f.visibleWhen?.field);
+                          const options =
+                            source?.type === 'checkbox'
+                              ? ['true', 'false']
+                              : source?.type === 'select'
+                                ? source.options
+                                : [];
+                          const current = String(f.visibleWhen.equals);
+                          return (
+                            <FormField className="field">
+                              <label htmlFor={`field-condition-value-${i}`}>
+                                一致する回答 {i + 1}
+                              </label>
+                              <select
+                                id={`field-condition-value-${i}`}
+                                name={`fields.${i}.visibleWhen.equals`}
+                                value={current}
+                                onChange={(e) =>
+                                  replace(i, {
+                                    ...f,
+                                    visibleWhen: {
+                                      field: f.visibleWhen!.field,
+                                      equals:
+                                        source?.type === 'checkbox'
+                                          ? e.target.value === 'true'
+                                          : e.target.value,
+                                    },
+                                  })
+                                }
+                              >
+                                {!options.includes(current) && (
+                                  <option value={current}>現在の候補にない回答</option>
+                                )}
+                                {options.map((option) => (
+                                  <option key={option} value={option}>
+                                    {source?.type === 'checkbox'
+                                      ? option === 'true'
+                                        ? 'チェックあり'
+                                        : 'チェックなし'
+                                      : option}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="hint">
+                                選んだ質問の回答が一致した場合だけ表示します。非表示の質問への回答は保存しません。
+                              </p>
+                            </FormField>
+                          );
+                        })()}
+                    </div>
+                  </details>
+                  {f.type === 'select' || f.type === 'multiselect' ? (
                     <FormField className="field">
                       <label htmlFor={'field-options-' + i}>選択肢 {i + 1}（1行1候補）</label>
                       <textarea
@@ -431,7 +730,7 @@ function EditorForm({
                       <p className="hint">空行なし、重複なしで2〜10候補。各100文字以内。</p>
                     </FormField>
                   ) : (
-                    f.type !== 'checkbox' && (
+                    (f.type === 'text' || f.type === 'textarea') && (
                       <FormField className="field">
                         <label htmlFor={'field-limit-' + i}>文字数上限 {i + 1}</label>
                         <input
@@ -447,32 +746,84 @@ function EditorForm({
                       </FormField>
                     )
                   )}
+                  {f.type === 'date' && (
+                    <div className={styles.rangeSettings}>
+                      <FormField className="field">
+                        <label htmlFor={`field-min-date-${i}`}>最も早い日付 {i + 1}</label>
+                        <input
+                          type="date"
+                          id={`field-min-date-${i}`}
+                          name={`fields.${i}.minDate`}
+                          value={f.minDate ?? ''}
+                          onChange={(e) =>
+                            replace(i, { ...f, minDate: e.target.value || undefined })
+                          }
+                        />
+                      </FormField>
+                      <FormField className="field">
+                        <label htmlFor={`field-max-date-${i}`}>最も遅い日付 {i + 1}</label>
+                        <input
+                          type="date"
+                          id={`field-max-date-${i}`}
+                          name={`fields.${i}.maxDate`}
+                          value={f.maxDate ?? ''}
+                          onChange={(e) =>
+                            replace(i, { ...f, maxDate: e.target.value || undefined })
+                          }
+                        />
+                      </FormField>
+                    </div>
+                  )}
+                  {f.type === 'number' && (
+                    <div className={styles.rangeSettings}>
+                      <FormField className="field">
+                        <label htmlFor={`field-min-number-${i}`}>数値の下限 {i + 1}</label>
+                        <input
+                          type="number"
+                          step="any"
+                          id={`field-min-number-${i}`}
+                          name={`fields.${i}.min`}
+                          value={f.min ?? ''}
+                          onChange={(e) =>
+                            replace(i, {
+                              ...f,
+                              min: e.target.value === '' ? undefined : Number(e.target.value),
+                            })
+                          }
+                        />
+                      </FormField>
+                      <FormField className="field">
+                        <label htmlFor={`field-max-number-${i}`}>数値の上限 {i + 1}</label>
+                        <input
+                          type="number"
+                          step="any"
+                          id={`field-max-number-${i}`}
+                          name={`fields.${i}.max`}
+                          value={f.max ?? ''}
+                          onChange={(e) =>
+                            replace(i, {
+                              ...f,
+                              max: e.target.value === '' ? undefined : Number(e.target.value),
+                            })
+                          }
+                        />
+                      </FormField>
+                    </div>
+                  )}
                   <div className={styles.fieldOrder}>
                     <button
                       type="button"
                       className="secondary"
-                      disabled={i === 0}
-                      onClick={() =>
-                        setFields((old) => {
-                          const next = [...old];
-                          [next[i - 1], next[i]] = [next[i]!, next[i - 1]!];
-                          return next;
-                        })
-                      }
+                      disabled={neighbor(i, -1) < 0}
+                      onClick={() => moveField(i, -1)}
                     >
                       項目{i + 1}を上へ
                     </button>
                     <button
                       type="button"
                       className="secondary"
-                      disabled={i === fields.length - 1}
-                      onClick={() =>
-                        setFields((old) => {
-                          const next = [...old];
-                          [next[i], next[i + 1]] = [next[i + 1]!, next[i]!];
-                          return next;
-                        })
-                      }
+                      disabled={neighbor(i, 1) < 0}
+                      onClick={() => moveField(i, 1)}
                     >
                       項目{i + 1}を下へ
                     </button>
@@ -589,6 +940,8 @@ function EditorForm({
             maxReason={maxReason}
             approver={approver}
             fields={fields}
+            category={category}
+            sections={sections}
             approvers={approvers}
             disabled={busy}
           />
@@ -718,6 +1071,7 @@ export function CatalogPreview({
       <p className="hint">利用者に表示するフォームです。このプレビューから申請は送信されません。</p>
       <h3>{title}</h3>
       <p>{description}</p>
+      <p className="hint">業務カテゴリ: {definition.category?.trim() || '未分類'}</p>
       <fieldset disabled className="stack">
         <FormField className="field">
           <label htmlFor="preview-reason">利用する理由</label>
@@ -731,7 +1085,12 @@ export function CatalogPreview({
             ))}
           </select>
         </FormField>
-        <CatalogFieldInputs fields={definition.fields ?? []} values={{}} disabled />
+        <CatalogFieldInputs
+          fields={definition.fields ?? []}
+          sections={definition.sections}
+          values={{}}
+          disabled
+        />
       </fieldset>
       <p>
         固定の承認者:{' '}

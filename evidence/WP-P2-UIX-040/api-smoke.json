@@ -1,0 +1,39 @@
+{
+  "workPackage": "WP-P2-UIX-040",
+  "success": true,
+  "checks": [
+    {
+      "name": "Authentication, authoring role and invalid definitions are enforced",
+      "passed": true
+    },
+    {
+      "name": "New metadata persists only in the synthetic draft before publication",
+      "passed": true
+    },
+    {
+      "name": "Public category is independent from the simulation target and organization scoped",
+      "passed": true
+    },
+    {
+      "name": "Bypassing the client still rejects dates, numeric types/ranges and multiple choices",
+      "passed": true
+    },
+    {
+      "name": "The request snapshot normalizes values, preserves zero and drops hidden answers",
+      "passed": true
+    },
+    {
+      "name": "A newer catalog category and question definition do not change an existing request or hash",
+      "passed": true
+    },
+    {
+      "name": "Cross-organization API and app-role RLS hide both catalog history and request snapshots",
+      "passed": true
+    }
+  ],
+  "createdCatalogs": 1,
+  "createdRequests": 1,
+  "retainedNonpublic": true,
+  "catalogId": "01a1c5c8-7f73-7000-a411-c606c8149087",
+  "requestId": "01a1c5c8-7fe2-7001-896e-faae37c4c53b"
+}

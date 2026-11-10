@@ -17,6 +17,8 @@ type PreviewProps = {
   maxReason: number;
   approver: string;
   fields: CatalogField[];
+  category?: string;
+  sections?: CatalogAdminDetail['draft']['definition']['sections'];
   approvers: CatalogAdminDetail['approvers'];
   disabled: boolean;
 };
@@ -141,6 +143,53 @@ const item: CatalogAdminDetail = {
   ],
 };
 
+const expandedItem: CatalogAdminDetail = {
+  ...item,
+  draft: {
+    ...item.draft,
+    definition: {
+      ...item.draft.definition,
+      category: 'PC・機器',
+      sections: [
+        { key: 'schedule', title: '利用する期間', description: '開始日と返却日を選んでください。' },
+        { key: 'equipment', title: '端末と周辺機器' },
+      ],
+      fields: [
+        ...item.draft.definition.fields!,
+        {
+          key: 'return_date',
+          type: 'date',
+          label: '返却予定日',
+          required: true,
+          minDate: '2026-11-10',
+          maxDate: '2027-12-31',
+          helpText: '検証の場合だけ返却日を指定します。',
+          section: 'schedule',
+          visibleWhen: { field: 'purpose', equals: '検証' },
+        },
+        {
+          key: 'count',
+          type: 'number',
+          label: '台数',
+          required: true,
+          min: 0,
+          max: 10,
+          section: 'equipment',
+        },
+        {
+          key: 'accessories',
+          type: 'multiselect',
+          label: '必要な付属品',
+          required: false,
+          options: ['マウス', 'モニター'],
+          section: 'equipment',
+          visibleWhen: { field: 'confirm', equals: true },
+        },
+      ],
+    },
+  },
+};
+
 function render(create = false, current = item) {
   for (let pass = 0; pass < 5; pass++) {
     hooks.states = hooks.references = hooks.effectIndex = hooks.actionIndex = 0;
@@ -190,6 +239,21 @@ function fields() {
 }
 function change(id: string, value: unknown) {
   (control(id).onChange as (event: unknown) => void)({ target: { value, checked: value } });
+}
+function labeledControl(label: string) {
+  const normalized = (value: string) => value.replace(/\s+/g, ' ').trim();
+  const element = nodes(editorForm().children).find(
+    (node) =>
+      node.type === 'label' &&
+      normalized(text(node.props.children as ReactNode)) === normalized(label),
+  );
+  if (!element || typeof element.props.htmlFor !== 'string') throw Error('missing label ' + label);
+  return control(element.props.htmlFor);
+}
+function changeLabeled(label: string, value: unknown) {
+  (labeledControl(label).onChange as (event: unknown) => void)({
+    target: { value, checked: value },
+  });
 }
 function text(node: ReactNode): string {
   if (Array.isArray(node)) return node.map(text).join('');
@@ -305,6 +369,7 @@ describe('catalog creation intent and live values', () => {
     render(true);
     expect(control('catalog-title').value).toBe('PC貸与申請');
     expect(fields().length).toBeGreaterThan(0);
+    expect(fields().at(-1)).toMatchObject({ key: 'simulation_confirm', section: 'delivery' });
     expect(hidden('creationKey')).toBe(uuid);
     expect(hidden('code')).toBe('service-' + uuid);
     change('catalog-title', '開発端末の貸与');
@@ -395,4 +460,181 @@ describe('catalog creation intent and live values', () => {
     expect(html).toContain('有効な承認者がいません');
     expect(button('下書きを保存してプレビューする').disabled).toBe(true);
   });
+});
+
+describe('priority-two authoring metadata and compatibility', () => {
+  it('loads all seven question types and current category, sections and conditional metadata without changing their keys', () => {
+    render(false, expandedItem);
+    expect(fields()).toEqual(expandedItem.draft.definition.fields);
+    expect(new Set(fields().map((field) => field.type))).toEqual(
+      new Set(['text', 'textarea', 'select', 'checkbox', 'date', 'number', 'multiselect']),
+    );
+    expect(labeledControl('業務カテゴリ').value).toBe('PC・機器');
+    expect(JSON.parse(hidden('sections') as string)).toEqual(
+      expandedItem.draft.definition.sections,
+    );
+    expect(preview()).toMatchObject({
+      category: 'PC・機器',
+      sections: expandedItem.draft.definition.sections,
+      fields: expandedItem.draft.definition.fields,
+    });
+    expect(hidden('code')).toBe(item.code);
+  });
+
+  it('passes edited category, section copy and help text to the unsaved preview and preserves the saved definition', () => {
+    render(false, expandedItem);
+    changeLabeled('業務カテゴリ', '端末・貸与');
+    render(false, expandedItem);
+    changeLabeled('セクション名 1', '貸与と返却');
+    render(false, expandedItem);
+    changeLabeled('セクションの説明 1', '一時貸出の予定を入力してください。');
+    render(false, expandedItem);
+    changeLabeled('補足説明 5', '返却日は担当者との相談用です。');
+    const html = render(false, expandedItem);
+    const editedSections = JSON.parse(hidden('sections') as string);
+    expect(editedSections[0]).toEqual({
+      key: 'schedule',
+      title: '貸与と返却',
+      description: '一時貸出の予定を入力してください。',
+    });
+    expect(preview().category).toBe('端末・貸与');
+    expect(preview().sections).toEqual(editedSections);
+    expect(preview().fields[4]).toMatchObject({
+      key: 'return_date',
+      helpText: '返却日は担当者との相談用です。',
+      visibleWhen: { field: 'purpose', equals: '検証' },
+    });
+    expect(expandedItem.draft.definition.category).toBe('PC・機器');
+    expect(expandedItem.draft.definition.sections?.[0]?.title).toBe('利用する期間');
+    expect(html).toContain('未保存の入力があります');
+    const publication = hooks.forms.find((candidate) => candidate !== editorForm())!;
+    expect(capture(publication).preventDefault).toHaveBeenCalledOnce();
+  });
+
+  it('reorders and renames fields without losing their conditional, section, date or numeric boundaries', () => {
+    render(false, expandedItem);
+    expect(button('項目5を上へ').disabled).toBe(true);
+    click('項目7を上へ');
+    render(false, expandedItem);
+    expect(fields()[5]).toEqual(expandedItem.draft.definition.fields?.[6]);
+    change('field-label-5', '相談した付属品');
+    render(false, expandedItem);
+    click('項目6を下へ');
+    render(false, expandedItem);
+    expect(fields()[6]).toEqual({
+      ...expandedItem.draft.definition.fields?.[6],
+      label: '相談した付属品',
+    });
+    expect(fields()[4]).toEqual(expandedItem.draft.definition.fields?.[4]);
+    expect(fields()[5]).toEqual(expandedItem.draft.definition.fields?.[5]);
+    expect(hidden('fields.6.key')).toBe('accessories');
+    expect(preview().fields).toEqual(fields());
+  });
+
+  it('keeps a removed condition source as an invalid reference instead of silently making the dependent field unconditional', () => {
+    render(false, expandedItem);
+    click('項目3を下書きから外す');
+    render(false, expandedItem);
+    expect(fields().some((field) => field.key === 'purpose')).toBe(false);
+    expect(fields().find((field) => field.key === 'return_date')?.visibleWhen).toEqual({
+      field: 'purpose',
+      equals: '検証',
+    });
+    expect(preview().fields).toEqual(fields());
+  });
+
+  it('shows an unusable condition source after its type changes and lets the operator explicitly clear it', () => {
+    render(false, expandedItem);
+    change('field-type-2', 'text');
+    const html = render(false, expandedItem);
+    expect(fields().find((field) => field.key === 'return_date')?.visibleWhen).toEqual({
+      field: 'purpose',
+      equals: '検証',
+    });
+    expect(control('field-condition-4').value).toBe('purpose');
+    expect(html).toContain('利用できなくなった質問（条件を選び直してください）');
+    change('field-condition-4', '');
+    render(false, expandedItem);
+    expect(fields().find((field) => field.key === 'return_date')).not.toHaveProperty('visibleWhen');
+    expect(control('field-condition-4').value).toBe('');
+    expect(preview().fields).toEqual(fields());
+  });
+
+  it.each([
+    ['catalog-category', '端末貸与'],
+    ['catalog-section-title-0', '返却の予定'],
+    ['catalog-section-description-0', '新しい予定の説明'],
+    ['field-help-4', '新しい返却日の補足'],
+    ['field-section-4', 'equipment'],
+    ['field-condition-4', 'confirm'],
+    ['field-condition-value-4', '運用'],
+    ['field-min-date-4', '2026-12-01'],
+    ['field-max-date-4', '2027-11-30'],
+    ['field-min-number-5', '-1'],
+    ['field-max-number-5', '20'],
+    ['field-options-6', 'マウス\nドック'],
+  ])(
+    'tracks %s in dirty state and clears the block when its displayed original value is restored',
+    (id, value) => {
+      render(false, expandedItem);
+      const original = labeledControl('業務カテゴリ').value;
+      const previous = control(id).value;
+      change(id, value);
+      const changed = render(false, expandedItem);
+      expect(changed).toContain('未保存の入力があります');
+      expect(
+        capture(hooks.forms.find((candidate) => candidate !== editorForm())!).preventDefault,
+      ).toHaveBeenCalledOnce();
+      change(id, previous);
+      if (id === 'field-condition-4') {
+        render(false, expandedItem);
+        change('field-condition-value-4', '検証');
+      }
+      expect(render(false, expandedItem)).not.toContain('未保存の入力があります');
+      expect(labeledControl('業務カテゴリ').value).toBe(original);
+    },
+  );
+
+  it('does not remain dirty after optional copy is entered and then cleared back to an absent value', () => {
+    render(false, expandedItem);
+    changeLabeled('補足説明 1', '入力後に取り消す補足');
+    expect(render(false, expandedItem)).toContain('未保存の入力があります');
+    changeLabeled('補足説明 1', '');
+    expect(render(false, expandedItem)).not.toContain('未保存の入力があります');
+    changeLabeled('セクションの説明 2', '入力後に取り消す説明');
+    expect(render(false, expandedItem)).toContain('未保存の入力があります');
+    changeLabeled('セクションの説明 2', '');
+    expect(render(false, expandedItem)).not.toContain('未保存の入力があります');
+  });
+
+  it('keeps a legacy definition without inserting category, section or help metadata into saved fields', () => {
+    render();
+    expect(fields()).toEqual(item.draft.definition.fields);
+    expect(labeledControl('業務カテゴリ').value).toBe('');
+    expect(JSON.parse(hidden('sections') as string)).toEqual([]);
+    expect(item.draft.definition).not.toHaveProperty('category');
+    expect(item.draft.definition).not.toHaveProperty('sections');
+    expect(render()).not.toContain('未保存の入力があります');
+  });
+
+  it.each([0, 1])(
+    'holds category, section and field metadata unchanged during pending action %i',
+    (action) => {
+      render(false, expandedItem);
+      hooks.pending[action] = true;
+      render(false, expandedItem);
+      changeLabeled('業務カテゴリ', '保存中のカテゴリ');
+      changeLabeled('セクション名 1', '保存中のセクション');
+      changeLabeled('補足説明 5', '保存中の補足');
+      click('セクションを追加する');
+      render(false, expandedItem);
+      expect(labeledControl('業務カテゴリ').value).toBe('PC・機器');
+      expect(JSON.parse(hidden('sections') as string)).toEqual(
+        expandedItem.draft.definition.sections,
+      );
+      expect(fields()).toEqual(expandedItem.draft.definition.fields);
+      expect(preview().disabled).toBe(true);
+      expect(capture(editorForm()).preventDefault).toHaveBeenCalledOnce();
+    },
+  );
 });

@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import type { CatalogValues } from '@solvi/shared/catalog';
 import { Problems, type ObjectStorage } from '@solvi/shared';
 import { hasRole, requireRole } from '../../common/authz/authz.js';
 import { uuidv7, recordAuditEvent } from '../../common/audit/audit.js';
@@ -15,7 +16,16 @@ const inputSchema = z
     reason: z.string().trim().min(1).max(2000),
     durationDays: z.number().int().positive(),
     approverId: uuid,
-    values: z.record(z.union([z.string().max(2000), z.boolean()])).default({}),
+    values: z
+      .record(
+        z.union([
+          z.string().max(2000),
+          z.boolean(),
+          z.number().finite(),
+          z.array(z.string().max(100)).max(10),
+        ]),
+      )
+      .default({}),
   })
   .strict();
 const createSchema = inputSchema.extend({
@@ -31,7 +41,7 @@ const decisionSchema = z.object({
 });
 type Snapshot = {
   item: { id: string; version: number; title: string; definition: Definition };
-  inputs: { reason: string; durationDays: number; values?: Record<string, string | boolean> };
+  inputs: { reason: string; durationDays: number; values?: CatalogValues };
   requesterId: string;
 };
 type RequestRow = {

@@ -174,6 +174,7 @@ describe('catalog edit values and saved targets', () => {
     ['catalog-days', '1,7,30'],
     ['catalog-reason-limit', '1900'],
     ['catalog-approver', 'approver-b'],
+    ['catalog-category', '端末貸与'],
     ['field-label-0', '別部署'],
     ['field-type-0', 'checkbox'],
     ['field-options-2', '検証\n運用'],

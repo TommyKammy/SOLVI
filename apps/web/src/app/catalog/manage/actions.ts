@@ -9,9 +9,11 @@ export async function saveCatalog(
   previous: FormFeedback,
   form: FormData,
 ): Promise<FormFeedback> {
-  let fields: unknown;
+  let fields: unknown, sections: unknown;
   try {
     fields = JSON.parse(String(form.get('fields') ?? '[]'));
+    sections = JSON.parse(String(form.get('sections') ?? '[]'));
+    if (!Array.isArray(sections)) return { message: 'セクションの形式を確認してください' };
   } catch {
     return { message: '項目の形式を確認してください' };
   }
@@ -28,6 +30,10 @@ export async function saveCatalog(
       maxReasonLength: Number(form.get('maxReasonLength')),
       approval: { mode: 'fixed', approverId: String(form.get('approverId') ?? '') },
       fields,
+      ...(String(form.get('category') ?? '').trim()
+        ? { category: String(form.get('category')).trim() }
+        : {}),
+      ...(Array.isArray(sections) && sections.length ? { sections } : {}),
     },
   };
   const r = await api.saveCatalogItem(id, {

@@ -1,0 +1,125 @@
+{
+  "baseRevision": "0e1aa3ed2a852d1e18102ffef5c99383ed6e57fa",
+  "files": [
+    {
+      "path": "apps/web/src/app/catalog/[itemId]/page.tsx",
+      "sha256": "59ab784b42d97d7c27810d6fc1eb2e52e6456ee2043b100cbb02ebd52ff15f5e"
+    },
+    {
+      "path": "apps/web/src/app/catalog/manage/actions.ts",
+      "sha256": "775552d3118949aa039c89db27076c37d4059abf14d641eec400f068ea196837"
+    },
+    {
+      "path": "apps/web/src/app/catalog/page.tsx",
+      "sha256": "466620b266176d74c4bc2929a8e01b95d95393117bb80cebb3a9272c459d1569"
+    },
+    {
+      "path": "apps/web/src/app/requests/[id]/page.tsx",
+      "sha256": "259f0b35e0f3949854cbbc83f344d47573fe0dceb129eb36fe799061dce8abdc"
+    },
+    {
+      "path": "apps/web/src/app/requests/actions.ts",
+      "sha256": "33cabca79803bd848ccb3f9b61144add338ec0c2fea46262879e3619b3faaeb6"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.module.css",
+      "sha256": "ec0046483693d72981e2c8052885a42b5a9b29e7bfe361aea527fb4e13f32b73"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.tsx",
+      "sha256": "cfb75e0ca33da4c2425de9823d761b5b21a6987b6545690f3c56ba713c943158"
+    },
+    {
+      "path": "apps/web/src/components/CatalogFieldInputs.module.css",
+      "sha256": "976150608f5c29c9b91207fd0f6ca0269ac6ba8b90722fe30f653394aea38e34"
+    },
+    {
+      "path": "apps/web/src/components/CatalogFieldInputs.tsx",
+      "sha256": "7fb5113f5542c352ca4cc8e5d9d9eda90fc6cb8f391978fa5e07985f41ce9e19"
+    },
+    {
+      "path": "apps/web/src/components/CatalogLivePreview.tsx",
+      "sha256": "d146477b6662b7da5a13efbecfb7f970b8d2bfa056591bc84954ea148d66667d"
+    },
+    {
+      "path": "apps/web/src/components/CatalogValueSummary.tsx",
+      "sha256": "329378c280f8840ad8a474b251fb2273a772a23ac550058ea8b255f3ea86fc04"
+    },
+    {
+      "path": "apps/web/src/components/RequestForms.tsx",
+      "sha256": "5ee3add61f0834c275192c146f6b4739218858442f983dc21d240736e6290b55"
+    },
+    {
+      "path": "apps/web/src/lib/api.ts",
+      "sha256": "fda31be123750138c1b21fe2e192e6826fc9f1a643e6155f0a98283ef0019a72"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-form.ts",
+      "sha256": "cde2df6d332ee954be1ca5d45eebbb29ceeef59b5fb2683e6a2c583c711cd484"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-preview.ts",
+      "sha256": "0ea5d59c0534135d6456ff1f6f38f1381240df6fe6310b606246ca861596c980"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-templates.ts",
+      "sha256": "dc1e9a47ff339b1a0751726619992499072411261c9d946bbd4c3959d370d12a"
+    },
+    {
+      "path": "apps/web/src/lib/portal-overview.ts",
+      "sha256": "a53b66c1beba4e62398367845ba4153ee62ef634df4fa4dc153a5ff59a1b785a"
+    },
+    {
+      "path": "packages/shared/package.json",
+      "sha256": "798755a918011fada4a61571d96173414a1c6e994519554c1e388ca04f4a20c8"
+    },
+    {
+      "path": "packages/shared/src/catalog.ts",
+      "sha256": "f7a1d6b46ca73da9c1a58e04b01978924f25c85d6ccfa3759d664ee56d24c204"
+    },
+    {
+      "path": "services/api/src/modules/catalog/catalog-definition.ts",
+      "sha256": "1954b60d5dd26d2ceb1600beb84df76f25c041439f16530eafcdbbd82aef36ed"
+    },
+    {
+      "path": "services/api/src/modules/catalog/catalog.routes.ts",
+      "sha256": "ade70c6a4c416ca8371be14e3fb859bb98a36673b08de9ec1a874c77f3e9c3b4"
+    },
+    {
+      "path": "tests/unit/catalog-authoring-ui.test.ts",
+      "sha256": "fcfb199030514cc324626cb0c675b4a084cb06610c63fb3fc4a60303b824e96d"
+    },
+    {
+      "path": "tests/unit/catalog-definition.test.ts",
+      "sha256": "3a76a71ea2dcfb7d34f1a47ce95356bbb5a891ada16a0774400bd29c5df791c9"
+    },
+    {
+      "path": "tests/unit/catalog-edit-ui.test.ts",
+      "sha256": "af60d5c9a67cfc133d6b006809ed94e635377c758ba706e75ab794d48d64264a"
+    },
+    {
+      "path": "tests/unit/catalog-preview.test.ts",
+      "sha256": "696eeb10826623b3b6d0ce0adec5f8ff2f7f84fa94fce8659e0cac902401013e"
+    },
+    {
+      "path": "tests/unit/catalog-priority-two-ui.test.ts",
+      "sha256": "d458716f17013862e213cae9a3f2f2b475c6cd0c3197143d42915d3cd2cb9ac4"
+    },
+    {
+      "path": "tests/unit/catalog-request-fields-ui.test.ts",
+      "sha256": "91aa3b0c951603bd55c71097102e8c3f06fcccc386fe9e88965b2ba0165ab6c6"
+    },
+    {
+      "path": "tests/unit/portal-catalog.test.ts",
+      "sha256": "47f7c203dcf9f871f16f7d725f4ddcda87179e55e92225ea8e38a408b2ef239d"
+    },
+    {
+      "path": "tools/smoke_catalog_fields.mjs",
+      "sha256": "bd8f910e0f1053044ed7c817c4e8069015c9e018e6da9a4c81c4fce59c02a5de"
+    },
+    {
+      "path": "tools/ui_catalog_schema_check.mjs",
+      "sha256": "060e78990715989fd7b22eca90b438976c58af10349f20b7c3bc95fa9a05b0be"
+    }
+  ]
+}

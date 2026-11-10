@@ -188,6 +188,71 @@ describe('published catalog selection', () => {
     }
   });
 
+  it('offers business categories independently of legacy target labels and keeps old items uncategorized', () => {
+    const items = [
+      item(1, {
+        definition: { ...item(1).definition, category: 'PC・機器', targetLabel: '合成対象A' },
+      }),
+      item(2, {
+        definition: { ...item(2).definition, category: '業務アプリ', targetLabel: '合成対象A' },
+      }),
+      item(3, { definition: { ...item(3).definition, targetLabel: 'PC・機器' } }),
+    ];
+    const result = selectCatalogItems(items, { q: '', target: '', page: 1 });
+    expect(new Set(result.categories)).toEqual(new Set(['PC・機器', '業務アプリ', '未分類']));
+    expect(result.categories).not.toContain('合成対象A');
+    expect(new Set(result.targets)).toEqual(new Set(['合成対象A', 'PC・機器']));
+    expect(
+      selectCatalogItems(items, { q: '', category: '未分類', target: '', page: 1 }).items.map(
+        (entry) => entry.id,
+      ),
+    ).toEqual([item(3).id]);
+    expect(items[2]!.definition).not.toHaveProperty('category');
+  });
+
+  it('combines an exact business category with search and the independent old target filter', () => {
+    const items = [
+      item(1, {
+        definition: { ...item(1).definition, category: 'PC・機器', targetLabel: '合成対象A' },
+      }),
+      item(2, {
+        definition: { ...item(2).definition, category: 'PC・機器', targetLabel: '合成対象B' },
+      }),
+      item(3, {
+        definition: { ...item(3).definition, category: '業務アプリ', targetLabel: '合成対象A' },
+      }),
+    ];
+    const selected = selectCatalogItems(items, {
+      q: 'サービス1',
+      target: '合成対象A',
+      category: 'PC・機器',
+      page: 1,
+    });
+    expect(selected.items.map((entry) => entry.id)).toEqual([item(1).id]);
+    expect(new Set(selected.categories)).toEqual(new Set(['PC・機器', '業務アプリ']));
+    expect(
+      selectCatalogItems(items, { q: '', target: '合成対象B', category: '業務アプリ', page: 1 })
+        .filtered,
+    ).toBe(0);
+    for (const category of ['PC', 'pc・機器', ' PC・機器', '未定義カテゴリ'])
+      expect(selectCatalogItems(items, { q: '', target: '', category, page: 1 }).filtered).toBe(0);
+  });
+
+  it('searches the business category without using it as an execution target or modifying the source', () => {
+    const items = [
+      item(1, {
+        title: '合成の貸与申請',
+        description: '申請内容を入力します。',
+        definition: { ...item(1).definition, category: 'ＰＣ・機器', targetLabel: '合成対象A' },
+      }),
+    ];
+    const before = structuredClone(items);
+    expect(selectCatalogItems(items, { q: 'pc・機器', target: '', page: 1 }).filtered).toBe(1);
+    expect(selectCatalogItems(items, { q: '', target: 'ＰＣ・機器', page: 1 }).filtered).toBe(0);
+    expect(selectCatalogItems(items, { q: '', target: '合成対象A', page: 1 }).filtered).toBe(1);
+    expect(items).toEqual(before);
+  });
+
   it('distinguishes empty API result, no search match, and an out-of-range page', () => {
     expect(selectCatalogItems([], { q: '', target: '', page: 1 })).toMatchObject({
       total: 0,
@@ -234,10 +299,11 @@ describe('catalog and portal URL validation', () => {
         organizationId: 'other',
         redirect: '//evil.test',
       }),
-    ).toEqual({ q: ' ＶＰＮ ', target: 'PC・機器', page: 2 });
+    ).toEqual({ q: ' ＶＰＮ ', target: 'PC・機器', category: '', page: 2 });
     expect(parseCatalogQuery({ q: ['a', 'b'], target: ['one', 'two'], page: ['2', '3'] })).toEqual({
       q: '',
       target: '',
+      category: '',
       page: 1,
     });
   });
@@ -254,6 +320,58 @@ describe('catalog and portal URL validation', () => {
     expect(params(catalogHref(query, { q: 'Wi-Fi', page: 4 })).has('page')).toBe(false);
     expect(params(catalogHref(query, { target: '', page: 4 })).has('page')).toBe(false);
     expect(catalogHref({ q: '', target: '', page: 1 })).toBe('/catalog');
+  });
+
+  it('parses, encodes and retains the category independently while resetting pages after a category change', () => {
+    const query = parseCatalogQuery({
+      q: 'PC',
+      category: '機器・貸与',
+      target: '合成対象',
+      page: '4',
+    });
+    expect(query).toEqual({ q: 'PC', category: '機器・貸与', target: '合成対象', page: 4 });
+    expect(Object.fromEntries(params(catalogHref(query)))).toEqual({
+      q: 'PC',
+      category: '機器・貸与',
+      target: '合成対象',
+      page: '4',
+    });
+    expect(params(catalogHref(query, { page: 2 })).get('category')).toBe('機器・貸与');
+    const changed = params(catalogHref(query, { category: '業務アプリ', page: 4 }));
+    expect(changed.has('page')).toBe(false);
+    expect(changed.get('target')).toBe('合成対象');
+    expect(changed.get('category')).toBe('業務アプリ');
+    expect(params(catalogHref(query, { category: '' })).has('category')).toBe(false);
+    expect(parseCatalogQuery({ category: ['PC・機器', '業務アプリ'] }).category).toBe('');
+  });
+
+  it('retains an invalid category for explicit correction without widening to all services', () => {
+    const category = '器'.repeat(81);
+    const query = parseCatalogQuery({ category });
+    expect(query.category).toBe(category);
+    expect(catalogQueryError(query)).toBeTruthy();
+    expect(params(catalogHref(query)).get('category')).toBe(category);
+    expect(selectCatalogItems([item(1)], query).filtered).toBe(0);
+    expect(catalogQueryError({ ...query, category: '器'.repeat(80) })).toBeNull();
+  });
+
+  it('keeps an encoded combined filter for correction when it exceeds the safe return URL budget', () => {
+    const query = parseCatalogQuery({
+      q: '機'.repeat(CATALOG_SEARCH_MAX_LENGTH),
+      target: '器'.repeat(100),
+      category: '貸'.repeat(80),
+      page: '2',
+    });
+    const href = catalogHref(query);
+    expect(href.length).toBeGreaterThan(2000);
+    expect(catalogQueryError(query)).toBeTruthy();
+    expect(params(href).get('q')).toBe(query.q);
+    expect(params(href).get('target')).toBe(query.target);
+    expect(params(href).get('category')).toBe(query.category);
+    expect(selectCatalogItems([item(1)], query).items).toEqual([]);
+    expect(safeReturnTo(href)).not.toBe(href);
+    expect(catalogQueryError({ ...query, category: '' })).toBeNull();
+    expect(catalogQueryError({ ...query, target: '' })).toBeNull();
   });
 
   it('encodes hostile-looking input as values on the fixed local catalog route', () => {
