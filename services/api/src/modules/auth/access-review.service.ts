@@ -373,7 +373,9 @@ export class AccessReviewService {
 
     const pending = Number(rows[0]!.pending ?? 0);
     if (pending > 0) {
-      throw Problems.conflict(`未判断が ${pending} 件あります。すべて判断してから完了してください。`);
+      throw Problems.conflict(
+        `未判断が ${pending} 件あります。すべて判断してから完了してください。`,
+      );
     }
 
     await this.client.query(

@@ -63,9 +63,7 @@ export class AccessReviewController {
     const input = (body ?? {}) as { decision?: unknown; reason?: unknown };
     if (input.decision !== 'keep' && input.decision !== 'revoke') {
       // **自由文字列を受け取らない。** 閉じた選択肢だけを通す。
-      throw Problems.validation([
-        { field: 'decision', message: '判断は keep または revoke です' },
-      ]);
+      throw Problems.validation([{ field: 'decision', message: '判断は keep または revoke です' }]);
     }
     if (typeof input.reason !== 'string') {
       throw Problems.validation([{ field: 'reason', message: '判断の理由を入力してください' }]);

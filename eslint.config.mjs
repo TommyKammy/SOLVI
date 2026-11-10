@@ -8,6 +8,10 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/.next/**',
+      // Gitignore済みの実行・復元演習成果物。正本のソースは下のルールで検査する。
+      '.local/**',
+      // Next 15.5が自動生成するroutes型参照。手書きソースの検査は維持する。
+      'apps/web/next-env.d.ts',
       '**/coverage/**',
       'docs/planning/**',
       'services/ai-advisor/**',

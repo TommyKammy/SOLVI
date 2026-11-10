@@ -20,10 +20,11 @@ export class UserAdminController {
   private async run<T>(
     auth: AuthenticatedRequest,
     fn: (service: UserAdminService) => Promise<T>,
+    readOnly = false,
   ): Promise<T> {
     const client = await this.deps.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query(readOnly ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY' : 'BEGIN');
       await client.query('SELECT set_config($1, $2, true)', [
         'app.current_org',
         auth.authz.organizationId,
@@ -40,7 +41,7 @@ export class UserAdminController {
   }
 
   async list(auth: AuthenticatedRequest) {
-    const members = await this.run(auth, (service) => service.listMembers(auth.authz));
+    const members = await this.run(auth, (service) => service.listMembers(auth.authz), true);
     return {
       status: 200,
       body: {

@@ -167,16 +167,26 @@ describe('一覧の権限絞り込み (NFR-SEC-006 / 脅威 T-02)', () => {
   });
 
   it('認可条件がSQLのWHERE句に含まれている', () => {
+    // 表示名を結合するJOINではなく、一覧・件数の絞込み条件そのものを検査する。
+    const whereClause = (sql: string) =>
+      sql
+        .match(/\bWHERE\b([\s\S]*?)(?:\bORDER\s+BY\b|\bLIMIT\b|$)/i)?.[1]
+        .replace(/\s+/g, ' ')
+        .trim();
     const requesterQuery = buildListQuery(ctxFor('u1', 'requester', ORG_A));
-    expect(requesterQuery.sql).toContain('t.organization_id = $1');
-    expect(requesterQuery.sql).toContain('t.requester_id = $2');
+    expect(whereClause(requesterQuery.sql)).toBe('t.organization_id = $1 AND t.requester_id = $2');
     // 件数クエリにも同じ条件が入っていること
-    expect(requesterQuery.countSql).toContain('t.organization_id = $1');
-    expect(requesterQuery.countSql).toContain('t.requester_id = $2');
+    expect(whereClause(requesterQuery.countSql)).toBe(
+      't.organization_id = $1 AND t.requester_id = $2',
+    );
+    expect(requesterQuery.params).toEqual([ORG_A, 'u1', requesterQuery.limit]);
+    expect(requesterQuery.countParams).toEqual([ORG_A, 'u1']);
 
     const agentQuery = buildListQuery(ctxFor('u2', 'agent', ORG_A));
-    expect(agentQuery.sql).toContain('t.organization_id = $1');
-    expect(agentQuery.sql).not.toContain('requester_id');
+    expect(whereClause(agentQuery.sql)).toBe('t.organization_id = $1');
+    expect(whereClause(agentQuery.countSql)).toBe('t.organization_id = $1');
+    expect(agentQuery.params).toEqual([ORG_A, agentQuery.limit]);
+    expect(agentQuery.countParams).toEqual([ORG_A]);
   });
 });
 

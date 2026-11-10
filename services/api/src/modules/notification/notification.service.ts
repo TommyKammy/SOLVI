@@ -2,6 +2,10 @@ import type pg from 'pg';
 import { scrubFreeText, daysUntil } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { OutboxRecordLike } from './types.js';
+import {
+  allowTicketEmailPreparation,
+  OPTIONAL_TICKET_EMAIL_EVENTS,
+} from './notification-preference.service.js';
 
 /**
  * 通知の組み立てと配送(FR-TKT-007)。
@@ -114,8 +118,9 @@ export class NotificationService {
    * Outboxイベントから通知を作成して送る。
    *
    * `notification` には (outbox_event_id, recipient_address) の一意制約があり、
-   * at-least-once配送でディスパッチャが同じイベントを2回処理しても、
-   * 受信者から見た重複は生じない(ADR-0008 の「受信側の冪等性」)。
+   * at-least-once配送では成功済みの宛先だけを省略する。
+   * pending/failedは同じ行を再利用する。呼出側のOrganization付き
+   * トランザクション内で行ロックを保持する(ADR-0008)。
    */
   async deliverForEvent(record: OutboxRecordLike): Promise<{ sent: number; skipped: number }> {
     const organizationId = record.organizationId;
@@ -157,20 +162,20 @@ export class NotificationService {
         continue;
       }
 
-      const created = await this.insertNotification(organizationId, record.id, {
-        channel: 'email',
-        recipient,
-        subject,
-        linkPath,
-      });
+      const ready = await this.prepareNotification(
+        organizationId,
+        record.id,
+        { channel: 'email', recipient, subject, linkPath },
+        OPTIONAL_TICKET_EMAIL_EVENTS.has(record.eventType),
+      );
 
-      if (!created) {
-        // 一意制約により既に作成済み = 前回の試行で送信済み。
+      if (!ready) {
+        // 新規の任意通知OFF、または作成済みで送信成功の場合だけ省略する。
         skipped += 1;
         continue;
       }
 
-      await this.dispatch(created, organizationId, recipient, subject, linkPath);
+      await this.dispatch(ready, organizationId, recipient, subject, linkPath);
       sent += 1;
     }
 
@@ -229,29 +234,43 @@ export class NotificationService {
         continue;
       }
       const recipient = { userId: row.user_id, address: row.email };
-      const created = await this.insertNotification(organizationId, record.id, {
+      const ready = await this.prepareNotification(organizationId, record.id, {
         channel: 'email',
         recipient,
         subject,
         linkPath,
       });
-      if (!created) {
+      if (!ready) {
         skipped += 1;
         continue;
       }
-      await this.dispatch(created, organizationId, recipient, subject, linkPath);
+      await this.dispatch(ready, organizationId, recipient, subject, linkPath);
       sent += 1;
     }
 
     return { sent, skipped };
   }
 
-  /** @returns 作成した通知ID。既に存在する場合は null。 */
-  private async insertNotification(
+  /** @returns 配送する通知ID。成功済み/任意新規通知OFFはnull。呼出側の取引を必要とする。 */
+  private async prepareNotification(
     organizationId: string,
     outboxEventId: string,
     draft: NotificationDraft,
+    optionalTicketEmail = false,
   ): Promise<string | null> {
+    if (
+      optionalTicketEmail &&
+      draft.channel === 'email' &&
+      !(await allowTicketEmailPreparation(
+        this.client,
+        organizationId,
+        draft.recipient.userId,
+        outboxEventId,
+        draft.recipient.address,
+      ))
+    )
+      return null;
+
     const id = uuidv7();
     const { rowCount } = await this.client.query(
       `INSERT INTO notification
@@ -275,7 +294,44 @@ export class NotificationService {
         draft.linkPath,
       ],
     );
-    return rowCount === 1 ? id : null;
+    if (rowCount === 1) return id;
+
+    // INSERT競合は送信成功を意味しない。既存行をロックし、待機した
+    // 同時試行も先行取引のコミット後の状態を見て判断する。
+    const { rows } = await this.client.query<{
+      id: string;
+      organization_id: string;
+      outbox_event_id: string;
+      recipient_address: string;
+      recipient_user_id: string;
+      channel: string;
+      status: string;
+    }>(
+      `SELECT id, organization_id, outbox_event_id, recipient_address,
+              recipient_user_id, channel, status
+         FROM notification
+        WHERE organization_id = $1
+          AND outbox_event_id = $2
+          AND recipient_address = $3
+        FOR UPDATE`,
+      [organizationId, outboxEventId, draft.recipient.address],
+    );
+    const existing = rows[0];
+    if (
+      rows.length !== 1 ||
+      !existing ||
+      existing.organization_id !== organizationId ||
+      existing.outbox_event_id !== outboxEventId ||
+      existing.recipient_address !== draft.recipient.address ||
+      existing.recipient_user_id !== draft.recipient.userId ||
+      existing.channel !== draft.channel
+    ) {
+      // 他の利用者やチャネルの記録を、配送済みとも再試行対象とも扱わない。
+      throw new Error('通知の再試行対象が一致しません');
+    }
+    if (existing.status === 'sent') return null;
+    if (existing.status === 'pending' || existing.status === 'failed') return existing.id;
+    throw new Error('通知の再試行状態が不正です');
   }
 
   private async dispatch(
@@ -290,30 +346,14 @@ export class NotificationService {
 
     try {
       await sender.send({ to: recipient.address, subject, linkPath });
-      await this.client.query(
-        "UPDATE notification SET status = 'sent', sent_at = now(), attempts = attempts + 1 WHERE id = $1",
-        [notificationId],
-      );
-      await recordAuditEvent(this.client, {
-        eventType: 'notification.sent',
-        organizationId,
-        actorType: 'system',
-        subjectUserId: recipient.userId,
-        targetType: 'notification',
-        targetId: notificationId,
-        action: 'send',
-        outcome: 'success',
-        // 宛先アドレスも件名も監査へ入れない。宛先はPIIであり、
-        // 件名にはチケット番号が含まれる。参照IDで足りる。
-        afterState: { channel: 'email' },
-      });
     } catch (error) {
       const reason = scrubFreeText(error instanceof Error ? error.message : String(error), 500);
       await this.client.query(
         `UPDATE notification
-            SET status = 'failed', failed_at = now(), last_error = $2, attempts = attempts + 1
-          WHERE id = $1`,
-        [notificationId, reason],
+            SET status = 'failed', sent_at = NULL, failed_at = now(),
+                last_error = $2, attempts = attempts + 1
+          WHERE id = $1 AND organization_id = $3`,
+        [notificationId, reason, organizationId],
       );
       await recordAuditEvent(this.client, {
         eventType: 'notification.failed',
@@ -328,5 +368,27 @@ export class NotificationService {
       });
       throw error;
     }
+
+    // sender成功後のDB/監査エラーを送信失敗に置き換えない。
+    // 監査失敗は呼出側の取引をrollbackさせる。
+    await this.client.query(
+      `UPDATE notification
+          SET status = 'sent', sent_at = now(), failed_at = NULL,
+              last_error = NULL, attempts = attempts + 1
+        WHERE id = $1 AND organization_id = $2`,
+      [notificationId, organizationId],
+    );
+    await recordAuditEvent(this.client, {
+      eventType: 'notification.sent',
+      organizationId,
+      actorType: 'system',
+      subjectUserId: recipient.userId,
+      targetType: 'notification',
+      targetId: notificationId,
+      action: 'send',
+      outcome: 'success',
+      // 宛先アドレスと件名を監査へ入れず、参照IDだけを保持する。
+      afterState: { channel: 'email' },
+    });
   }
 }

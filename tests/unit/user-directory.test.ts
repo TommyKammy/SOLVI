@@ -1,0 +1,223 @@
+import { describe, expect, it } from 'vitest';
+import {
+  DIRECTORY_ROLES,
+  directoryHref,
+  parseDirectoryQuery,
+  selectDirectoryMembers,
+  type DirectoryHrefOverrides,
+  type DirectoryMember,
+} from '../../apps/web/src/lib/user-directory';
+
+function member(index: number, overrides: Partial<DirectoryMember> = {}): DirectoryMember {
+  return {
+    userId: `00000000-0000-4000-9000-${String(index).padStart(12, '0')}`,
+    displayName: `利用者${String(index).padStart(3, '0')}`,
+    email: `person${index}@example.test`,
+    status: 'active',
+    deactivatedAt: null,
+    roleCodes: ['requester'],
+    temporaryRoles: [],
+    openTicketCount: 0,
+    ...overrides,
+  };
+}
+
+const defaultQuery = parseDirectoryQuery({});
+
+describe('利用者ディレクトリの条件', () => {
+  it('検索欄の原文を保ち、既知の役割と状態だけを受け付ける', () => {
+    expect(
+      parseDirectoryQuery({
+        q: '  ＡＫＩ 山田  ',
+        role: 'agent',
+        status: 'deactivated',
+        page: '2',
+      }),
+    ).toEqual({ q: 'ＡＫＩ 山田', role: 'agent', status: 'deactivated', page: 2 });
+    expect(parseDirectoryQuery({ role: 'owner', status: 'deleted' })).toEqual(defaultQuery);
+    expect(parseDirectoryQuery({ role: 'platform_auditor' }).role).toBe('platform_auditor');
+    expect(DIRECTORY_ROLES).not.toContain('platform_auditor');
+    expect(DIRECTORY_ROLES).not.toContain('platform_admin');
+  });
+
+  it.each(['0', '-1', '1.5', 'Infinity', 'NaN', '1e3', '2x', '9007199254740992', ''])(
+    '不正なページ %s は1ページ目になる',
+    (page) => {
+      expect(parseDirectoryQuery({ page }).page).toBe(1);
+    },
+  );
+
+  it('重複したURLパラメーターを採用せず、検索長を制限する', () => {
+    expect(
+      parseDirectoryQuery({
+        q: ['山田', '鈴木'],
+        role: ['agent'],
+        status: ['active'],
+        page: ['2'],
+      }),
+    ).toEqual(defaultQuery);
+    expect(parseDirectoryQuery({ q: 'あ'.repeat(201) }).q).toHaveLength(200);
+  });
+});
+
+describe('利用者ディレクトリの検索とページ', () => {
+  it('61人を安定した名前順で25/25/11人に分け、入力配列を変更しない', () => {
+    const members = Object.freeze(Array.from({ length: 61 }, (_, index) => member(61 - index)));
+    const original = structuredClone(members);
+    const pages = [1, 2, 3].map((page) =>
+      selectDirectoryMembers(members, { ...defaultQuery, page }),
+    );
+    expect(pages.map((page) => page.items.length)).toEqual([25, 25, 11]);
+    expect(pages.map(({ from, to }) => [from, to])).toEqual([
+      [1, 25],
+      [26, 50],
+      [51, 61],
+    ]);
+    expect(
+      pages.every((page) => page.total === 61 && page.filtered === 61 && page.pageCount === 3),
+    ).toBe(true);
+    expect(pages.flatMap((page) => page.items.map((person) => person.userId))).toEqual(
+      Array.from({ length: 61 }, (_, index) => member(index + 1).userId),
+    );
+    expect(members).toEqual(original);
+  });
+
+  it('0人と検索結果0人を区別でき、範囲外ページを最終ページに収める', () => {
+    expect(selectDirectoryMembers([], { ...defaultQuery, page: 100 })).toEqual({
+      items: [],
+      total: 0,
+      filtered: 0,
+      page: 1,
+      pageCount: 1,
+      from: 0,
+      to: 0,
+    });
+    expect(
+      selectDirectoryMembers([member(1)], { ...defaultQuery, q: '該当なし', page: 3 }),
+    ).toMatchObject({ total: 1, filtered: 0, page: 1, from: 0, to: 0 });
+    const members = Array.from({ length: 61 }, (_, index) => member(index + 1));
+    expect(
+      selectDirectoryMembers(members, { ...defaultQuery, page: Number.MAX_SAFE_INTEGER }),
+    ).toMatchObject({ page: 3, from: 51, to: 61 });
+  });
+
+  it('名前とメールのUnicode互換文字・大小文字を同じ検索語として扱う', () => {
+    const members = [
+      member(1, { displayName: 'Ａｋｉ 山田', email: 'ＡＫＩ＠ＥＸＡＭＰＬＥ．ＴＥＳＴ' }),
+      member(2, { displayName: '鈴木', email: 'suzuki@example.test' }),
+    ];
+    for (const q of ['aki', 'ＡＫＩ', '山田', 'aki@example.test']) {
+      expect(
+        selectDirectoryMembers(members, { ...defaultQuery, q }).items.map((p) => p.userId),
+      ).toEqual([member(1).userId]);
+    }
+  });
+
+  it('複数役割の人は各役割の一覧に現れ、状態と検索の条件は同時に効く', () => {
+    const members = [
+      member(1, { displayName: '山田 一郎', roleCodes: ['agent', 'requester'] }),
+      member(2, { displayName: '山田 二郎', roleCodes: ['agent'], status: 'deactivated' }),
+      member(3, { displayName: '山田 三郎' }),
+    ];
+    expect(selectDirectoryMembers(members, { ...defaultQuery, role: 'agent' }).filtered).toBe(2);
+    expect(selectDirectoryMembers(members, { ...defaultQuery, role: 'requester' }).filtered).toBe(
+      2,
+    );
+    expect(
+      selectDirectoryMembers(members, {
+        ...defaultQuery,
+        q: '山田',
+        role: 'agent',
+        status: 'active',
+      }).items.map((p) => p.userId),
+    ).toEqual([member(1).userId]);
+    expect(
+      selectDirectoryMembers(members, {
+        ...defaultQuery,
+        role: 'agent',
+        status: 'deactivated',
+      }).items.map((p) => p.userId),
+    ).toEqual([member(2).userId]);
+  });
+
+  it('同姓同名はuserIdで順序が固定され、サーバーの期限情報を変えない', () => {
+    const temporaryRoles = [
+      {
+        roleCode: 'agent',
+        validUntil: '2026-10-05T00:00:00.000Z',
+        daysRemaining: 1,
+        expiringSoon: true,
+      },
+    ];
+    const members = [
+      member(2, { displayName: '山田 太郎', temporaryRoles }),
+      member(1, { displayName: '山田 太郎' }),
+    ];
+    const result = selectDirectoryMembers(members, defaultQuery);
+    expect(result.items.map((p) => p.userId)).toEqual([member(1).userId, member(2).userId]);
+    expect(result.items[1]?.temporaryRoles).toBe(temporaryRoles);
+  });
+});
+
+describe('利用者ディレクトリの内部URL', () => {
+  it('再読込用の条件とページを保持し、フィルター変更では1ページ目へ戻す', () => {
+    const query = parseDirectoryQuery({ q: '山田', role: 'agent', status: 'active', page: '3' });
+    const href = directoryHref(query);
+    const restored = parseDirectoryQuery(
+      Object.fromEntries(new URL(href, 'https://solvi.test').searchParams),
+    );
+    expect(restored).toEqual(query);
+    for (const overrides of [
+      { q: '鈴木' },
+      { role: 'requester' },
+      { status: 'deactivated' as const },
+    ]) {
+      expect(
+        new URL(directoryHref(query, overrides), 'https://solvi.test').searchParams.has('page'),
+      ).toBe(false);
+    }
+    expect(directoryHref(defaultQuery)).toBe('/ops/users');
+    expect(directoryHref(query, { page: 2 })).toContain('page=2');
+  });
+
+  it('選択・作成・成功通知を固定キーとして出し、未知キーと不正値を捨てる', () => {
+    const selected = member(1).userId;
+    const url = new URL(
+      directoryHref(defaultQuery, {
+        selected,
+        create: 'agent',
+        notice: 'stopped',
+        count: 3,
+      }),
+      'https://solvi.test',
+    );
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      selected,
+      create: 'agent',
+      notice: 'stopped',
+      count: '3',
+    });
+    expect(
+      directoryHref(defaultQuery, {
+        selected: 'javascript:alert(1)',
+        create: 'platform_admin',
+        notice: 'oops',
+        count: -1,
+        returnTo: 'https://attacker.example',
+      } as unknown as DirectoryHrefOverrides),
+    ).toBe('/ops/users');
+    expect(directoryHref(defaultQuery, { count: Number.NaN })).toBe('/ops/users');
+    expect(directoryHref(defaultQuery, { selected: null, create: null, notice: null })).toBe(
+      '/ops/users',
+    );
+  });
+
+  it('検索語内のURLや特殊文字は値として符号化し、遷移先や別条件にしない', () => {
+    const q = '//attacker.example/?role=platform_admin&selected=bad#fragment';
+    const url = new URL(directoryHref({ ...defaultQuery, q }), 'https://solvi.test');
+    expect(url.origin).toBe('https://solvi.test');
+    expect(url.pathname).toBe('/ops/users');
+    expect(url.hash).toBe('');
+    expect([...url.searchParams]).toEqual([['q', q]]);
+  });
+});

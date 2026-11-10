@@ -46,6 +46,9 @@ import {
 export type TicketKind = 'incident' | 'request';
 
 export interface Ticket {
+  assigneeName?: string | null;
+  assigneeGroupName?: string | null;
+  requesterName?: string | null;
   id: string;
   organizationId: string;
   number: string;
@@ -55,6 +58,7 @@ export interface Ticket {
   body: string;
   requesterId: string;
   assigneeId: string | null;
+  pendingReason?: 'wait_requester' | 'wait_external' | null;
   /** 担当グループ(キュー)。個人の担当とは**別の軸**である (FR-TKT-003)。 */
   assigneeGroupId: string | null;
   impact: Impact;
@@ -138,13 +142,67 @@ const TRANSITION_POLICY = {
   allowOwner: false,
 };
 
+/** Decode the count-side LEFT JOIN without exposing its empty-page sentinel. */
+function searchPageResult(
+  resultRows: Record<string, unknown>[],
+  limit: number,
+): { rows: Record<string, unknown>[]; total: number } {
+  const total = resultRows[0]?.__solvi_total;
+  if (
+    typeof total !== 'number' ||
+    !Number.isSafeInteger(total) ||
+    total < 0 ||
+    resultRows.some((row) => row.__solvi_total !== total)
+  ) {
+    throw Problems.internal();
+  }
+  if (resultRows.some((row) => row.id === null)) {
+    if (
+      resultRows.length !== 1 ||
+      Object.entries(resultRows[0]!).some(
+        ([key, value]) => key !== '__solvi_total' && value !== null,
+      )
+    ) {
+      throw Problems.internal();
+    }
+    return { rows: [], total };
+  }
+  if (
+    resultRows.length > limit ||
+    total < resultRows.length ||
+    resultRows.some(
+      (row) => typeof row.id !== 'string' || typeof row.cursor_created_at !== 'string',
+    )
+  ) {
+    throw Problems.internal();
+  }
+  return {
+    rows: resultRows.map((row) => {
+      const copy = { ...row };
+      delete copy.__solvi_total;
+      return copy;
+    }),
+    total,
+  };
+}
+
 function toTicket(row: Record<string, unknown>): Ticket {
   return {
+    ...(row.assignee_name !== undefined
+      ? { assigneeName: row.assignee_name as string | null }
+      : {}),
+    ...(row.assignee_group_name !== undefined
+      ? { assigneeGroupName: row.assignee_group_name as string | null }
+      : {}),
+    ...(row.requester_name !== undefined
+      ? { requesterName: row.requester_name as string | null }
+      : {}),
     id: row.id as string,
     organizationId: row.organization_id as string,
     number: row.number as string,
     kind: row.kind as TicketKind,
     state: row.state as TicketState,
+    pendingReason: (row.pending_reason as Ticket['pendingReason']) ?? null,
     subject: row.subject as string,
     body: row.body as string,
     requesterId: row.requester_id as string,
@@ -292,6 +350,31 @@ export class TicketService {
     return ticket;
   }
 
+  /** Only a committed public reply by the owner resumes an explicitly requester wait. */
+  async resumeAfterRequesterReply(ctx: AuthzContext, ticketId: string): Promise<boolean> {
+    const { rows } = await this.client.query('SELECT * FROM ticket WHERE id=$1 FOR UPDATE', [
+      ticketId,
+    ]);
+    if (!rows[0]) return false;
+    const ticket = toTicket(rows[0]);
+    if (
+      ticket.organizationId !== ctx.organizationId ||
+      ticket.requesterId !== ctx.principal.userId ||
+      ticket.state !== 'pending' ||
+      ticket.pendingReason !== 'wait_requester'
+    )
+      return false;
+    const decision = canTransition(ticket.state, 'in_progress', 'resume', { now: ctx.now });
+    if (!decision.allowed) throw Problems.invalidTransition(ticket.state, 'in_progress');
+    await this.applyTransition(
+      ctx,
+      ticket,
+      { ticketId, to: 'in_progress', reason: 'resume' },
+      { type: 'user', userId: ctx.principal.userId },
+    );
+    return true;
+  }
+
   /**
    * 状態遷移。遷移表にない遷移、終端状態からの遷移、期限切れのReopenを拒否する。
    * 拒否は監査へ `denied` として残す(なぜ拒否したかを policyDecision に記録)。
@@ -399,6 +482,7 @@ export class TicketService {
     const { rows: updated } = await this.client.query(
       `UPDATE ticket
           SET state = $2,
+              pending_reason = $5,
               resolved_at = CASE
                 WHEN $2 IN ('resolved', 'closed') THEN COALESCE(resolved_at, now())
                 ELSE NULL
@@ -408,7 +492,13 @@ export class TicketService {
               sla_elapsed_seconds = $4
         WHERE id = $1
         RETURNING *`,
-      [ticket.id, input.to, nextClock.startedAt, nextClock.elapsedSeconds],
+      [
+        ticket.id,
+        input.to,
+        nextClock.startedAt,
+        nextClock.elapsedSeconds,
+        input.to === 'pending' ? input.reason : null,
+      ],
     );
 
     // **SLAの判定値を保存しない。** かつてここで
@@ -811,16 +901,26 @@ export class TicketService {
     options: ListOptions = {},
   ): Promise<{ items: Ticket[]; total: number; nextCursor: Cursor | null; scope: string }> {
     const query = buildListQuery(ctx, options);
-    const [listResult, countResult] = await Promise.all([
-      this.client.query(query.sql, query.params),
-      this.client.query<{ total: number }>(query.countSql, query.countParams),
-    ]);
+    let rows: Record<string, unknown>[];
+    let total: number;
+    if (query.combinedSql) {
+      // One statement shares both the expensive search and its database snapshot.
+      const result = await this.client.query(query.combinedSql, query.params);
+      ({ rows, total } = searchPageResult(result.rows, query.limit));
+    } else {
+      const [listResult, countResult] = await Promise.all([
+        this.client.query(query.sql, query.params),
+        this.client.query<{ total: number }>(query.countSql, query.countParams),
+      ]);
+      rows = listResult.rows;
+      total = countResult.rows[0]!.total;
+    }
 
-    const items = listResult.rows.map(toTicket);
+    const items = rows.map(toTicket);
     // limit 件ちょうど返ったときのみ次ページがあり得る。
     // カーソルの時刻は DB が返した文字列をそのまま使う(Date を経由すると
     // マイクロ秒が失われ、次ページが空になる)。
-    const lastRow = listResult.rows[listResult.rows.length - 1];
+    const lastRow = rows[rows.length - 1];
     const nextCursor =
       items.length === query.limit && lastRow
         ? { createdAt: lastRow.cursor_created_at as string, id: lastRow.id as string }
@@ -828,7 +928,7 @@ export class TicketService {
 
     return {
       items,
-      total: countResult.rows[0]!.total,
+      total,
       nextCursor,
       scope: visibilityScope(ctx),
     };

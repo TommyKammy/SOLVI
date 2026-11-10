@@ -27,6 +27,7 @@ export const OUTBOX_EVENT_TYPES = [
   // 優先度の見直し (WP-P2-PRIO-013)。優先度が変わったときだけ積む。
   'ticket.reassessed',
   'ticket.merged',
+  'notification.manual_retry.requested',
 ] as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[number];

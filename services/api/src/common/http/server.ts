@@ -89,9 +89,10 @@ export class HttpServer {
     return this.register('PATCH', path, handler);
   }
 
-  listen(port: number): Server {
+  listen(port: number, host?: string): Server {
     this.server = createServer((req, res) => void this.handle(req, res));
-    this.server.listen(port);
+    if (host === undefined) this.server.listen(port);
+    else this.server.listen(port, host);
     return this.server;
   }
 

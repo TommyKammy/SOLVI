@@ -1,0 +1,3 @@
+.form :global(.error-link:hover) {
+  background: transparent;
+}

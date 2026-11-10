@@ -211,17 +211,21 @@ export class GroupService {
     requireRole(ctx, ...MANAGE_ROLES);
 
     const { rows: groups } = await this.client.query(
-      'SELECT 1 FROM assignment_group WHERE id = $1 AND active',
+      'SELECT 1 FROM assignment_group WHERE id = $1 AND active FOR SHARE',
       [groupId],
     );
     if (groups.length === 0) throw Problems.notFound('グループ');
 
     const { rows: members } = await this.client.query(
-      `SELECT 1 FROM role_binding
-        WHERE user_id = $1 AND organization_id = $2
-          AND valid_from <= now()
-          AND (valid_until IS NULL OR valid_until > now())
-        LIMIT 1`,
+      `SELECT u.id FROM app_user u
+        WHERE u.id = $1 AND u.status = 'active'
+          AND EXISTS (
+            SELECT 1 FROM role_binding rb
+            WHERE rb.user_id = u.id AND rb.organization_id = $2
+              AND rb.valid_from <= clock_timestamp()
+              AND (rb.valid_until IS NULL OR rb.valid_until > clock_timestamp())
+          )
+        FOR SHARE OF u`,
       [userId, ctx.organizationId],
     );
     if (members.length === 0) {
@@ -234,19 +238,25 @@ export class GroupService {
         targetId: groupId,
         action: 'add_member',
         outcome: 'denied',
-        policyDecision: { rule: 'member_membership', detail: '対象がこの組織に所属していません' },
+        policyDecision: {
+          rule: 'member_membership',
+          detail: '対象がこの組織の有効な在籍者ではありません',
+        },
       });
       throw Problems.validation([
-        { field: 'userId', message: '指定された利用者はこの組織に所属していません' },
+        { field: 'userId', message: 'この組織の有効な在籍者を選んでください' },
       ]);
     }
 
-    await this.client.query(
+    const inserted = await this.client.query(
       `INSERT INTO assignment_group_member (group_id, user_id, organization_id, added_by)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (group_id, user_id) DO NOTHING`,
       [groupId, userId, ctx.organizationId, ctx.principal.userId],
     );
+
+    // 同じ追加の再送は成功扱いだが、実挿入のない追加イベントを残さない。
+    if (inserted.rowCount === 0) return;
 
     await recordAuditEvent(this.client, {
       eventType: 'org.member.added',

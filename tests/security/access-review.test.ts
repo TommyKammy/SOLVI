@@ -107,7 +107,9 @@ beforeEach(async () => {
   await cleanBusinessData(admin);
   await cleanAuditData(admin);
   // このファイルが作った利用者だけを片付ける。シードには触れない。
-  await admin.query("DELETE FROM role_binding WHERE user_id IN (SELECT id FROM app_user WHERE primary_email LIKE 'ar-%')");
+  await admin.query(
+    "DELETE FROM role_binding WHERE user_id IN (SELECT id FROM app_user WHERE primary_email LIKE 'ar-%')",
+  );
   await admin.query("DELETE FROM app_user WHERE primary_email LIKE 'ar-%'");
 });
 
@@ -251,7 +253,9 @@ describe('完了 (AC-5)', () => {
 
     for (const item of detail.items) {
       await withOrg(ORG_A, (c) =>
-        run(() => new AccessReviewService(c).decide(ctx, reviewId, item.id, 'keep', '継続して必要')),
+        run(() =>
+          new AccessReviewService(c).decide(ctx, reviewId, item.id, 'keep', '継続して必要'),
+        ),
       );
     }
 
@@ -291,7 +295,9 @@ describe('監査 (AC-6 / AC-8)', () => {
     // 自分自身の org_admin を自分で残す。**禁じないが、記録に残す。**
     const own = detail.items.find((i) => i.userId === adminUser)!;
     await withOrg(ORG_A, (c) =>
-      run(() => new AccessReviewService(c).decide(ctx, reviewId, own.id, 'keep', '管理者として継続')),
+      run(() =>
+        new AccessReviewService(c).decide(ctx, reviewId, own.id, 'keep', '管理者として継続'),
+      ),
     );
     for (const item of detail.items.filter((i) => i.id !== own.id)) {
       await withOrg(ORG_A, (c) =>

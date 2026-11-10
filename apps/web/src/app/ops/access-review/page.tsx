@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { ContextLink } from '../../../components/ContextLink';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
@@ -30,11 +30,11 @@ export default async function AccessReviewPage({
     return (
       <main id="main" className="shell">
         <h1>アクセスレビュー</h1>
-        <p className="empty">
-          この画面を表示する権限がありません。組織の管理者へご連絡ください。
-        </p>
+        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
         <p>
-          <Link href="/ops">対応待ちの一覧へ戻る</Link>
+          <ContextLink back href="/ops">
+            対応待ちの一覧へ戻る
+          </ContextLink>
         </p>
       </main>
     );
@@ -89,8 +89,10 @@ export default async function AccessReviewPage({
   return (
     <main id="main" className="shell">
       <p>
-        <Link href="/ops">対応待ちの一覧へ戻る</Link> ・{' '}
-        <Link href="/ops/users">在籍者の管理へ</Link>
+        <ContextLink back href="/ops">
+          対応待ちの一覧へ戻る
+        </ContextLink>{' '}
+        ・ <ContextLink href="/ops/users">在籍者の管理へ</ContextLink>
       </p>
 
       <h1>アクセスレビュー</h1>

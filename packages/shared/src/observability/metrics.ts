@@ -24,6 +24,7 @@ interface Instruments {
   authzDenials: Counter;
   attachmentScans: Counter;
   auditAnchors: Counter;
+  poolAcquireDuration: Histogram;
 }
 
 function getInstruments(): Instruments {
@@ -54,8 +55,47 @@ function getInstruments(): Instruments {
     auditAnchors: m.createCounter('solvi.audit.anchors', {
       description: '監査アンカーの照合結果。**増えないこと自体が異常**(バッチが動いていない)',
     }),
+    poolAcquireDuration: m.createHistogram('solvi.db.pool.acquire.duration', {
+      description: 'APIのDB接続取得時間。接続確立とプール待機を含む',
+      unit: 'ms',
+    }),
   };
+  for (const key of ['total', 'idle', 'waiting'] as const) {
+    m.createObservableGauge(`solvi.db.pool.connections.${key}`, {
+      description: `APIプロセス内DBプールの${key}数`,
+    }).addCallback((result) => {
+      let value = 0;
+      for (const collect of poolCollectors) value += collect()[key];
+      result.observe(value);
+    });
+  }
   return instruments;
+}
+
+export interface DatabasePoolSnapshot {
+  total: number;
+  idle: number;
+  waiting: number;
+}
+
+// 同一プロセスに複数poolがあっても、IDや接続先をラベルにせず合算する。
+const poolCollectors = new Set<() => DatabasePoolSnapshot>();
+
+/** scrape時だけ取得する。返された解除関数をpool終了時に呼び、参照を残さない。 */
+export function registerDatabasePoolMetrics(collect: () => DatabasePoolSnapshot): () => void {
+  getInstruments();
+  poolCollectors.add(collect);
+  return () => {
+    poolCollectors.delete(collect);
+  };
+}
+
+/** 失敗理由・SQL・資格情報は記録しない。取得失敗も時間分布へ含める。 */
+export function recordDatabasePoolAcquisition(
+  outcome: 'success' | 'failure',
+  durationMs: number,
+): void {
+  getInstruments().poolAcquireDuration.record(durationMs, { outcome });
 }
 
 /**
@@ -194,9 +234,4 @@ export function registerGauge(
     }
   });
   return gauge;
-}
-
-/** テスト用。インストゥルメントのキャッシュを捨てる。 */
-export function resetInstrumentsForTest(): void {
-  instruments = undefined;
 }

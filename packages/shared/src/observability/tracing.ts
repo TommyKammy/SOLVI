@@ -34,6 +34,8 @@ export interface TracingOptions {
    * 実際には1つも記録されていなかった(WP-P2-SLO-008 で修正)。
    */
   metricsPort?: number | undefined;
+  /** 未指定ならexporterの既定待受を維持する。隔離runnerはloopbackを明示する。 */
+  metricsHost?: string | undefined;
   /**
    * `service.namespace` の値。複数の系が同じ収集基盤へ送るときに区別する。
    *
@@ -62,6 +64,7 @@ export function startTracing(options: TracingOptions): void {
   if (options.metricsPort) {
     metricServer = new PrometheusExporter({
       port: options.metricsPort,
+      ...(options.metricsHost !== undefined ? { host: options.metricsHost } : {}),
       endpoint: '/metrics',
     });
   }

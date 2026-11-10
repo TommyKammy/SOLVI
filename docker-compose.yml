@@ -69,7 +69,7 @@ services:
       S3_PUBLIC_ENDPOINT: http://127.0.0.1:${S3_PORT:-9100}
     ports:
       - '${API_PORT:-3001}:3001'
-      - '${API_METRICS_PORT:-9464}:9464'   # Prometheus スクレイプ
+      - '${API_METRICS_PORT:-9464}:9464' # Prometheus スクレイプ
     volumes:
       - ./services/api:/app/services/api
       - ./packages:/app/packages
@@ -202,8 +202,8 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: 'true'
     ports:
-      - '${JAEGER_UI_PORT:-16686}:16686'  # Web UI
-      - '${OTLP_HTTP_PORT:-4318}:4318'    # OTLP/HTTP 受信
+      - '${JAEGER_UI_PORT:-16686}:16686' # Web UI
+      - '${OTLP_HTTP_PORT:-4318}:4318' # OTLP/HTTP 受信
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:16686/']
       interval: 5s
@@ -316,7 +316,7 @@ services:
     volumes:
       - clamavdb:/var/lib/clamav
     ports:
-      - '${CLAMAV_PORT:-3310}:3310'
+      - '127.0.0.1:${CLAMAV_PORT:-3310}:3310'
     healthcheck:
       test: ['CMD', 'clamdcheck.sh']
       interval: 15s

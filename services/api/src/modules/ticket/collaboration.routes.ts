@@ -93,10 +93,13 @@ function toActions(state: string): AvailableAction[] {
 function toCommentView(comment: TicketComment): Record<string, unknown> {
   return {
     id: comment.id,
+    ticketId: comment.ticketId,
     authorId: comment.authorId,
+    authorIsRequester: comment.authorIsRequester,
     visibility: comment.visibility,
     body: comment.body,
     createdAt: comment.createdAt.toISOString(),
+    citation: comment.citation ?? null,
   };
 }
 
@@ -164,10 +167,16 @@ export class CollaborationController {
    * 除外は1か所に閉じ、この層は返ってきたものを整形するだけにする。
    */
   async listComments(auth: AuthenticatedRequest, ticketId: string) {
-    const comments = await this.run(auth, ({ collab }) =>
-      collab.listComments(auth.authz, ticketId),
+    const conversation = await this.run(auth, ({ collab }) =>
+      collab.readConversation(auth.authz, ticketId),
     );
-    return { status: 200, body: { items: comments.map(toCommentView) } };
+    return {
+      status: 200,
+      body: {
+        items: conversation.items.map(toCommentView),
+        replyContext: conversation.replyContext,
+      },
+    };
   }
 
   async addComment(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
@@ -177,10 +186,71 @@ export class CollaborationController {
         ticketId,
         visibility: input.visibility,
         body: input.body,
+        citation: input.citation,
+        replyContext: input.replyContext,
       }),
     );
     recordDomainEvent('ticket.comment.added', 'success');
     return { status: 201, body: toCommentView(comment) };
+  }
+
+  /** 担当者の引き受けと受付状態の更新を同じトランザクションで保存する。 */
+  async takeOwnership(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
+    const expectedVersion = readVersion(body);
+    if (!expectedVersion) {
+      throw Problems.validation([
+        { field: 'expectedVersion', message: '最新の問い合わせを開いてください' },
+      ]);
+    }
+    const ticket = await this.run(auth, async ({ tickets }) => {
+      const assigned = await tickets.assign(auth.authz, ticketId, auth.userId, expectedVersion);
+      if (['closed', 'cancelled', 'merged'].includes(assigned.state)) {
+        throw Problems.conflict('完了・取消・統合済みの問い合わせは引き受けられません');
+      }
+      return assigned.state === 'new'
+        ? tickets.transition(auth.authz, { ticketId, to: 'assigned', reason: 'assign' })
+        : assigned;
+    });
+    return { status: 200, body: { state: ticket.state } };
+  }
+
+  /** 公開返信と解決を同じトランザクションで保存する。 */
+  async resolveWithReply(auth: AuthenticatedRequest, ticketId: string, body: unknown) {
+    const input = parseCommentBody(body);
+    const expectedVersion = readVersion(body);
+    if (input.visibility !== 'public') {
+      throw Problems.validation([
+        { field: 'visibility', message: '解決内容は依頼者に公開してください' },
+      ]);
+    }
+    if (!expectedVersion) {
+      throw Problems.validation([
+        { field: 'expectedVersion', message: '最新の問い合わせを開いてください' },
+      ]);
+    }
+    const result = await this.run(auth, async ({ tickets, collab }) => {
+      await collab.assertReplyContext(auth.authz, ticketId, input.replyContext);
+      // 遷移が行ロック・版照合・認可を行う。返信や監査の失敗は状態変更も戻す。
+      const ticket = await tickets.transition(auth.authz, {
+        ticketId,
+        to: 'resolved',
+        reason: 'resolve',
+        expectedVersion,
+      });
+      const comment = await collab.addComment(auth.authz, {
+        ticketId,
+        visibility: 'public',
+        body: input.body,
+        citation: input.citation,
+      });
+      return { ticket, comment };
+    });
+    recordDomainEvent('ticket.transitioned', 'success');
+    recordDomainEvent('ticket.comment.added', 'success');
+    return {
+      status: 200,
+      body: { state: result.ticket.state, comment: toCommentView(result.comment) },
+    };
   }
 
   /**
@@ -192,8 +262,9 @@ export class CollaborationController {
    */
   async workspace(auth: AuthenticatedRequest, ticketId: string) {
     const result = await this.run(auth, async ({ tickets, collab, groups }) => {
+      const conversation = await collab.readConversation(auth.authz, ticketId);
       const ticket = await tickets.findById(auth.authz, ticketId);
-      const comments = await collab.listComments(auth.authz, ticketId);
+      const comments = conversation.items;
       const attachments = await collab.listAttachments(auth.authz, ticketId);
       // 振り先の選択肢も返す。別の問い合わせにすると、画面が
       // 「グループ名を出すためだけ」に毎回1往復増やすことになる。
@@ -209,7 +280,14 @@ export class CollaborationController {
       // かつて `slaStatus()` はテストからしか呼ばれておらず、
       // 期限がどの画面にも出ていなかった (WP-P2-SLAUI-016)。
       const sla = await tickets.slaStatus(auth.authz, ticketId);
-      return { ticket, comments, attachments, availableGroups, sla };
+      return {
+        ticket,
+        comments,
+        attachments,
+        availableGroups,
+        sla,
+        replyContext: conversation.replyContext,
+      };
     });
 
     return {
@@ -220,6 +298,7 @@ export class CollaborationController {
           number: result.ticket.number,
           kind: result.ticket.kind,
           state: result.ticket.state,
+          pendingReason: result.ticket.pendingReason,
           subject: result.ticket.subject,
           body: result.ticket.body,
           priority: result.ticket.priority,
@@ -234,6 +313,7 @@ export class CollaborationController {
           version: result.ticket.version,
         },
         comments: result.comments.map(toCommentView),
+        replyContext: result.replyContext,
         attachments: result.attachments.map(toAttachmentView),
         availableActions: toActions(result.ticket.state),
         // **SLAは計測指標であって統制ではない。** 超過しても操作は止めない。
@@ -272,6 +352,10 @@ export class CollaborationController {
       collab.listAttachments(auth.authz, ticketId),
     );
     return { status: 200, body: { items: attachments.map(toAttachmentView) } };
+  }
+
+  async citationContent(auth: AuthenticatedRequest, ticketId: string, commentId: string) {
+    return this.run(auth, ({ collab }) => collab.citationContent(auth.authz, ticketId, commentId));
   }
 
   /**
@@ -442,7 +526,12 @@ export class CollaborationController {
 
 const VISIBILITIES = new Set(['public', 'internal']);
 
-function parseCommentBody(body: unknown): { visibility: 'public' | 'internal'; body: string } {
+function parseCommentBody(body: unknown): {
+  visibility: 'public' | 'internal';
+  body: string;
+  citation?: { articleId: string; version: number };
+  replyContext?: { ticketVersion: string; latestCommentId: string | null };
+} {
   const errors: Array<{ field: string; message: string }> = [];
   const record = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>;
 
@@ -458,8 +547,46 @@ function parseCommentBody(body: unknown): { visibility: 'public' | 'internal'; b
     errors.push({ field: 'body', message: '内容は10,000文字以内で入力してください' });
   }
 
+  let citation: { articleId: string; version: number } | undefined;
+  if (record.citation !== undefined) {
+    const value = record.citation as Record<string, unknown> | null;
+    if (
+      !value ||
+      typeof value.articleId !== 'string' ||
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value.articleId) ||
+      !Number.isInteger(value.version) ||
+      Number(value.version) <= 0
+    )
+      errors.push({ field: 'citation', message: '引用する記事と版を選んでください' });
+    else citation = { articleId: value.articleId, version: Number(value.version) };
+  }
+  let replyContext: { ticketVersion: string; latestCommentId: string | null } | undefined;
+  if (record.replyContext !== undefined) {
+    const value = record.replyContext as Record<string, unknown> | null;
+    if (
+      !value ||
+      typeof value.ticketVersion !== 'string' ||
+      !Number.isFinite(Date.parse(value.ticketVersion)) ||
+      !(
+        value.latestCommentId === null ||
+        (typeof value.latestCommentId === 'string' &&
+          /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(value.latestCommentId))
+      )
+    )
+      errors.push({ field: 'replyContext', message: '最新のやり取りを読み込んでください' });
+    else
+      replyContext = {
+        ticketVersion: value.ticketVersion,
+        latestCommentId: value.latestCommentId as string | null,
+      };
+  }
   if (errors.length > 0) throw Problems.validation(errors);
-  return { visibility: visibility as 'public' | 'internal', body: text };
+  return {
+    visibility: visibility as 'public' | 'internal',
+    body: text,
+    ...(citation ? { citation } : {}),
+    ...(replyContext ? { replyContext } : {}),
+  };
 }
 
 function parseUploadRequest(body: unknown): {

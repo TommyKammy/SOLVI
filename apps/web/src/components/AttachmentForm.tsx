@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
+import { FeedbackSummary } from './FeedbackForm';
 
 /**
  * 添付のアップロード (WP-P2-SCAN-011)。
@@ -24,12 +25,14 @@ export function AttachmentForm({
   ticketId: string;
   canChooseVisibility: boolean;
 }) {
+  const sending = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [, startTransition] = useTransition();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (sending.current) return;
     setError(null);
 
     const form = event.currentTarget;
@@ -40,6 +43,7 @@ export function AttachmentForm({
       return;
     }
 
+    sending.current = true;
     setUploading(true);
     try {
       const requested = await fetch(`/api/tickets/${ticketId}/attachments`, {
@@ -47,7 +51,7 @@ export function AttachmentForm({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           fileName: file.name,
-          contentType: file.type,
+          contentType: file.type || 'application/octet-stream',
           sizeBytes: file.size,
           visibility: String(data.get('visibility') ?? 'public'),
         }),
@@ -81,18 +85,14 @@ export function AttachmentForm({
     } catch {
       setError('通信に失敗しました。時間をおいて再度お試しください。');
     } finally {
+      sending.current = false;
       setUploading(false);
     }
   }
 
   return (
-    <form className="stack" onSubmit={onSubmit}>
-      {error && (
-        <div className="error-summary" role="alert" tabIndex={-1}>
-          <h2>添付できませんでした</h2>
-          <p style={{ margin: 0 }}>{error}</p>
-        </div>
-      )}
+    <form className="stack" onSubmit={onSubmit} noValidate>
+      <FeedbackSummary feedback={{ message: error ?? '' }} />
 
       <div className="field">
         <label htmlFor="attachment-file">ファイル</label>
@@ -102,11 +102,17 @@ export function AttachmentForm({
         </span>
         <input
           id="attachment-file"
+          aria-invalid={Boolean(error)}
           name="file"
           type="file"
           required
-          aria-describedby="attachment-hint"
+          aria-describedby="attachment-hint attachment-error"
         />
+        {error && (
+          <p className="field-error" id="attachment-error">
+            {error}
+          </p>
+        )}
       </div>
 
       {canChooseVisibility && (

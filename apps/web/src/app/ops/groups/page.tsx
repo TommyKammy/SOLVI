@@ -1,7 +1,16 @@
-import Link from 'next/link';
+import { ContextLink } from '../../../components/ContextLink';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
+import { withReturnTo } from '../../../lib/navigation';
+import {
+  groupListContext,
+  groupListItems,
+  groupListOperationError,
+  groupListQuery,
+  groupListUrl,
+  groupListView,
+} from '../../../lib/group-management-list';
 
 /**
  * 担当グループの管理 (FR-TKT-003 / WP-P2-GRP-015)。
@@ -22,6 +31,8 @@ export default async function ManageGroups({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
+  const conditions = groupListQuery(query);
+  const destination = groupListUrl(conditions);
   const session = await requireSession();
 
   const canManage = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
@@ -32,7 +43,9 @@ export default async function ManageGroups({
         <h1>担当グループの管理</h1>
         <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
         <p>
-          <Link href="/ops">対応待ちの一覧へ戻る</Link>
+          <ContextLink back href="/ops">
+            対応待ちの一覧へ戻る
+          </ContextLink>
         </p>
       </main>
     );
@@ -40,8 +53,42 @@ export default async function ManageGroups({
 
   // 無効化したものも出す。管理画面では「運用から外したもの」も見えないと、
   // 同じ記号で作り直そうとして重複エラーになる。
-  const result = await api.listGroups(true);
-  const groups = result.ok ? result.data.items : [];
+  const result = await api.listGroups(true).catch(() => ({
+    ok: false as const,
+    problem: { status: 503 },
+  }));
+  const groups = result.ok ? groupListItems(result.data) : null;
+  if (!groups) {
+    const status = result.ok ? 502 : result.problem.status;
+    const protectedRead = status === 403 || status === 404;
+    return (
+      <main id="main" className="shell">
+        <h1>担当グループの管理</h1>
+        <p
+          className={protectedRead ? 'empty' : 'error-summary'}
+          role={protectedRead ? undefined : 'alert'}
+        >
+          {status === 403
+            ? 'この画面を表示する権限がありません。組織の管理者へご連絡ください。'
+            : status === 404
+              ? '担当グループを表示できません。元の画面から開き直してください。'
+              : '担当グループを取得できませんでした。時間をおいて、もう一度お試しください。'}
+        </p>
+        {!protectedRead && (
+          <p>
+            <a href={destination}>もう一度取得する</a>
+          </p>
+        )}
+        <p>
+          <ContextLink back href="/ops">
+            対応待ちの一覧へ戻る
+          </ContextLink>
+        </p>
+      </main>
+    );
+  }
+  const view = groupListView(groups, conditions);
+  const context = groupListContext(conditions);
 
   async function createGroup(formData: FormData): Promise<void> {
     'use server';
@@ -52,10 +99,10 @@ export default async function ManageGroups({
     });
     if (!done.ok) {
       const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
-      redirect(`/ops/groups?error=${encodeURIComponent(detail)}`);
+      redirect(groupListOperationError(destination, detail));
     }
     revalidatePath('/ops/groups');
-    redirect('/ops/groups');
+    redirect(destination);
   }
 
   async function toggleActive(formData: FormData): Promise<void> {
@@ -63,15 +110,17 @@ export default async function ManageGroups({
     const groupId = String(formData.get('groupId') ?? '');
     const active = String(formData.get('active') ?? '') === 'true';
     const done = await api.setGroupActive(groupId, active);
-    if (!done.ok) redirect('/ops/groups?error=1');
+    if (!done.ok) redirect(groupListOperationError(destination, '1'));
     revalidatePath('/ops/groups');
-    redirect('/ops/groups');
+    redirect(destination);
   }
 
   return (
     <main id="main" className="shell">
       <p>
-        <Link href="/ops">対応待ちの一覧へ戻る</Link>
+        <ContextLink back href="/ops">
+          対応待ちの一覧へ戻る
+        </ContextLink>
       </p>
 
       <h1>担当グループの管理</h1>
@@ -87,11 +136,49 @@ export default async function ManageGroups({
       )}
 
       <h2>いまあるグループ</h2>
-      {groups.length === 0 ? (
+      <form action="/ops/groups" method="get" className="stack" style={{ maxWidth: '32rem' }}>
+        {conditions.returnTo && <input type="hidden" name="returnTo" value={conditions.returnTo} />}
+        <div className="field">
+          <label htmlFor="group-search">グループを検索</label>
+          <input
+            id="group-search"
+            type="search"
+            name="q"
+            defaultValue={conditions.q}
+            maxLength={200}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="group-state">運用状態</label>
+          <select id="group-state" name="state" defaultValue={conditions.state}>
+            <option value="all">すべて</option>
+            <option value="active">運用中</option>
+            <option value="inactive">運用から外れたグループ</option>
+          </select>
+        </div>
+        <div className="actions-row">
+          <button type="submit">条件を適用</button>
+          <a href={groupListUrl({ ...conditions, q: '', state: 'all', page: 1 })}>条件をクリア</a>
+        </div>
+      </form>
+      <p role="status">
+        全{view.total}件 / 条件に該当{view.matched}件 / {view.start}〜{view.end}件を表示 /{' '}
+        {conditions.page}ページ目
+      </p>
+      {view.total === 0 ? (
         <p className="empty">まだグループがありません。下のフォームから作成してください。</p>
+      ) : view.matched === 0 ? (
+        <p className="empty">
+          条件に一致するグループがありません。検索や運用状態を変更してください。
+        </p>
+      ) : view.items.length === 0 ? (
+        <p className="empty">
+          このページにグループがありません。
+          <a href={groupListUrl({ ...conditions, page: 1 })}>先頭ページへ戻る</a>
+        </p>
       ) : (
         <ul className="groups">
-          {groups.map((group) => (
+          {view.items.map((group) => (
             <li key={group.id} className={group.active ? 'group' : 'group inactive'}>
               <div className="meta">
                 <span className="group-code">{group.code}</span>
@@ -102,7 +189,7 @@ export default async function ManageGroups({
               {group.description && <p style={{ margin: '0.25rem 0 0' }}>{group.description}</p>}
 
               <div className="actions-row" style={{ marginTop: '0.5rem' }}>
-                <Link href={`/ops/groups/${group.id}`}>メンバーを見る</Link>
+                <a href={withReturnTo(`/ops/groups/${group.id}`, context)}>メンバーを見る</a>
                 <form action={toggleActive}>
                   <input type="hidden" name="groupId" value={group.id} />
                   <input type="hidden" name="active" value={group.active ? 'false' : 'true'} />
@@ -116,6 +203,17 @@ export default async function ManageGroups({
             </li>
           ))}
         </ul>
+      )}
+
+      {(view.previous || view.next) && (
+        <nav aria-label="グループ一覧のページ" className="actions-row">
+          {view.previous && (
+            <a href={groupListUrl({ ...conditions, page: conditions.page - 1 })}>前のページ</a>
+          )}
+          {view.next && (
+            <a href={groupListUrl({ ...conditions, page: conditions.page + 1 })}>次のページ</a>
+          )}
+        </nav>
       )}
 
       <h2>グループを作る</h2>

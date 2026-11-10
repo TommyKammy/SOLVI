@@ -1,5 +1,24 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { parseOperationsOverview, type OperationsOverviewCounts } from './operations-overview';
+import {
+  parseNotificationList,
+  notificationQueryString,
+  type NotificationList,
+  type NotificationQuery,
+} from './notification-list';
+export type { NotificationList, NotificationItem } from './notification-list';
+import {
+  parseNotificationPreference,
+  type NotificationPreference,
+} from './notification-preference';
+export type { NotificationPreference } from './notification-preference';
+import {
+  parseNotificationRetry,
+  retryTarget,
+  retryVersion,
+  type NotificationRetryStatus,
+} from './notification-retry';
 
 /**
  * API 呼び出し (WP-P2-PORTAL-002)。
@@ -66,7 +85,12 @@ async function call<T>(
   }
 
   const text = await response.text();
-  const parsed: unknown = text.length > 0 ? JSON.parse(text) : {};
+  let parsed: unknown;
+  try {
+    parsed = text.length > 0 ? JSON.parse(text) : {};
+  } catch {
+    return { ok: false, problem: { title: '応答を読み取れませんでした', status: 502 } };
+  }
 
   if (!response.ok) {
     const problem = parsed as ProblemDetails;
@@ -85,7 +109,16 @@ export interface TicketSlaView {
   breached: boolean;
 }
 
+export interface ReplyContext {
+  ticketVersion: string;
+  latestCommentId: string | null;
+}
+
 export interface TicketView {
+  assigneeName?: string | null;
+  assigneeGroupName?: string | null;
+  requesterName?: string | null;
+  pendingReason?: 'wait_requester' | 'wait_external' | null;
   id: string;
   number: string;
   kind: 'incident' | 'request';
@@ -109,11 +142,19 @@ export interface SessionView {
 }
 
 export interface CommentView {
+  authorIsRequester?: boolean;
   id: string;
+  ticketId: string;
   authorId: string;
   visibility: 'public' | 'internal';
   body: string;
   createdAt: string;
+  citation?: {
+    articleId: string;
+    version: number;
+    title: string | null;
+    available: boolean;
+  } | null;
 }
 
 export interface AvailableAction {
@@ -159,6 +200,7 @@ export interface GroupSummary {
 }
 
 export interface WorkspaceView {
+  replyContext: ReplyContext;
   ticket: TicketView & {
     requesterId: string;
     assigneeId: string | null;
@@ -191,6 +233,892 @@ export interface MemberOrganization {
 }
 
 export const api = {
+  notificationPreference: async (): Promise<ApiResult<NotificationPreference>> => {
+    try {
+      const result = await call<unknown>('/me/notification-preferences');
+      if (!result.ok) return result;
+      const data = parseNotificationPreference(result.data);
+      return data
+        ? { ok: true, data }
+        : { ok: false, problem: { status: 502, title: '通知設定を確認できませんでした' } };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '通知設定を確認できませんでした' } };
+    }
+  },
+  saveNotificationPreference: async (
+    ticketEmailEnabled: boolean,
+    scope: string,
+  ): Promise<ApiResult<NotificationPreference>> => {
+    try {
+      const result = await call<unknown>('/me/notification-preferences', {
+        method: 'PATCH',
+        headers: { 'x-solvi-form-scope': scope },
+        body: JSON.stringify({ ticketEmailEnabled }),
+      });
+      if (!result.ok) return result;
+      const data = parseNotificationPreference(result.data);
+      return data
+        ? { ok: true, data }
+        : { ok: false, problem: { status: 502, title: '通知設定を確認できませんでした' } };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '通知設定を確認できませんでした' } };
+    }
+  },
+  notifications: async (query: NotificationQuery): Promise<ApiResult<NotificationList>> => {
+    if (query.invalid)
+      return { ok: false, problem: { status: 400, title: '表示条件を確認してください' } };
+    try {
+      const result = await call<unknown>(`/notifications?${notificationQueryString(query)}`);
+      if (!result.ok) return result;
+      const data = parseNotificationList(result.data, query.status);
+      return data
+        ? { ok: true, data }
+        : { ok: false, problem: { status: 502, title: '通知状況を確認できませんでした' } };
+    } catch {
+      // Receiving headers does not guarantee that the response body can be read.
+      return { ok: false, problem: { status: 503, title: '通知状況を確認できませんでした' } };
+    }
+  },
+  notificationRetry: async (id: string): Promise<ApiResult<NotificationRetryStatus>> => {
+    if (!retryTarget(id))
+      return { ok: false, problem: { status: 400, title: '対象を確認してください' } };
+    try {
+      const result = await call<unknown>(`/notifications/${encodeURIComponent(id)}/manual-retry`);
+      if (!result.ok)
+        return {
+          ok: false,
+          problem: { status: result.problem.status, title: '予約状態を確認できませんでした' },
+        };
+      const data = parseNotificationRetry(result.data);
+      return data
+        ? { ok: true, data }
+        : { ok: false, problem: { status: 502, title: '予約状態を確認できませんでした' } };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '予約状態を確認できませんでした' } };
+    }
+  },
+  reserveNotificationRetry: async (
+    id: string,
+    version: string,
+    scope: string,
+  ): Promise<ApiResult<NotificationRetryStatus>> => {
+    if (!retryTarget(id) || !retryVersion(version))
+      return { ok: false, problem: { status: 400, title: '確認内容を確認してください' } };
+    try {
+      const result = await call<unknown>(`/notifications/${encodeURIComponent(id)}/manual-retry`, {
+        method: 'POST',
+        headers: { 'x-solvi-form-scope': scope },
+        body: JSON.stringify({ version }),
+      });
+      if (!result.ok)
+        return {
+          ok: false,
+          problem: { status: result.problem.status, title: '予約結果を確認できませんでした' },
+        };
+      const data = parseNotificationRetry(result.data);
+      return data && data.state !== 'not_requested'
+        ? { ok: true, data }
+        : { ok: false, problem: { status: 502, title: '予約結果を確認できませんでした' } };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '予約結果を確認できませんでした' } };
+    }
+  },
+  inbox: async (query = ''): Promise<ApiResult<InboxView>> => {
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/inbox${query ? '?' + query : ''}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      // HTTPの拒否を本文の欠損や本文内のstatusで上書きしない。
+      if (!response.ok) {
+        const status = response.status;
+        // 未読本文のcancel完了を待たず、このGETを中止する。
+        controller.abort();
+        return {
+          ok: false,
+          problem: { status, title: '受信箱を取得できませんでした' },
+        };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as InboxView,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { title: '応答を読み取れませんでした', status: 502 } };
+      }
+      return { ok: true, data: parsed as InboxView, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '受信箱を取得できませんでした' } };
+    }
+  },
+  readInbox: (body: Record<string, unknown>) =>
+    call<{ receiptId: string; replayed: boolean; href: string }>('/inbox/read', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  changes: async (query = ''): Promise<ApiResult<ChangeList>> => {
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/changes${query ? '?' + query : ''}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 本文内のstatusや未読本文のcancel完了に依存せず、HTTPの拒否を保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '変更一覧を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as ChangeList,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { title: '応答を読み取れませんでした', status: 502 } };
+      }
+      return { ok: true, data: parsed as ChangeList, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '変更一覧を取得できませんでした' } };
+    }
+  },
+  change: (id: string) => call<ChangeDetail>(`/changes/${encodeURIComponent(id)}`),
+  changeDetail: async (id: string): Promise<ApiResult<ChangeDetail>> => {
+    if (
+      typeof id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    ) {
+      return { ok: false, problem: { status: 400, title: '変更の指定が正しくありません' } };
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/changes/${encodeURIComponent(id)}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '変更を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as ChangeDetail,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as ChangeDetail, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '変更を取得できませんでした' } };
+    }
+  },
+  changeOptions: (query = '') => call<ChangeOptions>(`/changes/options${query ? '?' + query : ''}`),
+  changeFormOptions: async (query = ''): Promise<ApiResult<ChangeOptions>> => {
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/changes/options${query ? '?' + query : ''}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文を読まず、受信したHTTPstatusを同期abort後も保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '入力候補を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as ChangeOptions,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as ChangeOptions, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '入力候補を取得できませんでした' } };
+    }
+  },
+  createChange: (body: Record<string, unknown>) =>
+    call<{ id: string }>('/changes', { method: 'POST', body: JSON.stringify(body) }),
+  changeCommand: (id: string, action: string, body: Record<string, unknown>) =>
+    call<{ id: string }>(`/changes/${encodeURIComponent(id)}/${encodeURIComponent(action)}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  relatedChanges: (kind: 'ticket' | 'asset', id: string) =>
+    call<{ items: ChangeSummary[]; canCreate: boolean }>(
+      `/${kind === 'ticket' ? 'tickets' : 'assets'}/${encodeURIComponent(id)}/changes`,
+    ),
+  inspectAssetCsv: (csv: string) =>
+    call<AssetCsvInspection>('/assets/imports/inspect', {
+      method: 'POST',
+      body: JSON.stringify({ csv }),
+    }),
+  previewAssetCsv: (body: {
+    csv: string;
+    sourceKey: string;
+    reason: string;
+    mapping: Record<string, string>;
+  }) =>
+    call<{ id: string }>('/assets/imports/preview', { method: 'POST', body: JSON.stringify(body) }),
+  assetImports: async (): Promise<ApiResult<AssetImportList>> => {
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/assets/imports`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文の内容やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '取込履歴を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as AssetImportList,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as AssetImportList, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '取込履歴を取得できませんでした' } };
+    }
+  },
+  assetImport: (id: string) => call<AssetImportDetail>(`/assets/imports/${encodeURIComponent(id)}`),
+  assetImportDetail: async (id: string): Promise<ApiResult<AssetImportDetail>> => {
+    if (
+      typeof id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    ) {
+      return { ok: false, problem: { status: 400, title: '取込内容の指定が正しくありません' } };
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/assets/imports/${encodeURIComponent(id)}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文の内容やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '取込内容を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as AssetImportDetail,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as AssetImportDetail, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '取込内容を取得できませんでした' } };
+    }
+  },
+  applyAssetImport: (id: string, body: { planHash: string; confirmed: boolean }) =>
+    call<AssetImportResult & { replayed: boolean }>(
+      `/assets/imports/${encodeURIComponent(id)}/apply`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  assets: async (query = ''): Promise<ApiResult<AssetList>> => {
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/assets${query ? '?' + query : ''}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 本文内のstatusや未読本文のcancel完了に依存せず、HTTPの拒否を保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '資産一覧を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as AssetList,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { title: '応答を読み取れませんでした', status: 502 } };
+      }
+      return { ok: true, data: parsed as AssetList, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '資産一覧を取得できませんでした' } };
+    }
+  },
+  asset: async (id: string): Promise<ApiResult<AssetDetail>> => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return { ok: false, problem: { status: 400, title: '資産の指定が正しくありません' } };
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/assets/${encodeURIComponent(id)}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文の内容やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '資産を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as AssetDetail,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as AssetDetail, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '資産を取得できませんでした' } };
+    }
+  },
+  assetOptions: () => call<AssetOptions>('/assets/options'),
+  assetFormOptions: async (): Promise<ApiResult<AssetOptions>> => {
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/assets/options`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文の内容やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '入力候補を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as AssetOptions,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as AssetOptions, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '入力候補を取得できませんでした' } };
+    }
+  },
+  createAsset: (body: Record<string, unknown>) =>
+    call<{ id: string; version: number }>('/assets', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  editAsset: (id: string, body: Record<string, unknown>) =>
+    call<{ id: string; version: number }>(`/assets/${id}/edit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  ticketAssets: (id: string) => call<TicketAssets>(`/tickets/${id}/assets`),
+  linkAsset: (id: string, body: Record<string, unknown>) =>
+    call<{ active: boolean }>(`/tickets/${id}/assets`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  unlinkAsset: (id: string, assetId: string, body: Record<string, unknown>) =>
+    call<{ active: boolean }>(`/tickets/${id}/assets/${assetId}/unlink`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  catalog: () =>
+    call<{
+      items: CatalogItem[];
+      approvers: Array<{ id: string; name: string }>;
+      canManage: boolean;
+    }>('/catalog'),
+  catalogRequestOptions: async (): Promise<
+    ApiResult<{
+      items: CatalogItem[];
+      approvers: Array<{ id: string; name: string }>;
+      canManage: boolean;
+    }>
+  > => {
+    type Data = {
+      items: CatalogItem[];
+      approvers: Array<{ id: string; name: string }>;
+      canManage: boolean;
+    };
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/catalog`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        controller.abort();
+        return { ok: false, problem: { status, title: 'サービスカタログを取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as Data,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as Data, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return {
+        ok: false,
+        problem: { status: 503, title: 'サービスカタログを取得できませんでした' },
+      };
+    }
+  },
+  catalogAdmin: () =>
+    call<{ items: CatalogAdminSummary[]; approvers: Array<{ id: string; name: string }> }>(
+      '/catalog-admin',
+    ),
+  catalogAdminItem: (id: string) =>
+    call<CatalogAdminDetail>(`/catalog-admin/${encodeURIComponent(id)}`),
+  catalogManagementDetail: async (id: string): Promise<ApiResult<CatalogAdminDetail>> => {
+    if (
+      typeof id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    )
+      return { ok: false, problem: { status: 400, title: 'カタログ項目を取得できませんでした' } };
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/catalog-admin/${encodeURIComponent(id)}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文は読まず、同期abort後も受信HTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: 'カタログ項目を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as CatalogAdminDetail,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as CatalogAdminDetail, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: 'カタログ項目を取得できませんでした' } };
+    }
+  },
+  catalogManagementRead: async (): Promise<
+    ApiResult<{ items: CatalogAdminSummary[]; approvers: Array<{ id: string; name: string }> }>
+  > => {
+    type Data = { items: CatalogAdminSummary[]; approvers: Array<{ id: string; name: string }> };
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/catalog-admin`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        controller.abort();
+        return { ok: false, problem: { status, title: 'カタログ管理を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as Data,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as Data, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: 'カタログ管理を取得できませんでした' } };
+    }
+  },
+  saveCatalogItem: (id: string | null, body: Record<string, unknown>) =>
+    call<{ id: string }>(id ? `/catalog-admin/${encodeURIComponent(id)}/save` : '/catalog-admin', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  publishCatalogItem: (id: string, body: Record<string, unknown>) =>
+    call<{ id: string }>(`/catalog-admin/${encodeURIComponent(id)}/publication`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  serviceRequests: async (query = '') => {
+    type List = {
+      items: ServiceRequestSummary[];
+      total: number;
+      page: number;
+      pageSize: number;
+      appliedFilter: { q: string; state: string; view: string; page: number };
+    };
+    const failure = (
+      status: number,
+      title = '申請一覧を取得できませんでした',
+    ): ApiResult<List> => ({
+      ok: false,
+      problem: { status, title },
+    });
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/service-requests${query ? '?' + query : ''}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 本文内のstatusや未読本文のcancel完了に依存せず、HTTPの拒否を保持する。
+        controller.abort();
+        return failure(status);
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true as const,
+          data: undefined as unknown as List,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return failure(502, '応答を読み取れませんでした');
+      }
+      return { ok: true as const, data: parsed as List, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return failure(503);
+    }
+  },
+  serviceRequest: (id: string) => call<ServiceRequestDetail>(`/service-requests/${id}`),
+  requestDetail: async (id: string): Promise<ApiResult<ServiceRequestDetail>> => {
+    if (
+      typeof id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    ) {
+      return { ok: false, problem: { status: 400, title: '申請の指定が正しくありません' } };
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/service-requests/${encodeURIComponent(id)}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '申請を取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as ServiceRequestDetail,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return {
+        ok: true,
+        data: parsed as ServiceRequestDetail,
+        ...(setCookie ? { setCookie } : {}),
+      };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '申請を取得できませんでした' } };
+    }
+  },
+  submitRequest: (body: Record<string, unknown>, scope?: string) =>
+    call<{ id: string; ticketId: string }>('/service-requests', {
+      method: 'POST',
+      headers: scope ? { 'x-solvi-form-scope': scope } : {},
+      body: JSON.stringify(body),
+    }),
+  editRequest: (id: string, body: Record<string, unknown>, scope?: string) =>
+    call<{ id: string }>(`/service-requests/${id}/edit`, {
+      method: 'POST',
+      headers: scope ? { 'x-solvi-form-scope': scope } : {},
+      body: JSON.stringify(body),
+    }),
+  decideRequest: (id: string, body: Record<string, unknown>) =>
+    call<{ id: string }>(`/service-requests/${id}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  simulateRequest: (id: string, body: Record<string, unknown>) =>
+    call<{ receipt: { id: string } }>(`/service-requests/${id}/simulate`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  knowledgeList: (q: string, manage = false, options: { limit?: number; cursor?: string } = {}) => {
+    const params = new URLSearchParams({ q });
+    if (manage) params.set('manage', '1');
+    if (options.limit !== undefined) params.set('limit', String(options.limit));
+    if (options.cursor !== undefined) params.set('cursor', options.cursor);
+    return call<KnowledgeList>(`/knowledge?${params}`);
+  },
+  knowledgeDetail: async (id: string, manage = false) => {
+    type Detail = {
+      article: KnowledgeArticle;
+      versions: Array<{ number: number; title: string; createdAt: string }>;
+    };
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return {
+        ok: false,
+        problem: { status: 400, title: '記事の指定が正しくありません' },
+      } as ApiResult<Detail>;
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      const response = await fetch(
+        `${API_BASE}/knowledge/${encodeURIComponent(id)}${manage ? '?manage=1' : ''}`,
+        {
+          headers,
+          cache: 'no-store',
+          signal: controller.signal,
+        },
+      );
+      if (!response.ok) {
+        const status = response.status;
+        controller.abort();
+        return {
+          ok: false,
+          problem: { status, title: '記事を取得できませんでした' },
+        } as ApiResult<Detail>;
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as Detail,
+          ...(setCookie ? { setCookie } : {}),
+        } as ApiResult<Detail>;
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return {
+          ok: false,
+          problem: { status: 502, title: '応答を読み取れませんでした' },
+        } as ApiResult<Detail>;
+      }
+      return {
+        ok: true,
+        data: parsed as Detail,
+        ...(setCookie ? { setCookie } : {}),
+      } as ApiResult<Detail>;
+    } catch {
+      return {
+        ok: false,
+        problem: { status: 503, title: '記事を取得できませんでした' },
+      } as ApiResult<Detail>;
+    }
+  },
+  knowledgeCreate: (body: Record<string, unknown>) =>
+    call<{ id: string; version: number }>('/knowledge', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  knowledgeSave: (id: string, body: Record<string, unknown>) =>
+    call<{ id: string; version: number }>(`/knowledge/${id}/save`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  knowledgeAction: (id: string, body: Record<string, unknown>) =>
+    call<{ id: string; version: number }>(`/knowledge/${id}/actions`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   login: (body: { email: string; password: string; organizationId?: string }) =>
     call<{
       userId: string;
@@ -221,13 +1149,38 @@ export const api = {
       body: JSON.stringify({ organizationId }),
     }),
 
-  createTicket: (body: {
-    kind: string;
-    subject: string;
-    body: string;
-    impact: string;
-    urgency: string;
-  }) => call<TicketView>('/tickets', { method: 'POST', body: JSON.stringify(body) }),
+  createTicket: (
+    body: {
+      kind: string;
+      subject: string;
+      body: string;
+      impact: string;
+      urgency: string;
+    },
+    scope?: string,
+  ) =>
+    call<TicketView>('/tickets', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: scope ? { 'x-solvi-form-scope': scope } : {},
+    }),
+
+  ticketOverview: async (group = ''): Promise<ApiResult<OperationsOverviewCounts>> => {
+    const query = new URLSearchParams();
+    if (group) query.set('group', group);
+    let response: ApiResult<unknown>;
+    try {
+      response = await call<unknown>(`/tickets/overview${query.size ? `?${query}` : ''}`);
+    } catch {
+      // A failed response stream must not discard independently loaded deadlines/groups.
+      return { ok: false, problem: { title: '集計を取得できませんでした', status: 503 } };
+    }
+    if (!response.ok) return response;
+    const data = parseOperationsOverview(response.data);
+    if (!data)
+      return { ok: false, problem: { title: '集計の応答を確認できませんでした', status: 502 } };
+    return { ...response, data };
+  },
 
   listTickets: (limit = 10, filter?: URLSearchParams) => {
     const query = new URLSearchParams(filter);
@@ -237,20 +1190,217 @@ export const api = {
       total: number;
       scope: string;
       appliedFilter: Record<string, unknown>;
+      nextCursor: { createdAt: string; id: string } | null;
     }>(`/tickets?${query.toString()}`);
   },
 
   getTicket: (id: string) => call<TicketView>(`/tickets/${encodeURIComponent(id)}`),
 
+  ticketDetail: async (id: string): Promise<ApiResult<TicketView>> => {
+    let encodedId: string;
+    try {
+      if (typeof id !== 'string' || !id.length || id === '.' || id === '..') throw new Error();
+      encodedId = encodeURIComponent(id);
+    } catch {
+      return { ok: false, problem: { status: 400, title: '問い合わせの指定が正しくありません' } };
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/tickets/${encodedId}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '問い合わせを取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as TicketView,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as TicketView, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '問い合わせを取得できませんでした' } };
+    }
+  },
+
   workspace: (id: string) => call<WorkspaceView>(`/tickets/${encodeURIComponent(id)}/workspace`),
 
-  listComments: (id: string) =>
-    call<{ items: CommentView[] }>(`/tickets/${encodeURIComponent(id)}/comments`),
+  operatorWorkspaceDetail: async (id: string): Promise<ApiResult<WorkspaceView>> => {
+    let encodedId: string;
+    try {
+      if (typeof id !== 'string' || !id.length || id === '.' || id === '..') throw new Error();
+      encodedId = encodeURIComponent(id);
+    } catch {
+      return { ok: false, problem: { status: 400, title: '問い合わせの指定が正しくありません' } };
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) {
+        headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      }
+      const response = await fetch(`${API_BASE}/tickets/${encodedId}/workspace`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        // 拒否本文やcancel完了に依存せず、受信したHTTPstatusを保持する。
+        controller.abort();
+        return { ok: false, problem: { status, title: '問い合わせを取得できませんでした' } };
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as WorkspaceView,
+          ...(setCookie ? { setCookie } : {}),
+        };
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, problem: { status: 502, title: '応答を読み取れませんでした' } };
+      }
+      return { ok: true, data: parsed as WorkspaceView, ...(setCookie ? { setCookie } : {}) };
+    } catch {
+      return { ok: false, problem: { status: 503, title: '問い合わせを取得できませんでした' } };
+    }
+  },
 
-  addComment: (id: string, body: { visibility: string; body: string }) =>
+  listComments: (id: string) =>
+    call<{ items: CommentView[]; replyContext: ReplyContext }>(
+      `/tickets/${encodeURIComponent(id)}/comments`,
+    ),
+
+  citationContent: async (ticketId: string, commentId: string) => {
+    type Detail = { articleId: string; version: number; title: string; body: string };
+    let ticket: string;
+    let comment: string;
+    try {
+      if ([ticketId, commentId].some((value) => value === '' || value === '.' || value === '..')) {
+        return {
+          ok: false,
+          problem: { status: 400, title: '引用記事の指定が正しくありません' },
+        } as ApiResult<Detail>;
+      }
+      ticket = encodeURIComponent(ticketId);
+      comment = encodeURIComponent(commentId);
+    } catch {
+      return {
+        ok: false,
+        problem: { status: 400, title: '引用記事の指定が正しくありません' },
+      } as ApiResult<Detail>;
+    }
+    try {
+      const controller = new AbortController();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const all = (await cookies()).getAll();
+      if (all.length > 0) headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      const response = await fetch(`${API_BASE}/tickets/${ticket}/comments/${comment}/citation`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const status = response.status;
+        controller.abort();
+        return {
+          ok: false,
+          problem: { status, title: '引用記事を取得できませんでした' },
+        } as ApiResult<Detail>;
+      }
+      const setCookie = response.headers.get('set-cookie') ?? undefined;
+      if (response.status === 204) {
+        return {
+          ok: true,
+          data: undefined as unknown as Detail,
+          ...(setCookie ? { setCookie } : {}),
+        } as ApiResult<Detail>;
+      }
+      const text = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = text.length > 0 ? JSON.parse(text) : {};
+      } catch {
+        return {
+          ok: false,
+          problem: { status: 502, title: '応答を読み取れませんでした' },
+        } as ApiResult<Detail>;
+      }
+      return {
+        ok: true,
+        data: parsed as Detail,
+        ...(setCookie ? { setCookie } : {}),
+      } as ApiResult<Detail>;
+    } catch {
+      return {
+        ok: false,
+        problem: { status: 503, title: '引用記事を取得できませんでした' },
+      } as ApiResult<Detail>;
+    }
+  },
+  addComment: (
+    id: string,
+    body: {
+      visibility: string;
+      body: string;
+      citation?: { articleId: string; version: number };
+      replyContext?: ReplyContext;
+    },
+    scope?: string,
+  ) =>
     call<CommentView>(`/tickets/${encodeURIComponent(id)}/comments`, {
       method: 'POST',
       body: JSON.stringify(body),
+      headers: scope ? { 'x-solvi-form-scope': scope } : {},
+    }),
+
+  takeOwnership: (id: string, expectedVersion: string) =>
+    call<{ state: string }>(`/tickets/${encodeURIComponent(id)}/take`, {
+      method: 'POST',
+      body: JSON.stringify({ expectedVersion }),
+    }),
+
+  resolveWithReply: (
+    id: string,
+    body: {
+      body: string;
+      visibility: string;
+      expectedVersion: string;
+      citation?: { articleId: string; version: number };
+      replyContext?: ReplyContext;
+    },
+    scope?: string,
+  ) =>
+    call<{ state: string; comment: CommentView }>(`/tickets/${encodeURIComponent(id)}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: scope ? { 'x-solvi-form-scope': scope } : {},
     }),
 
   transition: (id: string, body: { to: string; reason: string; expectedVersion?: string }) =>
@@ -486,6 +1636,150 @@ export const api = {
     }),
 };
 
+export interface KnowledgeArticle {
+  id: string;
+  state: 'draft' | 'review' | 'published' | 'retired';
+  version: number;
+  publishedVersion: number | null;
+  contentVersion: number;
+  title: string;
+  body: string;
+  tags: string;
+  audience: 'organization' | 'staff';
+  versionCreatedAt: string;
+}
+
+export interface KnowledgeList {
+  items: KnowledgeArticle[];
+  total: number;
+  previousCursor: string | null;
+  nextCursor: string | null;
+}
+
+export type CatalogField = { key: string; label: string; required: boolean } & (
+  | { type: 'text' | 'textarea'; maxLength: number }
+  | { type: 'select'; options: string[] }
+  | { type: 'checkbox' }
+);
+export interface CatalogAdminSummary {
+  id: string;
+  code: string;
+  editVersion: number;
+  draftRevision: number;
+  publishedRevision: number | null;
+  active: boolean;
+  title: string;
+  description: string;
+}
+export interface CatalogAdminDetail {
+  id: string;
+  code: string;
+  editVersion: number;
+  active: boolean;
+  publishedRevision: number | null;
+  draft: {
+    revision: number;
+    title: string;
+    description: string;
+    definition: CatalogItem['definition'];
+  };
+  published: {
+    revision: number;
+    title: string;
+    description: string;
+    definition: CatalogItem['definition'];
+  } | null;
+  history: Array<{ revision: number; title: string; createdAt: string }>;
+  approvers: Array<{ id: string; name: string }>;
+}
+export interface CatalogItem {
+  id: string;
+  version: number;
+  title: string;
+  description: string;
+  definition: {
+    mode: 'local_simulation';
+    action?: 'simulate.access_grant';
+    fields?: CatalogField[];
+    approval?: { mode: 'fixed'; approverId: string };
+    targetLabel: string;
+    allowedDurations: number[];
+    maxReasonLength: number;
+  };
+}
+export interface ServiceRequestSummary {
+  number: string;
+  requesterName: string;
+  approverName: string;
+  updatedAt: string;
+  expiresAt: string;
+  decisionReason: string | null;
+  own: boolean;
+  assigned: boolean;
+  expired: boolean;
+  nextAction: string;
+  id: string;
+  state: string;
+  version: number;
+  title: string;
+  createdAt: string;
+  ticketId: string;
+  approvalState: string;
+}
+export interface ServiceRequestDetail {
+  requesterName: string;
+  approverName: string;
+  request: {
+    id: string;
+    state: string;
+    version: number;
+    revision: number;
+    snapshot: {
+      item: { id: string; version: number; title: string; definition: CatalogItem['definition'] };
+      inputs: { reason: string; durationDays: number; values?: Record<string, string | boolean> };
+      requesterId: string;
+    };
+    snapshotHash: string;
+    requesterId: string;
+    ticketId: string;
+  };
+  approval: {
+    id: string;
+    state: string;
+    approver_id: string;
+    expires_at: string;
+    reason: string | null;
+  };
+  approvers: Array<{ id: string; name: string }>;
+  history: Array<{
+    id: string;
+    state: string;
+    revision: number;
+    approverId: string;
+    approverName: string;
+    item: { version: number; definition: CatalogItem['definition'] };
+    inputs: { reason: string; durationDays: number; values?: Record<string, string | boolean> };
+    reason: string | null;
+    decidedAt: string | null;
+    expiresAt: string;
+  }>;
+  receipt: {
+    id: string;
+    simulation: true;
+    result: {
+      status: string;
+      targetLabel: string;
+      durationDays: number;
+      externalChanges: number;
+      summary: string;
+    };
+    startedAt: string;
+    finishedAt: string;
+    idempotencyKey: string;
+    snapshotHash: string;
+  } | null;
+}
+
 /**
  * ログイン済みでなければログイン画面へ、組織が未選択なら選択画面へ送る。
  *
@@ -532,4 +1826,307 @@ export async function requireSession(): Promise<SessionView> {
   const jar = await cookies();
   const hadSession = jar.getAll().some((c) => c.name.startsWith('solvi_session'));
   redirect(hadSession ? '/login?expired=1' : '/login');
+}
+
+export interface AssetView {
+  id: string;
+  assetTag: string;
+  name: string;
+  kind: string;
+  state: string;
+  version: number;
+  model: string;
+  serialNumber: string;
+  hostname: string;
+  vendor: string;
+  assignedUserId: string | null;
+  assignedUserName: string | null;
+  sourceKind: 'manual' | 'csv';
+  createdAt: string;
+  updatedAt: string;
+  location?: string;
+  internalNotes?: string;
+}
+export interface AssetOptions {
+  kinds: Array<{ code: string; label: string; requiredFields: string[] }>;
+  states: Array<{ code: string; label: string }>;
+  fields: Array<{ key: string; label: string }>;
+  members: Array<{ id: string; name: string }>;
+}
+export interface AssetList {
+  items: AssetView[];
+  total: number;
+  page: number;
+  pageSize: number;
+  canManage: boolean;
+  canReadAll: boolean;
+  kinds: AssetOptions['kinds'];
+  states: AssetOptions['states'];
+}
+export interface AssetDetail {
+  asset: AssetView;
+  canManage: boolean;
+  revisions: Array<{
+    version: number;
+    snapshot: AssetView;
+    reason: string;
+    createdAt: string;
+    actorName: string;
+  }>;
+  tickets: Array<{ id: string; number: string; subject: string; state: string; version: number }>;
+  relationHistory: Array<{
+    id: string;
+    operation: string;
+    reason: string;
+    createdAt: string;
+    actorName: string;
+    ticketId: string;
+    number: string;
+    subject: string;
+  }>;
+}
+export interface TicketAssets {
+  canManage: boolean;
+  items: Array<{
+    id: string;
+    assetTag: string;
+    name: string;
+    kind: string;
+    state: string;
+    linkVersion: number;
+    canOpen: boolean;
+  }>;
+  history: Array<{
+    id: string;
+    operation: string;
+    reason: string;
+    createdAt: string;
+    actorName: string;
+    assetId: string;
+    assetTag: string;
+    name: string;
+  }>;
+}
+
+export interface AssetCsvInspection {
+  headers: string[];
+  sample: string[][];
+  fields: Array<{ key: string; label: string; required: boolean }>;
+}
+export interface AssetImportResult {
+  added: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+  assets: Array<{ row: number; id: string; version: number }>;
+}
+export interface AssetImportDetail {
+  id: string;
+  sourceKey: string;
+  contentHash: string;
+  planHash: string;
+  createdAt: string;
+  creatorName: string;
+  canManage: boolean;
+  plan: {
+    headers: string[];
+    mapping: Record<string, string>;
+    reason: string;
+    counts: Record<'add' | 'update' | 'unchanged' | 'error', number>;
+    rows: Array<{
+      row: number;
+      externalId: string;
+      assetTag: string;
+      operation: 'add' | 'update' | 'unchanged' | 'error';
+      assetId: string | null;
+      expectedVersion: number | null;
+      identityExists: boolean;
+      match: 'external_id' | 'asset_tag' | 'new';
+      input: Record<string, unknown> | null;
+      assignedEmail: string | null;
+      issues: string[];
+      changes: Array<{ field: string; label: string; before: string | null; after: string | null }>;
+    }>;
+  };
+  receipt: { result: AssetImportResult; appliedAt: string; actorName: string } | null;
+}
+export interface AssetImportList {
+  canManage: boolean;
+  items: Array<{
+    id: string;
+    sourceKey: string;
+    createdAt: string;
+    appliedAt: string | null;
+    counts: AssetImportDetail['plan']['counts'];
+  }>;
+}
+
+export interface ChangeTarget {
+  id: string;
+  assetTag: string;
+  name: string;
+  kind: string;
+  state: string;
+  version: number;
+}
+export interface ChangePlan {
+  type: 'normal';
+  title: string;
+  purpose: string;
+  impact: string;
+  risk: 'low' | 'medium' | 'high';
+  implementationPlan: string;
+  testPlan: string;
+  backoutPlan: string;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  ticket: { id: string; number: string; subject: string };
+  assets: ChangeTarget[];
+  owner: { id: string; name: string };
+  approver: { id: string; name: string } | null;
+}
+export interface ChangeSummary {
+  id: string;
+  number: string;
+  title: string;
+  type: 'normal';
+  state: string;
+  version: number;
+  revision: number;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  ownerName: string;
+  ticket: ChangePlan['ticket'];
+  assets: ChangeTarget[];
+  updatedAt: string;
+}
+export interface ChangeOptions {
+  owners: Array<{ id: string; name: string }>;
+  approvers: Array<{ id: string; name: string }>;
+  assets: ChangeTarget[];
+  tickets: Array<ChangePlan['ticket']>;
+}
+export interface ChangeList {
+  items: ChangeSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  canCreate: boolean;
+}
+export interface ChangeDetail {
+  change: ChangeSummary & {
+    snapshot: ChangePlan;
+    snapshotHash: string;
+    currentApprovalId: string | null;
+    createdBy: string;
+    startedAt: string | null;
+  };
+  canManage: boolean;
+  availableActions: string[];
+  readiness: { issues: string[]; withinWindow: boolean; now: string };
+  ticketCanOpen: boolean;
+  assetAccess: Array<{ id: string; canOpen: boolean }>;
+  result: null | {
+    id: string;
+    revision: number;
+    approvalId: string;
+    snapshotHash: string;
+    outcome: string;
+    summary: string;
+    testResults: string;
+    backoutPerformed: boolean;
+    backoutReason: string;
+    simulation: true;
+    externalChanges: 0;
+    startedAt: string;
+    finishedAt: string;
+    actorName: string;
+  };
+  pir: null | {
+    id: string;
+    rootCause: string;
+    lessons: string;
+    prevention: string;
+    createdAt: string;
+    actorName: string;
+  };
+  conflicts: Array<{
+    id: string;
+    number: string;
+    title: string;
+    plannedStart: string;
+    plannedEnd: string;
+  }>;
+  approvals: Array<{
+    id: string;
+    revision: number;
+    snapshotHash: string;
+    approverId: string;
+    approverName: string;
+    expiresAt: string;
+    createdAt: string;
+    decision: string | null;
+    reason: string | null;
+    decidedAt: string | null;
+    isCurrent: boolean;
+  }>;
+  revisions: Array<{
+    revision: number;
+    snapshot: ChangePlan;
+    snapshotHash: string;
+    reason: string;
+    createdAt: string;
+    actorName: string;
+  }>;
+  history: Array<{
+    version: number;
+    revision: number;
+    action: string;
+    beforeState: string | null;
+    afterState: string;
+    reason: string;
+    createdAt: string;
+    actorName: string;
+  }>;
+}
+
+export interface InboxItem {
+  kind: 'ticket' | 'request_approval' | 'change';
+  id: string;
+  number: string;
+  title: string;
+  state: string;
+  stateLabel: string;
+  scopeLabel: string;
+  nextAction: string;
+  href: string;
+  waiting: boolean;
+  eventKey: string;
+  updatedAt: string;
+  unread: boolean;
+  plannedStart?: string | null;
+  plannedEnd?: string | null;
+  deadline: {
+    label: string;
+    status: 'none' | 'paused' | 'upcoming' | 'within' | 'overdue';
+    at: string | null;
+    remainingSeconds: number | null;
+  };
+}
+export interface InboxView {
+  items: InboxItem[];
+  total: number;
+  unread: number;
+  page: number;
+  pageSize: number;
+  asOf: string;
+  canIncludeUnassigned: boolean;
+  counts: { ticket: number; approval: number; change: number };
+  appliedFilter: {
+    kind: 'all' | 'ticket' | 'approval' | 'change';
+    q: string;
+    unread: '0' | '1';
+    unassigned: '0' | '1';
+    page: number;
+  };
 }

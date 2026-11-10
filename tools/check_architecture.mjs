@@ -94,7 +94,26 @@ for (const rule of RULES) {
   }
 }
 
-console.log(`アーキテクチャ検査: ${filesChecked} ファイル / ${RULES.length} ルール`);
+// WP045 restores this specific Identity -> Ticket boundary. Other existing Core
+// cross-module reads remain separately tracked; this is not a complete SQL parser.
+for (const name of ['user-admin.service.ts', 'user-admin.routes.ts']) {
+  const file = join(repoRoot, 'services/api/src/modules/auth', name);
+  if (!statSync(file, { throwIfNoEntry: false })?.isFile()) continue;
+  filesChecked++;
+  const source = readFileSync(file, 'utf8');
+  const directTicketSql =
+    /\b(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+(?:"?public"?\s*\.\s*)?"?ticket"?(?![\w"])/gi;
+  for (const match of source.matchAll(directTicketSql)) {
+    violations.push({
+      file: relative(repoRoot, file),
+      no: source.slice(0, match.index).split('\n').length,
+      line: match[0],
+      why: 'UserAdmin の Ticket 読取は TicketAssignmentReadService 経由にする(ADR-0001 / WP-P2-PERF-045)',
+    });
+  }
+}
+
+console.log(`アーキテクチャ検査: ${filesChecked} ファイル / ${RULES.length + 1} ルール`);
 
 if (violations.length > 0) {
   console.error(`\n禁止依存: ${violations.length}件\n`);

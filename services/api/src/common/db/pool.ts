@@ -1,5 +1,38 @@
 import pg from 'pg';
-import type { Logger } from '@solvi/shared';
+import {
+  recordDatabasePoolAcquisition,
+  registerDatabasePoolMetrics,
+  type Logger,
+} from '@solvi/shared';
+
+type PoolConnectCallback = Parameters<pg.Pool['connect']>[0];
+
+/** Pool.query/authPoolも通る入口で測る。queryの実行時間とは区別する。 */
+class ObservedPool extends pg.Pool {
+  override connect(): Promise<pg.PoolClient>;
+  override connect(callback: PoolConnectCallback): void;
+  override connect(callback?: PoolConnectCallback): Promise<pg.PoolClient> | void {
+    const started = performance.now();
+    const record = (outcome: 'success' | 'failure') =>
+      recordDatabasePoolAcquisition(outcome, performance.now() - started);
+    if (callback) {
+      return super.connect((error, client, release) => {
+        record(error ? 'failure' : 'success');
+        callback(error, client, release);
+      });
+    }
+    return super.connect().then(
+      (client) => {
+        record('success');
+        return client;
+      },
+      (error: unknown) => {
+        record('failure');
+        throw error;
+      },
+    );
+  }
+}
 
 /**
  * PostgreSQL 接続。
@@ -19,13 +52,14 @@ export interface TxContext {
 
 export class Database {
   private readonly pool: pg.Pool;
+  private readonly unregisterPoolMetrics: () => void;
 
   constructor(
     connectionString: string,
     private readonly logger: Logger,
     poolConfig: Partial<pg.PoolConfig> = {},
   ) {
-    this.pool = new pg.Pool({
+    this.pool = new ObservedPool({
       connectionString,
       /**
        * 接続プールの大きさ (NFR-PERF-001 / WP-P2-PERF-021)。
@@ -49,6 +83,11 @@ export class Database {
       // アイドル接続のエラーはプロセスを落とさない。次の取得でリトライされる。
       this.logger.error('postgres idle client error', err);
     });
+    this.unregisterPoolMetrics = registerDatabasePoolMetrics(() => ({
+      total: this.pool.totalCount,
+      idle: this.pool.idleCount,
+      waiting: this.pool.waitingCount,
+    }));
   }
 
   /** 接続確認のみ。業務クエリには使わない。 */
@@ -122,6 +161,10 @@ export class Database {
   }
 
   async close(): Promise<void> {
-    await this.pool.end();
+    try {
+      await this.pool.end();
+    } finally {
+      this.unregisterPoolMetrics();
+    }
   }
 }

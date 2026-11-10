@@ -306,6 +306,18 @@ export class AuthController {
         throw Problems.organizationNotSelected();
       }
 
+      // A form may outlive login/organization switches in another tab.
+      // This expectation grants no access; compare it with resolved session identity.
+      const formScope = headerValue(headers, 'x-solvi-form-scope');
+      if (
+        formScope !== undefined &&
+        formScope !== `${organizationId}:${validation.session.userId}`
+      ) {
+        recordAuthzDenial('auth.session.form_scope_mismatch');
+        throw Problems.conflict(
+          '利用者または組織が変更されています。現在のログイン状態で画面を開き直してください。',
+        );
+      }
       return {
         authz: { principal: validation.principal, organizationId },
         sessionId: validation.session.id,

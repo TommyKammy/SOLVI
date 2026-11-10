@@ -28,6 +28,7 @@ function toPortalView(ticket: Ticket): Record<string, unknown> {
     number: ticket.number,
     kind: ticket.kind,
     state: ticket.state,
+    pendingReason: ticket.pendingReason,
     subject: ticket.subject,
     body: ticket.body,
     impact: ticket.impact,
@@ -434,7 +435,16 @@ export class TicketController {
     return {
       status: 200,
       body: {
-        items: result.items.map(toPortalView),
+        items: result.items.map((ticket) => ({
+          ...toPortalView(ticket),
+          ...(result.scope === 'organization'
+            ? {
+                assigneeName: ticket.assigneeName ?? null,
+                assigneeGroupName: ticket.assigneeGroupName ?? null,
+                requesterName: ticket.requesterName ?? null,
+              }
+            : {}),
+        })),
         total: result.total,
         nextCursor: result.nextCursor,
         // どの範囲が見えているかを明示する。依頼者は自分の分だけ、

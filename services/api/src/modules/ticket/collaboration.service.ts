@@ -32,9 +32,16 @@ export interface TicketComment {
   id: string;
   ticketId: string;
   authorId: string;
+  authorIsRequester?: boolean;
   visibility: Visibility;
   body: string;
   createdAt: Date;
+  citation?: {
+    articleId: string;
+    version: number;
+    title: string | null;
+    available: boolean;
+  } | null;
 }
 
 export interface TicketAttachment {
@@ -58,6 +65,16 @@ const INTERNAL_VISIBLE_ROLES: readonly RoleCode[] = [
   'platform_auditor',
 ];
 
+const citationVisibleSql = `($3::boolean OR (ka.state <> 'retired' AND pv.audience='organization' AND cv.audience='organization'))`;
+const citationSelectSql = `CASE WHEN cit.comment_id IS NULL THEN NULL ELSE jsonb_build_object(
+  'articleId',cit.article_id,'version',cit.article_version,
+  'title',CASE WHEN ${citationVisibleSql} THEN cv.title ELSE NULL END,
+  'available',COALESCE(${citationVisibleSql},false)) END AS citation`;
+const citationJoinSql = `LEFT JOIN ticket_article_citation cit ON cit.comment_id=tc.id AND cit.organization_id=tc.organization_id
+  LEFT JOIN knowledge_article ka ON ka.id=cit.article_id AND ka.organization_id=cit.organization_id
+  LEFT JOIN knowledge_version cv ON cv.article_id=cit.article_id AND cv.organization_id=cit.organization_id AND cv.number=cit.article_version
+  LEFT JOIN knowledge_version pv ON pv.article_id=ka.id AND pv.organization_id=ka.organization_id AND pv.number=ka.published_version`;
+
 /** チケット本体を読めるかの判定に使う(ticket.service.ts と同じ規則) */
 const TICKET_READ_POLICY = {
   organizationWide: ['agent', 'org_admin', 'auditor', 'platform_admin'] as RoleCode[],
@@ -68,6 +85,13 @@ export interface AddCommentInput {
   ticketId: string;
   visibility: Visibility;
   body: string;
+  citation?: { articleId: string; version: number };
+  replyContext?: ReplyContext;
+}
+
+export interface ReplyContext {
+  ticketVersion: string;
+  latestCommentId: string | null;
 }
 
 export interface AddAttachmentInput {
@@ -100,9 +124,13 @@ export class CollaborationService {
   }
 
   /** チケット本体へのアクセス可否。ここを通らないとコメント・添付にも触れない。 */
-  private async assertTicketAccess(ctx: AuthzContext, ticketId: string): Promise<void> {
+  private async assertTicketAccess(
+    ctx: AuthzContext,
+    ticketId: string,
+    lock: boolean | 'share' = false,
+  ) {
     const { rows } = await this.client.query(
-      'SELECT organization_id, requester_id FROM ticket WHERE id = $1',
+      `SELECT organization_id, requester_id, updated_at FROM ticket WHERE id = $1${lock === 'share' ? ' FOR SHARE' : lock ? ' FOR UPDATE' : ''}`,
       [ticketId],
     );
     if (rows.length === 0) throw Problems.notFound('チケット');
@@ -112,10 +140,37 @@ export class CollaborationService {
       TICKET_READ_POLICY,
       'チケット',
     );
+    return rows[0]!;
+  }
+
+  /** The ticket lock serializes context checks with all comment writers. */
+  async assertReplyContext(ctx: AuthzContext, ticketId: string, expected?: ReplyContext) {
+    const row = await this.assertTicketAccess(ctx, ticketId, true);
+    if (!expected) return; // Existing non-Web callers retain their append-only behavior.
+    if ((row.updated_at as Date).toISOString() !== expected.ticketVersion)
+      throw Problems.stale('この問い合わせ');
+    const { rows } = await this.client.query<{ id: string }>(
+      `SELECT id FROM ticket_comment WHERE ticket_id=$1 AND organization_id=$2
+       AND ($3::boolean OR visibility='public') ORDER BY created_at DESC,id DESC LIMIT 1`,
+      [ticketId, ctx.organizationId, this.canSeeInternal(ctx)],
+    );
+    if ((rows[0]?.id ?? null) !== expected.latestCommentId) throw Problems.stale('やり取り');
+  }
+
+  async readConversation(ctx: AuthzContext, ticketId: string) {
+    const row = await this.assertTicketAccess(ctx, ticketId, 'share');
+    const items = await this.listComments(ctx, ticketId);
+    return {
+      items,
+      replyContext: {
+        ticketVersion: (row.updated_at as Date).toISOString(),
+        latestCommentId: items.at(-1)?.id ?? null,
+      },
+    };
   }
 
   async addComment(ctx: AuthzContext, input: AddCommentInput): Promise<TicketComment> {
-    await this.assertTicketAccess(ctx, input.ticketId);
+    await this.assertTicketAccess(ctx, input.ticketId, true);
 
     // 内部メモを書けるのは、内部メモを読めるロールに限る。
     // 依頼者が internal で書けてしまうと、本人にも見えないコメントが生まれて混乱する。
@@ -142,12 +197,52 @@ export class CollaborationService {
       throw Problems.validation([{ field: 'body', message: '本文を入力してください' }]);
     }
 
+    await this.assertReplyContext(ctx, input.ticketId, input.replyContext);
+
     const id = uuidv7();
-    const { rows } = await this.client.query(
+    if (input.citation) {
+      if (!hasRole(ctx, 'agent', 'org_admin', 'platform_admin'))
+        throw Problems.forbidden('記事の引用は担当者が行えます');
+      const { rows: articleRows } = await this.client.query(
+        `SELECT a.state,a.published_version,v.audience FROM knowledge_article a
+         LEFT JOIN knowledge_version v ON v.article_id=a.id AND v.organization_id=a.organization_id AND v.number=a.published_version
+         WHERE a.id=$1 AND a.organization_id=$2 FOR SHARE OF a`,
+        [input.citation.articleId, ctx.organizationId],
+      );
+      const article = articleRows[0];
+      if (!article || article.state === 'retired' || !article.published_version)
+        throw Problems.notFound('公開記事');
+      if (article.published_version !== input.citation.version)
+        throw Problems.conflict('公開版が変わりました。記事を選び直してください');
+      if (input.visibility === 'public' && article.audience !== 'organization')
+        throw Problems.forbidden('担当者限定の記事は公開返信に引用できません');
+    }
+    await this.client.query(
       `INSERT INTO ticket_comment (id, organization_id, ticket_id, author_id, visibility, body)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [id, ctx.organizationId, input.ticketId, ctx.principal.userId, input.visibility, body],
     );
+    if (input.citation) {
+      await this.client.query(
+        'INSERT INTO ticket_article_citation(comment_id,organization_id,article_id,article_version) VALUES($1,$2,$3,$4)',
+        [id, ctx.organizationId, input.citation.articleId, input.citation.version],
+      );
+      await recordAuditEvent(this.client, {
+        eventType: 'ticket.article.cited',
+        organizationId: ctx.organizationId,
+        actorType: 'user',
+        actorId: ctx.principal.userId,
+        targetType: 'ticket',
+        targetId: input.ticketId,
+        action: 'article.cite',
+        outcome: 'success',
+        afterState: {
+          commentId: id,
+          articleId: input.citation.articleId,
+          articleVersion: input.citation.version,
+        },
+      });
+    }
 
     // 初回応答の記録 (FR-TKT-008 の応答SLA / WP-P2-SLAUI-016)。
     //
@@ -163,7 +258,9 @@ export class CollaborationService {
       // **同じSQLを書き写さない。** 「何を初回応答と数えるか」は
       // `TicketService` が持つ業務の定義である。ここに書き写すと、
       // 定義が変わったときに片方だけ直る。
-      await new TicketService(this.client).recordFirstResponse(ctx, input.ticketId);
+      const tickets = new TicketService(this.client);
+      await tickets.recordFirstResponse(ctx, input.ticketId);
+      await tickets.resumeAfterRequesterReply(ctx, input.ticketId);
     }
 
     await recordAuditEvent(this.client, {
@@ -196,7 +293,7 @@ export class CollaborationService {
       },
     });
 
-    return toComment(rows[0]!);
+    return this.findComment(ctx, id);
   }
 
   /**
@@ -210,11 +307,12 @@ export class CollaborationService {
 
     const includeInternal = this.canSeeInternal(ctx);
     const { rows } = await this.client.query(
-      `SELECT * FROM ticket_comment
+      `SELECT tc.*, (tc.author_id=author_ticket.requester_id) AS author_is_requester, ${citationSelectSql}
+         FROM ticket_comment tc JOIN ticket author_ticket ON author_ticket.id=tc.ticket_id AND author_ticket.organization_id=tc.organization_id ${citationJoinSql}
         WHERE ticket_id = $1
           AND ($2::boolean OR visibility = 'public')
-        ORDER BY created_at, id`,
-      [ticketId, includeInternal],
+        ORDER BY tc.created_at, tc.id`,
+      [ticketId, includeInternal, hasRole(ctx, 'agent', 'org_admin', 'platform_admin')],
     );
     return rows.map(toComment);
   }
@@ -222,14 +320,31 @@ export class CollaborationService {
   /** 単一取得。権限のない内部メモは404(存在を推測させない / NFR-SEC-006)。 */
   async findComment(ctx: AuthzContext, commentId: string): Promise<TicketComment> {
     const { rows } = await this.client.query(
-      `SELECT * FROM ticket_comment
-        WHERE id = $1 AND ($2::boolean OR visibility = 'public')`,
-      [commentId, this.canSeeInternal(ctx)],
+      `SELECT tc.*, (tc.author_id=author_ticket.requester_id) AS author_is_requester, ${citationSelectSql} FROM ticket_comment tc JOIN ticket author_ticket ON author_ticket.id=tc.ticket_id AND author_ticket.organization_id=tc.organization_id ${citationJoinSql}
+        WHERE tc.id = $1 AND ($2::boolean OR visibility = 'public')`,
+      [commentId, this.canSeeInternal(ctx), hasRole(ctx, 'agent', 'org_admin', 'platform_admin')],
     );
     if (rows.length === 0) throw Problems.notFound('コメント');
     const comment = toComment(rows[0]!);
     await this.assertTicketAccess(ctx, comment.ticketId);
     return comment;
+  }
+
+  async citationContent(ctx: AuthzContext, ticketId: string, commentId: string) {
+    const comment = await this.findComment(ctx, commentId);
+    if (comment.ticketId !== ticketId || !comment.citation?.available)
+      throw Problems.notFound('記事の引用版');
+    const { rows } = await this.client.query(
+      `SELECT cv.title,cv.body,cv.tags,cv.audience,cv.number FROM ticket_comment tc JOIN ticket author_ticket ON author_ticket.id=tc.ticket_id AND author_ticket.organization_id=tc.organization_id ${citationJoinSql} WHERE tc.id=$1 AND tc.ticket_id=$2 AND tc.organization_id=$4 AND ${citationVisibleSql}`,
+      [
+        commentId,
+        ticketId,
+        hasRole(ctx, 'agent', 'org_admin', 'platform_admin'),
+        ctx.organizationId,
+      ],
+    );
+    if (!rows[0]) throw Problems.notFound('記事の引用版');
+    return { articleId: comment.citation.articleId, version: comment.citation.version, ...rows[0] };
   }
 
   /**
@@ -469,9 +584,11 @@ function toComment(row: Record<string, unknown>): TicketComment {
     id: row.id as string,
     ticketId: row.ticket_id as string,
     authorId: row.author_id as string,
+    authorIsRequester: row.author_is_requester === true,
     visibility: row.visibility as Visibility,
     body: row.body as string,
     createdAt: row.created_at as Date,
+    citation: row.citation as TicketComment['citation'],
   };
 }
 

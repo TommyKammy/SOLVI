@@ -42,7 +42,8 @@
     "check:scanner": "node tools/check_scanner_freshness.mjs",
     "check:traceability": "node tools/check_traceability.mjs",
     "check:unwired": "node tools/check_unwired.mjs",
-    "check:workpackages": "node tools/check_workpackages.mjs"
+    "check:workpackages": "node tools/check_workpackages.mjs",
+    "dev:local": "node --env-file=.env tools/dev_local.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

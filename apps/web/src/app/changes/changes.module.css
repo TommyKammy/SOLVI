@@ -1,0 +1,32 @@
+.table {
+  min-width: 50rem;
+  table-layout: fixed;
+}
+
+.titleColumn {
+  width: 32%;
+}
+
+.stateColumn {
+  width: 20%;
+}
+
+.scheduleColumn {
+  width: 28%;
+}
+
+.relatedColumn {
+  width: 20%;
+}
+
+.table > thead > tr > th,
+.table > tbody > tr > td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.table :global(.state) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}

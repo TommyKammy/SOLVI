@@ -73,7 +73,7 @@ export default async function LoginPage({
         <div className="notice" role="status">
           <h2 style={{ marginTop: 0 }}>ログインの有効期限が切れました</h2>
           <p style={{ margin: 0 }}>
-            お手数ですが、もう一度ログインしてください。作業中だった内容は保存されています。
+            お手数ですが、もう一度ログインしてください。一時保存した下書きは、同じアカウントでログイン後、元のタブで期限内に復元できます。保存していない入力は、再読込すると失われます。
           </p>
         </div>
       )}

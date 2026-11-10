@@ -35,10 +35,28 @@ export function CommentThread({
               <span className="visibility-label">
                 {internal ? '内部メモ(依頼者には表示されません)' : '公開コメント'}
               </span>
-              <span>{comment.authorId === currentUserId ? '自分' : '担当者'}</span>
+              <span>
+                {comment.authorId === currentUserId
+                  ? '自分'
+                  : comment.authorIsRequester
+                    ? '依頼者'
+                    : '担当者'}
+              </span>
               <time dateTime={comment.createdAt}>{formatDateTime(comment.createdAt)}</time>
             </div>
             <div className="body">{comment.body}</div>
+            {comment.citation && (
+              <p className="hint">
+                引用記事:{' '}
+                {comment.citation.available ? (
+                  <a href={`/tickets/${comment.ticketId}/citations/${comment.id}`}>
+                    {comment.citation.title}（版 {comment.citation.version}）
+                  </a>
+                ) : (
+                  <>版 {comment.citation.version} の記録（現在は閲覧できません）</>
+                )}
+              </p>
+            )}
           </li>
         );
       })}

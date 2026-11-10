@@ -1,4 +1,5 @@
 import type pg from 'pg';
+import { TicketAssignmentReadService } from '../ticket/ticket-assignment-read.service.js';
 import { Problems, daysUntil, isExpiringSoon } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import { requireRole, type AuthzContext } from '../../common/authz/authz.js';
@@ -75,10 +76,8 @@ export class UserAdminService {
   /**
    * 組織の在籍者。
    *
-   * **ここは名簿を出してよい場所である。** 担当グループの画面では
-   * 在籍者の一覧を出さないと決めた([[WP-P2-GRP-015]])が、それは
-   * 業務の画面に名簿を置かないという判断だった。
-   * 在籍者の管理そのものを行う画面では、一覧が無いと仕事にならない。
+   * org_admin/platform_admin限定。WP-P2-UX-036では同じ管理者権限の
+   * グループ管理画面にも選択候補として利用する。通常の業務画面へは公開しない。
    */
   async listMembers(ctx: AuthzContext): Promise<OrganizationMember[]> {
     requireRole(ctx, ...MANAGE_ROLES);
@@ -95,12 +94,7 @@ export class UserAdminService {
                   DISTINCT jsonb_build_object('roleCode', r.code, 'validUntil', rb.valid_until)
                 ) FILTER (WHERE rb.valid_until IS NOT NULL),
                 '[]'::jsonb
-              ) AS temporary_roles,
-              (SELECT count(*)::int FROM ticket t
-                WHERE t.assignee_id = u.id
-                  AND t.organization_id = $1
-                  AND t.state NOT IN ('resolved', 'closed', 'cancelled', 'merged')
-              ) AS open_tickets
+              ) AS temporary_roles
          FROM app_user u
          JOIN role_binding rb ON rb.user_id = u.id AND rb.organization_id = $1
          LEFT JOIN role r ON r.id = rb.role_id
@@ -109,6 +103,11 @@ export class UserAdminService {
         GROUP BY u.id, u.display_name, u.primary_email, u.status, u.deactivated_at
         ORDER BY u.status, u.display_name`,
       [ctx.organizationId],
+    );
+
+    const counts = await new TicketAssignmentReadService(this.client).countOpenByAssignees(
+      ctx,
+      rows.map((row) => row.id as string),
     );
 
     return rows.map((r) => ({
@@ -126,7 +125,7 @@ export class UserAdminService {
           expiringSoon: isExpiringSoon(t.validUntil),
         }))
         .sort((a, b) => a.validUntil.localeCompare(b.validUntil)),
-      openTicketCount: Number(r.open_tickets ?? 0),
+      openTicketCount: counts.get(r.id as string) ?? 0,
     }));
   }
 
@@ -211,13 +210,10 @@ export class UserAdminService {
     // **担当チケットが残っていても止める。** 停止は security の操作でもあり、
     // 「担当が残っている」ことを理由に拒むと、漏えいが疑われる状況で
     // 止められなくなる。件数を返し、振り直しの判断は人に残す。
-    const { rows: open } = await this.client.query(
-      `SELECT count(*)::int AS n FROM ticket
-        WHERE assignee_id = $1 AND organization_id = $2
-          AND state NOT IN ('resolved', 'closed', 'cancelled', 'merged')`,
-      [userId, ctx.organizationId],
-    );
-    const openTicketCount = Number(open[0]?.n ?? 0);
+    const counts = await new TicketAssignmentReadService(this.client).countOpenByAssignees(ctx, [
+      userId,
+    ]);
+    const openTicketCount = counts.get(userId) ?? 0;
 
     const sessions = new SessionService(this.client);
     const { revokedSessions } = await sessions.deactivateUser({

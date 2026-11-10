@@ -138,6 +138,11 @@ export class AttachmentScanner {
           return 'deferred';
         }
 
+        if (content.length !== Number(row.size_bytes)) {
+          await this.recordAttempt(row, 'アップロードされた実体と申告サイズが一致しません');
+          return 'deferred';
+        }
+
         const verdict = await this.scanner.scan(content);
 
         if (verdict.status === 'clean') {

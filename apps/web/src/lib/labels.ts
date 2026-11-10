@@ -11,11 +11,13 @@
 const STATE_LABELS: Record<string, string> = {
   new: '受付済み',
   triaged: '確認中',
+  assigned: '担当決定',
   in_progress: '対応中',
-  pending: 'お客様の返信待ち',
+  pending: '確認・対応待ち',
   resolved: '解決済み',
   closed: '完了',
   canceled: '取り消し済み',
+  cancelled: '取り消し済み',
   merged: '他の問い合わせに統合',
 };
 

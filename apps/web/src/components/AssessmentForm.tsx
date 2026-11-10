@@ -1,3 +1,7 @@
+'use client';
+import { useActionState, useState } from 'react';
+import { FeedbackForm, FormField } from './FeedbackForm';
+import type { FormFeedback } from '../lib/form-state';
 import { priorityLabel, levelLabel } from '../lib/labels';
 
 /**
@@ -29,11 +33,15 @@ export function AssessmentForm({
   priority: string;
   /** 保存されている優先度が規則どおりかどうか。 */
   priorityIsDerived: boolean;
-  action: (formData: FormData) => Promise<void>;
+  action: (previous: FormFeedback, formData: FormData) => Promise<FormFeedback>;
   /** 見ていた版 (WP-P2-UISTATE-020)。送り返して競合を検出する。 */
   expectedVersion: string;
   errorMessage?: string;
 }) {
+  const [feedback, dispatch, pending] = useActionState(action, { message: '' } as FormFeedback);
+  const [selectedImpact, setImpact] = useState(impact);
+  const [selectedUrgency, setUrgency] = useState(urgency);
+  const [reason, setReason] = useState('');
   return (
     <section className="assessment">
       <dl className="detail">
@@ -60,7 +68,7 @@ export function AssessmentForm({
         </div>
       )}
 
-      <details className="reassess">
+      <details className="reassess" open={feedback.message ? true : undefined}>
         <summary>影響と急ぎ具合を見直す</summary>
 
         {errorMessage && (
@@ -70,9 +78,9 @@ export function AssessmentForm({
           </div>
         )}
 
-        <form action={action} className="stack">
+        <FeedbackForm action={dispatch} feedback={feedback} pending={pending} className="stack">
           <input type="hidden" name="expectedVersion" value={expectedVersion} />
-          <div className="field">
+          <FormField>
             <label htmlFor="assess-impact">影響の範囲</label>
             <span className="hint" id="assess-impact-hint">
               何人が困っているか。1人なら「低い」、部署全体なら「高い」
@@ -80,7 +88,8 @@ export function AssessmentForm({
             <select
               id="assess-impact"
               name="impact"
-              defaultValue={impact}
+              value={selectedImpact}
+              onChange={(e) => setImpact(e.target.value)}
               aria-describedby="assess-impact-hint"
             >
               {LEVELS.map((level) => (
@@ -89,9 +98,9 @@ export function AssessmentForm({
                 </option>
               ))}
             </select>
-          </div>
+          </FormField>
 
-          <div className="field">
+          <FormField>
             <label htmlFor="assess-urgency">急ぎ具合</label>
             <span className="hint" id="assess-urgency-hint">
               いつまでに直る必要があるか。回避策があるなら「低い」
@@ -99,7 +108,8 @@ export function AssessmentForm({
             <select
               id="assess-urgency"
               name="urgency"
-              defaultValue={urgency}
+              value={selectedUrgency}
+              onChange={(e) => setUrgency(e.target.value)}
               aria-describedby="assess-urgency-hint"
             >
               {LEVELS.map((level) => (
@@ -108,9 +118,9 @@ export function AssessmentForm({
                 </option>
               ))}
             </select>
-          </div>
+          </FormField>
 
-          <div className="field">
+          <FormField>
             <label htmlFor="assess-reason">見直した理由</label>
             {/* 理由は監査に残る。**優先度は SLA の期限を動かす** ので、
                 「なぜ動かしたか」が残らない変更は作らない。 */}
@@ -121,21 +131,23 @@ export function AssessmentForm({
               id="assess-reason"
               name="reason"
               type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               required
               maxLength={500}
               aria-describedby="assess-reason-hint"
             />
-          </div>
+          </FormField>
 
           <p className="hint" style={{ margin: 0 }}>
             優先度は入力できません。影響と急ぎ具合から自動で決まります。
             期限もそれに合わせて変わります。
           </p>
 
-          <button type="submit" className="secondary">
+          <button disabled={pending} type="submit" className="secondary">
             見直す
           </button>
-        </form>
+        </FeedbackForm>
       </details>
     </section>
   );

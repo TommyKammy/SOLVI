@@ -1,0 +1,32 @@
+.table {
+  min-width: 44rem;
+  table-layout: fixed;
+}
+
+.titleColumn {
+  width: 40%;
+}
+
+.kindColumn {
+  width: 22%;
+}
+
+.stateColumn {
+  width: 16%;
+}
+
+.userColumn {
+  width: 22%;
+}
+
+.table > thead > tr > th,
+.table > tbody > tr > td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.table :global(.state) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}

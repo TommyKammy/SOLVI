@@ -1,13 +1,21 @@
+import { formScope } from '../../../lib/form-scope';
+import { TicketWaitNotice } from '../../../components/TicketWaitNotice';
+import { safeReturnTo, withReturnTo } from '../../../lib/navigation';
+import { ContextLink } from '../../../components/ContextLink';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
 import { CommentThread } from '../../../components/CommentThread';
-import { CommentForm } from '../../../components/CommentForm';
+import { ReplyForm } from '../../../components/ReplyForm';
 import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
+import { TicketAssetPanel } from '../../../components/TicketAssetPanel';
+import { RelatedChangePanel } from '../../../components/RelatedChangePanel';
 import { RelationList } from '../../../components/RelationList';
 import { RelationForm } from '../../../components/RelationForm';
+import { routeToGroup, reassess, addRelation } from './supplementary-actions';
+import { TicketRoutingForm } from '../../../components/TicketRoutingForm';
 import { AssessmentForm } from '../../../components/AssessmentForm';
 import {
   stateLabel,
@@ -46,10 +54,12 @@ export const dynamic = 'force-dynamic';
 function failWith(
   ticketId: string,
   problem: { type?: string; detail?: string; title: string },
+  returnTo: string | null,
 ): never {
-  if (problem.type?.endsWith('/stale')) redirect(`/ops/${ticketId}?stale=1`);
+  if (problem.type?.endsWith('/stale'))
+    redirect(withReturnTo(`/ops/${ticketId}?stale=1`, returnTo));
   const detail = problem.detail ?? problem.title;
-  redirect(`/ops/${ticketId}?actionError=${encodeURIComponent(detail)}`);
+  redirect(withReturnTo(`/ops/${ticketId}?actionError=${encodeURIComponent(detail)}`, returnTo));
 }
 
 export default async function OpsWorkspace({
@@ -61,17 +71,60 @@ export default async function OpsWorkspace({
 }) {
   const { id } = await params;
   const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo);
 
   // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
   // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
   const session = await requireSession();
+  if (
+    !session.roles.some((role) => ['agent', 'org_admin', 'platform_admin'].includes(role.roleCode))
+  )
+    redirect('/');
 
-  const result = await api.workspace(id);
+  const result = await api.operatorWorkspaceDetail(id);
   if (!result.ok) {
     if (result.problem.status === 401) redirect('/login');
-    notFound();
+    if (result.problem.status === 403 || result.problem.status === 404) notFound();
+    const retryQuery = new URLSearchParams();
+    if (returnTo) retryQuery.set('returnTo', returnTo);
+    let retryHref = '';
+    try {
+      if (typeof id === 'string' && id.length > 0 && id !== '.' && id !== '..') {
+        const path = `/ops/${encodeURIComponent(id)}`;
+        const target = new URL(path, 'https://solvi.local');
+        if (target.origin === 'https://solvi.local' && target.pathname === path) {
+          retryHref = path + (retryQuery.size ? '?' + retryQuery.toString() : '');
+        }
+      }
+    } catch {
+      // URIにできない入力には再取得リンクを出さない。
+    }
+    const message =
+      result.problem.status === 400
+        ? '問い合わせを指定する情報が正しくありません。対応待ちの一覧から選び直してください。'
+        : '一時的に問い合わせを読み込めませんでした。時間をおいて、もう一度お試しください。';
+    return (
+      <main id="main" className="shell">
+        <h1>問い合わせを読み込めませんでした</h1>
+        <p role="alert">{message}</p>
+        {retryHref && (
+          <p>
+            <a href={retryHref}>再取得する</a>
+          </p>
+        )}
+        <p>
+          <a href={returnTo ?? '/ops'}>{returnTo ? '元の画面へ戻る' : '対応待ちの一覧へ戻る'}</a>
+        </p>
+        {returnTo !== '/portal' && (
+          <p>
+            <a href="/portal">ポータルへ戻る</a>
+          </p>
+        )}
+      </main>
+    );
   }
 
+  const knowledge = await api.knowledgeList('');
   const {
     ticket,
     comments,
@@ -89,19 +142,6 @@ export default async function OpsWorkspace({
   const relationItems = relations.ok ? relations.data.items : [];
   const unresolvedChildren = relations.ok ? relations.data.unresolvedChildren : [];
 
-  async function postComment(formData: FormData): Promise<void> {
-    'use server';
-    const posted = await api.addComment(id, {
-      visibility: String(formData.get('visibility') ?? 'public'),
-      body: String(formData.get('body') ?? ''),
-    });
-    if (!posted.ok) {
-      redirect(`/ops/${id}?commentError=1`);
-    }
-    revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
-  }
-
   async function runTransition(formData: FormData): Promise<void> {
     'use server';
     const done = await api.transition(id, {
@@ -109,9 +149,9 @@ export default async function OpsWorkspace({
       reason: String(formData.get('reason') ?? ''),
       expectedVersion: String(formData.get('expectedVersion') ?? ''),
     });
-    if (!done.ok) failWith(id, done.problem);
+    if (!done.ok) failWith(id, done.problem, returnTo);
     revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
+    redirect(withReturnTo(`/ops/${id}`, returnTo));
   }
 
   async function removeAttachment(formData: FormData): Promise<void> {
@@ -120,87 +160,49 @@ export default async function OpsWorkspace({
       String(formData.get('attachmentId') ?? ''),
       String(formData.get('reason') ?? ''),
     );
-    if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    if (!done.ok) redirect(withReturnTo(`/ops/${id}?actionError=1`, returnTo));
     revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
-  }
-
-  async function routeToGroup(formData: FormData): Promise<void> {
-    'use server';
-    const raw = String(formData.get('groupId') ?? '');
-    const done = await api.assignGroup(
-      id,
-      raw.length > 0 ? raw : null,
-      String(formData.get('expectedVersion') ?? ''),
-    );
-    if (!done.ok) {
-      if (done.problem.type?.endsWith('/stale')) redirect(`/ops/${id}?stale=1`);
-      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
-      redirect(`/ops/${id}?groupError=${encodeURIComponent(detail)}`);
-    }
-    revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
-  }
-
-  async function reassess(formData: FormData): Promise<void> {
-    'use server';
-    const done = await api.reassess(id, {
-      impact: String(formData.get('impact') ?? ''),
-      urgency: String(formData.get('urgency') ?? ''),
-      reason: String(formData.get('reason') ?? ''),
-      expectedVersion: String(formData.get('expectedVersion') ?? ''),
-    });
-    if (!done.ok) {
-      if (done.problem.type?.endsWith('/stale')) redirect(`/ops/${id}?stale=1`);
-      const detail = done.problem.errors?.[0]?.message ?? done.problem.detail ?? done.problem.title;
-      redirect(`/ops/${id}?assessError=${encodeURIComponent(detail)}`);
-    }
-    revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
-  }
-
-  async function addRelation(formData: FormData): Promise<void> {
-    'use server';
-    const linked = await api.linkTicket(id, {
-      relationType: String(formData.get('relationType') ?? 'related'),
-      targetTicketNumber: String(formData.get('targetTicketNumber') ?? ''),
-    });
-    if (!linked.ok) {
-      const detail = linked.problem.detail ?? linked.problem.title;
-      redirect(`/ops/${id}?relationError=${encodeURIComponent(detail)}`);
-    }
-    revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
+    redirect(withReturnTo(`/ops/${id}`, returnTo));
   }
 
   async function removeRelation(formData: FormData): Promise<void> {
     'use server';
     const done = await api.unlinkTicket(String(formData.get('relationId') ?? ''));
-    if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    if (!done.ok) redirect(withReturnTo(`/ops/${id}?actionError=1`, returnTo));
     revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
+    redirect(withReturnTo(`/ops/${id}`, returnTo));
   }
 
   async function takeOwnership(): Promise<void> {
     'use server';
-    const me = await api.me();
-    if (!me.ok) redirect('/login');
-    const done = await api.assign(id, me.data.userId);
-    if (!done.ok) redirect(`/ops/${id}?actionError=1`);
+    const done = await api.takeOwnership(id, ticket.version);
+    if (!done.ok) failWith(id, done.problem, returnTo);
     revalidatePath(`/ops/${id}`);
-    redirect(`/ops/${id}`);
+    redirect(withReturnTo(`/ops/${id}`, returnTo));
   }
 
   const isMine = ticket.assigneeId === session.userId;
   const currentGroup = availableGroups.find((g) => g.id === ticket.assigneeGroupId);
 
   return (
-    <main id="main" className="shell">
+    <main id="main" className="shell ticket-workspace">
       <p>
-        <Link href="/ops">対応待ちの一覧へ戻る</Link>
+        <ContextLink back href="/ops">
+          対応待ちの一覧へ戻る
+        </ContextLink>
       </p>
 
       <h1>{ticket.subject}</h1>
+      {query.replied !== undefined && (
+        <p className="notice" role="status">
+          投稿を保存しました。
+        </p>
+      )}
+      {query.updated !== undefined && (
+        <p className="notice" role="status">
+          変更を保存しました。
+        </p>
+      )}
       <p className="lead">
         受付番号 {ticket.number} ・ {kindLabel(ticket.kind)} ・ 優先度{' '}
         {priorityLabel(ticket.priority)}
@@ -240,174 +242,180 @@ export default async function OpsWorkspace({
         </div>
       )}
 
-      <dl className="detail">
-        <dt>状況</dt>
-        <dd>
-          <span className="state">{stateLabel(ticket.state)}</span>
-        </dd>
-        <dt>担当</dt>
-        <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
+      <TicketWaitNotice ticket={ticket} />
 
-        <dt>依頼者</dt>
-        <dd>
-          {/* **IDを出さない。** 読めない値を見せても意味が無い。
+      <div className="workspace-grid">
+        <section className="workspace-primary" aria-label="問い合わせと会話">
+          <h2>依頼内容</h2>
+          <div className="body-text">{ticket.body}</div>
+
+          <h2>やり取り</h2>
+          <CommentThread comments={comments} currentUserId={session.userId} />
+
+          <h2>返信・対応を記録する</h2>
+          <ReplyForm
+            key={`${formScope(session)}:${id}`}
+            ticketId={id}
+            scope={formScope(session)}
+            replyContext={result.data.replyContext}
+            canResolve={availableActions.some((action) => action.reason === 'resolve')}
+            articles={knowledge.ok ? knowledge.data.items : []}
+          />
+          <details className="workspace-disclosure">
+            <summary>添付ファイル</summary>
+            <AttachmentList
+              attachments={attachments}
+              currentUserId={session.userId}
+              canDeleteAny
+              deleteAction={removeAttachment}
+            />
+            <AttachmentForm ticketId={id} canChooseVisibility />
+          </details>
+        </section>
+        <aside className="workspace-secondary" aria-label="状況と担当の操作">
+          <dl className="detail">
+            <dt>状況</dt>
+            <dd>
+              <span className="state" data-state={ticket.state}>
+                {stateLabel(ticket.state)}
+              </span>
+            </dd>
+            <dt>担当</dt>
+            <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
+
+            <dt>依頼者</dt>
+            <dd>
+              {/* **IDを出さない。** 読めない値を見せても意味が無い。
               「他の問い合わせ」への導線としてだけ使う (FR-TKT-006)。 */}
-          <Link href={`/ops?requester=${encodeURIComponent(ticket.requesterId)}`}>
-            この依頼者の他の問い合わせ
-          </Link>
-        </dd>
+              <Link href={`/ops?requester=${encodeURIComponent(ticket.requesterId)}`}>
+                この依頼者の他の問い合わせ
+              </Link>
+            </dd>
 
-        <dt>担当グループ</dt>
-        <dd>
-          {/* **グループと個人は別の軸である。** グループはキュー、個人は
+            <dt>担当グループ</dt>
+            <dd>
+              {/* **グループと個人は別の軸である。** グループはキュー、個人は
               いま手を動かしている人。両方が入りうるし、片方だけでもよい。 */}
-          {currentGroup ? currentGroup.name : 'どのグループにも振られていません'}
-        </dd>
-        <dt>受付日時</dt>
-        <dd>{formatDateTime(ticket.createdAt)}</dd>
-      </dl>
+              {currentGroup ? currentGroup.name : 'どのグループにも振られていません'}
+            </dd>
+            <dt>受付日時</dt>
+            <dd>{formatDateTime(ticket.createdAt)}</dd>
+          </dl>
 
-      <h2>操作</h2>
+          <h2>操作</h2>
 
-      {unresolvedChildren.length > 0 && (
-        // **止めない。知らせるだけ。** 子が別チームの担当で長期化することがあり、
-        // 解決を拒否すると運用が詰まる。判断は人に残す(WP-P2-REL-009 §6)。
-        <div className="notice" role="note">
-          <h3 style={{ marginTop: 0 }}>まだ対応中の子の問い合わせがあります</h3>
-          <ul style={{ marginBottom: 0 }}>
-            {unresolvedChildren.map((child) => (
-              <li key={child.ticketId}>
-                <Link href={`/ops/${child.ticketId}`}>
-                  {child.number} {child.subject}
-                </Link>{' '}
-                — {stateLabel(child.state)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+          {unresolvedChildren.length > 0 && (
+            // **止めない。知らせるだけ。** 子が別チームの担当で長期化することがあり、
+            // 解決を拒否すると運用が詰まる。判断は人に残す(WP-P2-REL-009 §6)。
+            <div className="notice" role="note">
+              <h3 style={{ marginTop: 0 }}>まだ対応中の子の問い合わせがあります</h3>
+              <ul style={{ marginBottom: 0 }}>
+                {unresolvedChildren.map((child) => (
+                  <li key={child.ticketId}>
+                    <ContextLink href={`/ops/${child.ticketId}`}>
+                      {child.number} {child.subject}
+                    </ContextLink>{' '}
+                    — {stateLabel(child.state)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      <div className="actions-row">
-        {!isMine && (
-          <form action={takeOwnership}>
-            <button type="submit">自分の担当にする</button>
-          </form>
-        )}
-        {availableActions.length === 0 ? (
-          <p className="empty" style={{ margin: 0 }}>
-            この状況で行える操作はありません。
-          </p>
-        ) : (
-          availableActions.map((action) => (
-            <form key={`${action.to}:${action.reason}`} action={runTransition}>
-              <input type="hidden" name="to" value={action.to} />
-              <input type="hidden" name="reason" value={action.reason} />
-              {/* 見ていた版。送り返して、その間の変更を検出する。 */}
-              <input type="hidden" name="expectedVersion" value={ticket.version} />
-              <button type="submit" className="secondary">
-                {action.label}
-              </button>
-            </form>
-          ))
-        )}
-      </div>
+          <div className="actions-row">
+            {(!isMine || ticket.state === 'new') &&
+              !['closed', 'cancelled', 'merged'].includes(ticket.state) && (
+                <form action={takeOwnership}>
+                  <button type="submit">自分が引き受ける</button>
+                </form>
+              )}
+            {availableActions.length === 0 ? (
+              <p className="empty" style={{ margin: 0 }}>
+                この状況で行える操作はありません。
+              </p>
+            ) : (
+              availableActions
+                .filter((action) => !['resolve', 'assign'].includes(action.reason))
+                .map((action) => (
+                  <form key={`${action.to}:${action.reason}`} action={runTransition}>
+                    <input type="hidden" name="to" value={action.to} />
+                    <input type="hidden" name="reason" value={action.reason} />
+                    {/* 見ていた版。送り返して、その間の変更を検出する。 */}
+                    <input type="hidden" name="expectedVersion" value={ticket.version} />
+                    <button type="submit" className="secondary">
+                      {action.label}
+                    </button>
+                  </form>
+                ))
+            )}
+          </div>
 
-      {/* 期限 (FR-TKT-008)。**操作の手前に置く。**
+          {/* 期限 (FR-TKT-008)。**操作の手前に置く。**
           何をするか決める前に、いつまでかを知っている必要がある。 */}
-      <div className={sla.resolutionBreached ? 'sla-panel breached' : 'sla-panel'}>
-        <strong>解決の期限: {formatRemaining(sla.remainingSeconds)}</strong>
-        <p className="hint" style={{ margin: '0.25rem 0 0' }}>
-          {sla.responseBreached ? '初回応答の目標を超えています。' : '初回応答の目標内です。'}{' '}
-          超過しても操作は止まりません。目標は計測のための値です。
-        </p>
-      </div>
+          <div className={sla.resolutionBreached ? 'sla-panel breached' : 'sla-panel'}>
+            <strong>解決の期限: {formatRemaining(sla.remainingSeconds)}</strong>
+            <p className="hint" style={{ margin: '0.25rem 0 0' }}>
+              {sla.responseBreached ? '初回応答の目標を超えています。' : '初回応答の目標内です。'}{' '}
+              超過しても操作は止まりません。目標は計測のための値です。
+            </p>
+          </div>
 
-      <h2>振り先</h2>
-      {/*
+          <details className="workspace-disclosure" open={typeof query.groupError === 'string'}>
+            <summary>担当グループを変更</summary>
+            {/*
         **グループ割当は状態を動かさない。** キューに入っただけのチケットを
         「担当者が決まった」ことにすると、実際には誰も見ていないのに
         応答したことになってしまう。
       */}
-      {typeof query.groupError === 'string' && (
-        <div className="error-summary" role="alert" tabIndex={-1}>
-          <h3 style={{ margin: '0 0 0.5rem' }}>振り先を変えられませんでした</h3>
-          <p style={{ margin: 0 }}>{query.groupError}</p>
-        </div>
-      )}
-      <form action={routeToGroup} className="stack" style={{ maxWidth: '28rem' }}>
-        <input type="hidden" name="expectedVersion" value={ticket.version} />
-        <div className="field">
-          <label htmlFor="group-select">担当グループ</label>
-          <span className="hint" id="group-select-hint">
-            振り先を変えても、いまの担当者はそのままです
-          </span>
-          <select
-            id="group-select"
-            name="groupId"
-            defaultValue={ticket.assigneeGroupId ?? ''}
-            aria-describedby="group-select-hint"
-          >
-            <option value="">どのグループにも振らない</option>
-            {availableGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}({group.memberCount}人)
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" className="secondary">
-          振り先を変える
-        </button>
-      </form>
+            {typeof query.groupError === 'string' && (
+              <div className="error-summary" role="alert" tabIndex={-1}>
+                <h3 style={{ margin: '0 0 0.5rem' }}>振り先を変えられませんでした</h3>
+                <p style={{ margin: 0 }}>{query.groupError}</p>
+              </div>
+            )}
+            <TicketRoutingForm
+              action={routeToGroup.bind(null, id)}
+              expectedVersion={ticket.version}
+              groupId={ticket.assigneeGroupId ?? ''}
+              groups={availableGroups}
+            />
+          </details>
+          <h2>優先度と影響</h2>
+          <AssessmentForm
+            impact={ticket.impact}
+            urgency={ticket.urgency}
+            priority={ticket.priority}
+            priorityIsDerived={priorityIsDerived}
+            action={reassess.bind(null, id)}
+            expectedVersion={ticket.version}
+            errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
+          />
 
-      <h2>見立て</h2>
-      <AssessmentForm
-        impact={ticket.impact}
-        urgency={ticket.urgency}
-        priority={ticket.priority}
-        priorityIsDerived={priorityIsDerived}
-        action={reassess}
-        expectedVersion={ticket.version}
-        errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
-      />
-
-      <h2>依頼内容</h2>
-      <div className="body-text">{ticket.body}</div>
-
-      <h2>関連する問い合わせ</h2>
-      <RelationList relations={relationItems} canUnlink unlinkAction={removeRelation} />
-      <RelationForm
-        action={addRelation}
-        errorMessage={typeof query.relationError === 'string' ? query.relationError : undefined}
-      />
-      {ticket.state !== 'merged' && (
-        <p style={{ marginTop: '1rem' }}>
-          {/* 統合は別の画面へ送る。ここにボタンを置くと、
+          <details className="workspace-disclosure">
+            <summary>関連する問い合わせ・資産・変更</summary>
+            <h2>関連する問い合わせ</h2>
+            <RelationList relations={relationItems} canUnlink unlinkAction={removeRelation} />
+            <RelationForm
+              action={addRelation.bind(null, id)}
+              errorMessage={
+                typeof query.relationError === 'string' ? query.relationError : undefined
+              }
+            />
+            {ticket.state !== 'merged' && (
+              <p style={{ marginTop: '1rem' }}>
+                {/* 統合は別の画面へ送る。ここにボタンを置くと、
               他の操作と同じ重さに見えてしまう。**取り消せない操作である。** */}
-          <Link href={`/ops/${id}/merge`}>重複した問い合わせとして統合する</Link>
-        </p>
-      )}
+                <ContextLink href={`/ops/${id}/merge`}>
+                  重複した問い合わせとして統合する
+                </ContextLink>
+              </p>
+            )}
 
-      <h2>添付ファイル</h2>
-      <AttachmentList
-        attachments={attachments}
-        currentUserId={session.userId}
-        canDeleteAny
-        deleteAction={removeAttachment}
-      />
-      <AttachmentForm ticketId={id} canChooseVisibility />
-
-      <h2>やり取り</h2>
-      <CommentThread comments={comments} currentUserId={session.userId} />
-
-      <h2>投稿する</h2>
-      <CommentForm
-        action={postComment}
-        canWriteInternal
-        errorMessage={
-          query.commentError !== undefined ? '内容を確認して、もう一度お試しください。' : undefined
-        }
-      />
+            <TicketAssetPanel ticketId={id} saved={query.assetSaved === '1'} />
+            <RelatedChangePanel kind="ticket" id={id} />
+          </details>
+        </aside>
+      </div>
     </main>
   );
 }

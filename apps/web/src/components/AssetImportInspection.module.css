@@ -1,0 +1,74 @@
+.inspection {
+  margin: 2rem 0;
+  min-width: 0;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.filters button {
+  padding: 0.45rem 0.85rem;
+  transition: none;
+}
+.search {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.searchField {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+.searchField label {
+  display: block;
+  font-weight: 600;
+}
+.searchField input {
+  width: 100%;
+}
+.table {
+  min-width: 56rem;
+  table-layout: fixed;
+}
+.rowColumn {
+  width: 6%;
+}
+.identityColumn {
+  width: 25%;
+}
+.operationColumn {
+  width: 13%;
+}
+.changeColumn {
+  width: 56%;
+}
+.table > thead > tr > th,
+.table > tbody > tr > td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.change {
+  margin: 0.75rem 0;
+}
+.changeLabel {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+.values dt {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.values dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

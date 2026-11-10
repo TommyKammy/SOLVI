@@ -77,6 +77,10 @@ export const SLA_JOIN_SQL = `
   LEFT JOIN sla_policy p
     ON p.organization_id = t.organization_id AND p.priority = t.priority`;
 
+/** Shared by the list filter and overview; reaching the target is not yet a breach. */
+export const SLA_BREACHED_SQL = `(p.resolution_target_minutes IS NOT NULL
+        AND ${SLA_ELAPSED_SQL} > p.resolution_target_minutes * 60)`;
+
 export type SortColumn = keyof typeof SORTABLE_COLUMNS;
 export type SortDirection = 'asc' | 'desc';
 
@@ -140,6 +144,8 @@ export interface ListOptions {
 export interface BuiltQuery {
   sql: string;
   params: unknown[];
+  /** Keyword/created-at page and exact pre-cursor count from one authorized population. */
+  combinedSql?: string;
   /** 件数取得用。認可条件を含む同一の WHERE を使う。 */
   countSql: string;
   countParams: unknown[];
@@ -171,13 +177,22 @@ function authorizationClause(
   return { clause: `${orgClause} AND t.requester_id = $${params.length}`, scope: 'own' };
 }
 
-function filterClauses(filter: TicketFilter | undefined, params: unknown[]): string[] {
+function filterClauses(
+  filter: TicketFilter | undefined,
+  params: unknown[],
+  statePrefixClauses?: string[],
+): string[] {
   if (!filter) return [];
   const clauses: string[] = [];
 
   if (filter.state?.length) {
     params.push(filter.state);
     clauses.push(`t.state = ANY($${params.length}::text[])`);
+    if (filter.state.length === 1) {
+      // 単一状態なら既存の (organization_id, state, created_at, id) 索引で順序を保てる。
+      // 複数状態や本人範囲には適用せず、残りの条件は先頭取得後に評価する。
+      statePrefixClauses?.push(`t.state = ($${params.length}::text[])[1]`);
+    }
   }
   if (filter.priority?.length) {
     params.push(filter.priority);
@@ -215,10 +230,7 @@ function filterClauses(filter: TicketFilter | undefined, params: unknown[]): str
   if (filter.slaBreachedOnly) {
     // 目標が設定されていない組織では判定できない。**超過扱いにしない** —
     // 設定漏れを「超過」として並べると、本当に遅れているものが埋もれる。
-    clauses.push(
-      `(p.resolution_target_minutes IS NOT NULL
-        AND ${SLA_ELAPSED_SQL} > p.resolution_target_minutes * 60)`,
-    );
+    clauses.push(SLA_BREACHED_SQL);
   }
 
   if (filter.createdFrom) {
@@ -248,7 +260,15 @@ export function buildListQuery(ctx: AuthzContext, options: ListOptions = {}): Bu
   const params: unknown[] = [];
 
   const auth = authorizationClause(ctx, params);
-  const clauses = [auth.clause, ...filterClauses(options.filter, params)];
+  const statePrefixClauses: string[] = [];
+  const clauses = [
+    auth.clause,
+    ...filterClauses(
+      options.filter,
+      params,
+      auth.scope === 'organization' ? statePrefixClauses : undefined,
+    ),
+  ];
 
   // ソート列は許可リストからのみ引く。未知の値は拒否する(注入経路を作らない)。
   const sortColumn = options.sort?.column ?? 'created_at';
@@ -300,20 +320,137 @@ export function buildListQuery(ctx: AuthzContext, options: ListOptions = {}): Bu
   const where = clauses.join(' AND ');
   params.push(limit);
   const orderBy = SORT_EXPRESSIONS[column] ?? `t.${column}`;
-  const sql = `
+  // created_at is NOT NULL. Its default NULL order matches the existing keyset index;
+  // forcing DESC NULLS LAST prevents that index from supplying the requested order.
+  // Calculated deadlines can be NULL and must continue to sort after known deadlines.
+  const nullOrder = sortColumn === 'created_at' ? '' : ' NULLS LAST';
+  // Deadline and keyword selection can examine many candidates. Fetch display
+  // names only for the selected page, keeping authorization, filters and cursor
+  // inside the LIMIT. Unfiltered created-at reads retain their index-driven path.
+  const selectBeforeDisplay =
+    sortColumn === 'deadline' ||
+    (sortColumn === 'created_at' && Boolean(options.filter?.keyword?.trim()));
+  const selectedOrderBy = sortColumn === 'deadline' ? 'remaining_seconds' : 'created_at';
+  const sql = selectBeforeDisplay
+    ? `
+    SELECT selected.*,
+           assignee.display_name AS assignee_name, requester.display_name AS requester_name,
+           assignee_group.name AS assignee_group_name
+      FROM (
+        SELECT t.*, t.created_at::text AS cursor_created_at,
+               ${SLA_SELECT_SQL},
+               p.response_target_minutes,
+               p.resolution_target_minutes
+          FROM ticket t
+          ${SLA_JOIN_SQL}
+         WHERE ${where}
+         ORDER BY ${orderBy} ${direction}${nullOrder}, t.id ${direction}
+         LIMIT $${params.length}
+      ) selected
+      LEFT JOIN app_user assignee ON assignee.id=selected.assignee_id
+      LEFT JOIN app_user requester ON requester.id=selected.requester_id
+      LEFT JOIN assignment_group assignee_group ON assignee_group.id=selected.assignee_group_id AND assignee_group.organization_id=selected.organization_id
+     ORDER BY selected.${selectedOrderBy} ${direction}${nullOrder}, selected.id ${direction}
+  `
+    : `
     SELECT t.*, t.created_at::text AS cursor_created_at,
+           assignee.display_name AS assignee_name, requester.display_name AS requester_name,
+           assignee_group.name AS assignee_group_name,
            ${SLA_SELECT_SQL},
            p.response_target_minutes,
            p.resolution_target_minutes
       FROM ticket t
+      LEFT JOIN app_user assignee ON assignee.id=t.assignee_id
+      LEFT JOIN app_user requester ON requester.id=t.requester_id
+      LEFT JOIN assignment_group assignee_group ON assignee_group.id=t.assignee_group_id AND assignee_group.organization_id=t.organization_id
       ${SLA_JOIN_SQL}
      WHERE ${where}
-     ORDER BY ${orderBy} ${direction} NULLS LAST, t.id ${direction}
+     ORDER BY ${orderBy} ${direction}${nullOrder}, t.id ${direction}
      LIMIT $${params.length}
   `;
 
+  // An authorized ordered prefix is already the exact page when every prefix row
+  // satisfies all filters. Only an organization-wide singleton state can narrow
+  // that prefix using its existing ordered index; test all remaining filters
+  // after the prefix LIMIT. This
+  // avoids materializing a large matching population for broad searches without
+  // guessing selectivity from keyword length. Otherwise reuse the matching keys.
+  // Both branches keep the exact pre-cursor count in the same statement snapshot.
+  const combinedSql =
+    sortColumn === 'created_at' && Boolean(options.filter?.keyword?.trim())
+      ? `
+    SELECT combined.*
+      FROM (
+        WITH probe_keys AS MATERIALIZED (
+          SELECT t.id, t.created_at
+            FROM ticket t
+           WHERE ${[auth.clause, ...statePrefixClauses].join(' AND ')}
+             ${options.cursor ? `AND ${clauses[clauses.length - 1]}` : ''}
+           ORDER BY t.created_at ${direction}, t.id ${direction}
+           LIMIT $${params.length}
+        ), probe_evaluation AS MATERIALIZED (
+          SELECT selected.id, selected.created_at, (${countWhere}) IS TRUE AS matches
+            FROM probe_keys selected
+            JOIN ticket t ON t.id = selected.id
+            ${options.filter?.slaBreachedOnly ? SLA_JOIN_SQL : ''}
+           WHERE ${auth.clause}
+        ), probe_status AS MATERIALIZED (
+          SELECT count(*) = count(*) FILTER (WHERE matches IS TRUE) AS usable
+            FROM probe_evaluation
+        ), matched AS MATERIALIZED (
+          SELECT t.id, t.created_at
+            FROM ticket t
+            ${options.filter?.slaBreachedOnly ? SLA_JOIN_SQL : ''}
+           WHERE ${countWhere}
+             AND NOT (SELECT usable FROM probe_status)
+        ), counted AS MATERIALIZED (
+          SELECT CASE WHEN usable THEN (
+            SELECT count(*)::int FROM ticket t
+            ${options.filter?.slaBreachedOnly ? SLA_JOIN_SQL : ''}
+             WHERE ${countWhere}
+          ) ELSE (SELECT count(*)::int FROM matched) END AS __solvi_total
+            FROM probe_status
+        ), selected_keys AS (
+          SELECT id, created_at FROM probe_evaluation
+           WHERE (SELECT usable FROM probe_status)
+          UNION ALL
+          SELECT id, created_at FROM (
+            SELECT t.id, t.created_at FROM matched t
+            ${options.cursor ? `WHERE ${clauses[clauses.length - 1]}` : ''}
+             ORDER BY t.created_at ${direction}, t.id ${direction}
+             LIMIT $${params.length}
+          ) fallback
+           WHERE NOT (SELECT usable FROM probe_status)
+        ), page AS (
+          SELECT t.*, t.created_at::text AS cursor_created_at,
+                 ${SLA_SELECT_SQL},
+                 p.response_target_minutes,
+                 p.resolution_target_minutes,
+                 assignee.display_name AS assignee_name,
+                 requester.display_name AS requester_name,
+                 assignee_group.name AS assignee_group_name
+            FROM selected_keys selected
+            JOIN LATERAL (
+              SELECT t.* FROM ticket t
+               WHERE t.id = selected.id AND ${auth.clause}
+               LIMIT 1
+            ) t ON TRUE
+            ${SLA_JOIN_SQL}
+            LEFT JOIN app_user assignee ON assignee.id=t.assignee_id
+            LEFT JOIN app_user requester ON requester.id=t.requester_id
+            LEFT JOIN assignment_group assignee_group ON assignee_group.id=t.assignee_group_id AND assignee_group.organization_id=t.organization_id
+           WHERE ${auth.clause}
+        )
+        SELECT page.*, counted.__solvi_total
+          FROM counted LEFT JOIN page ON TRUE
+      ) combined
+     ORDER BY combined.created_at ${direction}, combined.id ${direction}
+  `
+      : undefined;
+
   return {
     sql,
+    ...(combinedSql ? { combinedSql } : {}),
     params,
     countSql: `SELECT count(*)::int AS total FROM ticket t ${SLA_JOIN_SQL} WHERE ${countWhere}`,
     countParams,

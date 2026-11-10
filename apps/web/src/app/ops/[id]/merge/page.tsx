@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { ContextLink } from '../../../../components/ContextLink';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../../lib/api';
@@ -88,7 +88,9 @@ export default async function MergeTicket({
   return (
     <main id="main" className="shell">
       <p>
-        <Link href={`/ops/${id}`}>この問い合わせへ戻る</Link>
+        <ContextLink back href={`/ops/${id}`}>
+          この問い合わせへ戻る
+        </ContextLink>
       </p>
 
       <h1>重複した問い合わせを統合する</h1>

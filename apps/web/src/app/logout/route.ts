@@ -21,6 +21,7 @@ export async function POST(): Promise<NextResponse> {
     new URL('/login', process.env.WEB_BASE_URL ?? 'http://localhost:3000'),
     {
       status: 303,
+      headers: { 'Clear-Site-Data': '"storage"' },
     },
   );
 }

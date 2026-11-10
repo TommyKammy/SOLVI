@@ -1,4 +1,9 @@
 import { api } from '../lib/api';
+import { Suspense } from 'react';
+import { AppNavigation, RouteContext } from './AppNavigation';
+import { DraftSessionBoundary, LogoutForm } from './DraftSessionBoundary';
+import { formScope } from '../lib/form-scope';
+import { navigationRoles } from '../lib/navigation';
 
 /**
  * 全画面共通のヘッダ (WP-P1-IDM-010)。
@@ -16,6 +21,18 @@ import { api } from '../lib/api';
  * 自分が今どちらの状態なのか分からなくなる。
  */
 export async function SiteHeader() {
+  // The isolated GLPI trial does not require the legacy SOLVI API/PostgreSQL stack.
+  if (process.env.GLPI_UI_ENABLED === 'true' && process.env.NODE_ENV !== 'production') {
+    return (
+      <header className="site">
+        <div className="inner">
+          <a className="site-brand" href="/glpi">
+            SOLVI
+          </a>
+        </div>
+      </header>
+    );
+  }
   // `me()` は組織が未選択だと 403 になる。ここは組織の選択画面でも
   // 表示されるため、未選択でも引ける経路を使う。
   const result = await api.myOrganizations();
@@ -24,38 +41,52 @@ export async function SiteHeader() {
   const selectedId = result.ok ? result.data.selected : null;
   const current = organizations.find((o) => o.id === selectedId);
   const canSwitch = organizations.length > 1;
-
+  const me = selectedId ? await api.me() : null;
+  const roles = me?.ok ? navigationRoles(me.data) : null;
+  if (roles?.notifications) {
+    // auth/me omits binding validity dates. The protected reader confirms current permission.
+    const notifications = await api.notifications({
+      status: 'all',
+      direction: 'next',
+      invalid: false,
+    });
+    roles.notifications = notifications.ok;
+  }
   return (
-    <header className="site">
-      <div className="inner">
-        <a href="/">SOLVI サポート</a>
-
-        {signedIn && (
-          <nav
-            aria-label="利用者メニュー"
-            style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
-          >
+    <>
+      <header className={roles ? 'site workspace-nav' : 'site'}>
+        <DraftSessionBoundary scope={me?.ok ? formScope(me.data) : null} />
+        <div className="inner">
+          <div className="identity-row">
+            <a className="site-brand" href="/">
+              SOLVI
+            </a>
             {current && (
               <span className="current-org">
-                {/* 支援技術には「何の名前か」を伝える。目で見る利用者には
-                    位置と体裁で分かるが、読み上げでは文脈が要る。 */}
                 <span className="visually-hidden">操作中の組織: </span>
                 {current.name}
               </span>
             )}
-            {canSwitch && <a href="/select-organization">組織を切り替える</a>}
-
-            {/* 担当者向けの入口。権限が無い利用者が押しても、
-                画面側で「権限がありません」と伝え、APIは自分の分しか返さない。 */}
-            <a href="/ops">対応待ちの一覧</a>
-            <form action="/logout" method="post">
-              <button className="secondary" type="submit">
-                ログアウト
-              </button>
-            </form>
-          </nav>
-        )}
-      </div>
-    </header>
+            {signedIn && (
+              <div className="session-actions">
+                {canSwitch && <a href="/select-organization">組織を切り替える</a>}
+                {me?.ok && <a href="/settings/notifications">自分の通知設定</a>}
+                <LogoutForm />
+              </div>
+            )}
+          </div>
+          {roles && (
+            <Suspense fallback={null}>
+              <AppNavigation roles={roles} />
+            </Suspense>
+          )}
+        </div>
+      </header>
+      {roles && (
+        <Suspense fallback={null}>
+          <RouteContext />
+        </Suspense>
+      )}
+    </>
   );
 }

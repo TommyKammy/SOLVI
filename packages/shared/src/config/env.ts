@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isIP } from 'node:net';
 
 /**
  * 環境変数の検証。
@@ -9,6 +10,18 @@ import { z } from 'zod';
  */
 
 const nonEmpty = (label: string) => z.string().min(1, `${label} が未設定です`);
+
+// bind先はIPまたはhostnameのみ。URL・port・空欄を黙って既定値へ戻さない。
+const bindHost = z
+  .string()
+  .min(1)
+  .max(253)
+  .refine(
+    (value) =>
+      isIP(value) !== 0 ||
+      value.split('.').every((label) => /^[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/i.test(label)),
+    { message: '待受hostにはIPアドレスまたはhostnameを指定してください' },
+  );
 
 const postgresUrl = z.string().refine((v) => /^postgres(ql)?:\/\/[^:]+:[^@]+@[^/]+\/.+/.test(v), {
   message: 'DATABASE_URL の形式が不正です (postgres://user:password@host:port/db)',
@@ -23,6 +36,7 @@ const baseSchema = z.object({
   // 一切記録されない(MeterProvider が生成されない)ため、
   // 本番相当環境では必ず設定する。→ docs/ops/slo.md
   METRICS_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+  METRICS_HOST: bindHost.optional(),
 });
 
 const databaseSchema = z.object({
@@ -50,6 +64,7 @@ export const apiEnvSchema = baseSchema
   .merge(storageSchema)
   .extend({
     API_PORT: z.coerce.number().int().positive().default(3001),
+    API_HOST: bindHost.optional(),
     // SESSION_SECRET はここに無い。
     //
     // かつては必須(32文字以上)として宣言されていたが、**どこからも読まれていなかった。**
