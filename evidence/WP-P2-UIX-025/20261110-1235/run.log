@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-11-10T03:46:16.836Z",
+  "base": "http://127.0.0.1:3000",
+  "screens": [
+    {
+      "name": "login",
+      "path": "/login",
+      "violations": []
+    },
+    {
+      "name": "inbox",
+      "path": "/inbox",
+      "violations": []
+    },
+    {
+      "name": "ops",
+      "path": "/ops",
+      "violations": []
+    },
+    {
+      "name": "ticket-detail",
+      "path": "/ops/01a1c363-78ca-7000-81eb-0fac1e61ae07",
+      "violations": []
+    }
+  ],
+  "mobile": [
+    {
+      "name": "inbox",
+      "path": "/inbox"
+    },
+    {
+      "name": "ops",
+      "path": "/ops"
+    },
+    {
+      "name": "ticket-detail",
+      "path": "/ops/01a1c363-78ca-7000-81eb-0fac1e61ae07"
+    }
+  ]
+}

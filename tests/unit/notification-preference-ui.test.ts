@@ -15,8 +15,7 @@ import {
 } from '../../apps/web/src/lib/notification-preference';
 import { saveNotificationPreference } from '../../apps/web/src/app/settings/notifications/actions';
 import Page from '../../apps/web/src/app/settings/notifications/page';
-import { SiteHeader } from '../../apps/web/src/components/SiteHeader';
-import { RouteContext } from '../../apps/web/src/components/AppNavigation';
+import { AppShell } from '../../apps/web/src/components/AppShell';
 
 vi.mock('../../apps/web/src/lib/api', () => ({
   api: {
@@ -275,10 +274,10 @@ describe('personal preference page and navigation', () => {
     expect(html).not.toContain('type="checkbox"');
     expect(api.notificationPreference).not.toHaveBeenCalled();
   });
-  it('shows the authenticated personal entry and settings context', async () => {
-    const html = renderToStaticMarkup(await SiteHeader());
+  it('shows the authenticated personal entry in the shared shell', async () => {
+    const html = renderToStaticMarkup(await AppShell({ children: null }));
     expect(html).toContain('href="/settings/notifications"');
-    expect(renderToStaticMarkup(createElement(RouteContext))).toContain('自分の通知設定');
+    expect(html).toContain('Synthetic');
   });
   it('has a loading fallback with no speculative checkbox', () => {
     const tree = Page();

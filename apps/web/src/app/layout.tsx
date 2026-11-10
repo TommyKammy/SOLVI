@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { SiteHeader } from '../components/SiteHeader';
-import { OfflineNotice } from '../components/OfflineNotice';
+import './freshservice.css';
+import { AppShell } from '../components/AppShell';
 
 export const metadata: Metadata = {
   title: 'SOLVI',
@@ -13,18 +13,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body>
+      <body className="fs-ui">
         {/* 本文へ飛ぶリンク。キーボード利用者に毎回ヘッダを読み上げさせない。 */}
         <a className="skip-link" href="#main">
           本文へ移動
         </a>
-        <SiteHeader />
-        {/* 回線が切れていることは全画面で伝える。**画面ごとに書くと書き忘れる。** */}
-        <OfflineNotice />
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

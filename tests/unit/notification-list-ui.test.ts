@@ -44,13 +44,15 @@ const { default: Page } = await vi.importActual<{
     searchParams: Promise<Record<string, string | string[] | undefined>>;
   }) => Promise<ReactNode>;
 }>('../../apps/web/src/app/ops/notifications/page');
-const { AppNavigation, RouteContext } = await vi.importActual<{
-  AppNavigation: (props: { roles: ReturnType<typeof navigationRoles> }) => ReactNode;
-  RouteContext: () => ReactNode;
-}>('../../apps/web/src/components/AppNavigation');
-const { SiteHeader } = await vi.importActual<{
-  SiteHeader: () => Promise<ReactNode>;
-}>('../../apps/web/src/components/SiteHeader');
+const { buildNavigationGroups } = await vi.importActual<{
+  buildNavigationGroups: (
+    roles: ReturnType<typeof navigationRoles>,
+    landing: string,
+  ) => Array<{ label: string; items: Array<{ href: string; label: string }> }>;
+}>('../../apps/web/src/lib/navigation-groups');
+const { AppShell } = await vi.importActual<{
+  AppShell: (props: { children: ReactNode }) => Promise<ReactNode>;
+}>('../../apps/web/src/components/AppShell');
 const { api: actualApi } = await vi.importActual<typeof import('../../apps/web/src/lib/api')>(
   '../../apps/web/src/lib/api',
 );
@@ -148,7 +150,7 @@ describe('notification reader transport boundary', () => {
 });
 
 describe('header notification authorization confirmation', () => {
-  const header = async () => renderToStaticMarkup(await SiteHeader());
+  const header = async () => renderToStaticMarkup(await AppShell({ children: null }));
   it('confirms a candidate binding with the protected reader before exposing the link', async () => {
     expect(await header()).toContain('href="/ops/notifications"');
     expect(api.notifications).toHaveBeenCalledExactlyOnceWith(parseNotificationQuery({}));
@@ -278,23 +280,23 @@ describe('org-admin notification view', () => {
     ).toBe(true);
     expect(navigationRoles(session).notifications).toBe(true);
   });
-  it('adds only the permitted notification nav and active context', () => {
-    const allowed = renderToStaticMarkup(
-      createElement(AppNavigation, { roles: navigationRoles(session) }),
-    );
-    const denied = renderToStaticMarkup(
-      createElement(AppNavigation, {
-        roles: navigationRoles({
+  it('adds only the permitted notification nav and label', () => {
+    const flatten = (groups: ReturnType<typeof buildNavigationGroups>) =>
+      groups.flatMap((group) =>
+        group.items.map((item) => `${group.label}:${item.label}:${item.href}`),
+      );
+    const allowed = flatten(buildNavigationGroups(navigationRoles(session), '/ops/notifications'));
+    const denied = flatten(
+      buildNavigationGroups(
+        navigationRoles({
           ...session,
           roles: [{ roleCode: 'platform_admin', organizationId: null }],
         }),
-      }),
+        '/ops/notifications',
+      ),
     );
-    expect(allowed).toContain('href="/ops/notifications"');
-    expect(allowed).toContain('href="/ops/notifications" aria-current="page"');
-    expect(allowed).not.toContain('href="/ops" aria-current="page"');
-    expect(denied).not.toContain('href="/ops/notifications"');
-    expect(renderToStaticMarkup(createElement(RouteContext))).toContain('通知状況');
+    expect(allowed).toContain('管理:通知状況:/ops/notifications');
+    expect(denied.some((entry) => entry.includes('/ops/notifications'))).toBe(false);
   });
   it('renders safe labels, separate status/processing and attempts, never an ID or content link', async () => {
     const html = await render();
