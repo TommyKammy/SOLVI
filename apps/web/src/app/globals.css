@@ -2909,17 +2909,10 @@ textarea {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   margin: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
 }
 .operations-overview .overview-metric {
   min-width: 0;
   padding: 12px;
-  border-right: 1px solid var(--border);
-}
-.operations-overview .overview-metric:last-child {
-  border-right: 0;
 }
 .operations-overview .overview-metric dt {
   font-size: 0.8125rem;

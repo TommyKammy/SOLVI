@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export type DonutSegment = {
   label: string;
   value: number;
@@ -16,11 +18,16 @@ export function DonutChart({
   caption,
   segments,
   emptyLabel = '対象なし',
+  href,
+  hrefLabel,
 }: {
   title: string;
   caption?: string;
   segments: DonutSegment[];
   emptyLabel?: string;
+  /** 中央の合計から一覧へ移動するときのリンク先。 */
+  href?: string;
+  hrefLabel?: string;
 }) {
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   const radius = 54;
@@ -59,50 +66,57 @@ export function DonutChart({
         </div>
       ) : (
         <div className="fs-donut-body">
-          <svg
-            width={size}
-            height={size}
-            viewBox={`0 0 ${size} ${size}`}
-            role="img"
-            aria-label={`${title}: ${summary}`}
-          >
-            <circle
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke="var(--fs-surface-muted)"
-              strokeWidth={stroke}
-            />
-            <g transform={`rotate(-90 ${center} ${center})`}>
-              {segments
-                .filter((segment) => segment.value > 0)
-                .map((segment) => {
-                  const length = (segment.value / total) * circumference;
-                  const dashOffset = -offset;
-                  offset += length;
-                  return (
-                    <circle
-                      key={segment.label}
-                      cx={center}
-                      cy={center}
-                      r={radius}
-                      fill="none"
-                      stroke={segment.color}
-                      strokeWidth={stroke}
-                      strokeDasharray={`${length} ${circumference - length}`}
-                      strokeDashoffset={dashOffset}
-                    />
-                  );
-                })}
-            </g>
-            <text x={center} y={center - 2} textAnchor="middle" className="fs-donut-total">
-              {total}
-            </text>
-            <text x={center} y={center + 16} textAnchor="middle" className="fs-donut-total-label">
-              件
-            </text>
-          </svg>
+          <div className="fs-donut-chart">
+            <svg
+              width={size}
+              height={size}
+              viewBox={`0 0 ${size} ${size}`}
+              role="img"
+              aria-label={`${title}: ${summary}`}
+            >
+              <circle
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke="var(--fs-surface-muted)"
+                strokeWidth={stroke}
+              />
+              <g transform={`rotate(-90 ${center} ${center})`}>
+                {segments
+                  .filter((segment) => segment.value > 0)
+                  .map((segment) => {
+                    const length = (segment.value / total) * circumference;
+                    const dashOffset = -offset;
+                    offset += length;
+                    return (
+                      <circle
+                        key={segment.label}
+                        cx={center}
+                        cy={center}
+                        r={radius}
+                        fill="none"
+                        stroke={segment.color}
+                        strokeWidth={stroke}
+                        strokeDasharray={`${length} ${circumference - length}`}
+                        strokeDashoffset={dashOffset}
+                      />
+                    );
+                  })}
+              </g>
+              <text x={center} y={center - 2} textAnchor="middle" className="fs-donut-total">
+                {total}
+              </text>
+              <text x={center} y={center + 16} textAnchor="middle" className="fs-donut-total-label">
+                件
+              </text>
+            </svg>
+            {href && (
+              <Link className="fs-donut-center-link" href={href} prefetch={false}>
+                <span className="visually-hidden">{hrefLabel ?? `${title}の一覧を見る`}</span>
+              </Link>
+            )}
+          </div>
           <ul className="fs-donut-legend">
             {segments.map((segment) => (
               <li key={segment.label}>

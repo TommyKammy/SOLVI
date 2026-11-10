@@ -434,6 +434,8 @@ body.fs-ui .fs-public-brand {
   place-items: center;
   width: 36px;
   height: 36px;
+  /* グローバルな summary の padding を打ち消し、通知アイコンと中心を揃える。 */
+  padding: 0;
   border-radius: 50%;
 }
 .fs-user-menu summary::-webkit-details-marker {
@@ -2435,11 +2437,26 @@ body.fs-ui .overview-counts {
   margin: 0;
 }
 body.fs-ui .overview-metric {
+  position: relative;
   padding: 18px 16px;
   background: var(--fs-surface);
   border: 1px solid var(--fs-border);
   border-radius: var(--fs-radius-md);
   box-shadow: var(--fs-shadow-sm);
+}
+/* カード全体をラベルリンクのクリック領域にする。数字からも一覧へ進める。 */
+body.fs-ui .overview-metric dt a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+body.fs-ui .overview-metric:has(dt a:focus-visible) {
+  outline: 2px solid var(--fs-brand);
+  outline-offset: 2px;
+}
+body.fs-ui .overview-metric dt a:focus-visible {
+  outline: none;
 }
 body.fs-ui .overview-metric dt {
   margin: 0;
@@ -2531,6 +2548,28 @@ body.fs-ui .fs-dashboard .overview-definitions {
   justify-content: center;
   gap: 20px;
   flex-wrap: wrap;
+}
+.fs-donut-chart {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+/* 中央の合計数字をクリックして一覧へ移動する。 */
+.fs-donut-center-link {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+}
+.fs-donut-center-link:hover {
+  background: rgba(39, 108, 240, 0.08);
+}
+.fs-donut-center-link:focus-visible {
+  outline: 2px solid var(--fs-brand);
+  outline-offset: 2px;
 }
 .fs-donut-legend {
   list-style: none;

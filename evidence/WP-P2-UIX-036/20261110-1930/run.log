@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-11-10T08:12:53.946Z",
+  "alignment": {
+    "bell": {
+      "top": 22,
+      "height": 20,
+      "centerY": 32
+    },
+    "avatar": {
+      "top": 16,
+      "height": 32,
+      "centerY": 32
+    },
+    "summaryPadding": "0px"
+  },
+  "countsFrame": {
+    "container": {
+      "border": "0px none rgb(18, 51, 76)",
+      "background": "rgba(0, 0, 0, 0)",
+      "boxShadow": "none",
+      "borderRadius": "0px"
+    },
+    "card": {
+      "border": "1px solid rgb(234, 238, 242)",
+      "background": "rgb(255, 255, 255)",
+      "boxShadow": "rgba(18, 51, 76, 0.05) 0px 1px 2px 0px",
+      "borderRadius": "12px"
+    }
+  },
+  "metricClicks": [
+    {
+      "id": "open",
+      "label": "未完了",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending",
+      "expected": "/ops?state=new&state=assigned&state=in_progress&state=pending",
+      "heading": "問い合わせの一覧"
+    },
+    {
+      "id": "unassigned",
+      "label": "担当者未割当",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=unassigned",
+      "expected": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=unassigned",
+      "heading": "問い合わせの一覧"
+    },
+    {
+      "id": "mine",
+      "label": "自分の担当",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=mine",
+      "expected": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=mine",
+      "heading": "問い合わせの一覧"
+    },
+    {
+      "id": "pending",
+      "label": "確認・対応待ち",
+      "url": "/ops?state=pending",
+      "expected": "/ops?state=pending",
+      "heading": "問い合わせの一覧"
+    },
+    {
+      "id": "breached",
+      "label": "解決期限超過",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending&sla=breached",
+      "expected": "/ops?state=new&state=assigned&state=in_progress&state=pending&sla=breached",
+      "heading": "問い合わせの一覧"
+    },
+    {
+      "id": "critical",
+      "label": "最優先",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending&priority=critical",
+      "expected": "/ops?state=new&state=assigned&state=in_progress&state=pending&priority=critical",
+      "heading": "問い合わせの一覧"
+    }
+  ],
+  "donutClicks": [
+    {
+      "title": "優先度の内訳",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending",
+      "heading": "問い合わせの一覧"
+    },
+    {
+      "title": "状況の内訳",
+      "url": "/ops?state=new&state=assigned&state=in_progress&state=pending",
+      "heading": "問い合わせの一覧"
+    }
+  ],
+  "axeOverview": [],
+  "axeQueue": [],
+  "queueHeading": "問い合わせの一覧",
+  "mobile": {
+    "bodyWidth": 375,
+    "viewportWidth": 375
+  }
+}

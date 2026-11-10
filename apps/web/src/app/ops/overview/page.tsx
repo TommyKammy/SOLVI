@@ -61,6 +61,7 @@ export default async function OperationsOverview({
   const metricQueries = OPERATIONS_METRICS.map((metric) => operationsMetricQuery(metric.id, group));
   const deadlineQuery = operationsDeadlineQuery(group);
   const chartQuery = operationsMetricQuery('open', group);
+  const chartHref = operationsQueueHref(chartQuery);
   const [groupList, overview, deadlines, chartTickets] = await Promise.all([
     api.listGroups(),
     error ? Promise.resolve(null) : api.ticketOverview(group),
@@ -266,12 +267,16 @@ export default async function OperationsOverview({
                   caption={`${scope}・未完了の先頭${chartItems.length}件`}
                   segments={prioritySegments}
                   emptyLabel="対象のチケットはありません"
+                  href={chartHref}
+                  hrefLabel={`${scope}の未完了の問い合わせ一覧を見る`}
                 />
                 <DonutChart
                   title="状況の内訳"
                   caption={`${scope}・未完了の先頭${chartItems.length}件`}
                   segments={stateSegments}
                   emptyLabel="対象のチケットはありません"
+                  href={chartHref}
+                  hrefLabel={`${scope}の未完了の問い合わせ一覧を見る`}
                 />
               </>
             )}
