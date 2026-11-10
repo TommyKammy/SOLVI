@@ -1,5 +1,5 @@
 import type { CatalogField, CatalogItem } from './api';
-import type { CatalogSection } from '@solvi/shared/catalog';
+import type { CatalogDefinition, CatalogSection } from '@solvi/shared/catalog';
 
 export type CatalogTemplate = {
   code: string;
@@ -10,6 +10,7 @@ export type CatalogTemplate = {
   fields: CatalogField[];
   category?: string;
   sections?: CatalogSection[];
+  requestFields?: CatalogDefinition['requestFields'];
 };
 const text = (key: string, label: string, maxLength = 100): CatalogField => ({
   key,
@@ -27,6 +28,133 @@ const confirm: CatalogField = {
 
 // 通常のカタログ定義として保存する。入力値は外部操作のパラメータにしない。
 export const catalogTemplates: CatalogTemplate[] = [
+  {
+    code: 'local-hardware-bundle',
+    title: '入社時の機器一括申請',
+    description:
+      '必要な機器をまとめて選び、利用者と受取方法を申請します。ノートPCやモニターを選ぶと、その機器の質問が表示されます。承認後は模擬結果だけを記録し、実際の手配は行いません。合成情報でお試しください。',
+    category: 'PC・周辺機器',
+    targetLabel: '入社時の機器手配（模擬）',
+    allowedDurations: [30, 90, 180],
+    requestFields: { reason: false, duration: false },
+    sections: [
+      { key: 'hardware', title: '必要な機器' },
+      { key: 'employee', title: '利用者情報' },
+      { key: 'delivery', title: '受取方法' },
+    ],
+    fields: [
+      {
+        key: 'hardware_items',
+        label: '希望する機器',
+        type: 'multiselect',
+        required: true,
+        options: ['ノートPC', 'モニター', 'キーボード', 'マウス'],
+        section: 'hardware',
+        helpText: '必要なものをすべて選んでください。',
+      },
+      {
+        key: 'pc_type',
+        label: 'ノートPCの種類',
+        type: 'select',
+        required: true,
+        options: ['Windows', 'Mac', '担当者に相談'],
+        section: 'hardware',
+        visibleWhen: { field: 'hardware_items', contains: 'ノートPC' },
+      },
+      {
+        key: 'monitor_size',
+        label: 'モニターの希望',
+        type: 'select',
+        required: true,
+        options: ['標準サイズ', '大画面', '担当者に相談'],
+        section: 'hardware',
+        visibleWhen: { field: 'hardware_items', contains: 'モニター' },
+      },
+      { ...text('employee_name', '利用者名（合成情報）'), section: 'employee' },
+      { ...text('department', '利用部署'), section: 'employee' },
+      {
+        key: 'start_date',
+        label: '利用開始希望日',
+        type: 'date',
+        required: true,
+        section: 'employee',
+      },
+      {
+        key: 'delivery_method',
+        label: '受取方法',
+        type: 'select',
+        required: true,
+        options: ['社内窓口', '配送'],
+        section: 'delivery',
+      },
+      {
+        key: 'delivery_address',
+        label: '配送先（合成情報）',
+        type: 'textarea',
+        required: true,
+        maxLength: 500,
+        section: 'delivery',
+        visibleWhen: { field: 'delivery_method', equals: '配送' },
+      },
+      {
+        key: 'delivery_date',
+        label: '受取希望日',
+        type: 'date',
+        required: true,
+        section: 'delivery',
+      },
+      { ...confirm, section: 'delivery' },
+    ],
+  },
+  {
+    code: 'local-security-exception',
+    title: 'セキュリティ例外の申請',
+    description:
+      '申請内容を選ぶと、確認に必要な質問が表示されます。利用する理由と対象の情報を記入してください。承認後は模擬結果だけを記録し、実際のセキュリティ設定は変更しません。実データや機密情報は入力しないでください。',
+    category: 'アカウント・アクセス',
+    targetLabel: 'セキュリティ例外の受付（模擬）',
+    allowedDurations: [1, 7, 30],
+    requestFields: { reason: true, duration: false },
+    sections: [{ key: 'exception', title: '申請内容' }],
+    fields: [
+      {
+        key: 'exception_type',
+        label: '申請の種類',
+        type: 'select',
+        required: true,
+        options: ['USB機器の利用', '会議の録画', 'Webサイトのブロック解除'],
+        section: 'exception',
+        helpText: '選んだ内容に必要な質問だけが表示されます。',
+      },
+      {
+        ...text('blocked_url', 'ブロックされたURL（合成情報）', 500),
+        section: 'exception',
+        visibleWhen: { field: 'exception_type', equals: 'Webサイトのブロック解除' },
+      },
+      {
+        key: 'blocked_date',
+        label: 'ブロックされた日',
+        type: 'date',
+        required: true,
+        section: 'exception',
+        visibleWhen: { field: 'exception_type', equals: 'Webサイトのブロック解除' },
+      },
+      {
+        ...text('usb_device', '利用するUSB機器（合成情報）'),
+        section: 'exception',
+        visibleWhen: { field: 'exception_type', equals: 'USB機器の利用' },
+      },
+      {
+        key: 'meeting_date',
+        label: '録画する会議の日',
+        type: 'date',
+        required: true,
+        section: 'exception',
+        visibleWhen: { field: 'exception_type', equals: '会議の録画' },
+      },
+      { ...confirm, section: 'exception' },
+    ],
+  },
   {
     code: 'local-contractor-account',
     category: 'アカウント・アクセス',
@@ -163,6 +291,7 @@ export function templateDefinition(
     fields: template.fields,
     ...(template.category ? { category: template.category } : {}),
     ...(template.sections ? { sections: template.sections } : {}),
+    ...(template.requestFields ? { requestFields: template.requestFields } : {}),
     approval: { mode: 'fixed', approverId },
   };
 }

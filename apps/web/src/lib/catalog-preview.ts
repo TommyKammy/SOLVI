@@ -1,6 +1,8 @@
 import {
   catalogDefinitionSchema,
   validateCatalogFieldValues,
+  validateCatalogRequestInputs,
+  type CatalogDefinition,
   type CatalogField,
   type CatalogSection,
   type CatalogValues,
@@ -14,6 +16,7 @@ export type CatalogPreviewConfig = {
   target: string;
   days: string;
   maxReason: number;
+  requestFields?: CatalogDefinition['requestFields'];
   approver: string;
   fields: CatalogField[];
   category?: string;
@@ -23,8 +26,8 @@ export type CatalogPreviewConfig = {
 
 export type CatalogPreviewIssue = { field: string; message: string };
 export type CatalogPreviewInput = {
-  reason: string;
-  durationDays: number;
+  reason?: string;
+  durationDays?: number;
   values: CatalogValues;
 };
 
@@ -73,6 +76,7 @@ function draftDefinition(config: CatalogPreviewConfig) {
       .split(',')
       .map((value) => (value.trim() ? Number(value.trim()) : Number.NaN)),
     maxReasonLength: config.maxReason,
+    ...(config.requestFields !== undefined ? { requestFields: config.requestFields } : {}),
     approval: { mode: 'fixed', approverId: config.approver },
     fields: config.fields,
     ...(config.category?.trim() ? { category: config.category } : {}),
@@ -128,21 +132,14 @@ export function validateCatalogPreviewInput(
   const definition = validateCatalogPreviewConfig(config);
   if (definition.errors.length) return definition.errors;
   const errors: CatalogPreviewIssue[] = [];
-  const reason = input.reason.trim();
-  if (!reason) errors.push({ field: 'reason', message: '利用する理由を入力してください。' });
-  else if (reason.length > config.maxReason)
-    errors.push({
-      field: 'reason',
-      message: `利用する理由は${config.maxReason}文字以内にしてください。`,
-    });
-  if (!definition.durations.includes(input.durationDays))
-    errors.push({ field: 'durationDays', message: '設定された利用日数から選んでください。' });
   const parsed = draftDefinition(config);
-  if (parsed.success)
+  if (parsed.success) {
+    errors.push(...validateCatalogRequestInputs(parsed.data, input).errors);
     errors.push(
       ...validateCatalogFieldValues(parsed.data, catalogInputValues(config.fields, input.values))
         .errors,
     );
+  }
   return errors.filter(
     (issue, index) => errors.findIndex((other) => other.field === issue.field) === index,
   );

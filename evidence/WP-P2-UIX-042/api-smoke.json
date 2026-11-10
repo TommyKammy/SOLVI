@@ -1,0 +1,54 @@
+{
+  "workPackage": "WP-P2-UIX-042",
+  "success": true,
+  "checks": [
+    {
+      "name": "Strict definition rejects unknown flags, mixed operators and invalid membership before writes",
+      "passed": true
+    },
+    {
+      "name": "OFF flags and contains conditions survive save/reload and publication",
+      "passed": true
+    },
+    {
+      "name": "OFF inputs and hidden descendants are omitted despite stale extra API values",
+      "passed": true
+    },
+    {
+      "name": "Contains checks canonical trimmed selection and server enforces visible descendants",
+      "passed": true
+    },
+    {
+      "name": "New publication preserves old request snapshot/hash/approval and original-key replay",
+      "passed": true
+    },
+    {
+      "name": "Request edit uses its frozen OFF definition, invalidates approval and retains prior history",
+      "passed": true
+    },
+    {
+      "name": "Successful local simulation omits absent duration in receipt and completion comment",
+      "passed": true
+    },
+    {
+      "name": "Absent flags retain legacy required reason/day validation through direct API",
+      "passed": true
+    },
+    {
+      "name": "Deselecting an item in an edit prunes its complete descendant chain",
+      "passed": true
+    },
+    {
+      "name": "Cross-organization API hides catalog/request and RLS hides all three request tables",
+      "passed": true
+    }
+  ],
+  "catalogIds": [
+    "01a1c78c-29e7-7000-9102-ea822bce031b"
+  ],
+  "requestIds": [
+    "01a1c78c-2a10-7000-8bb7-3134f4e326a4",
+    "01a1c78c-2acf-7001-8f2f-6500e8311939"
+  ],
+  "catalogsUnpublished": true
+}

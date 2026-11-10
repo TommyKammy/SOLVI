@@ -7,7 +7,7 @@ import { ContextLink } from './ContextLink';
 import { saveServiceRequest, processServiceRequest } from '../app/requests/actions';
 import type { CatalogItem, ServiceRequestDetail } from '../lib/api';
 import { CatalogFieldInputs } from './CatalogFieldInputs';
-import type { CatalogValues } from '@solvi/shared/catalog';
+import { catalogRequestFieldVisibility, type CatalogValues } from '@solvi/shared/catalog';
 import { catalogDraftValues, restoreCatalogDraftValues } from '../lib/catalog-form';
 import type { FormFeedback } from '../lib/form-state';
 export function RequestForm({
@@ -35,28 +35,40 @@ export function RequestForm({
   const [customValues, setCustomValues] = useState<CatalogValues>(
     request?.request.snapshot.inputs.values ?? {},
   );
+  const visibleRequestFields = catalogRequestFieldVisibility(item.definition);
   const [reason, setReason] = useState(request?.request.snapshot.inputs.reason ?? '');
   const [days, setDays] = useState(
     String(request?.request.snapshot.inputs.durationDays ?? item.definition.allowedDurations[0]),
   );
   const fields = (item.definition.fields ?? []).filter((f) => f.type !== 'checkbox');
   const baseline: DraftValues = {
-    reason: request?.request.snapshot.inputs.reason ?? '',
-    durationDays: String(
-      request?.request.snapshot.inputs.durationDays ?? item.definition.allowedDurations[0],
-    ),
+    ...(visibleRequestFields.reason
+      ? { reason: request?.request.snapshot.inputs.reason ?? '' }
+      : {}),
+    ...(visibleRequestFields.duration
+      ? {
+          durationDays: String(
+            request?.request.snapshot.inputs.durationDays ?? item.definition.allowedDurations[0],
+          ),
+        }
+      : {}),
     ...catalogDraftValues(fields, request?.request.snapshot.inputs.values ?? {}),
   };
   const values: DraftValues = {
-    reason,
-    durationDays: days,
+    ...(visibleRequestFields.reason ? { reason } : {}),
+    ...(visibleRequestFields.duration ? { durationDays: days } : {}),
     ...catalogDraftValues(fields, customValues),
   };
   const formKey = request ? `request:edit:${request.request.id}` : `request:new:${item.id}`;
   const restore = (v: DraftValues) => {
     if (!fixedApprover) setApproverId('');
-    if (v.reason !== undefined) setReason(v.reason.slice(0, item.definition.maxReasonLength));
-    if (item.definition.allowedDurations.includes(Number(v.durationDays))) setDays(v.durationDays);
+    if (visibleRequestFields.reason && v.reason !== undefined)
+      setReason(v.reason.slice(0, item.definition.maxReasonLength));
+    if (
+      visibleRequestFields.duration &&
+      item.definition.allowedDurations.includes(Number(v.durationDays))
+    )
+      setDays(v.durationDays);
     setCustomValues(restoreCatalogDraftValues(item.definition.fields ?? [], v));
   };
   return (
@@ -80,8 +92,8 @@ export function RequestForm({
         baseline={baseline}
         values={values}
         labels={{
-          reason: '利用する理由',
-          durationDays: '利用日数',
+          ...(visibleRequestFields.reason ? { reason: '利用する理由' } : {}),
+          ...(visibleRequestFields.duration ? { durationDays: '利用日数' } : {}),
           ...Object.fromEntries(fields.map((f) => ['value:' + f.key, f.label])),
         }}
         onRestore={restore}
@@ -90,32 +102,36 @@ export function RequestForm({
       <input type="hidden" name="itemVersion" value={item.version} />
       <input type="hidden" name="idempotencyKey" value={key} />
       <input type="hidden" name="expectedVersion" value={request?.request.version ?? 1} />
-      <FormField className="field">
-        <label htmlFor="request-reason">利用する理由</label>
-        <textarea
-          id="request-reason"
-          name="reason"
-          required
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          maxLength={item.definition.maxReasonLength}
-        />
-      </FormField>
-      <FormField className="field">
-        <label htmlFor="request-days">希望する利用日数</label>
-        <select
-          id="request-days"
-          name="durationDays"
-          value={days}
-          onChange={(e) => setDays(e.target.value)}
-        >
-          {item.definition.allowedDurations.map((d) => (
-            <option key={d} value={d}>
-              {d}日
-            </option>
-          ))}
-        </select>
-      </FormField>
+      {visibleRequestFields.reason && (
+        <FormField className="field">
+          <label htmlFor="request-reason">利用する理由</label>
+          <textarea
+            id="request-reason"
+            name="reason"
+            required
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={item.definition.maxReasonLength}
+          />
+        </FormField>
+      )}
+      {visibleRequestFields.duration && (
+        <FormField className="field">
+          <label htmlFor="request-days">希望する利用日数</label>
+          <select
+            id="request-days"
+            name="durationDays"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+          >
+            {item.definition.allowedDurations.map((d) => (
+              <option key={d} value={d}>
+                {d}日
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
       <CatalogFieldInputs
         fields={item.definition.fields ?? []}
         sections={item.definition.sections}

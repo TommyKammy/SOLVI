@@ -97,10 +97,18 @@ export default async function RequestPage({
         <dd>{data.requesterName}</dd>
         <dt>指定された承認者</dt>
         <dd>{data.approverName}</dd>
-        <dt>利用日数</dt>
-        <dd>{s.inputs.durationDays}日</dd>
-        <dt>理由</dt>
-        <dd style={{ whiteSpace: 'pre-wrap' }}>{s.inputs.reason}</dd>
+        {s.inputs.durationDays !== undefined && (
+          <>
+            <dt>利用日数</dt>
+            <dd>{s.inputs.durationDays}日</dd>
+          </>
+        )}
+        {s.inputs.reason !== undefined && (
+          <>
+            <dt>理由</dt>
+            <dd style={{ whiteSpace: 'pre-wrap' }}>{s.inputs.reason}</dd>
+          </>
+        )}
         <dt>承認の期限</dt>
         <dd>
           {formatDateTime(data.approval.expires_at)}
@@ -174,9 +182,12 @@ export default async function RequestPage({
             <details>
               <summary>この版の申請内容を見る</summary>
               <p>
-                承認者: {a.approverName} · 利用日数: {a.inputs.durationDays}日
+                承認者: {a.approverName}
+                {a.inputs.durationDays !== undefined && ` · 利用日数: ${a.inputs.durationDays}日`}
               </p>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{a.inputs.reason}</p>
+              {a.inputs.reason !== undefined && (
+                <p style={{ whiteSpace: 'pre-wrap' }}>{a.inputs.reason}</p>
+              )}
               <CatalogValueSummary
                 fields={a.item.definition.fields ?? []}
                 sections={a.item.definition.sections}

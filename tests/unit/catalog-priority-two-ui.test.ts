@@ -116,6 +116,34 @@ beforeEach(() => {
 });
 
 describe('priority-two catalog save serialization', () => {
+  it.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ])(
+    'preserves explicit reason=%s duration=%s in create and edit definitions',
+    async (reason, duration) => {
+      const data = form();
+      data.set('requestFields', JSON.stringify({ reason, duration }));
+      const payload = await submitted(itemId, data);
+      expect(payload.definition.requestFields).toEqual({ reason, duration });
+      expect(payload.definition.allowedDurations).toEqual([7, 30, 90]);
+      expect(payload.definition.maxReasonLength).toBe(2000);
+    },
+  );
+
+  it('does not add requestFields to an unchanged legacy definition', async () => {
+    const payload = await submitted(itemId, form());
+    expect(payload.definition).not.toHaveProperty('requestFields');
+  });
+
+  it('returns a form error without saving malformed visibility JSON', async () => {
+    const data = form();
+    data.set('requestFields', '{');
+    expect((await saveCatalog(itemId, { message: '' }, data)).message).toContain('形式');
+    expect(calls.save).not.toHaveBeenCalled();
+  });
   it('saves the category, ordered sections, all seven field types and conditional metadata', async () => {
     const payload = await submitted(null, form());
     expect(payload.definition).toEqual({

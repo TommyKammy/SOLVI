@@ -1,0 +1,55 @@
+{
+  "workPackage": "WP-P2-UIX-042",
+  "date": "2026-11-11",
+  "focused": {
+    "command": "rtk proxy /opt/homebrew/opt/node@24/bin/node node_modules/vitest/vitest.mjs run tests/unit/catalog-flexible.test.ts tests/unit/catalog-definition.test.ts tests/unit/catalog-operations.test.ts --reporter=json --outputFile=.local/fix-042-backend.json",
+    "passed": 143,
+    "failed": 0,
+    "files": [
+      "tests/unit/catalog-definition.test.ts",
+      "tests/unit/catalog-flexible.test.ts",
+      "tests/unit/catalog-operations.test.ts"
+    ]
+  },
+  "checks": [
+    {
+      "name": "API typecheck",
+      "command": "rtk proxy env PATH=/opt/homebrew/opt/node@24/bin:$PATH npm run typecheck --workspace=@solvi/api",
+      "exitCode": 0
+    },
+    {
+      "name": "New test strict TypeScript",
+      "command": "rtk proxy /opt/homebrew/opt/node@24/bin/node node_modules/typescript/bin/tsc --project .local/fix-042-backend-tsconfig.json",
+      "exitCode": 0
+    },
+    {
+      "name": "Owned source ESLint",
+      "files": [
+        "packages/shared/src/catalog.ts",
+        "services/api/src/modules/catalog/catalog-definition.ts",
+        "services/api/src/modules/catalog/catalog.routes.ts",
+        "apps/web/src/lib/api.ts",
+        "tests/unit/catalog-flexible.test.ts",
+        "tools/smoke_catalog_flexible.mjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "apiSmoke": {
+    "command": "rtk proxy /opt/homebrew/opt/node@24/bin/node --env-file=.env tools/smoke_catalog_flexible.mjs",
+    "credentialHandling": "Seed fixture credential passed only through process environment; never recorded in evidence",
+    "report": "api-smoke.json",
+    "checks": 10,
+    "newCatalogs": 1,
+    "newRequests": 2
+  },
+  "finalReview": {
+    "unsavedOptionWhitespaceParity": true,
+    "malformedMembershipFailsClosed": true,
+    "newTests": 51,
+    "relatedTests": 143,
+    "strictNewTestsExitCode": 0,
+    "apiSharedTypecheckExitCode": 0,
+    "ownedLintExitCode": 0
+  }
+}

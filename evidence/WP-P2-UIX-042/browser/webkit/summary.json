@@ -1,0 +1,366 @@
+{
+  "workPackage": "WP-P2-UIX-042",
+  "browser": "webkit",
+  "marker": "UI042-SYN-1794349325699-webkit",
+  "success": true,
+  "checks": [
+    {
+      "name": "Security template switches later questions without saving or submitting",
+      "passed": true
+    },
+    {
+      "name": "Common inputs support all four visibility combinations in the unsaved preview",
+      "passed": true
+    },
+    {
+      "name": "Editor visibility controls are keyboard accessible and fit desktop and mobile",
+      "passed": true
+    },
+    {
+      "name": "Saving persists the exact disabled common inputs and membership conditions once",
+      "passed": true
+    },
+    {
+      "name": "The synthetic service publishes once with disabled common inputs intact",
+      "passed": true
+    },
+    {
+      "name": "Requester selects multiple items and changes branches with hidden answers cleared",
+      "passed": true
+    },
+    {
+      "name": "Submission omits hidden common fields and creates one frozen request",
+      "passed": true
+    },
+    {
+      "name": "Request editing keeps the frozen visibility settings and omits newly hidden answers",
+      "passed": true
+    },
+    {
+      "name": "Revised request and approval history retain the old snapshot without invented common values",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "security-preview-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-form-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-form-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "hardware-editor-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "hardware-editor-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "flexible-form-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "flexible-form-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "security-preview-desktop-1440.png",
+    "hardware-editor-desktop-1440.png",
+    "hardware-preview-desktop-1440.png",
+    "hardware-editor-mobile-375.png",
+    "hardware-preview-mobile-375.png",
+    "request-form-desktop-1440.png",
+    "request-form-mobile-375.png",
+    "request-edit-desktop-1440.png",
+    "request-detail-desktop-1440.png",
+    "request-detail-mobile-375.png",
+    "flexible-form-desktop-1440.png",
+    "flexible-form-mobile-375.png",
+    "flexible-preview-mobile-375.png"
+  ],
+  "writes": {
+    "save": 1,
+    "publication": 1,
+    "request": 1,
+    "edit": 1
+  },
+  "ids": {
+    "catalog": "01a1c78d-f722-7000-b9e1-8d17f0b2eccc",
+    "request": "01a1c78e-0655-7000-a3a0-edc0ddb44ee0"
+  },
+  "blocked": [],
+  "browserVersion": "26.5",
+  "currentStep": "complete",
+  "keyboard": {
+    "key": "Alt+Tab",
+    "id": "catalog-show-duration",
+    "tag": "INPUT"
+  },
+  "code": "service-10d94add-a14a-4c5c-9758-3d8a8096a642",
+  "publishedVersion": 1,
+  "initialSnapshot": {
+    "item": {
+      "id": "01a1c78d-f722-7000-b9e1-8d17f0b2eccc",
+      "title": "UI042-SYN-1794349325699-webkit",
+      "version": 1,
+      "definition": {
+        "mode": "local_simulation",
+        "action": "simulate.access_grant",
+        "fields": [
+          {
+            "key": "hardware_items",
+            "type": "multiselect",
+            "label": "希望する機器",
+            "options": [
+              "ノートPC",
+              "モニター",
+              "キーボード",
+              "マウス"
+            ],
+            "section": "hardware",
+            "helpText": "必要なものをすべて選んでください。",
+            "required": true
+          },
+          {
+            "key": "pc_type",
+            "type": "select",
+            "label": "ノートPCの種類",
+            "options": [
+              "Windows",
+              "Mac",
+              "担当者に相談"
+            ],
+            "section": "hardware",
+            "required": true,
+            "visibleWhen": {
+              "field": "hardware_items",
+              "contains": "ノートPC"
+            }
+          },
+          {
+            "key": "monitor_size",
+            "type": "select",
+            "label": "モニターの希望",
+            "options": [
+              "標準サイズ",
+              "大画面",
+              "担当者に相談"
+            ],
+            "section": "hardware",
+            "required": true,
+            "visibleWhen": {
+              "field": "hardware_items",
+              "contains": "モニター"
+            }
+          },
+          {
+            "key": "employee_name",
+            "type": "text",
+            "label": "利用者名（合成情報）",
+            "section": "employee",
+            "required": true,
+            "maxLength": 100
+          },
+          {
+            "key": "department",
+            "type": "text",
+            "label": "利用部署",
+            "section": "employee",
+            "required": true,
+            "maxLength": 100
+          },
+          {
+            "key": "start_date",
+            "type": "date",
+            "label": "利用開始希望日",
+            "section": "employee",
+            "required": true
+          },
+          {
+            "key": "delivery_method",
+            "type": "select",
+            "label": "受取方法",
+            "options": [
+              "社内窓口",
+              "配送"
+            ],
+            "section": "delivery",
+            "required": true
+          },
+          {
+            "key": "delivery_address",
+            "type": "textarea",
+            "label": "配送先（合成情報）",
+            "section": "delivery",
+            "required": true,
+            "maxLength": 500,
+            "visibleWhen": {
+              "field": "delivery_method",
+              "equals": "配送"
+            }
+          },
+          {
+            "key": "delivery_date",
+            "type": "date",
+            "label": "受取希望日",
+            "section": "delivery",
+            "required": true
+          },
+          {
+            "key": "simulation_confirm",
+            "type": "checkbox",
+            "label": "合成情報での模擬申請であり、実際の作成・権限付与・貸出は行われないことを確認しました",
+            "section": "delivery",
+            "required": true
+          }
+        ],
+        "ownerId": "00000000-0000-4000-9000-000000000101",
+        "approval": {
+          "mode": "fixed",
+          "approverId": "00000000-0000-4000-9000-000000000103"
+        },
+        "category": "PC・周辺機器",
+        "sections": [
+          {
+            "key": "hardware",
+            "title": "必要な機器"
+          },
+          {
+            "key": "employee",
+            "title": "利用者情報"
+          },
+          {
+            "key": "delivery",
+            "title": "受取方法"
+          }
+        ],
+        "targetLabel": "入社時の機器手配（模擬）",
+        "requestFields": {
+          "reason": false,
+          "duration": false
+        },
+        "maxReasonLength": 2000,
+        "allowedDurations": [
+          30,
+          90,
+          180
+        ]
+      }
+    },
+    "inputs": {
+      "values": {
+        "pc_type": "Windows",
+        "department": "合成検証部",
+        "start_date": "2026-12-01",
+        "monitor_size": "大画面",
+        "delivery_date": "2026-12-01",
+        "employee_name": "合成 利用者",
+        "hardware_items": [
+          "ノートPC",
+          "モニター"
+        ],
+        "delivery_method": "配送",
+        "delivery_address": "合成配送先。実住所ではありません。",
+        "simulation_confirm": true
+      }
+    },
+    "requesterId": "00000000-0000-4000-9000-000000000105"
+  },
+  "initialHash": "7d2feae2539e87bb9b30357c7ad3ce1e33355ec2508059e88c472558e288e28b",
+  "snapshotInvariant": {
+    "originalRevision": 1,
+    "revisedRevision": 2,
+    "originalInputsPreserved": true,
+    "originalDefinitionPreserved": true,
+    "originalHashPreserved": true,
+    "hiddenCommonValues": 0
+  },
+  "reconciliation": [
+    {
+      "mutation": "save",
+      "id": "01a1c78d-f722-7000-b9e1-8d17f0b2eccc",
+      "confirmed": true
+    },
+    {
+      "mutation": "publication",
+      "revision": 1,
+      "confirmed": true
+    },
+    {
+      "mutation": "request",
+      "id": "01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+      "confirmed": true
+    },
+    {
+      "mutation": "edit",
+      "revision": 2,
+      "confirmed": true
+    }
+  ],
+  "readonlyRecapture": {
+    "responsiveRailTransitionSettled": true,
+    "existingCatalogReused": "01a1c78d-f722-7000-b9e1-8d17f0b2eccc",
+    "additionalBusinessWrites": 0
+  }
+}

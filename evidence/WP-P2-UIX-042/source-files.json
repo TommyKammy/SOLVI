@@ -1,0 +1,116 @@
+{
+  "workPackage": "WP-P2-UIX-042",
+  "baseCommit": "5c196fd22ea7fbab906b036bb465f7a130ffbc91",
+  "files": [
+    {
+      "path": "apps/web/src/app/catalog/manage/actions.ts",
+      "bytes": 4240,
+      "sha256": "929a6f7973b26804a996ae0b0f9af588b483c6a360bc57c7fe61b47f8cff558f"
+    },
+    {
+      "path": "apps/web/src/app/requests/[id]/page.tsx",
+      "bytes": 8804,
+      "sha256": "1fcbe7b5aeca484a44d5adf514b1a4c42c46f3c653f602d144817c9ed2eaf545"
+    },
+    {
+      "path": "apps/web/src/app/requests/actions.ts",
+      "bytes": 4327,
+      "sha256": "76ae8ed8dc8c9c3fe137ea247cb3ccc7708c800090f6dc3f52141ca3b1f5273f"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.module.css",
+      "bytes": 3304,
+      "sha256": "3866f2f50da4c9c2e3c1720fbfc1bc589e97832cd0cbe22edc67d2496b694840"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.tsx",
+      "bytes": 63922,
+      "sha256": "0f0ceceb2b32addfef73251fcb442ac87d7f075792daaab80d0bdc22bf5346e6"
+    },
+    {
+      "path": "apps/web/src/components/CatalogLivePreview.tsx",
+      "bytes": 8872,
+      "sha256": "616237b61b45011917b4c59d541d58e6cfdf6fb327351d66ead84b88b26fb54e"
+    },
+    {
+      "path": "apps/web/src/components/RequestForms.tsx",
+      "bytes": 9681,
+      "sha256": "1ae684b8643372fe75b9db84b07c8276eba3d1dd43e4fb07acd91c7546f31edb"
+    },
+    {
+      "path": "apps/web/src/lib/api.ts",
+      "bytes": 76146,
+      "sha256": "beff139ab232aebe454adbc394f4da4b4d55bfb45002b9cfb19c5759a1186c64"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-preview.ts",
+      "bytes": 5424,
+      "sha256": "baca8fe6d734a9503ac78855793e305a186b4a24c249401a437f52ef727f7a1b"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-templates.ts",
+      "bytes": 10887,
+      "sha256": "3d60b9bbb09fda7e86445ca5e0d57aacc709959348fd9779f95a766d60d36b3a"
+    },
+    {
+      "path": "packages/shared/src/catalog.ts",
+      "bytes": 21456,
+      "sha256": "25b0d7a2e24fb5d2ccbba6bd3bbc3a7b708a343d90bcfe8794daf53d7430696d"
+    },
+    {
+      "path": "services/api/src/modules/catalog/catalog-definition.ts",
+      "bytes": 912,
+      "sha256": "ecf5e31764548a43c5a7cab291322d578c22304a0c6c4dbc46f786401b84b0c6"
+    },
+    {
+      "path": "services/api/src/modules/catalog/catalog.routes.ts",
+      "bytes": 34952,
+      "sha256": "21db09ae32e1e53b2e022752529de6adcb631485a6257d10a642c1efd6c70e0d"
+    },
+    {
+      "path": "tests/unit/catalog-authoring-ui.test.ts",
+      "bytes": 40383,
+      "sha256": "f29fe856ef1b684a0b489ded5e65507bbc8ced7004174c3964920d0a9868f7d2"
+    },
+    {
+      "path": "tests/unit/catalog-flexible-templates.test.ts",
+      "bytes": 4030,
+      "sha256": "f725101c325bb26a22a61726cc054cc039e79cae9f578f2b16b2392b3322616e"
+    },
+    {
+      "path": "tests/unit/catalog-flexible-ui.test.ts",
+      "bytes": 9305,
+      "sha256": "c2957de8691f3e5826e1471e783afb50553035f89b5e5474d41c7aa6e900d37e"
+    },
+    {
+      "path": "tests/unit/catalog-flexible.test.ts",
+      "bytes": 15811,
+      "sha256": "797543af9d6c16018bdbfac493721d4c09bc58befb607eb92e5b65ca65c18884"
+    },
+    {
+      "path": "tests/unit/catalog-preview.test.ts",
+      "bytes": 28103,
+      "sha256": "3af3c9b6772645ecd9b8571a260e096d547e6d0c70441aa5082aad57a139a973"
+    },
+    {
+      "path": "tests/unit/catalog-priority-two-ui.test.ts",
+      "bytes": 9744,
+      "sha256": "f178fa50c3f01379bbcad5b2cb9663bbd6b1636a5ad3d0e0b21d2fa4b9f4eedd"
+    },
+    {
+      "path": "tests/unit/catalog-reuse.test.ts",
+      "bytes": 16304,
+      "sha256": "a6024253274bd38d765ad07ae4684f54e58c5e4c9fb84ef8b22226a1bbfb2fc5"
+    },
+    {
+      "path": "tools/smoke_catalog_flexible.mjs",
+      "bytes": 16103,
+      "sha256": "2169dc2516267b9c67464c4942a849e9b8deb9bcc4aee9e87afdd8107ede77f8"
+    },
+    {
+      "path": "tools/ui_catalog_flexible_check.mjs",
+      "bytes": 31264,
+      "sha256": "65bfa91580f96ce167abce1c9ddd5043c39315443dff2fa153e7a6d1cb8ff6ba"
+    }
+  ]
+}

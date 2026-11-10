@@ -235,6 +235,18 @@ describe('catalog preview configuration', () => {
 });
 
 describe('catalog preview sample input', () => {
+  it.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ])('validates only enabled common fields: reason=%s duration=%s', (reason, duration) => {
+    const config = configuration({ requestFields: { reason, duration } });
+    const errors = inputErrors(config, { reason: '', durationDays: 0 });
+    expect(errors.includes('reason')).toBe(reason);
+    expect(errors.includes('durationDays')).toBe(duration);
+    expect(validateCatalogPreviewConfig(config).errors).toEqual([]);
+  });
   it('cannot report success while the unsaved configuration is invalid', () => {
     expect(inputErrors(configuration({ fields: [field({ label: '' })] }), {})).toContain(
       'fields.0.label',
@@ -443,6 +455,35 @@ function testSample(tree: unknown, config: CatalogPreviewConfig) {
 }
 
 describe('catalog live preview definition changes', () => {
+  it('removes disabled base samples and never resurrects a previous reason or duration selection', () => {
+    let config = configuration();
+    const common = (tree: unknown, suffix: string) =>
+      nodes(tree).find((node) => node.props.id === `catalog-try-preview-unit-${suffix}`);
+    let tree = renderPreview(config);
+    (common(tree, 'reason')!.props.onChange as (event: unknown) => void)({
+      target: { value: '以前の理由' },
+    });
+    tree = renderPreview(config);
+    (common(tree, 'days')!.props.onChange as (event: unknown) => void)({
+      target: { value: '365' },
+    });
+    config = configuration({ requestFields: { reason: false, duration: false } });
+    tree = renderPreview(config);
+    expect(common(tree, 'reason')).toBeUndefined();
+    expect(common(tree, 'days')).toBeUndefined();
+    const form = nodes(tree).find((node) => node.type === 'form')!;
+    (form.props.onSubmit as (event: unknown) => void)({
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    });
+    expect(
+      text(nodes(renderPreview(config)).find((node) => node.props.role === 'status')),
+    ).toContain('入力を確認しました');
+    config = configuration();
+    tree = renderPreview(config);
+    expect(common(tree, 'reason')!.props.value).toBe('');
+    expect(common(tree, 'days')!.props.value).toBe('1');
+  });
   it('validates the visible unchecked value after optional text becomes a checkbox', () => {
     let config = configuration({ fields: [field({ required: false })] });
     changeSample(renderPreview(config), 0, 'previous text');

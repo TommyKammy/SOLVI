@@ -1774,8 +1774,8 @@ export interface ServiceRequestDetail {
     snapshot: {
       item: { id: string; version: number; title: string; definition: CatalogItem['definition'] };
       inputs: {
-        reason: string;
-        durationDays: number;
+        reason?: string;
+        durationDays?: number;
         values?: import('@solvi/shared/catalog').CatalogValues;
       };
       requesterId: string;
@@ -1800,8 +1800,8 @@ export interface ServiceRequestDetail {
     approverName: string;
     item: { version: number; definition: CatalogItem['definition'] };
     inputs: {
-      reason: string;
-      durationDays: number;
+      reason?: string;
+      durationDays?: number;
       values?: import('@solvi/shared/catalog').CatalogValues;
     };
     reason: string | null;
@@ -1814,7 +1814,7 @@ export interface ServiceRequestDetail {
     result: {
       status: string;
       targetLabel: string;
-      durationDays: number;
+      durationDays?: number;
       externalChanges: number;
       summary: string;
     };

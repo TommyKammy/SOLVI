@@ -20,6 +20,7 @@ type PreviewProps = {
   target: string;
   days: string;
   maxReason: number;
+  requestFields?: CatalogAdminDetail['draft']['definition']['requestFields'];
   approver: string;
   fields: CatalogField[];
   category?: string;
@@ -848,4 +849,148 @@ describe('priority-two authoring metadata and compatibility', () => {
       expect(capture(editorForm()).preventDefault).toHaveBeenCalledOnce();
     },
   );
+});
+
+describe('flexible request-field authoring', () => {
+  it.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ])(
+    'loads reason=%s and duration=%s into toggles, saved preview and live configuration',
+    (reason, duration) => {
+      const current = structuredClone(item);
+      current.draft.definition.requestFields = { reason, duration };
+      const html = render(false, current);
+      expect(control('catalog-show-reason').checked).toBe(reason);
+      expect(control('catalog-show-duration').checked).toBe(duration);
+      expect(JSON.parse(hidden('requestFields') as string)).toEqual({ reason, duration });
+      expect(preview().requestFields).toEqual({ reason, duration });
+      const saved = html.match(/<section id="preview"[\s\S]*?<\/section>/)?.[0];
+      expect(saved?.includes('id="preview-reason"')).toBe(reason);
+      expect(saved?.includes('id="preview-days"')).toBe(duration);
+      expect(render(false, current)).not.toContain('未保存の入力があります');
+    },
+  );
+
+  it('preserves legacy absence until a toggle changes and clears dirty after restoring its meaning', () => {
+    render();
+    expect(named('requestFields')).toHaveLength(0);
+    expect(control('catalog-show-reason').checked).toBe(true);
+    change('catalog-show-reason', false);
+    expect(render()).toContain('未保存の入力があります');
+    expect(JSON.parse(hidden('requestFields') as string)).toEqual({ reason: false });
+    expect(control('catalog-reason-limit').disabled).toBe(true);
+    expect(named('maxReasonLength').find((node) => node.props.type === 'hidden')?.props.value).toBe(
+      2000,
+    );
+    change('catalog-show-reason', true);
+    expect(render()).not.toContain('未保存の入力があります');
+  });
+
+  it('applies template visibility and restores conventional common fields for the generic example', () => {
+    render(true);
+    change('catalog-template', 'local-hardware-bundle');
+    render(true);
+    click('選んだテンプレートを入力する');
+    render(true);
+    expect(JSON.parse(hidden('requestFields') as string)).toEqual({
+      reason: false,
+      duration: false,
+    });
+    expect(fields().some((field) => field.visibleWhen && 'contains' in field.visibleWhen)).toBe(
+      true,
+    );
+    click('汎用の合成例を入力する');
+    render(true);
+    expect(control('catalog-show-reason').checked).toBe(true);
+    expect(control('catalog-show-duration').checked).toBe(true);
+    expect(named('requestFields')).toHaveLength(0);
+  });
+
+  it('creates and edits a multiple-choice membership condition without changing unrelated field data', () => {
+    render(false, expandedItem);
+    change('field-condition-4', 'accessories');
+    let html = render(false, expandedItem);
+    expect(fields()[4]?.visibleWhen).toEqual({ field: 'accessories', contains: 'マウス' });
+    expect(html).toContain('含む回答 5');
+    change('field-condition-value-4', 'モニター');
+    render(false, expandedItem);
+    expect(fields()[4]?.visibleWhen).toEqual({ field: 'accessories', contains: 'モニター' });
+    expect(fields()[4]).toMatchObject({
+      key: 'return_date',
+      section: 'schedule',
+      minDate: '2026-11-10',
+    });
+    change('field-type-6', 'select');
+    html = render(false, expandedItem);
+    expect(html).toContain('質問の種類が変わりました');
+    expect(fields()[4]?.visibleWhen).toEqual({ field: 'accessories', contains: 'モニター' });
+    change('field-condition-4', 'purpose');
+    render(false, expandedItem);
+    expect(fields()[4]?.visibleWhen).toEqual({ field: 'purpose', equals: '運用' });
+  });
+
+  it('uses canonical option values for a saved membership condition while editing whitespace', () => {
+    const current = structuredClone(expandedItem);
+    current.draft.definition.fields![4]!.visibleWhen = { field: 'accessories', contains: 'マウス' };
+    render(false, current);
+    change('field-options-6', ' マウス \n モニター ');
+    const html = render(false, current);
+    expect(control('field-condition-value-4').value).toBe('マウス');
+    expect(html).not.toContain('現在の候補にない回答');
+    change('field-condition-value-4', 'モニター');
+    render(false, current);
+    expect(fields()[4]!.visibleWhen).toEqual({ field: 'accessories', contains: 'モニター' });
+  });
+
+  it.each(['checkbox', 'select'] as const)(
+    'makes a mismatched %s condition visibly invalid and accepts the intended same-looking answer',
+    (type) => {
+      const current = structuredClone(item);
+      current.draft.definition.fields = [
+        type === 'checkbox'
+          ? { key: 'source', label: '条件元', type: 'checkbox', required: false }
+          : {
+              key: 'source',
+              label: '条件元',
+              type: 'select',
+              required: false,
+              options: ['true', 'false'],
+            },
+        {
+          key: 'child',
+          label: '後続質問',
+          type: 'text',
+          required: true,
+          maxLength: 100,
+          visibleWhen: { field: 'source', equals: type === 'checkbox' ? 'true' : true },
+        },
+      ];
+      const html = render(false, current);
+      expect(html).toContain('回答の型が一致しません');
+      expect(control('field-condition-value-1').value).toBe('');
+      change('field-condition-value-1', 'true');
+      const fixed = render(false, current);
+      expect(control('field-condition-value-1').value).toBe('true');
+      expect(fixed).not.toContain('回答の型が一致しません');
+      expect(fields()[1]!.visibleWhen).toEqual({
+        field: 'source',
+        equals: type === 'checkbox' ? true : 'true',
+      });
+    },
+  );
+
+  it.each([0, 1])('holds visibility flags unchanged during pending operation %s', (index) => {
+    render();
+    hooks.pending[index] = true;
+    render();
+    change('catalog-show-reason', false);
+    change('catalog-show-duration', false);
+    render();
+    expect(control('catalog-show-reason').checked).toBe(true);
+    expect(control('catalog-show-duration').checked).toBe(true);
+    expect(named('requestFields')).toHaveLength(0);
+  });
 });

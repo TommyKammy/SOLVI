@@ -8,13 +8,18 @@ import { uuidv7, recordAuditEvent } from '../../common/audit/audit.js';
 import { TicketService } from '../ticket/ticket.service.js';
 import { CollaborationService } from '../ticket/collaboration.service.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
-import { definitionSchema, validateValues, type Definition } from './catalog-definition.js';
+import {
+  definitionSchema,
+  validateValues,
+  validateRequestInputs,
+  type Definition,
+} from './catalog-definition.js';
 
 const uuid = z.string().uuid();
 const inputSchema = z
   .object({
-    reason: z.string().trim().min(1).max(2000),
-    durationDays: z.number().int().positive(),
+    reason: z.string().trim().max(2000).optional(),
+    durationDays: z.number().finite().optional(),
     approverId: uuid,
     values: z
       .record(
@@ -41,7 +46,7 @@ const decisionSchema = z.object({
 });
 type Snapshot = {
   item: { id: string; version: number; title: string; definition: Definition };
-  inputs: { reason: string; durationDays: number; values?: CatalogValues };
+  inputs: { reason?: string; durationDays?: number; values?: CatalogValues };
   requesterId: string;
 };
 type RequestRow = {
@@ -399,15 +404,6 @@ export class CatalogController {
       };
     });
   }
-  private validateInputs(definition: Definition, input: { reason: string; durationDays: number }) {
-    if (
-      !definition.allowedDurations.includes(input.durationDays) ||
-      input.reason.length > definition.maxReasonLength
-    )
-      throw Problems.validation([
-        { field: 'request', message: '利用日数または理由がカタログの条件に合いません' },
-      ]);
-  }
   private async addApproval(
     c: pg.PoolClient,
     auth: AuthenticatedRequest,
@@ -448,11 +444,12 @@ export class CatalogController {
             [previous.id],
           )
         ).rows[0]!.approver_id;
+        const normalized = validateRequestInputs(original.item.definition, input);
         if (
           original.item.id !== input.itemId ||
           original.item.version !== input.itemVersion ||
-          original.inputs.reason !== input.reason ||
-          original.inputs.durationDays !== input.durationDays ||
+          original.inputs.reason !== normalized.reason ||
+          original.inputs.durationDays !== normalized.durationDays ||
           originalApprover !== input.approverId ||
           canonical(original.inputs.values ?? {}) !==
             canonical(validateValues(original.item.definition, input.values))
@@ -485,7 +482,7 @@ export class CatalogController {
             message: '処理グループが現在有効ではありません。担当者へ確認してください',
           },
         ]);
-      this.validateInputs(definition, input);
+      const inputs = validateRequestInputs(definition, input);
       const values = validateValues(definition, input.values);
       if (definition.approval && definition.approval.approverId !== input.approverId)
         throw Problems.forbidden('設定された固定承認者を変更できません');
@@ -493,8 +490,7 @@ export class CatalogController {
       const snapshot: Snapshot = {
         item: { id: item.id, version: item.version, title: item.title, definition },
         inputs: {
-          reason: input.reason,
-          durationDays: input.durationDays,
+          ...inputs,
           ...(definition.fields ? { values } : {}),
         },
         requesterId: auth.userId,
@@ -504,7 +500,11 @@ export class CatalogController {
         {
           kind: 'request',
           subject: item.title,
-          body: `ローカル模擬申請（外部変更なし）\n利用日数: ${input.durationDays}\n理由: ${input.reason}`,
+          body: [
+            'ローカル模擬申請（外部変更なし）',
+            ...(inputs.durationDays === undefined ? [] : [`利用日数: ${inputs.durationDays}`]),
+            ...(inputs.reason === undefined ? [] : [`理由: ${inputs.reason}`]),
+          ].join('\n'),
           impact: 'low',
           urgency: 'low',
         },
@@ -553,7 +553,7 @@ export class CatalogController {
       if (['completed', 'cancelled'].includes(q.state))
         throw Problems.conflict('完了・取消済みの申請は変更できません');
       const definition = parse(definitionSchema, q.snapshot.item.definition);
-      this.validateInputs(definition, input);
+      const inputs = validateRequestInputs(definition, input);
       const values = validateValues(definition, input.values);
       if (definition.approval && definition.approval.approverId !== input.approverId)
         throw Problems.forbidden('この申請版の固定承認者を変更できません');
@@ -565,8 +565,7 @@ export class CatalogController {
       q.snapshot = {
         ...q.snapshot,
         inputs: {
-          reason: input.reason,
-          durationDays: input.durationDays,
+          ...inputs,
           ...(definition.fields ? { values } : {}),
         },
       };
@@ -740,7 +739,7 @@ export class CatalogController {
       )
         throw Problems.conflict('承認後に申請内容が変わっています');
       const definition = parse(definitionSchema, q.snapshot.item.definition);
-      this.validateInputs(definition, q.snapshot.inputs);
+      validateRequestInputs(definition, q.snapshot.inputs);
       validateValues(definition, q.snapshot.inputs.values ?? {});
       if (definition.approval && definition.approval.approverId !== a.approver_id)
         throw Problems.conflict('固定承認者が申請版と一致しません');
@@ -766,7 +765,9 @@ export class CatalogController {
         action: definition.action,
         targetLabel: definition.targetLabel,
         subjectId: q.requester_id,
-        durationDays: q.snapshot.inputs.durationDays,
+        ...(q.snapshot.inputs.durationDays === undefined
+          ? {}
+          : { durationDays: q.snapshot.inputs.durationDays }),
         externalChanges: 0,
         summary:
           '承認済みの入力を検証し模擬結果を保存しました。外部のアカウント・権限は変更していません。',
@@ -808,7 +809,14 @@ export class CatalogController {
       await new CollaborationService(c, this.storage).addComment(auth.authz, {
         ticketId: ticket.id,
         visibility: 'public',
-        body: `ローカル模擬実行が完了しました。外部変更は0件です。\n対象: ${definition.targetLabel}\n利用日数: ${q.snapshot.inputs.durationDays}\n結果証跡: ${receiptId}`,
+        body: [
+          'ローカル模擬実行が完了しました。外部変更は0件です。',
+          `対象: ${definition.targetLabel}`,
+          ...(q.snapshot.inputs.durationDays === undefined
+            ? []
+            : [`利用日数: ${q.snapshot.inputs.durationDays}`]),
+          `結果証跡: ${receiptId}`,
+        ].join('\n'),
       });
       await c.query(
         "UPDATE local_service_request SET state='completed',version=version+1,updated_at=clock_timestamp() WHERE id=$1",

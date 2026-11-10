@@ -10,7 +10,7 @@ import {
 } from '../lib/catalog-preview';
 import styles from './CatalogLivePreview.module.css';
 import { CatalogFieldInputs } from './CatalogFieldInputs';
-import type { CatalogValues } from '@solvi/shared/catalog';
+import { catalogRequestFieldVisibility, type CatalogValues } from '@solvi/shared/catalog';
 
 export type CatalogLivePreviewProps = CatalogPreviewConfig & { disabled?: boolean };
 
@@ -19,6 +19,11 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
   const id = `catalog-try-${useId().replaceAll(':', '')}`;
   const [reason, setReason] = useState('');
   const [selectedDuration, setSelectedDuration] = useState<string>();
+  const visibleRequestFields = catalogRequestFieldVisibility(config);
+  // Once a common field is hidden, its previous sample must not reappear when enabled again.
+  if (!visibleRequestFields.reason && reason !== '') setReason('');
+  if (!visibleRequestFields.duration && selectedDuration !== undefined)
+    setSelectedDuration(undefined);
   const fieldsSignature = JSON.stringify(config.fields);
   const [samples, setSamples] = useState(() => ({
     signature: fieldsSignature,
@@ -68,8 +73,8 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
     setResult({
       signature,
       issues: validateCatalogPreviewInput(config, {
-        reason,
-        durationDays: Number(duration),
+        ...(visibleRequestFields.reason ? { reason } : {}),
+        ...(visibleRequestFields.duration ? { durationDays: Number(duration) } : {}),
         values,
       }),
     });
@@ -105,56 +110,60 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
         </p>
         <fieldset disabled={disabled} className={styles.controls}>
           <legend className="visually-hidden">利用者として入力を試す</legend>
-          <div className={styles.field}>
-            <label htmlFor={`${id}-reason`}>利用する理由（必須）</label>
-            <textarea
-              id={`${id}-reason`}
-              value={reason}
-              required
-              maxLength={
-                Number.isInteger(config.maxReason) && config.maxReason > 0
-                  ? config.maxReason
-                  : undefined
-              }
-              aria-invalid={Boolean(issueFor('reason'))}
-              aria-describedby={issueFor('reason') ? `${id}-reason-error` : undefined}
-              onChange={(event) => {
-                setReason(event.target.value);
-                setResult(null);
-              }}
-            />
-            {issueFor('reason') && (
-              <p className={styles.error} id={`${id}-reason-error`}>
-                {issueFor('reason')}
-              </p>
-            )}
-          </div>
-          <div className={styles.field}>
-            <label htmlFor={`${id}-days`}>希望する利用日数（必須）</label>
-            <select
-              id={`${id}-days`}
-              value={duration}
-              required
-              aria-invalid={Boolean(issueFor('durationDays'))}
-              aria-describedby={issueFor('durationDays') ? `${id}-days-error` : undefined}
-              onChange={(event) => {
-                setSelectedDuration(event.target.value);
-                setResult(null);
-              }}
-            >
-              <option value="">選んでください</option>
-              {definition.durations.map((days) => (
-                <option value={days} key={days}>
-                  {days}日
-                </option>
-              ))}
-            </select>
-            {issueFor('durationDays') && (
-              <p className={styles.error} id={`${id}-days-error`}>
-                {issueFor('durationDays')}
-              </p>
-            )}
-          </div>
+          {visibleRequestFields.reason && (
+            <div className={styles.field}>
+              <label htmlFor={`${id}-reason`}>利用する理由（必須）</label>
+              <textarea
+                id={`${id}-reason`}
+                value={reason}
+                required
+                maxLength={
+                  Number.isInteger(config.maxReason) && config.maxReason > 0
+                    ? config.maxReason
+                    : undefined
+                }
+                aria-invalid={Boolean(issueFor('reason'))}
+                aria-describedby={issueFor('reason') ? `${id}-reason-error` : undefined}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                  setResult(null);
+                }}
+              />
+              {issueFor('reason') && (
+                <p className={styles.error} id={`${id}-reason-error`}>
+                  {issueFor('reason')}
+                </p>
+              )}
+            </div>
+          )}
+          {visibleRequestFields.duration && (
+            <div className={styles.field}>
+              <label htmlFor={`${id}-days`}>希望する利用日数（必須）</label>
+              <select
+                id={`${id}-days`}
+                value={duration}
+                required
+                aria-invalid={Boolean(issueFor('durationDays'))}
+                aria-describedby={issueFor('durationDays') ? `${id}-days-error` : undefined}
+                onChange={(event) => {
+                  setSelectedDuration(event.target.value);
+                  setResult(null);
+                }}
+              >
+                <option value="">選んでください</option>
+                {definition.durations.map((days) => (
+                  <option value={days} key={days}>
+                    {days}日
+                  </option>
+                ))}
+              </select>
+              {issueFor('durationDays') && (
+                <p className={styles.error} id={`${id}-days-error`}>
+                  {issueFor('durationDays')}
+                </p>
+              )}
+            </div>
+          )}
           <CatalogFieldInputs
             fields={config.fields}
             sections={config.sections}

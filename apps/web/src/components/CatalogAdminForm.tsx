@@ -14,7 +14,7 @@ import { CatalogFieldInputs } from './CatalogFieldInputs';
 import { catalogTemplates } from '../lib/catalog-templates';
 import styles from './CatalogAdminForm.module.css';
 import { CatalogLivePreview } from './CatalogLivePreview';
-import type { CatalogSection } from '@solvi/shared/catalog';
+import { catalogRequestFieldVisibility, type CatalogSection } from '@solvi/shared/catalog';
 import {
   appendCatalogQuestionSet,
   cloneCatalogContent,
@@ -28,6 +28,7 @@ type EditorValues = {
   target: string;
   days: string;
   maxReason: number;
+  requestFields: CatalogItem['definition']['requestFields'];
   approver: string;
   fields: CatalogField[];
   category: string;
@@ -51,6 +52,7 @@ function editorValues(
     target: d?.definition.targetLabel ?? '検証用アクセス',
     days: d?.definition.allowedDurations.join(', ') ?? '1, 7, 30',
     maxReason: d?.definition.maxReasonLength ?? 2000,
+    requestFields: d?.definition.requestFields,
     approver: d?.definition.approval?.approverId ?? '',
     fields: d?.definition.fields ?? [],
     category: d?.definition.category ?? '',
@@ -70,6 +72,7 @@ function editProjection(values: EditorValues) {
       target: values.target,
       days: values.days,
       maxReason: values.maxReason,
+      requestFields: catalogRequestFieldVisibility({ requestFields: values.requestFields }),
       approver: values.approver,
       category: values.category,
       ownerId: values.ownerId,
@@ -192,6 +195,7 @@ function EditorForm({
     target,
     days,
     maxReason,
+    requestFields,
     approver,
     fields,
     category,
@@ -212,6 +216,9 @@ function EditorForm({
   const setTarget = (value: string) => edit('target', value);
   const setDays = (value: string) => edit('days', value);
   const setMaxReason = (value: number) => edit('maxReason', value);
+  const visibleRequestFields = catalogRequestFieldVisibility({ requestFields });
+  const setRequestField = (field: 'reason' | 'duration', visible: boolean) =>
+    edit('requestFields', (old) => ({ ...old, [field]: visible }));
   const setApprover = (value: string) => edit('approver', value);
   const setFields = (value: CatalogField[] | ((old: CatalogField[]) => CatalogField[])) =>
     edit('fields', value);
@@ -302,6 +309,7 @@ function EditorForm({
     setDescription('項目定義と独立承認を確認するための合成申請です。外部変更はありません。');
     setTarget('検証用アクセス');
     setApprover(approvers[0]?.id ?? '');
+    edit('requestFields', undefined);
     setFields([
       { key: 'team', label: '利用部署', type: 'text', required: true, maxLength: 80 },
       {
@@ -330,6 +338,7 @@ function EditorForm({
     setTarget(template.targetLabel);
     setDays(template.allowedDurations.join(', '));
     setMaxReason(2000);
+    edit('requestFields', template.requestFields ? { ...template.requestFields } : undefined);
     setFields(structuredClone(template.fields));
     setCategory(template.category ?? '');
     setSections(template.sections?.map((section) => ({ ...section })) ?? []);
@@ -384,6 +393,9 @@ function EditorForm({
           <input type="hidden" name="fields" value={JSON.stringify(fields)} />
           <input type="hidden" name="sections" value={JSON.stringify(sections)} />
           <input type="hidden" name="checklist" value={JSON.stringify(checklist)} />
+          {requestFields !== undefined && (
+            <input type="hidden" name="requestFields" value={JSON.stringify(requestFields)} />
+          )}
           <fieldset disabled={busy} className={styles.controls}>
             <legend>カタログの下書き入力</legend>
             <section className={styles.section} aria-labelledby="catalog-basic-settings">
@@ -485,33 +497,63 @@ function EditorForm({
                 申請フォーム
               </h2>
               <p className="hint">
-                理由と利用日数に加え、必要な質問を作ります。編集中のプレビューで入力を試せます。
+                このサービスで必要な項目だけを表示します。質問の種類や表示条件を設定し、プレビューで入力を試せます。
               </p>
-              <FormField className="field">
-                <label htmlFor="catalog-days">利用日数の候補</label>
-                <input
-                  type="text"
-                  id="catalog-days"
-                  name="allowedDurations"
-                  value={days}
-                  required
-                  onChange={(e) => setDays(e.target.value)}
-                />
-                <p className="hint">1〜365の日数をカンマ区切りで最大10候補。</p>
-              </FormField>
-              <FormField className="field">
-                <label htmlFor="catalog-reason-limit">理由の文字数上限</label>
-                <input
-                  type="number"
-                  id="catalog-reason-limit"
-                  name="maxReasonLength"
-                  min={1}
-                  max={2000}
-                  value={maxReason}
-                  required
-                  onChange={(e) => setMaxReason(Number(e.target.value))}
-                />
-              </FormField>
+              <div className={styles.commonFields}>
+                <h3>共通の申請項目</h3>
+                <label className={styles.visibilityToggle}>
+                  <input
+                    type="checkbox"
+                    id="catalog-show-reason"
+                    checked={visibleRequestFields.reason}
+                    onChange={(event) => setRequestField('reason', event.target.checked)}
+                  />
+                  利用する理由を表示する
+                </label>
+                <FormField className="field">
+                  <label htmlFor="catalog-reason-limit">理由の文字数上限</label>
+                  <input
+                    type="number"
+                    id="catalog-reason-limit"
+                    name="maxReasonLength"
+                    min={1}
+                    max={2000}
+                    value={maxReason}
+                    required
+                    disabled={!visibleRequestFields.reason}
+                    onChange={(e) => setMaxReason(Number(e.target.value))}
+                  />
+                </FormField>
+                {!visibleRequestFields.reason && (
+                  <input type="hidden" name="maxReasonLength" value={maxReason} />
+                )}
+                <label className={styles.visibilityToggle}>
+                  <input
+                    type="checkbox"
+                    id="catalog-show-duration"
+                    checked={visibleRequestFields.duration}
+                    onChange={(event) => setRequestField('duration', event.target.checked)}
+                  />
+                  希望する利用日数を表示する
+                </label>
+                <FormField className="field">
+                  <label htmlFor="catalog-days">利用日数の候補</label>
+                  <input
+                    type="text"
+                    id="catalog-days"
+                    name="allowedDurations"
+                    value={days}
+                    required
+                    disabled={!visibleRequestFields.duration}
+                    onChange={(e) => setDays(e.target.value)}
+                  />
+                  <p className="hint">1〜365の日数をカンマ区切りで最大10候補。</p>
+                </FormField>
+                {!visibleRequestFields.duration && (
+                  <input type="hidden" name="allowedDurations" value={days} />
+                )}
+                <p className="hint">非表示にした項目は申請時に入力・保存されません。</p>
+              </div>
               <FormField name="fields">
                 {!!options.questionSets?.length && (
                   <div className={styles.reuse}>
@@ -557,7 +599,7 @@ function EditorForm({
                 <h3>追加の申請項目</h3>
               </FormField>
               <p className="hint">
-                上の理由・利用日数に加える質問です。最大10件。セクションは登録順、各セクションの質問は下の順番で表示します。
+                サービスに合わせた質問を最大10件作れます。複数選択では必要なアイテムをチェックでき、表示条件では回答に応じて質問を切り替えられます。
               </p>
               <div className={styles.sectionSettings}>
                 <h3>フォームのセクション</h3>
@@ -704,7 +746,7 @@ function EditorForm({
                       <option value="checkbox">確認チェック</option>
                       <option value="date">日付</option>
                       <option value="number">数値</option>
-                      <option value="multiselect">複数選択</option>
+                      <option value="multiselect">複数選択（チェックボックス）</option>
                     </select>
                   </FormField>
                   <label>
@@ -756,15 +798,17 @@ function EditorForm({
                             replace(i, {
                               ...f,
                               visibleWhen: source
-                                ? {
-                                    field: source.key,
-                                    equals:
-                                      source.type === 'checkbox'
-                                        ? true
-                                        : source.type === 'select'
-                                          ? (source.options[0] ?? '')
-                                          : '',
-                                  }
+                                ? source.type === 'multiselect'
+                                  ? { field: source.key, contains: source.options[0] ?? '' }
+                                  : {
+                                      field: source.key,
+                                      equals:
+                                        source.type === 'checkbox'
+                                          ? true
+                                          : source.type === 'select'
+                                            ? (source.options[0] ?? '')
+                                            : '',
+                                    }
                                 : undefined,
                             });
                           }}
@@ -775,7 +819,9 @@ function EditorForm({
                               (field) =>
                                 field.key !== f.key &&
                                 field.key === f.visibleWhen?.field &&
-                                (field.type === 'select' || field.type === 'checkbox'),
+                                (field.type === 'select' ||
+                                  field.type === 'checkbox' ||
+                                  field.type === 'multiselect'),
                             ) && (
                               <option value={f.visibleWhen.field}>
                                 利用できなくなった質問（条件を選び直してください）
@@ -785,7 +831,9 @@ function EditorForm({
                             .filter(
                               (field) =>
                                 field.key !== f.key &&
-                                (field.type === 'select' || field.type === 'checkbox'),
+                                (field.type === 'select' ||
+                                  field.type === 'checkbox' ||
+                                  field.type === 'multiselect'),
                             )
                             .map((field) => (
                               <option key={field.key} value={field.key}>
@@ -800,34 +848,57 @@ function EditorForm({
                           const options =
                             source?.type === 'checkbox'
                               ? ['true', 'false']
-                              : source?.type === 'select'
-                                ? source.options
+                              : source?.type === 'select' || source?.type === 'multiselect'
+                                ? source.options.map((option) => option.trim())
                                 : [];
-                          const current = String(f.visibleWhen.equals);
+                          const current = String(
+                            'contains' in f.visibleWhen
+                              ? f.visibleWhen.contains
+                              : f.visibleWhen.equals,
+                          ).trim();
+                          const contains = source?.type === 'multiselect';
+                          const validConditionShape =
+                            source?.type === 'multiselect'
+                              ? 'contains' in f.visibleWhen &&
+                                typeof f.visibleWhen.contains === 'string'
+                              : source?.type === 'checkbox'
+                                ? 'equals' in f.visibleWhen &&
+                                  typeof f.visibleWhen.equals === 'boolean'
+                                : source?.type === 'select'
+                                  ? 'equals' in f.visibleWhen &&
+                                    typeof f.visibleWhen.equals === 'string'
+                                  : false;
+                          const validAnswer = validConditionShape && options.includes(current);
                           return (
                             <FormField className="field">
                               <label htmlFor={`field-condition-value-${i}`}>
-                                一致する回答 {i + 1}
+                                {contains ? '含む回答' : '一致する回答'} {i + 1}
                               </label>
                               <select
                                 id={`field-condition-value-${i}`}
-                                name={`fields.${i}.visibleWhen.equals`}
-                                value={current}
+                                name={`fields.${i}.visibleWhen.${contains ? 'contains' : 'equals'}`}
+                                value={validAnswer ? current : ''}
                                 onChange={(e) =>
                                   replace(i, {
                                     ...f,
-                                    visibleWhen: {
-                                      field: f.visibleWhen!.field,
-                                      equals:
-                                        source?.type === 'checkbox'
-                                          ? e.target.value === 'true'
-                                          : e.target.value,
-                                    },
+                                    visibleWhen: contains
+                                      ? { field: f.visibleWhen!.field, contains: e.target.value }
+                                      : {
+                                          field: f.visibleWhen!.field,
+                                          equals:
+                                            source?.type === 'checkbox'
+                                              ? e.target.value === 'true'
+                                              : e.target.value,
+                                        },
                                   })
                                 }
                               >
-                                {!options.includes(current) && (
-                                  <option value={current}>現在の候補にない回答</option>
+                                {!validAnswer && (
+                                  <option value="">
+                                    {validConditionShape
+                                      ? '現在の候補にない回答'
+                                      : '回答の型が一致しません（選び直してください）'}
+                                  </option>
                                 )}
                                 {options.map((option) => (
                                   <option key={option} value={option}>
@@ -840,8 +911,16 @@ function EditorForm({
                                 ))}
                               </select>
                               <p className="hint">
-                                選んだ質問の回答が一致した場合だけ表示します。非表示の質問への回答は保存しません。
+                                {contains
+                                  ? '選んだ回答が含まれる場合だけ表示します。'
+                                  : '選んだ質問の回答が一致した場合だけ表示します。'}
+                                非表示の質問への回答は保存しません。
                               </p>
+                              {!validConditionShape && (
+                                <p role="alert" className="field-error">
+                                  質問の種類が変わりました。表示条件と回答を選び直してください。
+                                </p>
+                              )}
                             </FormField>
                           );
                         })()}
@@ -1217,6 +1296,7 @@ function EditorForm({
             target={target}
             days={days}
             maxReason={maxReason}
+            requestFields={requestFields}
             approver={approver}
             fields={fields}
             category={category}
@@ -1352,6 +1432,7 @@ export function CatalogPreview({
   definition: CatalogItem['definition'];
   approvers: Array<{ id: string; name: string }>;
 }) {
+  const visibleRequestFields = catalogRequestFieldVisibility(definition);
   return (
     <section id="preview" className="form-panel">
       <h2>保存した下書きのプレビュー</h2>
@@ -1360,18 +1441,22 @@ export function CatalogPreview({
       <p>{description}</p>
       <p className="hint">業務カテゴリ: {definition.category?.trim() || '未分類'}</p>
       <fieldset disabled className="stack">
-        <FormField className="field">
-          <label htmlFor="preview-reason">利用する理由</label>
-          <textarea id="preview-reason" maxLength={definition.maxReasonLength} />
-        </FormField>
-        <FormField className="field">
-          <label htmlFor="preview-days">希望する利用日数</label>
-          <select id="preview-days">
-            {definition.allowedDurations.map((d) => (
-              <option key={d}>{d}日</option>
-            ))}
-          </select>
-        </FormField>
+        {visibleRequestFields.reason && (
+          <FormField className="field">
+            <label htmlFor="preview-reason">利用する理由</label>
+            <textarea id="preview-reason" maxLength={definition.maxReasonLength} />
+          </FormField>
+        )}
+        {visibleRequestFields.duration && (
+          <FormField className="field">
+            <label htmlFor="preview-days">希望する利用日数</label>
+            <select id="preview-days">
+              {definition.allowedDurations.map((d) => (
+                <option key={d}>{d}日</option>
+              ))}
+            </select>
+          </FormField>
+        )}
         <CatalogFieldInputs
           fields={definition.fields ?? []}
           sections={definition.sections}

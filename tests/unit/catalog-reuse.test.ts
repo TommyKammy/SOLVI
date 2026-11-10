@@ -1,7 +1,11 @@
 import React, { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CatalogField, CatalogSection } from '@solvi/shared/catalog';
+import {
+  getVisibleCatalogFields,
+  type CatalogField,
+  type CatalogSection,
+} from '@solvi/shared/catalog';
 import {
   appendCatalogQuestionSet,
   cloneCatalogContent,
@@ -129,7 +133,7 @@ describe('catalog clone and shared set copy', () => {
     expect(first.key).not.toBe(current.key);
     expect(first.section).toBe(result.sections[0].key);
     expect(dependent.visibleWhen?.field).toBe(first.key);
-    expect(dependent.visibleWhen?.equals).toBe('一時貸出');
+    expect(dependent.visibleWhen).toMatchObject({ equals: '一時貸出' });
     expect(dependent.section).toBe(first.section);
     expect(first.helpText).toBe('貸出方法を選びます。');
     result.sections[0].title = 'changed';
@@ -152,6 +156,72 @@ describe('catalog clone and shared set copy', () => {
     expect(second.fields[3].visibleWhen?.field).toBe(second.fields[2].key);
     expect(second.fields[0].section).not.toBe(second.fields[2].section);
     expect(second.sections).toHaveLength(2);
+  });
+
+  it('keeps multiselect membership and descendant conditions bound to their own inserted copy', () => {
+    const source: { fields: CatalogField[]; sections: CatalogSection[] } = {
+      fields: [
+        {
+          key: 'devices',
+          label: '必要な機器',
+          type: 'multiselect',
+          required: true,
+          options: ['ノートPC', 'モニター'],
+          section: 'hardware',
+        },
+        {
+          key: 'delivery',
+          label: '配送する',
+          type: 'checkbox',
+          required: false,
+          section: 'hardware',
+          visibleWhen: { field: 'devices', contains: 'モニター' },
+        },
+        {
+          key: 'delivery_day',
+          label: '配送希望日',
+          type: 'date',
+          required: true,
+          section: 'hardware',
+          visibleWhen: { field: 'delivery', equals: true },
+        },
+      ],
+      sections: [{ key: 'hardware', title: '機器の手配' }],
+    };
+    const before = JSON.stringify(source);
+    let sequence = 0;
+    const makeKey = (kind: string) => `${kind}_${++sequence}`;
+    const first = appendCatalogQuestionSet({ fields: [], sections: [] }, source, makeKey);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const second = appendCatalogQuestionSet(first, source, makeKey);
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    const [devicesA, deliveryA, dayA, devicesB, deliveryB, dayB] = second.fields;
+    expect(deliveryA.visibleWhen).toEqual({ field: devicesA.key, contains: 'モニター' });
+    expect(deliveryB.visibleWhen).toEqual({ field: devicesB.key, contains: 'モニター' });
+    expect(dayA.visibleWhen).toEqual({ field: deliveryA.key, equals: true });
+    expect(dayB.visibleWhen).toEqual({ field: deliveryB.key, equals: true });
+    expect(
+      getVisibleCatalogFields(second.fields, {
+        [devicesA.key]: ['ノートPC', 'モニター'],
+        [deliveryA.key]: true,
+        [devicesB.key]: ['ノートPC'],
+        [deliveryB.key]: true,
+      }).map((field) => field.key),
+    ).toEqual([devicesA.key, deliveryA.key, dayA.key, devicesB.key]);
+    expect(second.fields[0].section).not.toBe(second.fields[3].section);
+    if (devicesA.type === 'multiselect') devicesA.options.push('copy only');
+    expect(JSON.stringify(source)).toBe(before);
+  });
+
+  it('copies disabled common request fields without changing the source definition', () => {
+    const source = content();
+    source.definition.requestFields = { reason: false, duration: false };
+    const copied = cloneCatalogContent(source, viewer);
+    expect(copied.definition.requestFields).toEqual({ reason: false, duration: false });
+    copied.definition.requestFields!.reason = true;
+    expect(source.definition.requestFields).toEqual({ reason: false, duration: false });
   });
 
   it('preserves the editor and source when the question limit would be exceeded', () => {

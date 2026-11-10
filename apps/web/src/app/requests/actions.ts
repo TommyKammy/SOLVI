@@ -14,12 +14,16 @@ export async function saveServiceRequest(
   const scopeError = await formScopeError(form);
   if (scopeError) return { message: scopeError, attempt: (previous.attempt ?? 0) + 1 };
   const values = {
-    reason: String(form.get('reason') ?? ''),
-    durationDays: String(form.get('durationDays') ?? ''),
+    ...(form.has('reason') ? { reason: String(form.get('reason') ?? '') } : {}),
+    ...(form.has('durationDays') ? { durationDays: String(form.get('durationDays') ?? '') } : {}),
     approverId: String(form.get('approverId') ?? ''),
   };
   const customValues = readCatalogFormValues(form);
-  const input = { ...values, durationDays: Number(values.durationDays), values: customValues };
+  const input = {
+    ...values,
+    ...(values.durationDays !== undefined ? { durationDays: Number(values.durationDays) } : {}),
+    values: customValues,
+  };
   const result = id
     ? await api.editRequest(
         id,

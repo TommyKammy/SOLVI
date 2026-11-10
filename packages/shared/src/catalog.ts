@@ -67,25 +67,38 @@ const common = {
     .optional(),
   section: keySchema.optional(),
   visibleWhen: z
-    .object({
-      field: keySchema,
-      equals: z.union(
-        [
-          z
+    .union([
+      z
+        .object({
+          field: keySchema,
+          equals: z.union(
+            [
+              z
+                .string()
+                .trim()
+                .min(1, '表示条件の回答を選んでください')
+                .max(100, '表示条件の回答は100文字以内で選んでください'),
+              z.boolean(),
+            ],
+            {
+              errorMap: () => ({
+                message: '表示条件の回答は選択肢またはチェック状態から選んでください',
+              }),
+            },
+          ),
+        })
+        .strict(),
+      z
+        .object({
+          field: keySchema,
+          contains: z
             .string()
             .trim()
             .min(1, '表示条件の回答を選んでください')
             .max(100, '表示条件の回答は100文字以内で選んでください'),
-          z.boolean(),
-        ],
-        {
-          errorMap: () => ({
-            message: '表示条件の回答は選択肢またはチェック状態から選んでください',
-          }),
-        },
-      ),
-    })
-    .strict()
+        })
+        .strict(),
+    ])
     .optional(),
 };
 export const catalogFieldSchema = z
@@ -180,6 +193,15 @@ export const catalogDefinitionSchema = z
       .int('理由の文字数上限は整数で入力してください')
       .min(1, '理由の文字数上限は1文字以上にしてください')
       .max(2000, '理由の文字数上限は2000文字以内にしてください'),
+    requestFields: z
+      .object({
+        reason: z.boolean({ invalid_type_error: '理由の表示設定を確認してください' }).optional(),
+        duration: z
+          .boolean({ invalid_type_error: '利用日数の表示設定を確認してください' })
+          .optional(),
+      })
+      .strict()
+      .optional(),
     fields: z
       .array(catalogFieldSchema)
       .max(10, '追加の申請項目は10件以内にしてください')
@@ -256,15 +278,17 @@ export const catalogDefinitionSchema = z
       const source = byKey.get(field.visibleWhen.field);
       if (!source || source === field)
         issue('visibleWhen', '別の質問を表示条件として選んでください');
-      else if (
-        source.type === 'select'
-          ? typeof field.visibleWhen.equals !== 'string' ||
-            !source.options.includes(field.visibleWhen.equals)
-          : source.type === 'checkbox'
-            ? typeof field.visibleWhen.equals !== 'boolean'
-            : true
-      )
-        issue('visibleWhen', '表示条件には選択項目の候補または確認チェックを指定してください');
+      else {
+        const condition = field.visibleWhen;
+        const valid =
+          'contains' in condition
+            ? source.type === 'multiselect' && source.options.includes(condition.contains)
+            : source.type === 'select'
+              ? typeof condition.equals === 'string' && source.options.includes(condition.equals)
+              : source.type === 'checkbox' && typeof condition.equals === 'boolean';
+        if (!valid)
+          issue('visibleWhen', '表示条件には選択項目の候補または確認チェックを指定してください');
+      }
     });
     const visited = new Set<string>(),
       visiting = new Set<string>(),
@@ -298,6 +322,47 @@ export type CatalogValue = string | boolean | number | string[];
 export type CatalogValues = Record<string, CatalogValue>;
 export type CatalogValidationIssue = { field: string; message: string };
 
+/** Missing flags preserve the legacy required fields without modifying stored definitions. */
+export function catalogRequestFieldVisibility(
+  definition: Pick<CatalogDefinition, 'requestFields'>,
+): { reason: boolean; duration: boolean } {
+  return {
+    reason: definition.requestFields?.reason !== false,
+    duration: definition.requestFields?.duration !== false,
+  };
+}
+export type CatalogRequestInputs = { reason?: string; durationDays?: number };
+export function validateCatalogRequestInputs(
+  definition: Pick<CatalogDefinition, 'requestFields' | 'allowedDurations' | 'maxReasonLength'>,
+  input: Readonly<Record<string, unknown>>,
+): { inputs: CatalogRequestInputs; errors: CatalogValidationIssue[] } {
+  const visibility = catalogRequestFieldVisibility(definition);
+  const inputs: CatalogRequestInputs = {},
+    errors: CatalogValidationIssue[] = [];
+  if (visibility.reason) {
+    const reason = typeof input.reason === 'string' ? input.reason.trim() : '';
+    if (!reason) errors.push({ field: 'reason', message: '利用する理由を入力してください。' });
+    else if (reason.length > definition.maxReasonLength)
+      errors.push({
+        field: 'reason',
+        message: `利用する理由は${definition.maxReasonLength}文字以内で入力してください。`,
+      });
+    else inputs.reason = reason;
+  }
+  if (visibility.duration) {
+    const duration = input.durationDays;
+    if (
+      typeof duration !== 'number' ||
+      !Number.isInteger(duration) ||
+      duration <= 0 ||
+      !definition.allowedDurations.includes(duration)
+    )
+      errors.push({ field: 'durationDays', message: '設定された利用日数から選んでください。' });
+    else inputs.durationDays = duration;
+  }
+  return { inputs, errors };
+}
+
 /** Evaluate a DAG independently of question order; malformed references fail closed. */
 export function getVisibleCatalogFields(
   fields: readonly CatalogField[],
@@ -320,15 +385,30 @@ export function getVisibleCatalogFields(
         source &&
         source.key !== field.key &&
         visible(source) &&
-        (source.type === 'select'
-          ? typeof condition.equals === 'string' &&
-            source.options.some((option) => option.trim() === condition.equals.toString().trim()) &&
-            typeof value === 'string' &&
-            value.trim() === condition.equals.trim()
-          : source.type === 'checkbox' &&
-            typeof condition.equals === 'boolean' &&
-            (value === undefined || typeof value === 'boolean') &&
-            (value ?? false) === condition.equals),
+        ('contains' in condition
+          ? source.type === 'multiselect' &&
+            typeof condition.contains === 'string' &&
+            source.options.some((option) => option.trim() === condition.contains.trim()) &&
+            Array.isArray(value) &&
+            value.every(
+              (entry) =>
+                typeof entry === 'string' &&
+                source.options.some((option) => option.trim() === entry.trim()),
+            ) &&
+            value.some(
+              (entry) => typeof entry === 'string' && entry.trim() === condition.contains.trim(),
+            )
+          : source.type === 'select'
+            ? typeof condition.equals === 'string' &&
+              source.options.some(
+                (option) => option.trim() === condition.equals.toString().trim(),
+              ) &&
+              typeof value === 'string' &&
+              value.trim() === condition.equals.trim()
+            : source.type === 'checkbox' &&
+              typeof condition.equals === 'boolean' &&
+              (value === undefined || typeof value === 'boolean') &&
+              (value ?? false) === condition.equals),
       );
     }
     visiting.delete(field.key);
