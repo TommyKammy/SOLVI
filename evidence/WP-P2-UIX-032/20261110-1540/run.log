@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-11-10T06:29:53.421Z",
+  "screens": [
+    {
+      "name": "portal",
+      "path": "/portal",
+      "violations": []
+    }
+  ],
+  "portal": {
+    "railCount": 0,
+    "header": 1,
+    "cards": [
+      "サービスをリクエストする",
+      "問題を報告する",
+      "ヘルプ記事を閲覧する",
+      "アクションアイテムを完了する"
+    ],
+    "cardHrefs": [
+      "/catalog?returnTo=%2Fportal",
+      "/tickets/new?kind=incident&returnTo=%2Fportal",
+      "/knowledge",
+      "/requests?view=mine"
+    ],
+    "tabs": [
+      "オープンなチケット",
+      "申請の状況",
+      "サービスを探す"
+    ],
+    "menuLinks": [
+      "ホーム",
+      "自分の問い合わせ",
+      "申請の状況",
+      "サービスカタログ",
+      "ナレッジ",
+      "通知設定",
+      "担当業務へ"
+    ],
+    "menuClosedAfterClick": true,
+    "menuNavigation": "http://127.0.0.1:3000/requests?view=mine",
+    "heroSearch": "http://127.0.0.1:3000/knowledge?q=VPN"
+  },
+  "tabs": {
+    "requests": {
+      "heading": [
+        "最近の申請"
+      ],
+      "violations": []
+    },
+    "services": {
+      "heading": [
+        "サービスを探す",
+        "解決のヒントを探す"
+      ],
+      "services": 3,
+      "violations": []
+    }
+  },
+  "mobile": {
+    "bodyWidth": 375,
+    "viewportWidth": 375,
+    "railCount": 0,
+    "cardColumns": "343px"
+  }
+}

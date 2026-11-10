@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
+import { SupportFrame } from './SupportFrame';
 import type { RailGroup, RailItem } from '../lib/navigation-groups';
 
 type Props = {
@@ -137,6 +138,18 @@ export function AppFrame({
     if (pathname !== groupTarget && matchesPath(pathname, groupTarget)) return '詳細';
     return null;
   })();
+
+  if (pathname === '/portal') {
+    return (
+      <SupportFrame
+        organizationName={organizationName}
+        canSwitchOrganization={canSwitchOrganization}
+        staff={staff}
+      >
+        {children}
+      </SupportFrame>
+    );
+  }
 
   return (
     <div className={`fs-app${mobileOpen ? ' fs-app--rail-open' : ''}`}>

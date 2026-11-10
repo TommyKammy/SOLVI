@@ -1566,6 +1566,381 @@ body.fs-ui a.fs-admin-card:hover {
 }
 
 /* ------------------------------------------------------------------------- */
+/* サポートポータル(Freshservice /support/home 準拠)                        */
+/* ------------------------------------------------------------------------- */
+
+.fs-support {
+  min-height: 100vh;
+  background: #ebeff3;
+}
+
+.fs-support-header {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0));
+}
+
+.fs-support-header-left,
+.fs-support-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fs-support-menu {
+  position: relative;
+}
+.fs-support-menu summary {
+  list-style: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fs-support-menu summary::-webkit-details-marker {
+  display: none;
+}
+.fs-support-menu summary::marker {
+  content: '';
+}
+.fs-support-menu summary:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.fs-support-menu-panel {
+  display: none;
+  position: absolute;
+  top: 48px;
+  left: 0;
+  width: 280px;
+  padding: 8px;
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-md);
+}
+.fs-support-menu[open] .fs-support-menu-panel {
+  display: block;
+}
+.fs-support-menu-title {
+  margin: 6px 10px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fs-support-menu-title--staff {
+  margin-top: 14px;
+}
+.fs-support-menu-panel a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--fs-text);
+  font-size: 13px;
+}
+.fs-support-menu-panel a:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+body.fs-ui a.fs-support-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+body.fs-ui a.fs-support-brand:hover {
+  color: #fff;
+  text-decoration: none;
+}
+.fs-support-brand-mark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--fs-brand-strong);
+  font-size: 15px;
+  font-weight: 800;
+}
+body.fs-ui .fs-support-org {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 500;
+}
+body.fs-ui a.fs-support-icon-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  text-decoration: none;
+}
+body.fs-ui a.fs-support-icon-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  text-decoration: none;
+}
+.fs-support-user summary {
+  color: #fff;
+}
+.fs-support-user .fs-avatar {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--fs-brand-strong);
+}
+.fs-support-user .fs-user-popover {
+  top: 46px;
+}
+
+.support-main {
+  min-height: 100vh;
+  background: #ebeff3;
+}
+
+.support-hero {
+  position: relative;
+  height: 372px;
+  padding: 108px 0 20px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.12) 0 2px, transparent 2.5px) 0 0 /
+      26px 26px,
+    linear-gradient(135deg, #0b3fae 0%, #276cf0 55%, #6aa8ff 100%);
+}
+.support-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+.support-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+  text-align: center;
+}
+body.fs-ui .support-hero h1 {
+  margin: 0 0 28px;
+  color: #fff;
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.support-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 680px;
+  max-width: 100%;
+  height: 60px;
+  margin: 0 auto;
+  padding: 0 18px 0 48px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  color: var(--fs-text-muted);
+}
+.support-search > svg {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.support-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fs-text);
+  font: inherit;
+  font-size: 20px;
+}
+.support-search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.support-search button {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.support-cards {
+  padding: 48px 72px;
+  background: #ebeff3;
+}
+.support-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 400px));
+  justify-content: center;
+  gap: 32px;
+  max-width: 832px;
+  margin: 0 auto;
+}
+body.fs-ui a.support-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 142px;
+  padding: 28px 24px;
+  background: var(--fs-surface);
+  border-radius: 8px;
+  box-shadow: 0 6px 19px rgba(32, 33, 39, 0.08);
+  color: var(--fs-text);
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+body.fs-ui a.support-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(32, 33, 39, 0.12);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+.support-card-icon {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+}
+.support-card--service .support-card-icon {
+  background: #fff3e6;
+  color: #b45f00;
+}
+.support-card--incident .support-card-icon {
+  background: #e6f7f1;
+  color: #00795c;
+}
+.support-card--knowledge .support-card-icon {
+  background: #e8f1ff;
+  color: #003fd2;
+}
+.support-card--approval .support-card-icon {
+  background: #f0eaff;
+  color: #5b21b6;
+}
+.support-card-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.support-card-text strong {
+  color: var(--fs-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+.support-card-text span {
+  color: var(--fs-text-secondary);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.support-lists {
+  padding: 24px 82px 48px;
+  background: var(--fs-surface);
+}
+.support-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--fs-border);
+  overflow-x: auto;
+}
+.support-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px;
+  margin-right: 16px;
+  border-bottom: 2px solid transparent;
+  color: var(--fs-text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.support-tabs a:hover {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.support-tabs a[aria-current='page'] {
+  color: #2c5cc5;
+  border-bottom-color: #2c5cc5;
+}
+.support-tab-panel {
+  max-width: 1036px;
+}
+.support-panel {
+  min-width: 0;
+}
+.support-panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.support-panel-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+}
+.support-panel-heading > a {
+  font-size: 13px;
+  font-weight: 600;
+}
+.support-panel-heading .portal-ticket-views {
+  margin-top: 0;
+  border-bottom: 0;
+  gap: 16px;
+}
+.support-services-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+.support-footer {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fs-surface);
+  border-top: 1px solid var(--fs-border);
+  color: var(--fs-text-muted);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------------- */
 /* チケット一覧の2カラム                                                     */
 /* ------------------------------------------------------------------------- */
 
@@ -2359,6 +2734,29 @@ body.fs-ui .fs-public-content > main form.stack {
   .fs-side-nav-tags a:nth-child(n + 7) {
     display: none;
   }
+  .support-cards {
+    padding: 32px 16px;
+  }
+  .support-cards-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 560px;
+  }
+  .support-lists {
+    padding: 20px 16px 32px;
+  }
+  .support-services-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.fs-ui .support-hero h1 {
+    font-size: 32px;
+    line-height: 40px;
+  }
+  .fs-support-org {
+    display: none;
+  }
+  .fs-support-header {
+    padding: 0 16px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -2388,6 +2786,49 @@ body.fs-ui .fs-public-content > main form.stack {
   body.fs-ui .fs-catalog .catalog-filters {
     flex-direction: column;
     align-items: stretch;
+  }
+  .support-hero {
+    height: auto;
+    padding: 96px 0 32px;
+  }
+  body.fs-ui .support-hero h1 {
+    margin-bottom: 20px;
+    font-size: 28px;
+    line-height: 36px;
+  }
+  .support-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .support-tabs a {
+    margin-right: 10px;
+    padding: 8px 4px;
+    font-size: 13px;
+  }
+  .support-search {
+    height: 52px;
+    padding-left: 42px;
+  }
+  .support-search > svg {
+    left: 14px;
+  }
+  .support-search input {
+    font-size: 16px;
+  }
+  body.fs-ui a.support-card {
+    min-height: 0;
+    padding: 20px;
+  }
+  .support-card-icon {
+    width: 56px;
+    height: 56px;
+  }
+  .fs-support-header {
+    padding: 0 12px;
+  }
+  .fs-support-header-left,
+  .fs-support-header-right {
+    gap: 6px;
   }
 }
 
