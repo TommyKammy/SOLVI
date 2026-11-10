@@ -1494,6 +1494,79 @@ body.fs-ui .fs-portal-action-card strong {
 }
 
 /* ------------------------------------------------------------------------- */
+/* 管理ホーム                                                                */
+/* ------------------------------------------------------------------------- */
+
+.fs-admin-section {
+  margin-bottom: 28px;
+}
+.fs-admin-section-heading {
+  margin-bottom: 12px;
+}
+.fs-admin-section-heading h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.fs-admin-section-heading .hint {
+  margin: 0;
+}
+.fs-admin-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+body.fs-ui a.fs-admin-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+  padding: 18px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+body.fs-ui a.fs-admin-card:hover {
+  border-color: var(--fs-brand);
+  box-shadow: 0 2px 8px rgba(39, 108, 240, 0.1);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+.fs-admin-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+}
+.fs-admin-card-body {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.fs-admin-card-body strong {
+  font-size: 14px;
+}
+.fs-admin-card-body span {
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+.fs-admin-card > svg {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--fs-text-muted);
+}
+
+/* ------------------------------------------------------------------------- */
 /* チケット一覧の2カラム                                                     */
 /* ------------------------------------------------------------------------- */
 
@@ -2287,6 +2360,9 @@ body.fs-ui .fs-public-content > main form.stack {
   .fs-portal-action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .fs-admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .fs-side-nav-tags a:nth-child(n + 7) {
     display: none;
   }
@@ -2307,6 +2383,9 @@ body.fs-ui .fs-public-content > main form.stack {
     line-height: 32px;
   }
   .fs-portal-action-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-admin-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .fs-catalog-grid {

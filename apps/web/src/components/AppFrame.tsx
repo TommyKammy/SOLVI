@@ -19,9 +19,19 @@ function normalizedPath(href: string): string {
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
+/** 詳細画面として扱うのは、UUIDまたは数値のIDが続く場合だけ。 */
+const DETAIL_ID =
+  /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|\d+)$/i;
+
+function matchesPath(pathname: string, target: string): boolean {
+  if (pathname === target) return true;
+  if (!pathname.startsWith(`${target}/`)) return false;
+  const next = pathname.slice(target.length + 1).split('/')[0] ?? '';
+  return DETAIL_ID.test(next);
+}
+
 function isActive(pathname: string, item: RailItem): boolean {
-  const target = normalizedPath(item.matchPath ?? item.href);
-  return pathname === target || pathname.startsWith(`${target}/`);
+  return matchesPath(pathname, normalizedPath(item.matchPath ?? item.href));
 }
 
 function findCurrent(pathname: string, groups: RailGroup[]) {
@@ -33,7 +43,7 @@ function findCurrent(pathname: string, groups: RailGroup[]) {
     ];
     for (const candidate of candidates) {
       const target = normalizedPath(candidate.item?.matchPath ?? candidate.href);
-      if (pathname === target || pathname.startsWith(`${target}/`)) {
+      if (matchesPath(pathname, target)) {
         const better =
           !best ||
           target.length > best.length ||
@@ -95,10 +105,10 @@ export function AppFrame({
     if (current.item) {
       const target = normalizedPath(current.item.matchPath ?? current.item.href);
       if (pathname === target) return current.item.label;
-      if (pathname.startsWith(`${target}/`)) return '詳細';
+      if (matchesPath(pathname, target)) return '詳細';
     }
     const groupTarget = normalizedPath(current.group.href);
-    if (pathname !== groupTarget) return '詳細';
+    if (pathname !== groupTarget && matchesPath(pathname, groupTarget)) return '詳細';
     return null;
   })();
 

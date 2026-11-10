@@ -110,9 +110,10 @@ export function buildNavigationGroups(
           {
             id: 'admin',
             label: '管理',
-            href: '/ops/users',
+            href: '/ops/admin',
             icon: 'admin' as const,
             items: [
+              item('/ops/admin', '管理ホーム'),
               item('/ops/users', '利用者管理'),
               item('/ops/groups', '担当グループ'),
               ...(roles.notifications ? [item('/ops/notifications', '通知状況')] : []),

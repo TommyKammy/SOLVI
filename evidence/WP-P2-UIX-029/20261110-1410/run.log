@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-11-10T04:27:18.206Z",
+  "screens": [
+    {
+      "name": "admin",
+      "path": "/ops/admin",
+      "violations": []
+    }
+  ],
+  "orgAdmin": {
+    "cards": [
+      "カタログ管理",
+      "通知状況",
+      "資産CSV取込",
+      "利用者管理",
+      "担当グループ",
+      "アクセスレビュー"
+    ],
+    "groups": [
+      "アカウント設定",
+      "ユーザー管理"
+    ],
+    "railHref": "/ops/admin",
+    "breadcrumb": "管理\n管理ホーム"
+  },
+  "agent": {
+    "cards": 0,
+    "text": "管理\n\n管理画面を表示する権限がありません。\n\n利用者ポータルへ戻る"
+  }
+}
