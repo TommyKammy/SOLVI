@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
 import { SupportFrame } from './SupportFrame';
@@ -31,8 +31,33 @@ function matchesPath(pathname: string, target: string): boolean {
   return DETAIL_ID.test(next);
 }
 
-function isActive(pathname: string, item: RailItem): boolean {
-  return matchesPath(pathname, normalizedPath(item.matchPath ?? item.href));
+type SearchParamsLike = { get(name: string): string | null };
+
+type MatchTarget = {
+  path: string;
+  query: Array<[string, string]>;
+};
+
+/**
+ * リンクの現在地判定に使うパスとクエリを返す。
+ * `matchPath` はパスだけを上書きし、クエリは `href` から引き継ぐ。
+ * 例: `/knowledge?manage=1` はパス `/knowledge` + `manage=1` として判定する。
+ */
+function matchTarget(item: Pick<RailItem, 'href' | 'matchPath'>): MatchTarget {
+  const [rawPath, rawQuery = ''] = item.href.split('?');
+  return {
+    path: normalizedPath(item.matchPath ?? rawPath ?? item.href),
+    query: [...new URLSearchParams(rawQuery)],
+  };
+}
+
+function matchesTarget(pathname: string, search: SearchParamsLike, target: MatchTarget): boolean {
+  if (!matchesPath(pathname, target.path)) return false;
+  return target.query.every(([key, value]) => search.get(key) === value);
+}
+
+function isActive(pathname: string, search: SearchParamsLike, item: RailItem): boolean {
+  return matchesTarget(pathname, search, matchTarget(item));
 }
 
 const SUPPORT_ROOTS = ['/portal', '/catalog', '/knowledge', '/tickets', '/requests', '/settings'];
@@ -50,23 +75,37 @@ function isSupportPath(pathname: string): boolean {
   return !SUPPORT_EXCLUDES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
-function findCurrent(pathname: string, groups: RailGroup[]) {
-  let best: { group: RailGroup; item: RailItem | null; length: number } | null = null;
+function findCurrent(pathname: string, search: SearchParamsLike, groups: RailGroup[]) {
+  let best: {
+    group: RailGroup;
+    item: RailItem | null;
+    pathLength: number;
+    queryLength: number;
+  } | null = null;
   for (const group of groups) {
-    const candidates: Array<{ item: RailItem | null; href: string }> = [
-      { item: null, href: group.href },
-      ...group.items.map((item) => ({ item, href: item.href })),
+    const candidates: Array<{ item: RailItem | null; target: MatchTarget }> = [
+      { item: null, target: matchTarget({ href: group.href }) },
+      ...group.items.map((item) => ({ item, target: matchTarget(item) })),
     ];
     for (const candidate of candidates) {
-      const target = normalizedPath(candidate.item?.matchPath ?? candidate.href);
-      if (matchesPath(pathname, target)) {
-        const better =
-          !best ||
-          target.length > best.length ||
-          (target.length === best.length && candidate.item !== null && best.item === null);
-        if (better) {
-          best = { group, item: candidate.item, length: target.length };
-        }
+      if (!matchesTarget(pathname, search, candidate.target)) continue;
+      // パスが長いほど、クエリが多いほど「今ここ」として優先する。
+      // 例: `/knowledge?manage=1` では「ナレッジ検索」より「ナレッジ管理」。
+      const better =
+        !best ||
+        candidate.target.path.length > best.pathLength ||
+        (candidate.target.path.length === best.pathLength &&
+          (candidate.target.query.length > best.queryLength ||
+            (candidate.target.query.length === best.queryLength &&
+              candidate.item !== null &&
+              best.item === null)));
+      if (better) {
+        best = {
+          group,
+          item: candidate.item,
+          pathLength: candidate.target.path.length,
+          queryLength: candidate.target.query.length,
+        };
       }
     }
   }
@@ -81,11 +120,12 @@ export function AppFrame({
   children,
 }: Props) {
   const pathname = usePathname() ?? '/';
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const railItems = useRef(new Map<string, HTMLDivElement>());
-  const current = findCurrent(pathname, groups);
+  const current = findCurrent(pathname, searchParams, groups);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -145,9 +185,9 @@ export function AppFrame({
   const currentDetail = (() => {
     if (!current) return null;
     if (current.item) {
-      const target = normalizedPath(current.item.matchPath ?? current.item.href);
-      if (pathname === target) return current.item.label;
-      if (matchesPath(pathname, target)) return '詳細';
+      const target = matchTarget(current.item);
+      if (pathname === target.path) return current.item.label;
+      if (matchesPath(pathname, target.path)) return '詳細';
     }
     const groupTarget = normalizedPath(current.group.href);
     if (pathname !== groupTarget && matchesPath(pathname, groupTarget)) return '詳細';
@@ -193,7 +233,7 @@ export function AppFrame({
           {groups.map((group) => {
             const active =
               current?.group.id === group.id ||
-              group.items.some((item) => isActive(pathname, item));
+              group.items.some((item) => isActive(pathname, searchParams, item));
             return (
               <div
                 className={`fs-rail-item${openGroup === group.id ? ' is-open' : ''}`}
@@ -238,7 +278,7 @@ export function AppFrame({
                       <li key={`${item.href}:${item.label}`}>
                         <Link
                           href={item.href}
-                          aria-current={isActive(pathname, item) ? 'page' : undefined}
+                          aria-current={current?.item === item ? 'page' : undefined}
                           onClick={(event) => {
                             // クリック後もフォーカスが残ると、次のホバーで
                             // 前のメニューが重なって見える。マウス操作では閉じる。

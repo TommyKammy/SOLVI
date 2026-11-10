@@ -1,0 +1,161 @@
+{
+  "generatedAt": "2026-11-10T07:57:19.750Z",
+  "routes": [
+    {
+      "name": "knowledge-search",
+      "path": "/knowledge",
+      "selected": [
+        {
+          "group": "ナレッジ",
+          "label": "ナレッジ検索",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "knowledge-manage",
+      "path": "/knowledge?manage=1",
+      "selected": [
+        {
+          "group": "ナレッジ",
+          "label": "ナレッジ管理",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "knowledge-article",
+      "path": "/knowledge/01a1c3ac-545c-7000-ab3d-012552b7fd60",
+      "selected": [
+        {
+          "group": "ナレッジ",
+          "label": "ナレッジ検索",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "knowledge-article-manage",
+      "path": "/knowledge/01a1c3ac-545c-7000-ab3d-012552b7fd60?manage=1",
+      "selected": [
+        {
+          "group": "ナレッジ",
+          "label": "ナレッジ管理",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "knowledge-new",
+      "path": "/knowledge/new",
+      "selected": [
+        {
+          "group": "ナレッジ",
+          "label": "記事を作成",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "inbox",
+      "path": "/inbox",
+      "selected": [
+        {
+          "group": "チケット",
+          "label": "業務受信箱",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "ops",
+      "path": "/ops",
+      "selected": [
+        {
+          "group": "チケット",
+          "label": "チケット対応",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "catalog",
+      "path": "/catalog",
+      "selected": [
+        {
+          "group": "サービスカタログ",
+          "label": "サービスカタログ",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "catalog-manage",
+      "path": "/catalog/manage",
+      "selected": [
+        {
+          "group": "サービスカタログ",
+          "label": "カタログ管理",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "assets",
+      "path": "/assets",
+      "selected": [
+        {
+          "group": "資産",
+          "label": "資産台帳",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "changes",
+      "path": "/changes",
+      "selected": [
+        {
+          "group": "変更",
+          "label": "変更管理",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "admin",
+      "path": "/ops/admin",
+      "selected": [
+        {
+          "group": "管理",
+          "label": "管理ホーム",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "name": "requests",
+      "path": "/requests",
+      "selected": [
+        {
+          "group": "サービスカタログ",
+          "label": "申請状況",
+          "background": "rgb(232, 241, 255)"
+        }
+      ],
+      "violations": []
+    }
+  ]
+}
