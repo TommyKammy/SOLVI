@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
 import { stateLabel, kindLabel, formatDateTime } from '../../lib/labels';
 import { TicketPagination } from '../../components/TicketPagination';
+import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 import {
   CATALOG_SEARCH_MAX_LENGTH,
   parsePortalQuery,
@@ -67,24 +68,69 @@ export default async function PortalHome({
 
   return (
     <main id="main" className="shell portal-shell requester-home">
+      <section className="fs-portal-hero" aria-labelledby="portal-hero-title">
+        <div className="fs-portal-hero-inner">
+          <p className="fs-portal-kicker">SOLVI ヘルプセンター</p>
+          <h1 id="portal-hero-title">どういった事でお困りですか？</h1>
+          <p className="fs-portal-hero-lead">よくある質問を探すか、サービスを申請してください。</p>
+          <form className="fs-portal-search" action="/knowledge" method="get">
+            <FreshserviceIcon name="search" size={20} />
+            <label className="visually-hidden" htmlFor="portal-search">
+              ヘルプ記事を検索
+            </label>
+            <input
+              id="portal-search"
+              type="search"
+              name="q"
+              maxLength={CATALOG_SEARCH_MAX_LENGTH}
+              placeholder="ヘルプ記事を検索"
+            />
+            <button type="submit">検索</button>
+          </form>
+        </div>
+      </section>
+
+      <section className="fs-portal-action-grid" aria-label="よく使う操作">
+        <Link
+          className="fs-portal-action-card"
+          href={{ pathname: '/catalog', query: { returnTo: currentHref } }}
+        >
+          <span className="fs-portal-action-icon" aria-hidden="true">
+            <FreshserviceIcon name="grid" size={22} />
+          </span>
+          <strong>サービスを申請する</strong>
+          <span>提供中のサービスから必要なものを選びます。</span>
+        </Link>
+        <Link
+          className="fs-portal-action-card"
+          href={{ pathname: '/tickets/new', query: { kind: 'incident', returnTo: currentHref } }}
+        >
+          <span className="fs-portal-action-icon" aria-hidden="true">
+            <FreshserviceIcon name="ticket" size={22} />
+          </span>
+          <strong>障害を報告する</strong>
+          <span>困っていることをサポートチームへ連絡します。</span>
+        </Link>
+        <Link className="fs-portal-action-card" href="/knowledge">
+          <span className="fs-portal-action-icon" aria-hidden="true">
+            <FreshserviceIcon name="book" size={22} />
+          </span>
+          <strong>ヘルプ記事を閲覧する</strong>
+          <span>よくある質問や手順を調べて解決します。</span>
+        </Link>
+        <Link className="fs-portal-action-card" href="/requests?view=mine">
+          <span className="fs-portal-action-icon" aria-hidden="true">
+            <FreshserviceIcon name="change" size={22} />
+          </span>
+          <strong>承認を確認する</strong>
+          <span>自分の申請と承認待ちの状況を確認します。</span>
+        </Link>
+      </section>
+
       <header className="portal-heading">
         <div>
-          <h1>あなたのITサポート</h1>
+          <h2 className="portal-section-title">あなたのITサポート</h2>
           <p>問い合わせの続きも、新しい申請もここから。</p>
-        </div>
-        <div className="portal-primary-actions">
-          <Link
-            className="button-link"
-            href={{ pathname: '/catalog', query: { returnTo: currentHref } }}
-          >
-            サービスを申請する
-          </Link>
-          <Link
-            className="secondary button-link"
-            href={{ pathname: '/tickets/new', query: { kind: 'incident', returnTo: currentHref } }}
-          >
-            障害を報告する
-          </Link>
         </div>
       </header>
 

@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-11-10T04:21:59.988Z",
+  "screens": [
+    {
+      "name": "portal",
+      "path": "/portal",
+      "violations": []
+    },
+    {
+      "name": "knowledge",
+      "path": "/knowledge",
+      "violations": []
+    },
+    {
+      "name": "catalog",
+      "path": "/catalog",
+      "violations": []
+    }
+  ],
+  "knowledge": {
+    "tags": [
+      "VPN1",
+      "アカウント1",
+      "ネットワーク1",
+      "パスワード1",
+      "プリンター1",
+      "リモートワーク1",
+      "ログイン1",
+      "設定1",
+      "端末1"
+    ],
+    "searchRows": 1,
+    "searchText": "1件の検索結果\n\nこの画面に1件を表示"
+  },
+  "catalog": {
+    "categories": [
+      "すべてのアイテム",
+      "PC・周辺機器",
+      "アカウント",
+      "ネットワーク",
+      "カタログを管理する"
+    ],
+    "cards": 3,
+    "filteredCards": 1,
+    "filteredText": "1件 / 公開サービス 3件\n1〜1件を表示 · 1ページ目"
+  }
+}
