@@ -11,6 +11,7 @@ import { ReplyForm } from '../../../components/ReplyForm';
 import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
 import { TicketAssetPanel } from '../../../components/TicketAssetPanel';
+import { HashOpenDetails } from '../../../components/HashOpenDetails';
 import { RelatedChangePanel } from '../../../components/RelatedChangePanel';
 import { RelationList } from '../../../components/RelationList';
 import { RelationForm } from '../../../components/RelationForm';
@@ -186,13 +187,13 @@ export default async function OpsWorkspace({
 
   return (
     <main id="main" className="shell ticket-workspace">
+      <HashOpenDetails />
       <p>
         <ContextLink back href="/ops">
           対応待ちの一覧へ戻る
         </ContextLink>
       </p>
 
-      <h1>{ticket.subject}</h1>
       {query.replied !== undefined && (
         <p className="notice" role="status">
           投稿を保存しました。
@@ -203,10 +204,27 @@ export default async function OpsWorkspace({
           変更を保存しました。
         </p>
       )}
-      <p className="lead">
-        受付番号 {ticket.number} ・ {kindLabel(ticket.kind)} ・ 優先度{' '}
-        {priorityLabel(ticket.priority)}
-      </p>
+      <div className="fs-ticket-heading">
+        <div>
+          <h1>{ticket.subject}</h1>
+          <p className="lead">
+            受付番号 {ticket.number} ・ {kindLabel(ticket.kind)} ・ 優先度{' '}
+            {priorityLabel(ticket.priority)}
+          </p>
+        </div>
+        <div className="fs-ticket-quick-actions">
+          <a href="#ticket-reply">返信する</a>
+          <a href="#ticket-relations">関連付け</a>
+        </div>
+      </div>
+
+      <nav className="fs-ticket-tabs" aria-label="チケットの表示">
+        <a href="#ticket-detail">詳細</a>
+        <a href="#ticket-conversation">やり取り</a>
+        <a href="#ticket-reply">返信</a>
+        <a href="#ticket-attachments">添付</a>
+        <a href="#ticket-relations">関連・資産・変更</a>
+      </nav>
 
       {typeof query.merged === 'string' && (
         <div className="notice" role="status">
@@ -245,14 +263,14 @@ export default async function OpsWorkspace({
       <TicketWaitNotice ticket={ticket} />
 
       <div className="workspace-grid">
-        <section className="workspace-primary" aria-label="問い合わせと会話">
+        <section className="workspace-primary" id="ticket-detail" aria-label="問い合わせと会話">
           <h2>依頼内容</h2>
           <div className="body-text">{ticket.body}</div>
 
-          <h2>やり取り</h2>
+          <h2 id="ticket-conversation">やり取り</h2>
           <CommentThread comments={comments} currentUserId={session.userId} />
 
-          <h2>返信・対応を記録する</h2>
+          <h2 id="ticket-reply">返信・対応を記録する</h2>
           <ReplyForm
             key={`${formScope(session)}:${id}`}
             ticketId={id}
@@ -261,7 +279,7 @@ export default async function OpsWorkspace({
             canResolve={availableActions.some((action) => action.reason === 'resolve')}
             articles={knowledge.ok ? knowledge.data.items : []}
           />
-          <details className="workspace-disclosure">
+          <details className="workspace-disclosure" id="ticket-attachments">
             <summary>添付ファイル</summary>
             <AttachmentList
               attachments={attachments}
@@ -273,6 +291,7 @@ export default async function OpsWorkspace({
           </details>
         </section>
         <aside className="workspace-secondary" aria-label="状況と担当の操作">
+          <h2 id="ticket-properties">プロパティ</h2>
           <dl className="detail">
             <dt>状況</dt>
             <dd>
@@ -391,7 +410,7 @@ export default async function OpsWorkspace({
             errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
           />
 
-          <details className="workspace-disclosure">
+          <details className="workspace-disclosure" id="ticket-relations">
             <summary>関連する問い合わせ・資産・変更</summary>
             <h2>関連する問い合わせ</h2>
             <RelationList relations={relationItems} canUnlink unlinkAction={removeRelation} />

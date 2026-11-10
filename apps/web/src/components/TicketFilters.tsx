@@ -21,11 +21,14 @@ export function TicketFilters({
   applied,
   groups,
   groupsUnavailable = false,
+  variant = 'bar',
 }: {
   applied: URLSearchParams;
   /** Existing API-authorized choices; never resolve missing IDs in another directory. */
   groups?: Array<{ id: string; name: string }>;
   groupsUnavailable?: boolean;
+  /** panel: Freshservice-style right sidebar. bar: legacy horizontal filter bar. */
+  variant?: 'bar' | 'panel';
 }) {
   const selected = (name: string, value: string): boolean => applied.getAll(name).includes(value);
   const assignment = applied.get('assignment') ?? '';
@@ -47,7 +50,10 @@ export function TicketFilters({
 
   return (
     <form
-      className="filters ticket-filters ticket-filters-compact"
+      id="ticket-filters"
+      className={`filters ticket-filters ${
+        variant === 'panel' ? 'ticket-filters-panel' : 'ticket-filters-compact'
+      }`}
       aria-label="問い合わせの絞り込み"
       method="get"
       action="/ops"

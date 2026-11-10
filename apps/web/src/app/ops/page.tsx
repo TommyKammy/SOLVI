@@ -25,6 +25,17 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+/** 一覧の列幅を保つための短い日付。完全な日時は title で補う。 */
+function shortDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ja-JP', {
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  }).format(date);
+}
+
 export default async function OpsQueue({
   searchParams,
 }: {
@@ -113,183 +124,210 @@ export default async function OpsQueue({
         {preset === 'custom' && <span className="queue-custom-view">カスタム条件</span>}
       </nav>
 
-      <TicketFilters
-        key={filter.toString()}
-        applied={filter}
-        groups={groups}
-        groupsUnavailable={!groupList.ok}
-      />
-
-      {conditions.length > 0 && (
-        <nav className="queue-conditions" aria-label="適用中の条件">
-          <span className="hint">適用中</span>
-          {conditions.map((condition) => (
-            <Link
-              key={`${condition.key}:${condition.value}`}
-              href={condition.removeHref}
-              aria-label={`${condition.label} を解除`}
-            >
-              {condition.label}
-              <span aria-hidden="true"> ×</span>
-            </Link>
-          ))}
-        </nav>
-      )}
-
-      {!tickets.ok ? (
-        <section className="queue-message" role="alert">
-          <h2>
-            {tickets.problem.status === 400
-              ? '検索条件を確認してください'
-              : tickets.problem.status === 403
-                ? '問い合わせを表示する権限がありません'
-                : '一覧を取得できませんでした'}
-          </h2>
-          <p>
-            {tickets.problem.status === 400
-              ? '条件の値や受付日の範囲を見直して、もう一度絞り込んでください。'
-              : tickets.problem.status === 403
-                ? '選択中の組織と利用権限を管理者に確認してください。'
-                : '時間をおいて再度お試しください。検索条件は保持しています。'}
-          </p>
-          <div className="queue-utilities">
-            <a href={ticketQueueHref(currentQuery)}>再読み込み</a>
-            <Link href="/ops">条件を解除</Link>
+      <div className="fs-ticket-layout">
+        <section className="fs-ticket-main" aria-label="問い合わせ一覧">
+          <div className="fs-ticket-toolbar">
+            <span className="hint">一覧と絞り込みはURLの条件を共有します。</span>
+            <a className="fs-filter-link" href="#ticket-filters">
+              フィルタ
+            </a>
           </div>
-        </section>
-      ) : (
-        <>
-          <div className="queue-results" role="status">
-            <span>
-              <strong>全 {tickets.data.total} 件</strong> · このページ {tickets.data.items.length}{' '}
-              件{filter.get('sort') !== 'deadline' && ` · ${page}ページ目`}
-            </span>
-            <span>{filter.get('sort') === 'deadline' ? '期限が近い順' : '新しい順'}</span>
-          </div>
-          {tickets.data.items.length === 0 ? (
-            <section className="queue-message">
+
+          {conditions.length > 0 && (
+            <nav className="queue-conditions" aria-label="適用中の条件">
+              <span className="hint">適用中</span>
+              {conditions.map((condition) => (
+                <Link
+                  key={`${condition.key}:${condition.value}`}
+                  href={condition.removeHref}
+                  aria-label={`${condition.label} を解除`}
+                >
+                  {condition.label}
+                  <span aria-hidden="true"> ×</span>
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          {!tickets.ok ? (
+            <section className="queue-message" role="alert">
               <h2>
-                {tickets.data.total > 0
-                  ? 'このページに問い合わせはありません'
-                  : filtering
-                    ? '条件に合う問い合わせはありません'
-                    : '問い合わせはまだありません'}
+                {tickets.problem.status === 400
+                  ? '検索条件を確認してください'
+                  : tickets.problem.status === 403
+                    ? '問い合わせを表示する権限がありません'
+                    : '一覧を取得できませんでした'}
               </h2>
               <p>
-                {tickets.data.total > 0
-                  ? '一覧が更新された可能性があります。最初のページから確認してください。'
-                  : filtering
-                    ? 'キーワードを変えるか、適用中の条件を外してお試しください。'
-                    : '問い合わせが届くと、この一覧で担当や対応状況を確認できます。'}
+                {tickets.problem.status === 400
+                  ? '条件の値や受付日の範囲を見直して、もう一度絞り込んでください。'
+                  : tickets.problem.status === 403
+                    ? '選択中の組織と利用権限を管理者に確認してください。'
+                    : '時間をおいて再度お試しください。検索条件は保持しています。'}
               </p>
-              {tickets.data.total > 0 ? (
-                <Link href={firstHref}>最初のページから確認する</Link>
-              ) : filtering ? (
+              <div className="queue-utilities">
+                <a href={ticketQueueHref(currentQuery)}>再読み込み</a>
                 <Link href="/ops">条件を解除</Link>
-              ) : null}
+              </div>
             </section>
           ) : (
-            <TableRegion label="問い合わせ一覧">
-              <table className="tickets">
-                <caption className="visually-hidden">
-                  全 {tickets.data.total} 件中 {tickets.data.items.length} 件を表示
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">問い合わせ</th>
-                    <th scope="col">優先度</th>
-                    <th scope="col">状況</th>
-                    <th scope="col">担当</th>
-                    <th scope="col">次の対応・待ち先</th>
-                    <th scope="col">SLAの目安</th>
-                    <th scope="col">受付日時</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tickets.data.items.map((ticket) => (
-                    <tr key={ticket.id}>
-                      <td className="ticket-subject">
-                        <Link
-                          href={{
-                            pathname: `/ops/${ticket.id}`,
-                            query: { returnTo: ticketQueueHref(currentQuery) },
-                          }}
-                        >
-                          <span className="record-number">
-                            {ticket.number} · {kindLabel(ticket.kind)}
-                          </span>
-                          <span className="record-title">{ticket.subject}</span>
-                        </Link>
-                      </td>
-                      <td>
-                        <span className="priority-label">{priorityLabel(ticket.priority)}</span>
-                      </td>
-                      <td>
-                        <span className="state" data-state={ticket.state}>
-                          {stateLabel(ticket.state)}
-                        </span>
-                      </td>
-                      <td>
-                        {/* 未割当を色ではなく文言で示す。
+            <>
+              <div className="queue-results" role="status">
+                <span>
+                  <strong>全 {tickets.data.total} 件</strong> · このページ{' '}
+                  {tickets.data.items.length} 件
+                  {filter.get('sort') !== 'deadline' && ` · ${page}ページ目`}
+                </span>
+                <span>{filter.get('sort') === 'deadline' ? '期限が近い順' : '新しい順'}</span>
+              </div>
+              {tickets.data.items.length === 0 ? (
+                <section className="queue-message">
+                  <h2>
+                    {tickets.data.total > 0
+                      ? 'このページに問い合わせはありません'
+                      : filtering
+                        ? '条件に合う問い合わせはありません'
+                        : '問い合わせはまだありません'}
+                  </h2>
+                  <p>
+                    {tickets.data.total > 0
+                      ? '一覧が更新された可能性があります。最初のページから確認してください。'
+                      : filtering
+                        ? 'キーワードを変えるか、適用中の条件を外してお試しください。'
+                        : '問い合わせが届くと、この一覧で担当や対応状況を確認できます。'}
+                  </p>
+                  {tickets.data.total > 0 ? (
+                    <Link href={firstHref}>最初のページから確認する</Link>
+                  ) : filtering ? (
+                    <Link href="/ops">条件を解除</Link>
+                  ) : null}
+                </section>
+              ) : (
+                <TableRegion label="問い合わせ一覧">
+                  <table className="tickets fs-queue-table">
+                    <caption className="visually-hidden">
+                      全 {tickets.data.total} 件中 {tickets.data.items.length} 件を表示
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">問い合わせ</th>
+                        <th scope="col">依頼者</th>
+                        <th scope="col">状況</th>
+                        <th scope="col">優先度</th>
+                        <th scope="col">担当</th>
+                        <th scope="col">グループ</th>
+                        <th scope="col">SLAの目安</th>
+                        <th scope="col">受付日</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tickets.data.items.map((ticket) => (
+                        <tr key={ticket.id}>
+                          <td className="ticket-subject">
+                            <Link
+                              href={{
+                                pathname: `/ops/${ticket.id}`,
+                                query: { returnTo: ticketQueueHref(currentQuery) },
+                              }}
+                            >
+                              <span className="record-number">
+                                {ticket.number} · {kindLabel(ticket.kind)}
+                              </span>
+                              <span className="record-title">{ticket.subject}</span>
+                            </Link>
+                          </td>
+                          <td className="requester-cell">
+                            {ticket.requesterName ?? '依頼者名未取得'}
+                          </td>
+                          <td className="state-cell">
+                            <span className="state" data-state={ticket.state}>
+                              {stateLabel(ticket.state)}
+                            </span>
+                            <p className="hint">
+                              {ticket.state === 'pending'
+                                ? ticket.pendingReason === 'wait_requester'
+                                  ? `${ticket.requesterName ?? '依頼者'}の返答待ち`
+                                  : ticket.pendingReason === 'wait_external'
+                                    ? '外部の対応待ち'
+                                    : '待ち先未記録・担当者が確認'
+                                : ['new', 'assigned', 'in_progress'].includes(ticket.state)
+                                  ? ticket.assigned
+                                    ? '担当者の対応'
+                                    : '担当者の割当待ち'
+                                  : ticket.state === 'resolved'
+                                    ? '依頼者の解決確認'
+                                    : '対応終了'}
+                            </p>
+                          </td>
+                          <td>
+                            <span className="priority-label">{priorityLabel(ticket.priority)}</span>
+                          </td>
+                          <td>
+                            {/* 未割当を色ではなく文言で示す。
                       「空欄」だと、担当がいないのか表示漏れなのか分からない。 */}
-                        {ticket.assigned
-                          ? (ticket.assigneeName ?? '担当者名未取得')
-                          : '担当者未割当'}
-                        {ticket.assigneeGroupName && (
-                          <p className="hint">{ticket.assigneeGroupName}</p>
-                        )}
-                      </td>
-                      <td>
-                        {ticket.state === 'pending'
-                          ? ticket.pendingReason === 'wait_requester'
-                            ? `${ticket.requesterName ?? '依頼者'}の返答待ち`
-                            : ticket.pendingReason === 'wait_external'
-                              ? '外部の対応待ち'
-                              : '待ち先未記録・担当者が確認'
-                          : ['new', 'assigned', 'in_progress'].includes(ticket.state)
-                            ? ticket.assigned
-                              ? '担当者の対応'
-                              : '担当者の割当待ち'
-                            : ticket.state === 'resolved'
-                              ? '依頼者の解決確認'
-                              : '対応終了'}
-                      </td>
-                      <td>
-                        {ticket.state === 'pending' ? (
-                          <span className="hint">SLA停止 · {operationsSlaText(ticket.sla)}</span>
-                        ) : ticket.sla ? (
-                          <span className={`sla sla-${slaUrgency(ticket.sla.remainingSeconds)}`}>
-                            {operationsSlaText(ticket.sla)}
-                          </span>
-                        ) : (
-                          // **「不明」を空欄にしない。** 目標が設定されていない組織では
-                          // 判定できない。空欄だと「期限が無い」と読まれる。
-                          <span className="hint">目標未設定</span>
-                        )}
-                      </td>
-                      <td>{formatDateTime(ticket.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </TableRegion>
+                            {ticket.assigned
+                              ? (ticket.assigneeName ?? '担当者名未取得')
+                              : '担当者未割当'}
+                          </td>
+                          <td className="group-cell">
+                            {ticket.assigneeGroupName ?? 'グループ未割当'}
+                          </td>
+                          <td>
+                            {ticket.state === 'pending' ? (
+                              <span className="hint">SLA停止</span>
+                            ) : ticket.sla ? (
+                              <span
+                                className={`sla sla-${slaUrgency(ticket.sla.remainingSeconds)}`}
+                                title={operationsSlaText(ticket.sla)}
+                              >
+                                {operationsSlaText(ticket.sla).replace(/^あと/, '')}
+                              </span>
+                            ) : (
+                              // **「不明」を空欄にしない。** 目標が設定されていない組織では
+                              // 判定できない。空欄だと「期限が無い」と読まれる。
+                              <span className="hint">目標未設定</span>
+                            )}
+                          </td>
+                          <td title={formatDateTime(ticket.createdAt)}>
+                            {shortDate(ticket.createdAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TableRegion>
+              )}
+              {filter.get('sort') !== 'deadline' && tickets.data.total > 0 ? (
+                <TicketPagination
+                  basePath="/ops"
+                  query={filter}
+                  cursor={tickets.data.nextCursor}
+                  total={tickets.data.total}
+                  pageSize={50}
+                  page={page}
+                />
+              ) : filter.get('sort') === 'deadline' ? (
+                <p className="hint">
+                  期限順は先頭 50 件を表示します。続きは受付順に切り替えて確認してください。
+                </p>
+              ) : null}
+            </>
           )}
-          {filter.get('sort') !== 'deadline' && tickets.data.total > 0 ? (
-            <TicketPagination
-              basePath="/ops"
-              query={filter}
-              cursor={tickets.data.nextCursor}
-              total={tickets.data.total}
-              pageSize={50}
-              page={page}
-            />
-          ) : filter.get('sort') === 'deadline' ? (
-            <p className="hint">
-              期限順は先頭 50 件を表示します。続きは受付順に切り替えて確認してください。
-            </p>
-          ) : null}
-        </>
-      )}
+        </section>
+        <aside className="fs-ticket-filters" aria-label="絞り込み">
+          <div className="fs-filter-panel-heading">
+            <h2>フィルタ</h2>
+            <Link href="/ops">クリア</Link>
+          </div>
+          <TicketFilters
+            key={filter.toString()}
+            applied={filter}
+            groups={groups}
+            groupsUnavailable={!groupList.ok}
+            variant="panel"
+          />
+        </aside>
+      </div>
     </main>
   );
 }

@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-11-10T04:05:44.499Z",
+  "screens": [
+    {
+      "name": "ops",
+      "path": "/ops",
+      "violations": []
+    },
+    {
+      "name": "ticket-detail",
+      "path": "/ops/01a1c363-78ca-7000-81eb-0fac1e61ae07",
+      "violations": []
+    }
+  ],
+  "filters": [
+    {
+      "name": "keyword",
+      "query": "keyword=VPN",
+      "rows": 3,
+      "result": "全 3 件 · このページ 3 件 · 1ページ目\n新しい順"
+    },
+    {
+      "name": "unassigned",
+      "query": "assignment=unassigned",
+      "rows": 4,
+      "result": "全 4 件 · このページ 4 件 · 1ページ目\n新しい順"
+    },
+    {
+      "name": "deadline",
+      "query": "sort=deadline",
+      "rows": 7,
+      "result": "全 7 件 · このページ 7 件\n期限が近い順"
+    }
+  ],
+  "detailAnchor": "#ticket-relations",
+  "detailOpen": true
+}

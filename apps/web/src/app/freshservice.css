@@ -1106,6 +1106,171 @@ body.fs-ui .pagination {
 }
 
 /* ------------------------------------------------------------------------- */
+/* チケット一覧の2カラム                                                     */
+/* ------------------------------------------------------------------------- */
+
+.fs-ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 12px;
+  align-items: start;
+}
+
+.fs-ticket-main {
+  min-width: 0;
+}
+
+.fs-ticket-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.fs-filter-link {
+  display: none;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.fs-filter-link:hover {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+.fs-ticket-filters {
+  position: sticky;
+  top: 80px;
+  min-width: 0;
+}
+
+.fs-filter-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 8px;
+}
+.fs-filter-panel-heading h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.fs-filter-panel-heading a {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.fs-ui .ticket-filters-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+body.fs-ui .ticket-filters-panel .field {
+  width: 100%;
+  min-width: 0;
+}
+body.fs-ui .ticket-filters-panel .search-field {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+body.fs-ui .ticket-filters-panel .filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+body.fs-ui .ticket-filters-panel .filter-actions button {
+  width: 100%;
+}
+body.fs-ui .ticket-filters-panel .advanced-filters {
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid var(--fs-border);
+}
+body.fs-ui .ticket-filters-panel .advanced-filter-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+body.fs-ui .ticket-filters-panel .filter-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+body.fs-ui .ticket-filters-panel .filter-group .choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+body.fs-ui .ticket-filters-panel .filter-group .choice input {
+  width: auto;
+  min-height: 0;
+}
+body.fs-ui .ticket-filters-panel .search-field .hint {
+  margin-top: 0;
+}
+
+body.fs-ui .fs-queue-table {
+  table-layout: fixed;
+  min-width: 880px;
+}
+body.fs-ui .fs-queue-table th,
+body.fs-ui .fs-queue-table td {
+  padding: 10px 8px;
+}
+body.fs-ui .fs-queue-table th:nth-child(1) {
+  width: 24%;
+}
+body.fs-ui .fs-queue-table th:nth-child(2) {
+  width: 13%;
+}
+body.fs-ui .fs-queue-table th:nth-child(3) {
+  width: 13%;
+}
+body.fs-ui .fs-queue-table th:nth-child(4) {
+  width: 8%;
+}
+body.fs-ui .fs-queue-table th:nth-child(5) {
+  width: 13%;
+}
+body.fs-ui .fs-queue-table th:nth-child(6) {
+  width: 9%;
+}
+body.fs-ui .fs-queue-table th:nth-child(7) {
+  width: 12%;
+}
+body.fs-ui .fs-queue-table th:nth-child(8) {
+  width: 8%;
+}
+body.fs-ui .fs-queue-table .state-cell .hint {
+  margin: 4px 0 0;
+}
+body.fs-ui .fs-queue-table .sla {
+  font-size: 12px;
+  white-space: nowrap;
+}
+body.fs-ui .fs-queue-table td:nth-child(8) {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------------- */
 /* 状態・優先度                                                              */
 /* ------------------------------------------------------------------------- */
 
@@ -1202,6 +1367,83 @@ body.fs-ui .update-label.unread {
 /* ------------------------------------------------------------------------- */
 /* チケット詳細                                                              */
 /* ------------------------------------------------------------------------- */
+
+.fs-ticket-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.fs-ticket-heading h1 {
+  margin-bottom: 4px;
+}
+.fs-ticket-heading .lead {
+  margin-bottom: 0;
+}
+.fs-ticket-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fs-ticket-quick-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fs-ticket-quick-actions a:hover {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+.fs-ticket-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 12px 0 20px;
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-ticket-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--fs-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.fs-ticket-tabs a:hover {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+  border-bottom-color: #cfe1ff;
+}
+.fs-ticket-tabs a:first-child {
+  border-bottom-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+}
+
+#ticket-detail,
+#ticket-conversation,
+#ticket-reply,
+#ticket-attachments,
+#ticket-relations,
+#ticket-properties {
+  scroll-margin-top: 80px;
+}
+
+body.fs-ui .workspace-secondary > h2:first-of-type {
+  margin-top: 0;
+  font-size: 16px;
+}
 
 body.fs-ui .workspace-grid {
   display: grid;
@@ -1520,6 +1762,18 @@ body.fs-ui .fs-public-content > main form.stack {
 /* ------------------------------------------------------------------------- */
 /* レスポンシブ                                                              */
 /* ------------------------------------------------------------------------- */
+
+@media (max-width: 1200px) {
+  .fs-ticket-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-ticket-filters {
+    position: static;
+  }
+  .fs-filter-link {
+    display: inline-flex;
+  }
+}
 
 @media (max-width: 1100px) {
   body.fs-ui .overview-counts {
