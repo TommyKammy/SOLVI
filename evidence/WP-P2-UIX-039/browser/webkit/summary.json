@@ -1,0 +1,143 @@
+{
+  "workPackage": "WP-P2-UIX-039",
+  "browser": "webkit",
+  "syntheticTitle": "UI039-SYN-1794317082322",
+  "success": true,
+  "checks": [
+    {
+      "name": "PC template and automatic immutable code",
+      "passed": true
+    },
+    {
+      "name": "Four sections preserve values and focus their headings",
+      "passed": true
+    },
+    {
+      "name": "Reorder and remove retain field keys and editor payload",
+      "passed": true
+    },
+    {
+      "name": "Required and checkbox trial feedback sends zero writes",
+      "passed": true
+    },
+    {
+      "name": "Length, duration and select candidate feedback sends zero writes",
+      "passed": true
+    },
+    {
+      "name": "Enter and reset are local; samples do not enter editing FormData",
+      "passed": true
+    },
+    {
+      "name": "Changing a question type discards incompatible trial values",
+      "passed": true
+    },
+    {
+      "name": "Desktop keyboard, unique IDs and WCAG 2.2",
+      "passed": true
+    },
+    {
+      "name": "Mobile 375px layout and WCAG 2.2",
+      "passed": true
+    },
+    {
+      "name": "One synthetic nonpublic draft save; pending trial isolation and wire payload",
+      "passed": true
+    },
+    {
+      "name": "Own saved draft dirty publication guard; saved content is unchanged",
+      "passed": true
+    }
+  ],
+  "screenshots": [
+    "trial-validation-desktop.png",
+    "new-draft-desktop-1440.png",
+    "new-draft-desktop-viewport.png",
+    "new-draft-mobile-375.png",
+    "new-draft-mobile-preview.png",
+    "saved-synthetic-draft.png"
+  ],
+  "accessibility": [
+    {
+      "name": "new-draft-desktop-1440",
+      "violations": []
+    },
+    {
+      "name": "new-draft-mobile-375",
+      "violations": []
+    },
+    {
+      "name": "saved-draft-editor-and-previews",
+      "violations": []
+    }
+  ],
+  "network": {
+    "authWrites": 1,
+    "draftAttempts": 1,
+    "draftWrites": 1,
+    "blocked": []
+  },
+  "browserVersion": "26.5",
+  "currentStep": "Own saved draft dirty publication guard; saved content is unchanged",
+  "previewBusinessWrites": 0,
+  "keyboard": {
+    "forwardKey": "Alt+Tab",
+    "focused": true,
+    "visible": true,
+    "outline": "none",
+    "outlineWidth": 3,
+    "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+  },
+  "mobileWidth": {
+    "document": 375,
+    "viewport": 375
+  },
+  "wireKeys": [
+    "_1_returnTo",
+    "_1_creationKey",
+    "_1_expectedVersion",
+    "_1_fields",
+    "_1_code",
+    "_1_title",
+    "_1_description",
+    "_1_allowedDurations",
+    "_1_maxReasonLength",
+    "_1_fields.0.key",
+    "_1_fields.0.label",
+    "_1_fields.0.type",
+    "_1_fields.0.maxLength",
+    "_1_fields.1.key",
+    "_1_fields.1.label",
+    "_1_fields.1.type",
+    "_1_fields.1.options",
+    "_1_fields.2.key",
+    "_1_fields.2.label",
+    "_1_fields.2.type",
+    "_1_fields.2.options",
+    "_1_fields.3.key",
+    "_1_fields.3.label",
+    "_1_fields.3.type",
+    "_1_fields.3.maxLength",
+    "_1_fields.4.key",
+    "_1_fields.4.label",
+    "_1_fields.4.type",
+    "_1_fields.4.maxLength",
+    "_1_fields.5.key",
+    "_1_fields.5.label",
+    "_1_fields.5.type",
+    "_1_fields.5.maxLength",
+    "_1_fields.6.key",
+    "_1_fields.6.label",
+    "_1_fields.6.type",
+    "_1_targetLabel",
+    "_1_approverId",
+    "0"
+  ],
+  "savedPayload": {
+    "automaticCodePreserved": true,
+    "fields": 7,
+    "stableFieldKeys": true,
+    "previewSamplesExcluded": true
+  },
+  "createdDraftId": "01a1c5a1-f483-7000-bd0b-41f148396318"
+}

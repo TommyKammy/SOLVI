@@ -1,0 +1,144 @@
+.preview {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-md);
+  background: var(--fs-surface);
+  align-self: start;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heading h2,
+.form h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.note,
+.approver {
+  color: var(--fs-text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.configuration {
+  margin: 16px 0;
+  padding: 0 12px;
+  background: var(--fs-warning-soft);
+  border-radius: 8px;
+  color: var(--fs-warning);
+}
+
+.configuration summary {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form,
+.controls {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.controls {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.description {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.field input:not([type='checkbox']),
+.field select,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.choice {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.choice input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+.error {
+  margin: 0;
+  color: var(--fs-danger);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.feedbackError,
+.feedbackSuccess {
+  padding: 12px 16px;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.feedbackError {
+  background: var(--fs-danger-soft);
+  color: var(--fs-danger);
+}
+
+.feedbackSuccess {
+  background: var(--fs-success-soft);
+  color: var(--fs-success);
+}
+
+.feedbackError p,
+.feedbackSuccess p {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .preview {
+    padding: 16px;
+  }
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -58,6 +58,11 @@ vi.mock('../../apps/web/src/components/ContextLink', () => ({
   ContextLink: ({ children, href }: { children: ReactNode; href: string }) =>
     React.createElement('a', { href }, children),
 }));
+// These probes own the save/publication coordinator. Preview state and validation
+// are exercised independently in catalog-preview and catalog-authoring-ui tests.
+vi.mock('../../apps/web/src/components/CatalogLivePreview', () => ({
+  CatalogLivePreview: () => null,
+}));
 import {
   CatalogAdminForm,
   CatalogManagement,
@@ -105,10 +110,9 @@ function render(current = item, create = false) {
   hooks.states = hooks.references = hooks.actions = 0;
   hooks.forms = [];
   return renderToStaticMarkup(
-    React.createElement(
-      create ? CatalogAdminForm : CatalogManagement,
-      create ? { approvers: current.approvers } : { item: current },
-    ),
+    create
+      ? React.createElement(CatalogAdminForm, { approvers: current.approvers })
+      : React.createElement(CatalogManagement, { item: current }),
   );
 }
 function nodes(node: ReactNode): ReactElement<Record<string, unknown>>[] {
@@ -126,7 +130,9 @@ function change(id: string, value: unknown) {
 }
 function capture(form: number) {
   const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
-  hooks.forms[form]?.onSubmitCapture?.(event as unknown as React.FormEvent<HTMLFormElement>);
+  hooks.forms[form]?.onSubmitCapture?.(
+    event as unknown as Parameters<NonNullable<FormProps['onSubmitCapture']>>[0],
+  );
   return event;
 }
 function blocked() {
@@ -168,7 +174,6 @@ describe('catalog edit values and saved targets', () => {
     ['catalog-days', '1,7,30'],
     ['catalog-reason-limit', '1900'],
     ['catalog-approver', 'approver-b'],
-    ['field-key-0', 'team_b'],
     ['field-label-0', '別部署'],
     ['field-type-0', 'checkbox'],
     ['field-options-2', '検証\n運用'],
@@ -197,6 +202,48 @@ describe('catalog edit values and saved targets', () => {
     blocked();
     change('catalog-days', '1, 7, 30');
     expect(render()).not.toContain('未保存の入力があります');
+  });
+  it('keeps field identity hidden and immutable when renaming and reordering a question', () => {
+    render();
+    const keyControls = () =>
+      nodes(hooks.forms[1]?.children).filter(
+        (n) => n.type === 'input' && /^fields\.\d+\.key$/.test(String(n.props.name)),
+      );
+    expect(keyControls().map((n) => [n.props.type, n.props.value, n.props.onChange])).toEqual([
+      ['hidden', 'team', undefined],
+      ['hidden', 'notes', undefined],
+      ['hidden', 'purpose', undefined],
+      ['hidden', 'confirm', undefined],
+    ]);
+    change('field-label-0', '利用部署');
+    render();
+    blocked();
+    const down = nodes(hooks.forms[1]?.children).find(
+      (n) =>
+        n.type === 'button' &&
+        Array.isArray(n.props.children) &&
+        n.props.children.join('') === '項目1を下へ',
+    );
+    expect(down).toBeDefined();
+    (down!.props.onClick as () => void)();
+    render();
+    expect(keyControls().map((n) => n.props.value)).toEqual([
+      'notes',
+      'team',
+      'purpose',
+      'confirm',
+    ]);
+    const serialized = nodes(hooks.forms[1]?.children).find(
+      (n) => n.type === 'input' && n.props.name === 'fields',
+    );
+    expect(JSON.parse(serialized!.props.value as string)[1]).toEqual({
+      key: 'team',
+      label: '利用部署',
+      type: 'text',
+      required: true,
+      maxLength: 80,
+    });
+    blocked();
   });
   it.each(['required', 'order', 'add', 'delete', 'option-boundary'])(
     'tracks field %s without losing array boundaries',

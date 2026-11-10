@@ -348,7 +348,7 @@ export function AppFrame({
           </form>
 
           <div className="fs-topbar-actions">
-            <Link className="fs-create-button" href="/tickets/new">
+            <Link className="fs-create-button" href="/tickets/new" aria-label="チケットを作成する">
               <span className="fs-create-icon" aria-hidden="true">
                 <FreshserviceIcon name="plus" size={16} />
               </span>

@@ -1,0 +1,46 @@
+{
+  "baseRevision": "9df5ec206135d26053665e6d637185ffbd144971",
+  "verifiedAt": "2026-11-10T13:27:55.127Z",
+  "files": [
+    {
+      "path": "apps/web/src/components/AppFrame.tsx",
+      "sha256": "039b4e10fb360f57602964fb1d25584588982395b6fd65306d5e3d2c02758402"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.tsx",
+      "sha256": "1cbce5b22b02929c571d248ee2b8a0e52c11668a5e1593703fce04ebcceed2f3"
+    },
+    {
+      "path": "apps/web/src/components/CatalogAdminForm.module.css",
+      "sha256": "9db6efaccbe8dcc1da849183dfde54006f79fed5fe078440c3d0c35b546163e0"
+    },
+    {
+      "path": "apps/web/src/components/CatalogLivePreview.tsx",
+      "sha256": "73da175408d4d7e828dd8816d157dc10a07d751cd15ee06c817026819eaad481"
+    },
+    {
+      "path": "apps/web/src/components/CatalogLivePreview.module.css",
+      "sha256": "73cd6a78a3eb450d3ee956590a7cca4830e326660998cb6a177a7c819d943288"
+    },
+    {
+      "path": "apps/web/src/lib/catalog-preview.ts",
+      "sha256": "c52e77c85a234dd1a22b9c64a69aa3f17e40e969242d45262f855b6a63e2bd3d"
+    },
+    {
+      "path": "tests/unit/catalog-authoring-ui.test.ts",
+      "sha256": "ccdc793f1c8cf9b1514eeb43a4d3174bedf231b6711de53d9a36b8fd3f705206"
+    },
+    {
+      "path": "tests/unit/catalog-preview.test.ts",
+      "sha256": "10a686bab5c79a9b242386d411ef2479602d0f261dccf8d94d11bd3cc2d4582b"
+    },
+    {
+      "path": "tests/unit/catalog-edit-ui.test.ts",
+      "sha256": "16e5bd2a2972ff23ace7d31f70451b5c1d9fc99d0b83413a8cfb13b8e84c4579"
+    },
+    {
+      "path": "tools/ui_catalog_authoring_check.mjs",
+      "sha256": "d7bd0c2ce4084566a92977d44962e7c5f46e010f0dddce7c4fd808806a0bb853"
+    }
+  ]
+}
