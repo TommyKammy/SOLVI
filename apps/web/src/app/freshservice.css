@@ -2025,15 +2025,9 @@ body.fs-ui .overview-deadlines {
   margin-bottom: 16px;
 }
 
-/* 運営状況はFreshserviceのダッシュボードと同じく、白いカードを
-   淡い背景に並べる。ページ全体の白い面を外す。 */
-body.fs-ui .fs-content > main.fs-dashboard {
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  min-height: calc(100vh - 80px);
-  padding: 8px 4px 40px;
-}
+/* 運営状況もFreshserviceのダッシュボードと同じく、コンテンツ面は白。
+   左レールと上部バーだけが淡い青(#EFF6FF)である。
+   カードの区切りは背景色ではなく、境界線と影で示す。 */
 body.fs-ui .fs-dashboard .overview-metrics {
   padding: 0;
   margin-bottom: 16px;

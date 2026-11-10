@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-11-10T06:11:15.439Z",
+  "axe": [],
+  "pixels": {
+    "content": [
+      "#ffffff",
+      "#ffffff"
+    ],
+    "contentRightMargin": "#eff6ff",
+    "rail": [
+      "#eff6ff",
+      "#eff6ff"
+    ],
+    "topbar": "#eff6ff",
+    "contentSurfaceStartX": 80
+  }
+}
