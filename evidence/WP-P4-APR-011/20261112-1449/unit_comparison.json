@@ -1,0 +1,14 @@
+{
+ "baseline": {
+  "total": 4305,
+  "failed": 34,
+  "failedFiles": 13
+ },
+ "after": {
+  "total": 4340,
+  "failed": 34,
+  "failedFiles": 13
+ },
+ "newFailures": [],
+ "resolved": []
+}

@@ -1,0 +1,12 @@
+{
+ "baseline": {
+  "total": 4305,
+  "failed": 34
+ },
+ "after": {
+  "total": 4343,
+  "failed": 34
+ },
+ "newFailures": [],
+ "resolved": []
+}

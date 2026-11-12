@@ -1,8 +1,7 @@
 import type pg from 'pg';
-import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { CatalogValues } from '@solvi/shared/catalog';
-import { Problems, type ObjectStorage } from '@solvi/shared';
+import { Problems, type Logger, type ObjectStorage } from '@solvi/shared';
 import { hasRole, requireRole } from '../../common/authz/authz.js';
 import { uuidv7, recordAuditEvent } from '../../common/audit/audit.js';
 import { TicketService } from '../ticket/ticket.service.js';
@@ -14,6 +13,8 @@ import {
   validateRequestInputs,
   type Definition,
 } from './catalog-definition.js';
+import { assertApprovalComplete, checkApprovalComplete } from './approval-assertion.js';
+import { canonical, hash } from './snapshot-hash.js';
 
 const uuid = z.string().uuid();
 const inputSchema = z
@@ -81,26 +82,12 @@ function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
     );
   return r.data;
 }
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
-  if (value !== null && typeof value === 'object')
-    return (
-      '{' +
-      Object.keys(value)
-        .sort()
-        .map((k) => JSON.stringify(k) + ':' + canonical((value as Record<string, unknown>)[k]))
-        .join(',') +
-      '}'
-    );
-  return JSON.stringify(value);
-}
-const hash = (value: unknown) => createHash('sha256').update(canonical(value)).digest('hex');
-
 export class CatalogController {
   constructor(
     private readonly pool: pg.Pool,
     private readonly storage: ObjectStorage,
     private readonly enabled: boolean,
+    private readonly logger?: Logger,
   ) {}
   private async run<T>(
     auth: AuthenticatedRequest,
@@ -310,21 +297,7 @@ export class CatalogController {
       ).rows[0] ?? { version: 1, completion: {} }
     );
   }
-  private approvalMatches(q: RequestRow, approval: ApprovalRow) {
-    return (
-      approval.snapshot_hash === q.snapshot_hash &&
-      hash(q.snapshot) === q.snapshot_hash &&
-      approval.revision === q.revision &&
-      (!q.snapshot.item.definition.approval ||
-        q.snapshot.item.definition.approval.approverId === approval.approver_id)
-    );
-  }
-  private async fulfillment(
-    c: pg.PoolClient,
-    auth: AuthenticatedRequest,
-    q: RequestRow,
-    approval: ApprovalRow,
-  ) {
+  private async fulfillment(c: pg.PoolClient, auth: AuthenticatedRequest, q: RequestRow) {
     const definition = q.snapshot.item.definition,
       progress = await this.checklistProgress(c, q);
     const owner = definition.ownerId
@@ -352,10 +325,7 @@ export class CatalogController {
       })),
       canUpdate:
         this.staff(auth) &&
-        q.state === 'approved' &&
-        approval.state === 'approved' &&
-        approval.expires_at.getTime() > Date.now() &&
-        this.approvalMatches(q, approval),
+        (await checkApprovalComplete(c, { organizationId: q.organization_id, requestId: q.id })).ok,
     };
   }
   async detail(auth: AuthenticatedRequest, id: string) {
@@ -399,7 +369,7 @@ export class CatalogController {
             )
           ).rows[0] ?? null,
         approvers: (await c.query(approverSql, [q.organization_id, q.requester_id])).rows,
-        fulfillment: await this.fulfillment(c, auth, q, a),
+        fulfillment: await this.fulfillment(c, auth, q),
         simulation: true,
       };
     });
@@ -659,18 +629,13 @@ export class CatalogController {
       value,
     );
     return this.run(auth, async (c) => {
-      const q = await this.lock(c, auth, id),
-        approval = await this.approval(c, q);
+      const q = await this.lock(c, auth, id);
       if (q.revision !== input.requestRevision) throw Problems.stale('申請の作業チェック');
-      if (
-        q.state !== 'approved' ||
-        approval.state !== 'approved' ||
-        approval.expires_at.getTime() <= Date.now()
-      )
-        throw Problems.conflict('有効な承認済み申請だけ作業チェックを更新できます');
-      if (!this.approvalMatches(q, approval))
-        throw Problems.conflict('承認対象の定義・内容・版が申請と一致しません');
-      await this.validateApprover(c, q.organization_id, q.requester_id, approval.approver_id);
+      await assertApprovalComplete(
+        c,
+        { organizationId: q.organization_id, requestId: q.id },
+        this.logger,
+      );
       if (!(q.snapshot.item.definition.checklist ?? []).some((item) => item.key === input.key))
         throw Problems.validation([
           { field: 'key', message: '申請時の定義にある作業項目を選んでください' },
@@ -728,21 +693,14 @@ export class CatalogController {
       ).rows[0];
       if (existing) return { receipt: existing, replayed: true };
       if (q.version !== input.expectedVersion) throw Problems.stale('申請');
-      const a = await this.approval(c, q);
-      if (q.state !== 'approved' || a.state !== 'approved' || a.expires_at.getTime() <= Date.now())
-        throw Problems.conflict('有効な承認がありません');
-      await this.validateApprover(c, q.organization_id, q.requester_id, a.approver_id);
-      if (
-        a.snapshot_hash !== q.snapshot_hash ||
-        hash(q.snapshot) !== q.snapshot_hash ||
-        a.revision !== q.revision
-      )
-        throw Problems.conflict('承認後に申請内容が変わっています');
+      const [step] = await assertApprovalComplete(
+        c,
+        { organizationId: q.organization_id, requestId: q.id },
+        this.logger,
+      );
       const definition = parse(definitionSchema, q.snapshot.item.definition);
       validateRequestInputs(definition, q.snapshot.inputs);
       validateValues(definition, q.snapshot.inputs.values ?? {});
-      if (definition.approval && definition.approval.approverId !== a.approver_id)
-        throw Problems.conflict('固定承認者が申請版と一致しません');
       const progress = await this.checklistProgress(c, q);
       if (
         (definition.checklist ?? []).some(
@@ -774,7 +732,7 @@ export class CatalogController {
       };
       await c.query(
         'INSERT INTO local_simulation_receipt(id,organization_id,request_id,approval_id,snapshot_hash,idempotency_key,simulation,result) VALUES($1,$2,$3,$4,$5,$6,true,$7)',
-        [receiptId, q.organization_id, id, a.id, q.snapshot_hash, key, result],
+        [receiptId, q.organization_id, id, step!.approvalId, q.snapshot_hash, key, result],
       );
       const tickets = new TicketService(c);
       let ticket = await tickets.findById(auth.authz, q.ticket_id);

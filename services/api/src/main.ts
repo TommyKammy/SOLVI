@@ -159,6 +159,7 @@ async function bootstrap(): Promise<void> {
     db.authPool(),
     objectStorage,
     env.NODE_ENV === 'development',
+    logger,
   );
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });

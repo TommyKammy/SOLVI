@@ -11,7 +11,7 @@ updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "review"
 story_points: 5
 risk: "high"
 workstream: "APR"
@@ -51,6 +51,9 @@ depends_on: ["WP-P4-APR-010"]
 - `services/api/src/modules/catalog/snapshot-hash.ts`
 - `tests/unit/approval-assertion.test.ts`
 - `tests/security/approval-assertion.test.ts`
+- `services/api/src/main.ts`(`CatalogController` へ logger を渡す1箇所だけ。2026-11-12 監督者が追加)
+- `tests/unit/catalog-flexible.test.ts`
+- `tests/unit/catalog-operations.test.ts`(上2件は偽DBが承認行の照会へ `decided_at` と `revision_hash_ok` を実DBと同じ形で返すための修正だけ。検証内容・期待値の緩和は不可。2026-11-12 監督者が追加。`check:paths` がファイル名のグロブを解決できないため、実在する2ファイルへ展開)
 - `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-011.md`
 - `evidence/WP-P4-APR-011/`
 
@@ -84,7 +87,7 @@ depends_on: ["WP-P4-APR-010"]
 - [ ] `fulfillment` の `canUpdate`・`updateChecklist`・`simulate` の3箇所すべてが `assertApprovalComplete` または `checkApprovalComplete` を通る(各箇所をスパイ/ログで確認するテストがある)。
 - [ ] 既存の1段申請(固定承認者あり/なし)で、承認→作業チェック更新→模擬完了の成功経路の応答・状態・監査イベントが変更前と同一である(既存の `tests/unit/catalog-*.test.ts` と `tools/smoke_catalog_flow.mjs` 相当が変更なしで通る)。
 - [ ] 次の各条件で `assertApprovalComplete` が拒否(409)する単体テストがある: 申請が `approved` でない / 承認行が `pending` / 現在の版に有効な承認行が2行ある / `current_approval_id` が `approved` でない / 期限切れ / `decided_at` が期限より後 / 申請の `snapshot_hash` と承認行が不一致 / snapshot本文を改変して再計算値と不一致 / 版の `snapshot_hash` と不一致 / `revision` 不一致 / 固定承認者が承認行の承認者と不一致 / 申請者=承認者 / 申請が `invalidated`(取消・変更後)。
-- [ ] (ADR-0023 `accepted` 後)承認後に承認者の `app_user.status` を `deactivated` にする、または `approver` ロールの `role_binding` を期限切れにしても、作業チェック更新と模擬完了が成功する。これは挙動変更であり、変更前は409だったことをテスト名とコメントに明記する。
+- [ ] (ADR-0023 `accepted` 後)承認後に承認者の `app_user.status` を `deactivated` にする、または `approver` ロールの `role_binding` を期限切れにしても、作業チェック更新と模擬完了が成功する。これは挙動変更であり、変更前は403(`validateApprover` の `Problems.forbidden`)だったことをテスト名とコメントに明記する(当初の記載「409」は誤記。2026-11-12 訂正)。
 - [ ] 申請者本人と承認者が同一の承認行(DBへ直接作成)では、承認者が有効でも拒否される。
 - [ ] `snapshot-hash.ts` の `hash` が、既存の保存済み `snapshot_hash`(DBの既存行またはテスト固定ベクトル)と同じ値を返す。
 - [ ] `check:all`・型・lintが通り、スキーマ変更・Migration・新規依存が0件である。
@@ -165,4 +168,57 @@ depends_on: ["WP-P4-APR-010"]
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-12 | Claude Code(実装担当) | 未コミット(基点 `5c33cca`、branch `wp/WP-P4-APR-011`) | Review(Security Reviewer sign-off待ち) | `evidence/WP-P4-APR-011/20261112-1449/` | 下記 |
+
+### 実装記録(2026-11-12)
+
+**前提**: WP-P4-APR-010 完了、ADR-0023 は `accepted`(利用者承認済み)。そのため §6-2 の7・§6-5(§7の挙動変更)まで実装した。
+
+**変更ファイル**
+- `services/api/src/modules/catalog/snapshot-hash.ts`(新規): `canonical` / `hash` を出力不変で抽出。
+- `services/api/src/modules/catalog/approval-assertion.ts`(新規): `checkApprovalComplete` / `assertApprovalComplete`。
+- `services/api/src/modules/catalog/catalog.routes.ts`: `approvalMatches` を削除し、`fulfillment.canUpdate`・`updateChecklist`・`simulate` を新関数へ置換。`simulate` のインライン検査(状態・期限・hash・固定承認者・`validateApprover`)を削除。`CatalogController` に任意の第4引数 `logger` を追加(未指定でも動く)。`decide` / `create` / `edit` は無変更。
+- `tests/unit/approval-assertion.test.ts`(新規)、`tests/security/approval-assertion.test.ts`(新規)。
+- 本WP、`evidence/WP-P4-APR-011/`。
+
+**Migration**: なし(スキーマ・環境変数・フィーチャーフラグ・依存の変更0件)。ロールバック: PRのrevert。§7だけ戻す場合は `approval-assertion.ts` へ `validateApprover` 相当の再検査を戻す。データ互換: 保存済みhashは書き換えない。DB上の既存全申請・全版のhashが再計算値と一致することをsecurityテストで確認した。
+
+**検証コマンドと結果**
+```
+npx vitest run tests/unit/catalog-*.test.ts tests/unit/portal-catalog.test.ts tests/unit/approval-assertion.test.ts  -> 18 files / 692 passed
+npx vitest run tests/unit/approval-assertion.test.ts                                                                 -> 35 passed
+npx vitest run tests/security/approval-assertion.test.ts   (.env読込、実PostgreSQL)                                  -> 18 passed (2回)
+npm run test:unit   変更前: 34 failed | 4271 passed (4305)、変更後: 34 failed | 4306 passed (4340)。新規失敗0
+npm run typecheck / npm run lint / npm run check:all  -> exit 0
+grep -rn approvalMatches services apps packages tests tools  -> 0件(テスト内の「0件確認」記述を除く)
+```
+
+**§7 Acceptance Criteria の充足**
+- [x] `approvalMatches` 0件: `tests/unit/approval-assertion.test.ts` の静的確認テスト。
+- [x] 3箇所が検証を通る: 同ファイル「3つの呼び出し箇所すべてが検証を通る」(照会数で確認。`simulate` の既存レシート返却は検証より前で、検証を行わないことも確認)。
+- [x] 既存1段申請の成功経路が同一: 既存 `tests/unit/catalog-*.test.ts` が無変更で成功、security「成功経路(固定承認者なし/あり)」で状態・監査イベントを確認。`tools/smoke_catalog_flow.mjs` は資格情報がなく**未実行**。
+- [x] 拒否(409)の単体テスト: 同ファイル「assertApprovalComplete: 拒否(409)」に全条件(申請 pending / invalidated、承認行 pending、有効行2行、current_approval_id 不一致、期限切れ、decided_at が期限後、申請/版とのhash不一致、本文改変、固定承認者不一致、申請者=承認者)。`revision` 不一致は有効行の絞り込み(`revision = 現在の版`)で「有効行なし」として拒否される。
+- [x] §7: security「ADR-0023 §7」3件(承認者 deactivated / role_binding 期限切れ / 削除)。変更前は **403**(WPの「409」は誤り)で止まっていたことを変更前コードで確認し、テスト名・コメントに明記。
+- [x] 自己承認の承認行(DB直接作成): security「申請者=承認者」。承認者が有効な approver でも拒否。
+- [x] `hash` の固定ベクトル: unit「snapshot-hash 固定ベクトル」と、security で DB 既存の全申請・全版の `snapshot_hash` を再計算して一致を確認。
+- [x] `check:all`・型・lint 成功、Migration・依存の追加0件。
+
+**セキュリティ影響**
+- 認可の挙動変更: 作業チェック更新・模擬完了で、承認者の現在の所属・approverロール・利用者状態を再検査しなくなった(ADR-0023 §7)。承認が決定時点の事実として扱われる。不正な承認は承認取消(FR-CAT-009)で止める運用が前提。
+- 変わらない: `decide`(決定時)と `create` / `edit` の `validateApprover`、固定承認者の照合、hash・版・期限の検証。検証は厳密化(版の `snapshot_hash`、有効行がちょうど1行、`decided_at <= expires_at`、申請者≠承認者を追加)。
+- 失敗応答は固定の文言のみで内部ID・hash値を含まない。理由コードは `logger` が渡された場合だけ `warn` ログに出る。
+
+**未解決事項**
+- 検証失敗の理由ログを実際に出すには、`services/api/src/main.ts`(Allowed Paths外)で `CatalogController` へ logger を渡す必要がある(現状は未配線)。
+- `tools/smoke_catalog_flow.mjs` は未実行(資格情報なし)。監督者環境での実行を要する。
+- Security Reviewer(人間)のsign-offが必要(§12)。
+
+**Evidenceの保存先**: `evidence/WP-P4-APR-011/20261112-1449/`(`raw/` はgitignore対象)。
+
+### 追補(2026-11-12 監督者の検査後の修正)
+
+- `approval-assertion.ts` を fail closed に変更: `revision_hash_ok !== true`、`decided_at` / `expires_at` が `Date` でない場合は拒否(型も必須化)。列が欠けた行を通さない単体テストを3件追加。
+- `services/api/src/main.ts`: `new CatalogController(...)` へ既存の `logger` を渡す1行のみ。ログ内容は organizationId・requestId・reason のみ。
+- 偽DBの修正(応答を実DBの形に合わせるだけ。期待値・件数は不変): `tests/unit/catalog-flexible.test.ts`(+6行)、`tests/unit/catalog-operations.test.ts`(+6行)。承認行に `decided_at` を持たせ、`revision_hash_ok` を `params[3](申請のsnapshot_hash) === 承認行のsnapshot_hash` で実際に計算して返す(常にtrueではない)。
+- `check:paths` はファイル名中のグロブを解決できないため、§4 の `tests/unit/catalog-*.test.ts` を実在する2ファイルへ展開した。
+- 再検証: 追加+関連unit 18 files / 695件成功、security 18件成功(手動削除不要、DB件数が実行前後で不変)、`npm run test:unit` 34失敗/4343件(新規失敗0)。Evidence: `evidence/WP-P4-APR-011/20261112-1454/`。

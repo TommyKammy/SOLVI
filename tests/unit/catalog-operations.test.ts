@@ -94,6 +94,7 @@ function database({
     snapshot_hash: request.snapshot_hash,
     revision: requestRevision,
     expires_at: new Date('2099-01-01'),
+    decided_at: new Date('2098-12-31'),
   };
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (
@@ -106,6 +107,11 @@ function database({
       return { rows: [], rowCount: 0 };
     if (sql.includes('SELECT * FROM local_service_request'))
       return { rows: noRequest ? [] : [request], rowCount: noRequest ? 0 : 1 };
+    if (sql.includes('revision_hash_ok'))
+      return {
+        rows: [{ ...approval, revision_hash_ok: params[3] === approval.snapshot_hash }],
+        rowCount: 1,
+      };
     if (sql.includes('FROM local_request_approval'))
       return {
         rows: [approval],

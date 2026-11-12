@@ -276,6 +276,7 @@ function database(
     snapshot_hash: request.snapshot_hash,
     revision: 1,
     expires_at: new Date('2099-01-01'),
+    decided_at: new Date('2098-12-31'),
   };
   const originalSnapshot = structuredClone(snapshot);
   const query = vi.fn(async (sql: string, _params: unknown[] = []) => {
@@ -283,6 +284,11 @@ function database(
       return { rows: sql.includes('idempotency_key') && !replay ? [] : [request], rowCount: 1 };
     if (sql.includes('SELECT snapshot FROM local_request_revision'))
       return { rows: [{ snapshot: originalSnapshot }], rowCount: 1 };
+    if (sql.includes('revision_hash_ok'))
+      return {
+        rows: [{ ...approval, revision_hash_ok: _params[3] === approval.snapshot_hash }],
+        rowCount: 1,
+      };
     if (sql.includes('FROM local_request_approval')) return { rows: [approval], rowCount: 1 };
     if (sql.includes('FROM local_catalog_item'))
       return { rows: [{ id: itemId, version: 1, title: '合成機器', definition: d }], rowCount: 1 };
