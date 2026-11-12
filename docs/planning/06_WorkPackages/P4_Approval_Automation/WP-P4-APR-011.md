@@ -11,7 +11,7 @@ updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 5
 risk: "high"
 workstream: "APR"
@@ -222,3 +222,4 @@ grep -rn approvalMatches services apps packages tests tools  -> 0件(テスト�
 - 偽DBの修正(応答を実DBの形に合わせるだけ。期待値・件数は不変): `tests/unit/catalog-flexible.test.ts`(+6行)、`tests/unit/catalog-operations.test.ts`(+6行)。承認行に `decided_at` を持たせ、`revision_hash_ok` を `params[3](申請のsnapshot_hash) === 承認行のsnapshot_hash` で実際に計算して返す(常にtrueではない)。
 - `check:paths` はファイル名中のグロブを解決できないため、§4 の `tests/unit/catalog-*.test.ts` を実在する2ファイルへ展開した。
 - 再検証: 追加+関連unit 18 files / 695件成功、security 18件成功(手動削除不要、DB件数が実行前後で不変)、`npm run test:unit` 34失敗/4343件(新規失敗0)。Evidence: `evidence/WP-P4-APR-011/20261112-1454/`。
+- 2026-11-12(監督者による追記): 利用者(人間)がセキュリティレビューとして本WPを承認した。利用者の指示により、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。未実施: `tools/smoke_catalog_flow.mjs`(開発用パスワードの環境変数が無いため)。

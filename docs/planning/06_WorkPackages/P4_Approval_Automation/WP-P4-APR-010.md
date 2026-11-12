@@ -11,7 +11,7 @@ updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "adr", "documentation"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 3
 risk: "medium"
 workstream: "APR"
@@ -173,3 +173,4 @@ SOLVIに「部署・上長・承認ルーティング」を追加する計画(�
 - **未解決事項(`要確認`)**: ADR-0023 とWP内に `要確認` として残した点 = (a) 高リスク申請の判定基準、(b) 承認ルールの最大段数、(c) `request.changed` / `request.revoked` の `approval.*` への対応と `approval.expired` の記録契機、(d) org_admin 本人による自分の上長・主部署の変更の扱い、platform_admin の組織切替下の扱い、(e) 組織プロフィール行の作成経路(`role_binding` を作る他経路があるか)と社員番号の分類、(f) 承認ルール有効化の組織単位設定の置き場所、(g) 承認済みステップの期限(現行は承認後も期限で実行を止める)と §7 のExecutor適用可否。詳細は監督者への最終報告に列挙した。
 - Evidence: 本Execution Log。コマンド出力は上記に転記した(`evidence/WP-P4-APR-010/` は作成していない。文書のみのため)。
 - 2026-11-12(監督者による追記): 利用者(Product Owner)がADR-0023とリスク受容RA-04を確認して承認した。これを受けてADR-0023のstatusを `draft` → `accepted` に切り替え、07.0_ADR_Index と 03.5 の記載を合わせた。上のログ中の「`draft`」は切替前の時点の記録である。`要確認` の各点は未確定のまま残る。
+- 2026-11-12(監督者による追記): 利用者の指示により、PRを作らず `main` へ直接取り込んだ(実験的プロジェクトのため)。`implementation_status` を `done` にした。`要確認` の各点は後続WPの着手時に確定する。

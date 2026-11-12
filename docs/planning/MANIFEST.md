@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 310 |
 | Markdown | 302 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,345,049 bytes |
+| 合計サイズ | 7,355,128 bytes |
 
 ## ファイル一覧
 
@@ -90,7 +90,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 21685 | `611c47bd25b7faac25af678681363eec88afbadd06bcecb7d54ff89168abd5a9` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22105 | `bb361a03eaaf97b631cf4dc2f319804c8d4efddf5392e3d8ba224549410e3563` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -220,8 +220,8 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P3_Knowledge/WP-P3-MIG-005.md` | 2735 | `82bac58cf9fec6cff161fddb40115ff3b48970598ba1880b3549742dd87af921` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-SRCH-002.md` | 2711 | `a41a8720219a21b2c186a909828ced566eeff724216f32697d2c4009709b15ef` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-002.md` | 9060 | `7610ad65d6487a0162bb8888c1ffe6ac810ad70c34b6519fa921c2131838580d` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-010.md` | 16482 | `eaf49d6f70c193b87acb1ba41113eac569cfea1315bf6b0be3bc30704faeb405` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-011.md` | 20279 | `f95f515e579448ab6492631ad01c6a7aa3a9ff221528b38c2c8c8bcfe40388df` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-010.md` | 16747 | `4e4f211b9e1e21ace108fed8c5801295415d5c071133e96a2603c7cfab3edfaa` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-011.md` | 20626 | `cc6e8e20942e32da44d8d8e72eb4a0cc99524bd2077591e66aeedbfea5427243` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-014.md` | 11368 | `f50498e00fb66d0853f29cfdd0ce30f5e9a6db863f69f4c91daf3a5eed2764dc` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-015.md` | 13001 | `7430204e78ce7975273e64ff047c15097dd3f2d63f394dd1ebaf534106de6a29` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-016.md` | 8003 | `89f3b684caca18f8558f01ab573d765c6bf1daf30a176b1473a7b5bd96938100` |
@@ -232,7 +232,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-008.md` | 6383 | `6c4e2e6501c3482f42511725b0965234fd726005766533e9da0010ef2602d3b4` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-009.md` | 6477 | `5cf0624def563573c18fa4f25a9e1066027e74fefec704fa6371fd46a4357661` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-GATE-007.md` | 3100 | `28d05d903d5a4fd4f501eeccf239e824cb7318955876de02f113391b04debcfc` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-012.md` | 15303 | `7d210b1883f79bca46e07671d69442b0223ca23e1b58d3d3097faaf22535b788` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-012.md` | 24350 | `8f1245b1283eb590f317be1a421560ec0acbe55595cea8212ada0e88bd91c790` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-013.md` | 9731 | `a155349855a63194d2f7617f86b241fac3aaaf6ce19fda54df0b211a279744ba` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-OKTA-005.md` | 2742 | `5ce3b926fbf3ef0ef906dfe6df1697ea6185f3e09b705b8894035935d2695a78` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-WF-003.md` | 3356 | `235e198cd5e0589795aaccc72bb6c6cdce50dc75a1970c4e8532faabebdd7e63` |

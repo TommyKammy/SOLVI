@@ -11,7 +11,7 @@ updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "identity", "organization", "rls"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "done"
 story_points: 8
 risk: "high"
 workstream: "IDM"
@@ -54,6 +54,9 @@ depends_on: ["WP-P4-APR-010"]
 - `tests/security/department-profile.test.ts`
 - `tests/security/department-profile-concurrency.test.ts`
 - `tests/security/user-admin.test.ts`
+- `tests/support/cleanup.ts`(`app_user` 削除の前に新テーブル3つの行を消す後始末だけ。2026-11-12 監督者が追加)
+- `tests/security/access-review.test.ts`(同上。後始末だけ)
+- `tests/security/user-directory-consistency.test.ts`(同上。後始末だけ)
 - `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-012.md`
 - `evidence/WP-P4-IDM-012/`
 
@@ -78,7 +81,12 @@ depends_on: ["WP-P4-APR-010"]
    - バックフィル: 有効期間内の org スコープ `role_binding` を持つ (組織, 利用者) ごとに空の `org_member_profile` を1行作る(`ON CONFLICT DO NOTHING`)。全組織を読むため、移行ロールが行レベルセキュリティを回避できることを `SET LOCAL row_security = off` で明示する(`0036_catalog_operations.sql` の down と同方式。回避できない場合は黙って0件にせず失敗させる)。
    - down: 3テーブルのいずれかにデータがある場合は拒否する(`0036` と同じ方式)。データがなければテーブル・トリガ・関数を削除する(`btree_gist` は他で使われうるため削除しない)。
 2. 作成経路: 組織プロフィール行は、利用者の有効な所属が生じた時点で作る。コード上で `role_binding` を作る経路は次のとおり: `user-admin.service.ts` の `createUser` と `grantRole`、開発用の `tools/seed.mjs` / `tools/create_local_user.mjs` / `tools/seed_load_data.mjs`。各経路で、**同じトランザクション内**で `INSERT ... ON CONFLICT DO NOTHING` する。プロフィール行が無くても所属の有効性は `role_binding` で判定するので、行の欠落が権限の付与・拒否に影響しない(上長・部署が未設定として扱われるだけ)。IdP/SCIM経路(`source='idp_group'`)は未実装のため対象外とし、実装時に同じ規則を適用する([[WP-P5-GROUP-003]])。**`要確認`**: 作成経路を上記に特定したが、`binding-expiry.ts` など他の経路が `role_binding` を作る場合はDBトリガでの作成に切り替える判断が必要になる。
-3. `tools/check_rls.mjs` が新テーブルを検出して通る(`NON_ORG_SCOPED` へ追加しない。3テーブルとも組織スコープ)。
+4. 監督者の検査による追加(2026-11-12)。いずれも拒否する側への厳格化である。
+   - **無効な部署への新規の参照を拒否する**: `active=false` の部署を、主部署に設定する・部署長を登録する・子部署の親にする操作をトリガで拒否する(無効化の参照確認を、無効化後の追加で迂回できないようにする)。
+   - **分離レベルの前提を検査する**: 循環検査は「ロック取得後のSQL文が先行トランザクションのコミットを見る」ことに依存し、READ COMMITTED でしか成立しない。親・上長を変更するトランザクションが READ COMMITTED 以外なら、トリガで拒否する。
+   - **文字列の長さ制約**: `department.code`(1〜64)、`department.name`(1〜200)、`job_title` / `location`(200以下)、`employee_id`(64以下)にCHECKを付ける。
+   - `org_member_profile.user_id` の外部キーは `ON DELETE RESTRICT` のままとする(CASCADE にしない。利用者は削除せず無効化する方針に合わせる)。テストの後始末は、後始末側を直して対応する。
+5. `tools/check_rls.mjs` が新テーブルを検出して通る(`NON_ORG_SCOPED` へ追加しない。3テーブルとも組織スコープ)。
 
 ## 7. Acceptance Criteria
 
@@ -171,4 +179,53 @@ Migrationの `down` は、データが入っていれば拒否する(取り込�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-12 | Codex(実装担当) | 作業ツリー(base `5c33cca`、未コミット) | Review(監督者の検査後の修正を反映。Doneではない) | `evidence/WP-P4-IDM-012/20261112-1521/`(初回: `20261112-1514/`) | 下記 |
+
+### 実装記録(AGENTS §3)
+
+**変更ファイル**
+
+- `db/migrations/0037_department_and_member_profile.sql`(新規)
+- `services/api/src/modules/auth/user-admin.service.ts`(`createUser` / `grantRole` に同一トランザクションのプロフィール作成を追加。認可・監査イベントは不変)
+- `tools/seed.mjs`(org スコープの `role_binding` を作る4箇所でプロフィールを作成)
+- `tests/security/department-profile.test.ts`、`tests/security/department-profile-concurrency.test.ts`(新規)
+- `tests/security/user-admin.test.ts`(後片付けへのプロフィール削除、プロフィール作成の検査4件。既存の期待値は不変)
+- `tests/support/cleanup.ts`(`cleanOrgProfiles` を追加し、`cleanBusinessData` の先頭で、シード以外の利用者のプロフィール・部署長を消す)
+- `tests/security/user-directory-consistency.test.ts`(`app_user` / `organization` を消す前に `cleanOrgProfiles` を呼ぶ)
+- 本WP、`evidence/WP-P4-IDM-012/20261112-1514/README.md`(初回)、`evidence/WP-P4-IDM-012/20261112-1521/README.md`
+- `tests/security/access-review.test.ts` は変更していない(`cleanBusinessData` が `app_user` 削除より前に呼ばれ、共通後始末で解けた)。
+
+**Migration**: `0037`。`btree_gist`、3テーブル(複合FK、CHECK、EXCLUDE)、トリガ、RLS、GRANT、バックフィルは前回のとおり。今回の追加(WP §6-4):
+- 無効な部署への新規参照の拒否: `org_member_profile_guard`(主部署)、`department_head_guard`(INSERT)、`department_check_hierarchy`(親)が、`FOR SHARE` で取った行の `active` を確認し `department_inactive` で拒否。既存の「無効化済みの子部署が残る親の無効化拒否」は維持。同時の無効化と参照追加は部署行ロック(親は advisory lock)で直列化され、両方が通らない。
+- 分離レベルの検査: `department_require_read_committed()` を、親・上長を変更する箇所と無効化(同じ advisory lock を取る箇所)で呼び、`transaction_isolation` が `read committed` 以外なら `invalid_transaction_state`(25000)で拒否。親・上長・無効化を伴わない書込み(バックフィル、REPEATABLE READ の読み書き)は通る。
+- 長さCHECK: `department.code` 1〜64、`name` 1〜200、`job_title` / `location` 200以下、`employee_id` 64以下(NULL可)。
+**ロールバック**: `node tools/migrate.mjs down`。3テーブルのいずれかに行があれば拒否、空ならテーブルと関数(`department_require_read_committed` を含む)を削除。`btree_gist` は残す。取り込み後は前進修復。
+
+**検証コマンドと結果**(接続先は使い捨てDB `solvi_wp012_test`。生ログは Evidence の `raw/`)
+
+- `department-profile.test.ts`: 27 passed / `department-profile-concurrency.test.ts`: 11 passed / `user-admin.test.ts`: 50 passed
+- ロックなし(advisory lock を除いた関数)の並行テスト: 3 failed(部署の4ノードの輪、上長2件)。部署の2・3ノードの輪は、無効な親の確認で取る `FOR SHARE` が隣接する更新を偶然に直列化するため通る(advisory lock が必要な行を共有しない組み合わせとして4ノードのテストを追加)。
+- `vitest run tests/security`: 基点 566 件 0 失敗 → 変更後 608 件(+42)中 598 passed、**0 失敗**(既存の読み込み不能6ファイルのみ。基点と同じ)。ファイル順をシャッフルした2回(seed 7、99)も同じ結果。seed 20261112 では `role-binding-expiry.test.ts` が1件落ちるが、本WPのファイルを除外しても、基点のコピーでも落ちる既存の順序依存。
+- `node tools/check_rls.mjs`: 問題 0 件 / `lint`・`typecheck`・`check:all`: exit 0
+- `vitest run tests/unit`: 変更前後とも 4305件中34失敗、失敗集合は同一
+- CLI の up → down(行あり: 拒否)→ down(空: 成功)→ up: 期待どおり
+- 開発用DB: 件数は作業前後で同一、新テーブル0
+
+**§7 Acceptance Criteria の充足**: 前回の項目(fail closed、組織分離、複合FK、CHECK、循環、並行、深さ、部署長、無効化・DELETE、バックフィル、createUser / grantRole、down、check_rls / check:all)に加え、§6-4 を次のテストで固定した。
+- 無効な部署への参照拒否: `department-profile.test.ts`「無効な部署を、主部署・部署長・親にできない」「無効化済みの子部署が残っていても親の無効化は拒否される」、`department-profile-concurrency.test.ts`「無効化が先」3件(部署長・主部署・子部署)と「子部署の追加が先」、既存の「無効化」(参照追加が先)
+- 分離レベル: 「REPEATABLE READ / SERIALIZABLE / READ UNCOMMITTED では親・上長の変更が拒否される」「…伴わない書込みは、REPEATABLE READ でも通る」
+- 長さ: 「部署コード1〜64・部署名1〜200」「役職・勤務地は200以下、社員番号は64以下」(境界、NULL、UPDATE)
+
+**セキュリティ影響**: 承認権限の根拠となるテーブルの制約・トリガ・RLSを新設(脅威 T-26)。今回の厳格化はいずれも拒否側。新規の特権・Executor経路・秘密情報なし。`app_user` と `solvi_executor` の権限は不変。トリガ関数は SECURITY INVOKER。人間の Security Reviewer のsign-off が必要。
+
+**未解決事項・判断**
+
+- `role_binding` の作成経路: `createUser` / `grantRole` と `tools/seed.mjs` のみ。`create_local_user.mjs` / `seed_load_data.mjs` は作らない(変更なし)。`tools/performance/fixture.mjs`、`runtime.mjs`、`tools/local_restore_runtime.mjs` はプロフィールを作らない(Allowed Paths外。権限判定に影響なし)。
+- 後始末: 他の security テストファイルは `cleanBusinessData` を `app_user` 削除の前に呼ぶため、共通化で解決。`role-binding-expiry` / `session-purge` / `attachment-scan` は自分の利用者にプロフィールを作らないため変更不要。
+- 分離レベル検査は、親・上長の変更に加え、同じ advisory lock を取る無効化にも適用した(取得後の検査が古いスナップショットだと、同時に追加された子部署を見落とすため)。`read uncommitted` も拒否する(厳格側)。
+- 解釈: 「子部署が残っている」は無効化済みの子も含む。「有効な所属」は ADR-0023 §1 に従う。部署長の `valid_until` は、終了済みの値のさらなる短縮も許す。
+- 承認ルール・進行中申請による部署参照の確認は WP-P4-APR-015 / WP-P4-APR-014 が `department_guard_update()` へ追加する。
+
+**Evidence の保存先**: `evidence/WP-P4-IDM-012/20261112-1521/`(`README.md` は追跡、`raw/` は gitignore)。使い捨てDB `solvi_wp012_test` / `_nolock` / `_base` を検査用に残している。
+
+- 2026-11-12(監督者による追記): 利用者(人間)がセキュリティレビューとして本WPを承認した。利用者の指示により、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。**開発用DBへの Migration 0037 の適用は未実施**(適用は利用者の指示を待つ)。未確認: `user-directory-consistency.test.ts` に追加した後始末(同ファイルは変更前から読み込めない)。

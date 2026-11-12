@@ -172,6 +172,12 @@ afterAll(async () => {
     `UPDATE app_user SET status = 'active', deactivated_at = NULL
       WHERE created_via = 'seed' AND status <> 'active'`,
   );
+  // `createUser` / `grantRole` が作った組織プロフィール(WP-P4-IDM-012)を残さない。
+  // 残すと、後続のテストファイルの `DELETE FROM app_user` が外部キーで失敗する。
+  await admin.query(
+    `DELETE FROM org_member_profile
+      WHERE user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+  );
   await admin?.end();
   await pool?.end();
 });
@@ -198,6 +204,10 @@ beforeEach(async () => {
     `DELETE FROM role_binding
       WHERE source = 'manual'
         AND user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
+  );
+  await admin.query(
+    `DELETE FROM org_member_profile
+      WHERE user_id IN (SELECT id FROM app_user WHERE created_via = 'admin')`,
   );
   await admin.query("DELETE FROM app_user WHERE created_via = 'admin'");
   await cleanAuditData(admin, "target_type IN ('ticket', 'session', 'app_user')");
@@ -1030,5 +1040,141 @@ describe('在籍者の一覧 (FR-IDM-007)', () => {
     const result = await run(() => users.list(orgAdmin));
     const member = result.body.items.find((m) => m.email === 'busy@example.com');
     expect(member!.openTicketCount).toBe(1);
+  });
+});
+
+describe('組織プロフィールの作成 (WP-P4-IDM-012)', () => {
+  const profileOf = async (userId: string, orgId = ORG_A) =>
+    (
+      await admin.query(
+        `SELECT primary_department_id, manager_user_id, job_title
+           FROM org_member_profile WHERE organization_id = $1 AND user_id = $2`,
+        [orgId, userId],
+      )
+    ).rows;
+
+  /** 作成に必ず失敗する BEFORE INSERT トリガを一時的に付ける(使い捨てDB上でのみ実行される)。 */
+  async function withFailingProfileInsert<T>(fn: () => Promise<T>): Promise<T> {
+    await admin.query(
+      `CREATE OR REPLACE FUNCTION wp012_fail_profile_insert() RETURNS trigger LANGUAGE plpgsql AS $f$
+       BEGIN RAISE EXCEPTION 'wp012_forced_profile_failure'; END $f$`,
+    );
+    await admin.query(
+      `CREATE TRIGGER wp012_fail_profile_insert BEFORE INSERT ON org_member_profile
+         FOR EACH ROW EXECUTE FUNCTION wp012_fail_profile_insert()`,
+    );
+    try {
+      return await fn();
+    } finally {
+      await admin.query('DROP TRIGGER wp012_fail_profile_insert ON org_member_profile');
+      await admin.query('DROP FUNCTION wp012_fail_profile_insert()');
+    }
+  }
+
+  it('**createUser は、同じトランザクションで空のプロフィールを作る**', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    const created = await run(() =>
+      users.createUser(orgAdmin, {
+        email: 'profiled@example.com',
+        displayName: 'プロフィール付き',
+        roleCode: 'requester',
+        reason: '入社',
+      }),
+    );
+
+    const rows = await profileOf(created.body.userId);
+    expect(rows).toHaveLength(1);
+    // 上長・部署は未設定として作られる(設定は WP-P4-IDM-013)
+    expect(rows[0].primary_department_id).toBeNull();
+    expect(rows[0].manager_user_id).toBeNull();
+    // 既存の監査イベントの内容は変えない(プロフィール作成は監査イベントを生成しない)
+    const { rows: audit } = await admin.query(
+      `SELECT event_type FROM audit_event WHERE subject_user_id = $1 ORDER BY event_id`,
+      [created.body.userId],
+    );
+    expect(audit.map((r) => r.event_type)).toEqual(['user.created', 'role.binding.created']);
+  });
+
+  it('**grantRole は、プロフィールが無い利用者に作り、既にあれば壊さず成功する**', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('member@example.com', ORG_A, 'requester');
+    await createUser('existing@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const idOf = async (email: string) =>
+      (await admin.query('SELECT id FROM app_user WHERE primary_email = $1', [email])).rows[0]
+        .id as string;
+    const memberId = await idOf('member@example.com');
+    const existingId = await idOf('existing@example.com');
+    expect(await profileOf(memberId)).toHaveLength(0); // テスト用ヘルパは SQL 直接で作るため無い
+
+    // 既存の行(役職あり)がある利用者
+    await admin.query(
+      `INSERT INTO org_member_profile (organization_id, user_id, job_title) VALUES ($1, $2, $3)`,
+      [ORG_A, existingId, '課長(合成)'],
+    );
+
+    await run(() => users.grantRole(orgAdmin, memberId, { roleCode: 'agent', reason: '異動' }));
+    await run(() => users.grantRole(orgAdmin, existingId, { roleCode: 'agent', reason: '異動' }));
+
+    expect(await profileOf(memberId)).toHaveLength(1);
+    const existing = await profileOf(existingId);
+    expect(existing).toHaveLength(1);
+    expect(existing[0].job_title).toBe('課長(合成)'); // 既存の内容を上書きしない
+  });
+
+  it('**プロフィールの作成に失敗すると、createUser の利用者・役割付与も巻き戻る**', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+
+    await withFailingProfileInsert(async () => {
+      await expect(
+        run(() =>
+          users.createUser(orgAdmin, {
+            email: 'rolledback@example.com',
+            displayName: '巻き戻し',
+            roleCode: 'requester',
+            reason: '失敗の検証',
+          }),
+        ),
+      ).rejects.toThrow(/wp012_forced_profile_failure/);
+    });
+
+    const { rows } = await admin.query(
+      `SELECT
+         (SELECT count(*)::int FROM app_user WHERE primary_email = 'rolledback@example.com') AS users,
+         (SELECT count(*)::int FROM audit_event WHERE after_state->>'email' = 'rolledback@example.com') AS audits`,
+    );
+    expect(rows[0].users).toBe(0);
+    expect(rows[0].audits).toBe(0);
+  });
+
+  it('**プロフィールの作成に失敗すると、grantRole のロール付与も巻き戻る**', async () => {
+    await createUser('adm@example.com', ORG_A, 'org_admin');
+    await createUser('member@example.com', ORG_A, 'requester');
+    const orgAdmin = await loginAs('adm@example.com', ORG_A);
+    const memberId = (
+      await admin.query('SELECT id FROM app_user WHERE primary_email = $1', ['member@example.com'])
+    ).rows[0].id as string;
+
+    await withFailingProfileInsert(async () => {
+      await expect(
+        run(() => users.grantRole(orgAdmin, memberId, { roleCode: 'agent', reason: '失敗の検証' })),
+      ).rejects.toThrow(/wp012_forced_profile_failure/);
+    });
+
+    const { rows } = await admin.query(
+      `SELECT count(*)::int AS n FROM role_binding rb JOIN role r ON r.id = rb.role_id
+        WHERE rb.user_id = $1 AND r.code = 'agent'`,
+      [memberId],
+    );
+    expect(rows[0].n).toBe(0);
+    const { rows: audits } = await admin.query(
+      `SELECT count(*)::int AS n FROM audit_event
+        WHERE subject_user_id = $1 AND event_type = 'role.binding.created'`,
+      [memberId],
+    );
+    expect(audits[0].n).toBe(0);
   });
 });

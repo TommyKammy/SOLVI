@@ -7,7 +7,7 @@ import { TicketAssignmentReadService } from '../../services/api/src/modules/tick
 import { SessionService } from '../../services/api/src/modules/auth/session.service.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
 import type { RoleCode } from '../../services/api/src/common/authz/authz.js';
-import { cleanAuditData } from '../support/cleanup.js';
+import { cleanAuditData, cleanOrgProfiles } from '../support/cleanup.js';
 
 // This suite intentionally writes synthetic rows. Never run it against a shared development DB.
 let pool: pg.Pool;
@@ -202,6 +202,7 @@ afterEach(async () => {
   await cleanAuditData(admin, `organization_id IN (${orgIds.map((id) => `'${id}'`).join(',')})`);
   await admin.query('DELETE FROM ticket WHERE organization_id=ANY($1::uuid[])', [orgIds]);
   await admin.query('DELETE FROM session WHERE user_id=ANY($1::uuid[])', [userIds]);
+  await cleanOrgProfiles(admin, { userIds, orgIds });
   await admin.query('DELETE FROM role_binding WHERE user_id=ANY($1::uuid[])', [userIds]);
   await admin.query('DELETE FROM app_user WHERE id=ANY($1::uuid[])', [userIds]);
   await admin.query('DELETE FROM organization WHERE id=ANY($1::uuid[])', [orgIds]);

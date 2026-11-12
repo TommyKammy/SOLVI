@@ -47,6 +47,19 @@ const ORGS = [
 
 const ROLE_CODES = ['org_admin', 'agent', 'approver', 'auditor', 'requester'];
 
+/**
+ * 組織プロフィール(主部署・上長・役職)の空の行を作る (WP-P4-IDM-012)。
+ * org スコープの role_binding を作った経路は、同じトランザクションでこれを呼ぶ。
+ * 既にあれば何もしない。行の有無は権限の付与・拒否に影響しない。
+ */
+async function ensureOrgMemberProfile(db, organizationId, userId) {
+  await db.query(
+    `INSERT INTO org_member_profile (organization_id, user_id)
+     VALUES ($1, $2) ON CONFLICT (organization_id, user_id) DO NOTHING`,
+    [organizationId, userId],
+  );
+}
+
 const client = new pg.Client({ connectionString: url });
 await client.connect();
 
@@ -93,6 +106,7 @@ try {
          ON CONFLICT DO NOTHING`,
         [id(seq + 2000), userId, role.id, role.scope, org.id],
       );
+      await ensureOrgMemberProfile(client, org.id, userId);
 
       // ローカル認証の資格情報 (ADR-0019)。
       //
@@ -152,6 +166,7 @@ try {
        ON CONFLICT DO NOTHING`,
       [id(9102), platformAuditorId, orgAuditor.id, orgAuditor.scope, ORGS[0].id],
     );
+    await ensureOrgMemberProfile(client, ORGS[0].id, platformAuditorId);
     const credential = await auth(client).createCredential({
       userId: platformAuditorId,
       password: DEV_PASSWORD,
@@ -176,6 +191,7 @@ try {
      ON CONFLICT DO NOTHING`,
     [id(9001), dualUser.userId, requesterRole.id, requesterRole.scope, ORGS[1].id],
   );
+  await ensureOrgMemberProfile(client, ORGS[1].id, dualUser.userId);
 
   // 担当グループ (FR-TKT-003 / WP-P2-GRP-015)。
   //
@@ -241,6 +257,7 @@ try {
      VALUES ($1, $2, $3, $4, $5, 'seed') ON CONFLICT DO NOTHING`,
     [id(9602), leaverId, roleByCode.get('requester').id, 'org', ORGS[0].id],
   );
+  await ensureOrgMemberProfile(client, ORGS[0].id, leaverId);
 
   // ---------------------------------------------------------------------------
   // SLAの目標値

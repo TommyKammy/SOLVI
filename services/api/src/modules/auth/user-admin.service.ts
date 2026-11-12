@@ -290,6 +290,24 @@ export class UserAdminService {
   }
 
   /**
+   * 組織プロフィール(主部署・上長・役職)の空の行を作る (WP-P4-IDM-012)。
+   *
+   * 役割の付与と**同じトランザクション**で行う。失敗すれば付与も巻き戻る。
+   * 既に行があれば何もしない(兼務・再付与)。
+   *
+   * 行の有無は権限の付与・拒否に影響しない。所属の有効性は `role_binding` で判定し、
+   * 行が無いことは上長・部署が未設定であることを意味するだけである (ADR-0023 §1)。
+   */
+  private async ensureOrgMemberProfile(organizationId: string, userId: string): Promise<void> {
+    await this.client.query(
+      `INSERT INTO org_member_profile (organization_id, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT (organization_id, user_id) DO NOTHING`,
+      [organizationId, userId],
+    );
+  }
+
+  /**
    * 役割を与える (WP-P1-IDM-015)。
    *
    * **既に組織に居る人にだけ配れる。** 別の組織の人を招き入れる操作
@@ -367,6 +385,7 @@ export class UserAdminService {
        VALUES ($1, $2, $3, 'org', $4, 'manual', now(), $5)`,
       [bindingId, userId, roles[0]!.id, ctx.organizationId, params.validUntil],
     );
+    await this.ensureOrgMemberProfile(ctx.organizationId, userId);
 
     await recordAuditEvent(this.client, {
       eventType: 'role.binding.created',
@@ -567,6 +586,7 @@ export class UserAdminService {
        VALUES ($1, $2, $3, 'org', $4, 'manual', now())`,
       [bindingId, userId, roles[0]!.id, ctx.organizationId],
     );
+    await this.ensureOrgMemberProfile(ctx.organizationId, userId);
 
     await recordAuditEvent(this.client, {
       eventType: 'user.created',
