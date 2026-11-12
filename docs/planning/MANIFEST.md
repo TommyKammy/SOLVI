@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 310 |
 | Markdown | 302 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,337,859 bytes |
+| 合計サイズ | 7,346,431 bytes |
 
 ## ファイル一覧
 
@@ -232,7 +232,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-008.md` | 6383 | `6c4e2e6501c3482f42511725b0965234fd726005766533e9da0010ef2602d3b4` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-009.md` | 6477 | `5cf0624def563573c18fa4f25a9e1066027e74fefec704fa6371fd46a4357661` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-GATE-007.md` | 3100 | `28d05d903d5a4fd4f501eeccf239e824cb7318955876de02f113391b04debcfc` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-012.md` | 15303 | `7d210b1883f79bca46e07671d69442b0223ca23e1b58d3d3097faaf22535b788` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-012.md` | 23875 | `da88b66619b43c2b4f86dcf2c3cfceeaf9013af3c16769d63ad013bedc58fad2` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-013.md` | 9731 | `a155349855a63194d2f7617f86b241fac3aaaf6ce19fda54df0b211a279744ba` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-OKTA-005.md` | 2742 | `5ce3b926fbf3ef0ef906dfe6df1697ea6185f3e09b705b8894035935d2695a78` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-WF-003.md` | 3356 | `235e198cd5e0589795aaccc72bb6c6cdce50dc75a1970c4e8532faabebdd7e63` |
