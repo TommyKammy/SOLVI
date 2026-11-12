@@ -5,9 +5,9 @@ title: "Change Approval/CAB Queue"
 category: "06_WorkPackages"
 type: "work-package"
 status: "draft"
-version: "0.1.0"
+version: "0.2.0"
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["work-package", "p7", "apr"]
 source_of_truth: false
@@ -16,7 +16,7 @@ phase: "P7"
 workstream: "APR"
 risk: "high"
 story_points: 8
-depends_on: ["WP-P7-CHG-001", "WP-P4-APR-002"]
+depends_on: ["WP-P7-CHG-001", "WP-P4-APR-014", "WP-P4-APR-017"]
 requirement_ids: ["FR-CHG-003"]
 aliases: ["WP-P7-APR-002"]
 ---
@@ -38,7 +38,8 @@ Change Manager/CAB、Self approval、Returnを実装。
 ## 3. Dependencies
 
 - [[WP-P7-CHG-001]]
-- [[WP-P4-APR-002]]
+- [[WP-P4-APR-014]](経路・ステップ・状態機械)
+- [[WP-P4-APR-017]](代理承認・二重承認・並列/定足数/グループ承認)
 
 ## 4. Scope / Allowed Paths
 

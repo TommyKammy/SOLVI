@@ -4,10 +4,10 @@ doc_id: "WP-P4-APR-002"
 title: "承認統制(多段・代理・SoD・再承認)"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "baseline"
-version: "0.2.0"
+status: "superseded"
+version: "0.3.0"
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4"]
 source_of_truth: true
@@ -16,10 +16,25 @@ story_points: 13
 risk: "high"
 workstream: "APR"
 phase: "P4"
-requirement_ids: ["FR-CAT-004", "FR-CAT-005", "FR-CAT-006", "FR-CAT-007", "FR-CAT-008", "FR-CAT-009", "FR-CAT-010", "FR-CAT-011"]
+requirement_ids: []
 ---
 
 # WP-P4-APR-002: 承認統制(多段・代理・SoD・再承認)
+
+> [!warning] このWPは `superseded` である(2026-11-12)。Issue化・実装の根拠にしない。
+> 着手前の「分割を検討」の対象だった本WPは、次の後継WPへ分割して置き換えた。要求IDの担当は各後継WPの `requirement_ids` と[[03.18_Requirements_Traceability_Matrix]]が正本であり、本WPのfrontmatterの `requirement_ids` は空にしてある。以下の本文(§1〜§13)は履歴として変更していない。
+>
+> | 後継WP | 内容 | 本WPの項目との対応 |
+> |---|---|---|
+> | [[WP-P4-APR-010]] | 承認ルーティングの要求・設計基準とADR-0023(文書のみ) | 承認者決定ロジックの設計根拠(§9) |
+> | [[WP-P4-APR-011]] | `assertApprovalComplete` の導入と既存箇所の置き換え | 承認の実行前検証(未承認・一部承認での実行禁止の土台) |
+> | [[WP-P4-IDM-012]] / [[WP-P4-IDM-013]] | 部署・組織プロフィール・部署長のスキーマとRLS / API・UI | 承認者決定(上司承認)のデータ基盤 |
+> | [[WP-P4-APR-014]] | 経路・ステップのスキーマ、状態機械、監査イベントの `approval.*` 移行 | 承認集約と状態機械、多段、申請変更検知と承認無効化、承認取消、承認期限(§6・§7) |
+> | [[WP-P4-APR-015]] | 承認ルール・リゾルバ・プレビュー・関係ベース認可・一覧の可視性 | 承認者決定ロジック(上司/グループ/多段)、自己承認防止 |
+> | [[WP-P4-APR-016]] | 申請・詳細・ルール管理・滞留と再割当のUI | 承認UI(§11の(d)) |
+> | [[WP-P4-APR-017]] | 代理承認・高リスク二重承認とSoD・並列/定足数/グループ承認・リマインドとエスカレーション | 代理承認、SoD、並列、承認期限の残りとエスカレーション(§6・§7) |
+>
+> 決定の経緯は[[ADR-0023_Relationship_Based_Approval_Authority]]。本WPに依存していた[[WP-P4-WF-003]]・[[WP-P7-APR-002]]の依存は後継WPへ付け替えた。
 
 | 項目 | 値 |
 |---|---|

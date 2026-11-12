@@ -5,9 +5,9 @@ title: "Gate B特権操作Security Test"
 category: "06_WorkPackages"
 type: "work-package"
 status: "draft"
-version: "0.1.0"
+version: "0.2.0"
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["work-package", "p4", "gate"]
 source_of_truth: false
@@ -16,7 +16,7 @@ phase: "P4"
 workstream: "GATE"
 risk: "critical"
 story_points: 8
-depends_on: ["WP-P4-OKTA-005", "WP-P4-ENTRA-006"]
+depends_on: ["WP-P4-OKTA-005", "WP-P4-ENTRA-006", "WP-P4-APR-017"]
 requirement_ids: ["BR-003", "BR-004", "FR-CAT-004", "FR-CAT-007", "FR-CAT-010", "NFR-SEC-001", "NFR-SEC-002", "NFR-SEC-004", "NFR-SEC-005"]
 aliases: ["WP-P4-GATE-007"]
 ---
@@ -44,6 +44,7 @@ Approval取消、Double submit、越権、Expired、Rate limit、Secret leakを�
 
 - [[WP-P4-OKTA-005]]
 - [[WP-P4-ENTRA-006]]
+- [[WP-P4-APR-017]](GB-3の承認統制: 二重承認・SoD・代理。WP-P4-APR-002の分割に伴い追加)
 
 ## 4. Scope / Allowed Paths
 

@@ -5,9 +5,9 @@ title: "Workflow RunとTransactional Outbox"
 category: "06_WorkPackages"
 type: "work-package"
 status: "draft"
-version: "0.1.0"
+version: "0.2.0"
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-11-12"
 owner: "SOLVI Product Team"
 tags: ["work-package", "p4", "wf"]
 source_of_truth: false
@@ -16,7 +16,7 @@ phase: "P4"
 workstream: "WF"
 risk: "high"
 story_points: 13
-depends_on: ["WP-P4-APR-002", "WP-P1-AUD-004"]
+depends_on: ["WP-P4-APR-011", "WP-P4-APR-014", "WP-P1-AUD-004"]
 requirement_ids: ["FR-AUT-001", "FR-CAT-009", "NFR-OPS-003", "NFR-PERF-003", "NFR-SEC-007"]
 aliases: ["WP-P4-WF-003"]
 ---
@@ -43,7 +43,8 @@ aliases: ["WP-P4-WF-003"]
 
 ## 3. Dependencies
 
-- [[WP-P4-APR-002]]
+- [[WP-P4-APR-011]](全ステップ承認の実行前検証)
+- [[WP-P4-APR-014]](経路・ステップ・状態機械・承認取消)
 - [[WP-P1-AUD-004]]
 
 ## 4. Scope / Allowed Paths

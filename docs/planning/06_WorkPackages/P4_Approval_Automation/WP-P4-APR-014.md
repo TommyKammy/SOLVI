@@ -1,0 +1,146 @@
+---
+project: SOLVI
+doc_id: "WP-P4-APR-014"
+title: "承認の経路・ステップのスキーマ、状態機械、監査イベントのapproval.*移行"
+category: "06_WorkPackages"
+type: "workpackage"
+status: "draft"
+version: "0.1.0"
+created: "2026-11-12"
+updated: "2026-11-12"
+owner: "SOLVI Product Team"
+tags: ["workpackage", "p4", "approval", "state-machine", "audit"]
+source_of_truth: true
+implementation_status: "not-started"
+story_points: 8
+risk: "high"
+workstream: "APR"
+phase: "P4"
+requirement_ids: ["FR-CAT-004", "FR-CAT-005", "FR-CAT-008", "FR-CAT-009", "FR-CAT-011", "FR-CAT-013", "FR-CAT-015"]
+depends_on: ["WP-P4-APR-011"]
+---
+
+# WP-P4-APR-014: 承認の経路・ステップのスキーマ、状態機械、監査イベントのapproval.*移行
+
+| 項目 | 値 |
+|---|---|
+| Phase | P4 |
+| Workstream | APR |
+| Risk | high |
+| Story Points | 8 |
+| Suggested Owner | Backend + Security Reviewer |
+| Parallelizable | WP-P4-IDM-013と並行可 |
+| Gate | Gate B(GB-3) |
+
+## 1. Purpose
+
+承認を「申請の版に1行」から「版ごとに固定された経路と直列のステップ」へ拡張する。本WPは経路とステップの**器**(スキーマ・状態機械・全ステップの無効化・期限・監査イベント名)を作り、承認者の決め方(ルール・リゾルバ)は[[WP-P4-APR-015]]が担う。ルール未設定の既存項目は現行どおり1段で動く(`authority_type='legacy'`)。[[WP-P4-APR-011]]の `assertApprovalComplete` を多段向けに拡張する(ステップ数と行数、`route_hash`、`route_generation`)。
+
+## 2. Requirement IDs
+
+`FR-CAT-004`, `FR-CAT-005`, `FR-CAT-008`, `FR-CAT-009`, `FR-CAT-011`, `FR-CAT-013`, `FR-CAT-015`
+
+## 3. Dependencies
+
+[[WP-P4-APR-011]]。実体化(`draft` → `baseline`)は、ADR-0023が `accepted` であることを確認して行う。
+
+## 4. Scope / Allowed Paths
+
+- `db/migrations/`
+- `services/api/src/modules/catalog/catalog.routes.ts`
+- `services/api/src/modules/catalog/approval-assertion.ts`
+- `services/api/src/modules/catalog/approval-state.ts`
+- `services/api/src/modules/catalog/snapshot-hash.ts`
+- `services/api/src/common/audit/audit.ts`
+- `tests/unit/approval-state.test.ts`
+- `tests/security/approval-steps.test.ts`
+- `tests/security/approval-migration-compat.test.ts`
+- `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-014.md`
+- `evidence/WP-P4-APR-014/`
+
+## 5. Out of Scope
+
+- 承認ルール・リゾルバ・関係ベースの権限・プレビュー・再割当・一覧の可視性([[WP-P4-APR-015]])。本WPのステップ種別は `legacy` / `fixed` のみ生成する(`manager` / `department_head` は列の許容値として用意するが、生成しない)。
+- UI([[WP-P4-APR-016]])。代理承認・高リスク二重承認・並列/定足数/グループ承認・リマインド/エスカレーション([[WP-P4-APR-017]])。Executor接続([[WP-P4-EXEC-004]])。
+- 営業日カレンダー(期限は72時間の暫定値。[[ADR-0023_Relationship_Based_Approval_Authority]] §8)。
+
+## 6. Deliverables
+
+1. Migration(着手時点の最新番号+1): [[ADR-0023_Relationship_Based_Approval_Authority]] §11 の加算的な列追加。`local_request_revision` に `route jsonb NULL` / `route_hash text NULL` / `route_generation integer NOT NULL DEFAULT 1`。`local_request_approval` に `step_no integer NOT NULL DEFAULT 1` / `route_generation integer NOT NULL DEFAULT 1` / `authority_type text NOT NULL DEFAULT 'legacy'`(`CHECK IN ('legacy','fixed','manager','department_head')`)/ `resolved_from text NULL` / `decided_by uuid NULL`、`UNIQUE(request_id, organization_id, revision, route_generation, step_no)`。既存行は `step_no=1, authority_type='legacy'`、`route` は NULL のまま(再解決しない)。downはデータがあれば拒否する。
+2. 状態機械(`approval-state.ts`): 03.5 の承認状態機械を遷移表として定義し、文字列の直接更新を禁止する。遷移: 途中ステップ承認→当該 `approved` + 次ステップを `pending` で作成(申請は `pending` のまま)/ 最終ステップ承認→申請 `approved` / いずれかの却下→申請 `rejected` / 申請内容の変更→その版の**全ステップ** `invalidated` + 新版で `pending` / 承認取消→**全ステップ** `invalidated`・申請 `invalidated` / 期限切れ→当該 `expired`(申請の `expired` は導出。`local_service_request.state` のCHECKは変更しない)。未定義遷移はAPIで拒否する。
+3. 期限: ステップごとに、そのステップが `pending` になった時点から72時間。後続ステップの行は前のステップが承認された時点で作る。`current_approval_id` は現在 `pending` のステップ、全承認後は最終ステップを指す。
+4. 冪等リプレイ・一覧・詳細・取消・変更の各処理を「現在の1行」前提から「その版・現在の `route_generation` の全ステップ」前提へ改修する(現行の `catalog.routes.ts` の `decide`、`create` の冪等リプレイ(revision=1の承認行1行を前提に `approverId` を比較している箇所)、変更、`list`、`detail`)。
+5. `assertApprovalComplete` の拡張: 現在の版・現在の `route_generation` のステップがすべて `approved`、`route` のステップ数と行数の一致、`route_hash` が `route` の再計算値と一致(`route` がある場合)。
+6. 監査イベントの `request.*` → `approval.*` 移行([[02.17_Audit_Event_Catalog]] §2.1 の対応表に従う)。`AUDIT_EVENT_TYPES` へ追加し、既存行は書き換えない。
+
+## 7. Acceptance Criteria
+
+- [ ] 03.5 の状態機械の全遷移が遷移表(`approval-state.ts`)として定義され、表と1:1の単体テスト(TL-02)がある。未定義の遷移(例: `approved` のステップを再度 `approved`、`rejected` 後の承認)がAPIで409になる。
+- [ ] 2段(テストでは `fixed` 2段をDB直接またはテスト用の経路で構成)の申請で、1段目のみ承認された状態では `assertApprovalComplete` が失敗し、作業チェック更新・模擬完了が実行できない。2段とも承認すると成功する。
+- [ ] 申請内容の変更で、その版の全ステップ(承認済み・`pending` の両方)が `invalidated` になり、新版で `pending` になる。承認取消で全ステップが `invalidated`、申請が `invalidated` になり、以降の実行が拒否される。
+- [ ] ステップの期限が、そのステップが `pending` になった時点から72時間である(2段目は1段目の承認時刻から起算する)。期限切れのステップでは決定も実行も拒否される。
+- [ ] 既存の全行が `step_no=1, authority_type='legacy'` でバックフィルされ、既存申請の表示・決定・作業チェック更新・模擬完了が壊れない(Migration適用前後の同一データで比較する互換テスト)。既存申請は再解決されない。
+- [ ] 冪等リプレイ: 同じキー・同じ内容は再生され、異なる内容は409。経路があるときは `route_hash` で同一性を判定する。
+- [ ] 新規の承認イベントが `approval.*` で記録され、同一トランザクションで書かれる。既存の `request.*` 行は変更されない。読み手(監査の閲覧・エクスポート)は新旧の両方を扱える。
+- [ ] `route_hash` を改ざんした行、ステップ数と行数が一致しない版、旧 `route_generation` のステップでの決定が、すべて拒否される。
+- [ ] downは新しい列にデータ(`route` が非NULL等)があれば拒否される。`check:all`・型・lint・既存テストが通り、新規依存が0件である。
+
+## 8. Verification and Evidence
+
+### テスト(→ [[04.16_Test_Strategy]])
+
+- TL-02(状態機械の全遷移と1:1、不正遷移の網羅拒否)、TL-04、TL-05(Migration互換)、TL-06、TL-16(承認バイパス)
+
+### Evidence
+
+- 状態機械テストの網羅結果、Migration前後の互換テストの結果、監査イベントのサンプル(新旧)
+
+`evidence/WP-P4-APR-014/<YYYYMMDD-HHMM>/` へ保存する([[06.2_Evidence_Index]])。
+
+## 9. Security and Audit
+
+- Gate B GB-3の対象。**Security Reviewer(人間)のレビュー必須**。承認レコードの削除経路を作らない(状態遷移としてのみ変更)。
+- 生成する監査イベント: `approval.requested|approved|rejected|invalidated|cancelled|expired`(対応表は02.17)。脅威 [[02.14_Threat_Model]] T-08。
+- 多段化の窓: [[WP-P4-APR-011]]が先に完了していること(フラグを戻しても旧コードが「現在の1行」で承認済みと判定しない)。
+
+## 10. Rollback / 失敗時の扱い
+
+加算的な列追加のため、新コードを戻しても既存行は `legacy` の1段として読める(`assertApprovalComplete` は全ステップを要求し続ける)。downはデータがあれば拒否し、前進修復(互換readerを維持し、多段の生成を止める)とする。`request.*` から `approval.*` への移行は、既存の監査行を書き換えないため、コードのrevertで戻せる(戻した後に記録された `approval.*` 行は残る)。
+
+## 11. Codex app Prompt
+
+```text
+あなたはSOLVIの実装担当です。このWork Packageのみを実装してください(baselineに実体化された後のみ)。
+
+正本: AGENTS.md / 本WP / ADR-0023(§6・§8・§11) / 03.5(承認状態機械) / 02.17(§2.1の対応表) / 02.16 §3 /
+services/api/src/modules/catalog/catalog.routes.ts / WP-P4-APR-011 の approval-assertion.ts。
+
+手順:
+1. WP-P4-APR-011 が完了していること、ADR-0023 が accepted であることを確認する。満たなければ実装せず報告する。
+2. 遷移表を先に書き、遷移表と1:1の単体テストを作る。
+3. Migration(加算的な列、legacyバックフィル、down拒否)を書き、既存データでの互換テストを作る。
+4. decide・create(冪等リプレイ)・変更・取消・list・detail を全ステップ前提に改修する。
+5. assertApprovalComplete を拡張する。監査イベントを approval.* へ移行する。
+
+やってはいけないこと:
+- 承認ルール・リゾルバ・関係ベース権限の先取り(WP-P4-APR-015)。manager/department_head のステップを生成すること。
+- 「現在の1行」だけを見る判定を1箇所でも残すこと。承認行の削除経路。
+- 既存の監査行・既存申請の書き換え。既存申請の再解決。環境変数のフラグでの切替。
+- テストのskip・削除、新規依存、Allowed Paths外の変更。
+完了時に報告: 変更ファイル、Migrationと rollback、検証コマンドと結果、受入基準ごとの充足、セキュリティ影響、未解決事項、Evidence。
+```
+
+## 12. Definition of Done
+
+- [ ] §7をすべて満たす / §8のテスト通過とEvidence保存
+- [ ] Migration(up/down)とロールバック方針、既存データ互換の説明
+- [ ] 関連ドキュメント(02.17・RTMのStatus)の更新
+- [ ] 未解決のCritical/Highがない
+- [ ] Security Reviewer(人間)のsign-off
+- [ ] Execution Logへ追記
+
+## 13. Execution Log
+
+| Date | Actor | Commit/PR | Result | Evidence | Notes |
+|---|---|---|---|---|---|
+| - | - | - | Not started | - | - |
