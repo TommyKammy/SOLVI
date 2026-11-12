@@ -7,6 +7,14 @@ import {
   type DirectoryHrefOverrides,
   type DirectoryMember,
 } from '../../apps/web/src/lib/user-directory';
+import {
+  buildDepartmentTree,
+  type DepartmentTreeRow,
+} from '../../services/api/src/modules/auth/department.service';
+import {
+  parseMemberFilters,
+  readProfileUpdate,
+} from '../../services/api/src/modules/auth/user-admin.routes';
 
 function member(index: number, overrides: Partial<DirectoryMember> = {}): DirectoryMember {
   return {
@@ -219,5 +227,80 @@ describe('利用者ディレクトリの内部URL', () => {
     expect(url.pathname).toBe('/ops/users');
     expect(url.hash).toBe('');
     expect([...url.searchParams]).toEqual([['q', q]]);
+  });
+});
+
+describe('部署ツリーと利用者一覧の条件 (WP-P4-IDM-013 API)', () => {
+  function department(id: string, code: string, parentId: string | null): DepartmentTreeRow {
+    return { id, code, name: `部署${code}`, parentId, active: true };
+  }
+
+  it('親子を木に組み立て、深さを付け、同じ階層をコード順に並べる', () => {
+    const tree = buildDepartmentTree([
+      department('3', 'c', '2'),
+      department('2', 'b', '1'),
+      department('1', 'a', null),
+      department('4', 'd', null),
+    ]);
+    expect(tree.map((node) => node.code)).toEqual(['a', 'd']);
+    expect(tree[0]!.depth).toBe(1);
+    expect(tree[0]!.children.map((node) => node.code)).toEqual(['b']);
+    expect(tree[0]!.children[0]!.depth).toBe(2);
+    expect(tree[0]!.children[0]!.children[0]!.depth).toBe(3);
+    expect(tree[0]!.children[0]!.children[0]!.id).toBe('3');
+  });
+
+  it('壊れたデータ(親が循環)でも無限ループせず全件を返す', () => {
+    const tree = buildDepartmentTree([
+      department('1', 'a', '2'),
+      department('2', 'b', '1'),
+      department('3', 'c', null),
+    ]);
+    const collect = (nodes: ReturnType<typeof buildDepartmentTree>): string[] =>
+      nodes.flatMap((node) => [node.id, ...collect(node.children)]);
+    expect(collect(tree).sort()).toEqual(['1', '2', '3']);
+  });
+
+  it('利用者一覧の条件は既知の項目だけを受け付け、IDの形式と長さを検査する', () => {
+    const departmentId = '00000000-0000-4000-9000-000000000001';
+    const managerUserId = '00000000-0000-4000-9000-000000000002';
+    expect(
+      parseMemberFilters({
+        departmentId,
+        managerUserId,
+        jobTitle: '  合成役職  ',
+      }),
+    ).toEqual({ departmentId, managerUserId, jobTitle: '合成役職' });
+    expect(parseMemberFilters({})).toEqual({
+      departmentId: null,
+      managerUserId: null,
+      jobTitle: null,
+    });
+    expect(() => parseMemberFilters({ organization_id: departmentId })).toThrow();
+    expect(() => parseMemberFilters({ departmentId: 'not-a-uuid' })).toThrow();
+    expect(() => parseMemberFilters({ departmentId: [departmentId, managerUserId] })).toThrow();
+    expect(() => parseMemberFilters({ jobTitle: 'あ'.repeat(201) })).toThrow();
+  });
+
+  it('プロフィール更新は指定できる項目だけを受け付け、未知の項目を拒否する', () => {
+    const id = '00000000-0000-4000-9000-000000000001';
+    expect(
+      readProfileUpdate({
+        primaryDepartmentId: null,
+        managerUserId: id,
+        jobTitle: '  役職  ',
+        location: '',
+        employeeId: null,
+      }),
+    ).toEqual({
+      primaryDepartmentId: null,
+      managerUserId: id,
+      jobTitle: '  役職  ',
+      location: '',
+      employeeId: null,
+    });
+    expect(() => readProfileUpdate({ jobTitle: 'x', organization_id: id })).toThrow();
+    expect(() => readProfileUpdate({ managerUserId: 'self' })).toThrow();
+    expect(() => readProfileUpdate([])).toThrow();
   });
 });

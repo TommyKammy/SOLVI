@@ -2,7 +2,7 @@ import type pg from 'pg';
 import { TicketAssignmentReadService } from '../ticket/ticket-assignment-read.service.js';
 import { Problems, daysUntil, isExpiringSoon } from '@solvi/shared';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
-import { requireRole, type AuthzContext } from '../../common/authz/authz.js';
+import { hasRole, requireRole, type AuthzContext } from '../../common/authz/authz.js';
 import { SessionService } from './session.service.js';
 
 /**
@@ -54,6 +54,138 @@ export interface OrganizationMember {
   }>;
   /** 対応中(終端でない)のチケット件数。停止前に振り直しを促すために出す。 */
   openTicketCount: number;
+  /** 主部署 (WP-P4-IDM-013)。未設定は null。 */
+  primaryDepartmentId: string | null;
+  primaryDepartmentName: string | null;
+  /** 上長 (WP-P4-IDM-013)。未設定は null。 */
+  managerUserId: string | null;
+  managerDisplayName: string | null;
+  jobTitle: string | null;
+}
+
+/**
+ * 利用者一覧の絞り込み (WP-P4-IDM-013 §6)。
+ * **画面から来た値をそのままSQLへ入れない。** ここで既知の項目だけを運ぶ。
+ */
+export interface MemberFilters {
+  departmentId?: string | null;
+  managerUserId?: string | null;
+  jobTitle?: string | null;
+}
+
+/**
+ * プロフィール充足率 (WP-P4-IDM-013 §6)。
+ *
+ * 上長・部署が未設定のままでは、関係ベースの承認経路が解決できない。
+ * 人数だけでなく、部署長の居ない部署も数える。
+ */
+export interface ProfileCompleteness {
+  totalMembers: number;
+  missingManager: number;
+  missingDepartment: number;
+  totalDepartments: number;
+  missingDepartmentHead: number;
+}
+
+/**
+ * 組織プロフィールの閲覧結果 (FR-IDM-014)。
+ *
+ * `visibility: 'limited'` は `agent` 向けで、**表示名と主部署名だけ**を含む。
+ * 役職・勤務地・社員番号・上長は含めない。
+ */
+export interface MemberProfileView {
+  userId: string;
+  displayName: string;
+  visibility: 'full' | 'limited';
+  primaryDepartmentId?: string | null;
+  primaryDepartmentName?: string | null;
+  managerUserId?: string | null;
+  managerDisplayName?: string | null;
+  jobTitle?: string | null;
+  location?: string | null;
+  employeeId?: string | null;
+}
+
+export interface ProfileUpdateInput {
+  primaryDepartmentId?: string | null;
+  managerUserId?: string | null;
+  jobTitle?: string | null;
+  location?: string | null;
+  employeeId?: string | null;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PROFILE_TEXT_MAX = 200;
+const EMPLOYEE_ID_MAX = 64;
+
+/** ロックして読んだ現在値。表示用の名前は含まない(監査の before に使う)。 */
+interface ProfileSnapshot {
+  primaryDepartmentId: string | null;
+  managerUserId: string | null;
+  jobTitle: string | null;
+  location: string | null;
+  employeeId: string | null;
+}
+
+interface ProfileRow extends ProfileSnapshot {
+  primaryDepartmentName: string | null;
+  managerDisplayName: string | null;
+}
+
+function requireUuid(value: string, field: string): string {
+  if (!UUID_RE.test(value)) {
+    throw Problems.validation([{ field, message: 'IDの形式が正しくありません' }]);
+  }
+  return value.toLowerCase();
+}
+
+/** 空文字は未設定として扱う。長さはDBのCHECKと同じ上限で先に弾く。 */
+function normalizeProfileText(value: string | null, field: string, max: number): string | null {
+  if (value === null) return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length > max) {
+    throw Problems.validation([{ field, message: `${max}文字以内で入力してください` }]);
+  }
+  return trimmed;
+}
+
+function profileErrorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
+}
+
+function profileErrorMessage(error: unknown): string {
+  if (typeof error !== 'object' || error === null) return '';
+  const message = (error as { message?: unknown }).message;
+  return typeof message === 'string' ? message : '';
+}
+
+/** DBトリガの拒否を利用者向けの応答へ変換する。内部の例外文は返さない。 */
+function translateProfileError(error: unknown): never {
+  const code = profileErrorCode(error);
+  const message = profileErrorMessage(error);
+  if (code === '23514') {
+    if (message.includes('manager_cycle')) {
+      throw Problems.conflict('上長の関係が循環します。別の上長候補を選んでください。');
+    }
+    if (message.includes('department_inactive')) {
+      throw Problems.conflict('無効化された部署は主部署に指定できません');
+    }
+    if (message.includes('org_member_profile_no_self_manager')) {
+      throw Problems.validation([
+        { field: 'managerUserId', message: '自分自身を上長に指定できません' },
+      ]);
+    }
+    throw Problems.validation([
+      { field: 'profile', message: 'プロフィールの内容を確認してください' },
+    ]);
+  }
+  if (code === '23503') {
+    throw Problems.notFound('指定された部署または上長');
+  }
+  throw error;
 }
 
 const MANAGE_ROLES = ['org_admin', 'platform_admin'] as const;
@@ -86,11 +218,12 @@ export class UserAdminService {
    * org_admin/platform_admin限定。WP-P2-UX-036では同じ管理者権限の
    * グループ管理画面にも選択候補として利用する。通常の業務画面へは公開しない。
    */
-  async listMembers(ctx: AuthzContext): Promise<OrganizationMember[]> {
+  async listMembers(ctx: AuthzContext, filters: MemberFilters = {}): Promise<OrganizationMember[]> {
     requireRole(ctx, ...MANAGE_ROLES);
 
     // RLS により、この組織に所属を持つ利用者しか見えない。
     // それでも `role_binding` 側でも組織を絞る(RLSを認可の代わりにしない)。
+    // プロフィールは LEFT JOIN。行が無いことは「未設定」であり、一覧から消す理由ではない。
     const { rows } = await this.client.query(
       `SELECT u.id, u.display_name, u.primary_email, u.status, u.deactivated_at,
               array_remove(array_agg(DISTINCT r.code), NULL) AS role_codes,
@@ -101,15 +234,36 @@ export class UserAdminService {
                   DISTINCT jsonb_build_object('roleCode', r.code, 'validUntil', rb.valid_until)
                 ) FILTER (WHERE rb.valid_until IS NOT NULL),
                 '[]'::jsonb
-              ) AS temporary_roles
+              ) AS temporary_roles,
+              p.primary_department_id,
+              d.name AS primary_department_name,
+              p.manager_user_id,
+              mu.display_name AS manager_display_name,
+              p.job_title
          FROM app_user u
          JOIN role_binding rb ON rb.user_id = u.id AND rb.organization_id = $1
          LEFT JOIN role r ON r.id = rb.role_id
+         LEFT JOIN org_member_profile p
+           ON p.organization_id = $1 AND p.user_id = u.id
+         LEFT JOIN department d
+           ON d.id = p.primary_department_id AND d.organization_id = $1
+         LEFT JOIN app_user mu ON mu.id = p.manager_user_id
         WHERE rb.valid_from <= now()
           AND (rb.valid_until IS NULL OR rb.valid_until > now())
-        GROUP BY u.id, u.display_name, u.primary_email, u.status, u.deactivated_at
+          AND ($2::uuid IS NULL OR p.primary_department_id = $2)
+          AND ($3::uuid IS NULL OR p.manager_user_id = $3)
+          AND ($4::text IS NULL
+               OR strpos(lower(coalesce(p.job_title, '')), lower($4)) > 0)
+        GROUP BY u.id, u.display_name, u.primary_email, u.status, u.deactivated_at,
+                 p.primary_department_id, d.name, p.manager_user_id,
+                 mu.display_name, p.job_title
         ORDER BY u.status, u.display_name`,
-      [ctx.organizationId],
+      [
+        ctx.organizationId,
+        filters.departmentId ?? null,
+        filters.managerUserId ?? null,
+        filters.jobTitle ?? null,
+      ],
     );
 
     const counts = await new TicketAssignmentReadService(this.client).countOpenByAssignees(
@@ -133,7 +287,61 @@ export class UserAdminService {
         }))
         .sort((a, b) => a.validUntil.localeCompare(b.validUntil)),
       openTicketCount: counts.get(r.id as string) ?? 0,
+      primaryDepartmentId: (r.primary_department_id as string | null) ?? null,
+      primaryDepartmentName: (r.primary_department_name as string | null) ?? null,
+      managerUserId: (r.manager_user_id as string | null) ?? null,
+      managerDisplayName: (r.manager_display_name as string | null) ?? null,
+      jobTitle: (r.job_title as string | null) ?? null,
     }));
+  }
+
+  /**
+   * プロフィール充足率 (WP-P4-IDM-013 §6)。
+   *
+   * **数えるのは有効な所属を持つ在籍者**である。停止者を含めると、
+   * 「設定すべき人」が実態より多く見える。
+   */
+  async profileCompleteness(ctx: AuthzContext): Promise<ProfileCompleteness> {
+    requireRole(ctx, ...MANAGE_ROLES);
+    const { rows } = await this.client.query(
+      `WITH members AS (
+         SELECT DISTINCT rb.user_id
+           FROM role_binding rb
+           JOIN app_user u ON u.id = rb.user_id
+          WHERE rb.organization_id = $1
+            AND u.status = 'active'
+            AND rb.valid_from <= now()
+            AND (rb.valid_until IS NULL OR rb.valid_until > now())
+       )
+       SELECT count(*)::int AS total_members,
+              count(*) FILTER (WHERE p.manager_user_id IS NULL)::int AS missing_manager,
+              count(*) FILTER (WHERE p.primary_department_id IS NULL)::int AS missing_department
+         FROM members m
+         LEFT JOIN org_member_profile p
+           ON p.organization_id = $1 AND p.user_id = m.user_id`,
+      [ctx.organizationId],
+    );
+    const { rows: departments } = await this.client.query(
+      `SELECT count(*)::int AS total_departments,
+              count(*) FILTER (
+                WHERE NOT EXISTS (
+                  SELECT 1 FROM department_head h
+                   WHERE h.department_id = d.id AND h.organization_id = d.organization_id
+                     AND h.valid_from <= clock_timestamp()
+                     AND (h.valid_until IS NULL OR h.valid_until > clock_timestamp())
+                )
+              )::int AS missing_department_head
+         FROM department d
+        WHERE d.organization_id = $1 AND d.active`,
+      [ctx.organizationId],
+    );
+    return {
+      totalMembers: Number(rows[0]?.total_members ?? 0),
+      missingManager: Number(rows[0]?.missing_manager ?? 0),
+      missingDepartment: Number(rows[0]?.missing_department ?? 0),
+      totalDepartments: Number(departments[0]?.total_departments ?? 0),
+      missingDepartmentHead: Number(departments[0]?.missing_department_head ?? 0),
+    };
   }
 
   /**
@@ -308,6 +516,339 @@ export class UserAdminService {
   }
 
   /**
+   * 組織プロフィールの閲覧 (FR-IDM-014 / ADR-0023 §12)。
+   *
+   * 閲覧範囲:
+   *   - 全項目: `org_admin`・本人・その人の上長
+   *   - `agent`: 表示名と主部署名だけ
+   *   - それ以外: 404(存在を教えない)
+   *
+   * 上長の判定はロールではなく関係(`manager_user_id`)で行う。
+   * 上長は `approver` ロールを持たないことがある(ADR-0023 §2)。
+   */
+  async getProfile(ctx: AuthzContext, targetUserId: string): Promise<MemberProfileView> {
+    const targetId = requireUuid(targetUserId, 'userId');
+    const target = await this.loadMember(ctx, targetId);
+    const isSelf = targetId === ctx.principal.userId;
+    const isAdmin = hasRole(ctx, 'org_admin');
+    const isManager = !isSelf && (await this.isManagerOf(ctx, targetId, ctx.principal.userId));
+    const profile = await this.loadProfileRow(ctx, targetId);
+
+    if (isAdmin || isSelf || isManager) {
+      return {
+        userId: target.id,
+        displayName: target.displayName,
+        visibility: 'full',
+        primaryDepartmentId: profile?.primaryDepartmentId ?? null,
+        primaryDepartmentName: profile?.primaryDepartmentName ?? null,
+        managerUserId: profile?.managerUserId ?? null,
+        managerDisplayName: profile?.managerDisplayName ?? null,
+        jobTitle: profile?.jobTitle ?? null,
+        location: profile?.location ?? null,
+        employeeId: profile?.employeeId ?? null,
+      };
+    }
+
+    if (hasRole(ctx, 'agent')) {
+      // **役職・勤務地・社員番号・上長を返さない。** 主部署名と表示名まで。
+      return {
+        userId: target.id,
+        displayName: target.displayName,
+        visibility: 'limited',
+        primaryDepartmentName: profile?.primaryDepartmentName ?? null,
+      };
+    }
+
+    throw Problems.notFound('利用者');
+  }
+
+  /**
+   * 組織プロフィールの更新 (FR-IDM-011 / FR-IDM-013)。
+   *
+   * **本人は自分の上長・主部署を変更できない**(`org_admin` 本人を含む)。
+   * 主部署は別の組織管理者が設定する(ADR-0023 §3)。
+   *
+   * 監査は同一トランザクションで書く。書込みに失敗すれば変更も巻き戻る。
+   * 社員番号は**値を監査に載せず、変更有無だけ**を記録する(03.16 §3.6)。
+   */
+  async updateProfile(
+    ctx: AuthzContext,
+    targetUserId: string,
+    input: ProfileUpdateInput,
+  ): Promise<MemberProfileView> {
+    requireRole(ctx, 'org_admin');
+    const targetId = requireUuid(targetUserId, 'userId');
+    const target = await this.loadMember(ctx, targetId);
+    await this.ensureOrgMemberProfile(ctx.organizationId, targetId);
+    // **検査の前に、対象利用者のプロフィール行をロックする**(ADR-0023 §3)。
+    // ロックしないと、「上長の設定」と「`org_admin` の付与」が同時に走ったとき、
+    // 互いの未コミットの変更を見られず**両方が通り**、上長を持つ組織管理者ができる。
+    // READ COMMITTED では、このロック取得後の文が先行トランザクションのコミットを見る。
+    // ここから下の検査・現在値・監査の before は、必ずロック後に読み直した値を使う。
+    const current = await this.lockProfileRow(ctx, targetId);
+    if (!current) throw Problems.internal();
+
+    const isSelf = targetId === ctx.principal.userId;
+
+    let primaryDepartmentId = current.primaryDepartmentId;
+    if (input.primaryDepartmentId !== undefined) {
+      primaryDepartmentId =
+        input.primaryDepartmentId === null
+          ? null
+          : requireUuid(input.primaryDepartmentId, 'primaryDepartmentId');
+      if (isSelf && primaryDepartmentId !== current.primaryDepartmentId) {
+        throw Problems.forbidden(
+          '自分の主部署は自分では変更できません。別の組織管理者に設定を依頼してください。',
+        );
+      }
+      if (primaryDepartmentId !== null) {
+        await this.requireActiveDepartment(ctx, primaryDepartmentId);
+      }
+    }
+
+    let managerUserId = current.managerUserId;
+    if (input.managerUserId !== undefined) {
+      managerUserId =
+        input.managerUserId === null ? null : requireUuid(input.managerUserId, 'managerUserId');
+      if (isSelf && managerUserId !== current.managerUserId) {
+        throw Problems.forbidden(
+          '自分の上長は自分では変更できません。別の組織管理者に設定を依頼してください。',
+        );
+      }
+      if (managerUserId !== null) {
+        if (managerUserId === targetId) {
+          throw Problems.validation([
+            { field: 'managerUserId', message: '自分自身を上長に指定できません' },
+          ]);
+        }
+        // **組織管理者の上長は常に未設定**(ADR-0023 §3)。
+        if (await this.hasEffectiveOrgAdminRole(ctx, targetId)) {
+          throw Problems.conflict(
+            '組織管理者の上長は設定できません。上長を設定するには、先に組織管理者の役割を取り消してください。',
+          );
+        }
+        await this.requireActiveMember(ctx, managerUserId, '上長候補');
+        if (!(await this.loadProfileRow(ctx, managerUserId))) {
+          throw Problems.conflict(
+            '上長候補の組織プロフィールが未設定です。先にプロフィールを設定してください。',
+          );
+        }
+      }
+    }
+
+    const jobTitle =
+      input.jobTitle !== undefined
+        ? normalizeProfileText(input.jobTitle, 'jobTitle', PROFILE_TEXT_MAX)
+        : current.jobTitle;
+    const location =
+      input.location !== undefined
+        ? normalizeProfileText(input.location, 'location', PROFILE_TEXT_MAX)
+        : current.location;
+    const employeeId =
+      input.employeeId !== undefined
+        ? normalizeProfileText(input.employeeId, 'employeeId', EMPLOYEE_ID_MAX)
+        : current.employeeId;
+
+    const employeeIdChanged = employeeId !== current.employeeId;
+    const changed =
+      employeeIdChanged ||
+      jobTitle !== current.jobTitle ||
+      location !== current.location ||
+      primaryDepartmentId !== current.primaryDepartmentId ||
+      managerUserId !== current.managerUserId;
+    if (!changed) return this.getProfile(ctx, targetId);
+
+    try {
+      await this.client.query(
+        `UPDATE org_member_profile
+            SET primary_department_id = $3,
+                manager_user_id = $4,
+                job_title = $5,
+                location = $6,
+                employee_id = $7
+          WHERE organization_id = $1 AND user_id = $2`,
+        [
+          ctx.organizationId,
+          targetId,
+          primaryDepartmentId,
+          managerUserId,
+          jobTitle,
+          location,
+          employeeId,
+        ],
+      );
+    } catch (error) {
+      translateProfileError(error);
+    }
+
+    await recordAuditEvent(this.client, {
+      eventType: 'org.member.profile.updated',
+      organizationId: ctx.organizationId,
+      actorType: 'user',
+      actorId: ctx.principal.userId,
+      subjectUserId: targetId,
+      targetType: 'org_member_profile',
+      targetId: targetId,
+      action: 'update',
+      outcome: 'success',
+      beforeState: {
+        primaryDepartmentId: current.primaryDepartmentId,
+        managerUserId: current.managerUserId,
+        jobTitle: current.jobTitle,
+        location: current.location,
+      },
+      afterState: {
+        primaryDepartmentId,
+        managerUserId,
+        jobTitle,
+        location,
+        // **社員番号の値は載せない。** 変更有無だけを残す(02.17 §4 / 03.16 §3.6)。
+        employeeIdChanged,
+      },
+    });
+
+    return this.getProfile(ctx, target.id);
+  }
+
+  /** その組織の在籍者を1件読む。見つからなければ 404(他組織の存在も隠す)。 */
+  private async loadMember(
+    ctx: AuthzContext,
+    userId: string,
+  ): Promise<{ id: string; displayName: string; status: 'active' | 'deactivated' }> {
+    const { rows } = await this.client.query(
+      `SELECT u.id, u.display_name, u.status
+         FROM app_user u
+         JOIN role_binding rb ON rb.user_id = u.id AND rb.organization_id = $2
+        WHERE u.id = $1
+        LIMIT 1`,
+      [userId, ctx.organizationId],
+    );
+    if (rows.length === 0) throw Problems.notFound('利用者');
+    return {
+      id: rows[0]!.id as string,
+      displayName: rows[0]!.display_name as string,
+      status: rows[0]!.status as 'active' | 'deactivated',
+    };
+  }
+
+  private async isManagerOf(
+    ctx: AuthzContext,
+    targetUserId: string,
+    managerUserId: string,
+  ): Promise<boolean> {
+    const { rows } = await this.client.query(
+      `SELECT 1 FROM org_member_profile
+        WHERE organization_id = $1 AND user_id = $2 AND manager_user_id = $3`,
+      [ctx.organizationId, targetUserId, managerUserId],
+    );
+    return rows.length > 0;
+  }
+
+  private async loadProfileRow(ctx: AuthzContext, userId: string): Promise<ProfileRow | null> {
+    const { rows } = await this.client.query(
+      `SELECT p.primary_department_id, d.name AS primary_department_name,
+              p.manager_user_id, mu.display_name AS manager_display_name,
+              p.job_title, p.location, p.employee_id
+         FROM org_member_profile p
+         LEFT JOIN department d
+           ON d.id = p.primary_department_id AND d.organization_id = p.organization_id
+         LEFT JOIN app_user mu ON mu.id = p.manager_user_id
+        WHERE p.organization_id = $1 AND p.user_id = $2`,
+      [ctx.organizationId, userId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      primaryDepartmentId: (row.primary_department_id as string | null) ?? null,
+      primaryDepartmentName: (row.primary_department_name as string | null) ?? null,
+      managerUserId: (row.manager_user_id as string | null) ?? null,
+      managerDisplayName: (row.manager_display_name as string | null) ?? null,
+      jobTitle: (row.job_title as string | null) ?? null,
+      location: (row.location as string | null) ?? null,
+      employeeId: (row.employee_id as string | null) ?? null,
+    };
+  }
+
+  /**
+   * プロフィール行を `FOR UPDATE` でロックして読む (WP-P4-IDM-013 §6)。
+   *
+   * 「上長の設定」と「`org_admin` の付与」は**同じ行のロック**で直列化する。
+   * ロック待ちの後、READ COMMITTED では次の文が先行トランザクションの
+   * コミットを見るため、**ロック取得前に読んだ値を検査に使わない**。
+   *
+   * デッドロックを避けるため、両経路とも最初に取るロックをこの行にする
+   * (DBトリガが取る advisory lock はこの後になる)。
+   */
+  private async lockProfileRow(ctx: AuthzContext, userId: string): Promise<ProfileSnapshot | null> {
+    const { rows } = await this.client.query(
+      `SELECT primary_department_id, manager_user_id, job_title, location, employee_id
+         FROM org_member_profile
+        WHERE organization_id = $1 AND user_id = $2
+        FOR UPDATE`,
+      [ctx.organizationId, userId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      primaryDepartmentId: (row.primary_department_id as string | null) ?? null,
+      managerUserId: (row.manager_user_id as string | null) ?? null,
+      jobTitle: (row.job_title as string | null) ?? null,
+      location: (row.location as string | null) ?? null,
+      employeeId: (row.employee_id as string | null) ?? null,
+    };
+  }
+
+  /** 主部署に指定できるのは、同一組織の有効な部署だけ。 */
+  private async requireActiveDepartment(ctx: AuthzContext, departmentId: string): Promise<void> {
+    const { rows } = await this.client.query(
+      'SELECT active FROM department WHERE id = $1 AND organization_id = $2',
+      [departmentId, ctx.organizationId],
+    );
+    if (rows.length === 0) throw Problems.notFound('部署');
+    if (!(rows[0]!.active as boolean)) {
+      throw Problems.conflict('無効化された部署は主部署に指定できません');
+    }
+  }
+
+  /**
+   * 上長候補が有効な所属(ADR-0023 §1)であることを確かめる。
+   * ロールの種類は問わない。`org_admin` を候補にすることも妨げない。
+   */
+  private async requireActiveMember(
+    ctx: AuthzContext,
+    userId: string,
+    label: string,
+  ): Promise<void> {
+    const { rows } = await this.client.query(
+      `SELECT 1
+         FROM app_user u
+         JOIN role_binding rb ON rb.user_id = u.id AND rb.organization_id = $2
+        WHERE u.id = $1
+          AND u.status = 'active'
+          AND rb.valid_from <= clock_timestamp()
+          AND (rb.valid_until IS NULL OR rb.valid_until > clock_timestamp())
+        LIMIT 1`,
+      [userId, ctx.organizationId],
+    );
+    if (rows.length === 0) throw Problems.notFound(label);
+  }
+
+  /** 当該組織で有効期間内の `org_admin` ロールを持つか。 */
+  private async hasEffectiveOrgAdminRole(ctx: AuthzContext, userId: string): Promise<boolean> {
+    const { rows } = await this.client.query(
+      `SELECT 1
+         FROM role_binding rb
+         JOIN role r ON r.id = rb.role_id
+        WHERE rb.user_id = $1 AND rb.organization_id = $2 AND r.code = 'org_admin'
+          AND rb.valid_from <= clock_timestamp()
+          AND (rb.valid_until IS NULL OR rb.valid_until > clock_timestamp())
+        LIMIT 1`,
+      [userId, ctx.organizationId],
+    );
+    return rows.length > 0;
+  }
+
+  /**
    * 役割を与える (WP-P1-IDM-015)。
    *
    * **既に組織に居る人にだけ配れる。** 別の組織の人を招き入れる操作
@@ -376,6 +917,22 @@ export class UserAdminService {
     );
     if (existing.length > 0) {
       throw Problems.conflict('その役割は既に与えられています');
+    }
+
+    // **組織管理者の上長は常に未設定**(ADR-0023 §3)。
+    // 自動では外さない。暗黙の変更を作らないため、付与を拒否して人に判断を戻す。
+    if (roleCode === 'org_admin') {
+      // 「上長の設定」と同じプロフィール行を**先にロックしてから**検査する。
+      // ロックが無いと、2つのトランザクションが互いの未コミットの変更を見られず、
+      // 両方が通って上長を持つ組織管理者ができる。
+      await this.ensureOrgMemberProfile(ctx.organizationId, userId);
+      const current = await this.lockProfileRow(ctx, userId);
+      if (!current) throw Problems.internal();
+      if (current.managerUserId !== null) {
+        throw Problems.conflict(
+          '上長が設定されている利用者には組織管理者を付与できません。先に上長を外してください。',
+        );
+      }
     }
 
     const bindingId = uuidv7();

@@ -31,6 +31,15 @@ export const AUDIT_EVENT_TYPES = [
   'user.created',
   'user.updated',
   'user.deactivated',
+  // 組織プロフィール・部署・部署長 (WP-P4-IDM-013 / 02.17 §2.2)。
+  // **上長・部署長の設定は承認権限の付与と同格の特権操作**であり、
+  // 変更前後を残さないと「誰が承認者を作り出したか」を追跡できない(脅威 T-26)。
+  'org.member.profile.updated',
+  'org.department.created',
+  'org.department.updated',
+  'org.department.deactivated',
+  'org.department.head.assigned',
+  'org.department.head.removed',
   'audit.export.executed',
   'config.changed',
   // 組織切替(02.18 §3 / 脅威 T-20)

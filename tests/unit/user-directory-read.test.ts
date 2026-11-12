@@ -66,8 +66,20 @@ describe('administrator directory read transaction', () => {
             roleCodes: member.role_codes,
             temporaryRoles: [],
             openTicketCount: 3,
+            primaryDepartmentId: null,
+            primaryDepartmentName: null,
+            managerUserId: null,
+            managerDisplayName: null,
+            jobTitle: null,
           },
         ],
+        profileCompleteness: {
+          totalMembers: 0,
+          missingManager: 0,
+          missingDepartment: 0,
+          totalDepartments: 0,
+          missingDepartmentHead: 0,
+        },
       },
     });
     expect(connect).toHaveBeenCalledTimes(1);
@@ -78,8 +90,11 @@ describe('administrator directory read transaction', () => {
     ]);
     expect(query.mock.calls[2]![0]).not.toMatch(/\b(?:FROM|JOIN) ticket\b/);
     expect(query.mock.calls[3]![1]).toEqual([org, [target]]);
-    expect(query.mock.calls[4]![0]).toBe('COMMIT');
-    expect(query).toHaveBeenCalledTimes(5);
+    // プロフィール充足率は同じスナップショットで読む(メンバー + 部署の2問い合わせ)。
+    expect(query.mock.calls[4]![0]).toContain('missing_manager');
+    expect(query.mock.calls[5]![0]).toContain('missing_department_head');
+    expect(query.mock.calls[6]![0]).toBe('COMMIT');
+    expect(query).toHaveBeenCalledTimes(7);
     expect(release).toHaveBeenCalledOnce();
   });
   it('does not issue bulk SQL for an empty authorized directory', async () => {

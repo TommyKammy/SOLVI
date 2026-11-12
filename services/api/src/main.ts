@@ -19,6 +19,7 @@ import { CollaborationController } from './modules/ticket/collaboration.routes.j
 import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
+import { DepartmentController } from './modules/auth/department.routes.js';
 import { AccessReviewController } from './modules/auth/access-review.routes.js';
 import { KnowledgeController } from './modules/knowledge/knowledge.routes.js';
 import { AssetImportsController } from './modules/assets/asset-import.routes.js';
@@ -164,6 +165,7 @@ async function bootstrap(): Promise<void> {
   const relations = new RelationController({ pool: db.authPool(), denialRecorder });
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });
   const userAdmin = new UserAdminController({ pool: db.authPool() });
+  const departments = new DepartmentController({ pool: db.authPool() });
   const accessReview = new AccessReviewController({ pool: db.authPool() });
   const auditExport = new AuditExportController({ pool: db.authPool() });
 
@@ -692,7 +694,24 @@ async function bootstrap(): Promise<void> {
     // ---- 在籍者の管理 (FR-IDM-007 / WP-P1-IDM-011) --------------------------
     .get('/users', async (req) => {
       const authenticated = await auth.authenticate(req.headers);
-      const result = await userAdmin.list(authenticated);
+      const result = await userAdmin.list(
+        authenticated,
+        Object.fromEntries(new URL(req.url ?? '/', 'http://localhost').searchParams),
+      );
+      return result.body;
+    })
+    .get('/users/:id/profile', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.getProfile(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/users/:id/profile', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await userAdmin.updateProfile(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
       return result.body;
     })
     .post('/users', async (req, res) => {
@@ -741,6 +760,56 @@ async function bootstrap(): Promise<void> {
       );
       res.writeHead(result.status);
       res.end();
+    })
+    // ---- 部署と部署長 (FR-IDM-010 / FR-IDM-012 / WP-P4-IDM-013) --------------
+    .get('/departments', async (req) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.tree(authenticated);
+      return result.body;
+    })
+    .post('/departments', async (req, res) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.create(authenticated, await readJsonBody(req));
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/departments/:id/edit', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.edit(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      return result.body;
+    })
+    .post('/departments/:id/deactivate', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.deactivate(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .get('/departments/:id/members', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.members(authenticated, params.id ?? '');
+      return result.body;
+    })
+    .post('/departments/:id/head', async (req, res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.assignHead(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/departments/:id/head/end', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.endHead(
+        authenticated,
+        params.id ?? '',
+        await readJsonBody(req),
+      );
+      return result.body;
     })
     // ---- アクセスレビュー (NFR-SEC-002 / WP-P1-SEC-024) ---------------------
     .get('/access-reviews', async (req) => {

@@ -1,6 +1,10 @@
 import type pg from 'pg';
 import { Problems } from '@solvi/shared';
-import { UserAdminService } from './user-admin.service.js';
+import {
+  UserAdminService,
+  type MemberFilters,
+  type ProfileUpdateInput,
+} from './user-admin.service.js';
 import type { AuthenticatedRequest } from './auth.routes.js';
 
 /**
@@ -40,12 +44,20 @@ export class UserAdminController {
     }
   }
 
-  async list(auth: AuthenticatedRequest) {
-    const members = await this.run(auth, (service) => service.listMembers(auth.authz), true);
+  async list(auth: AuthenticatedRequest, query?: Record<string, string | string[] | undefined>) {
+    const filters = parseMemberFilters(query ?? {});
+    const result = await this.run(
+      auth,
+      async (service) => ({
+        members: await service.listMembers(auth.authz, filters),
+        completeness: await service.profileCompleteness(auth.authz),
+      }),
+      true,
+    );
     return {
       status: 200,
       body: {
-        items: members.map((m) => ({
+        items: result.members.map((m) => ({
           userId: m.userId,
           displayName: m.displayName,
           email: m.email,
@@ -54,9 +66,39 @@ export class UserAdminController {
           roleCodes: m.roleCodes,
           temporaryRoles: m.temporaryRoles,
           openTicketCount: m.openTicketCount,
+          primaryDepartmentId: m.primaryDepartmentId,
+          primaryDepartmentName: m.primaryDepartmentName,
+          managerUserId: m.managerUserId,
+          managerDisplayName: m.managerDisplayName,
+          jobTitle: m.jobTitle,
         })),
+        profileCompleteness: result.completeness,
       },
     };
+  }
+
+  /**
+   * 組織プロフィールの取得 (FR-IDM-014)。
+   *
+   * 閲覧範囲の判定はサービス層(API層)が行う。範囲外は 404。
+   */
+  async getProfile(auth: AuthenticatedRequest, userId: string) {
+    const profile = await this.run(auth, (service) => service.getProfile(auth.authz, userId), true);
+    return { status: 200, body: { profile } };
+  }
+
+  /**
+   * 組織プロフィールの更新 (FR-IDM-011 / FR-IDM-013)。
+   *
+   * 本文は閉じた項目だけを受け付ける。`organization_id` などの混入は
+   * 値を読む前に拒否する(TL-03 / 脅威 T-03)。
+   */
+  async updateProfile(auth: AuthenticatedRequest, userId: string, body: unknown) {
+    const input = readProfileUpdate(body);
+    const profile = await this.run(auth, (service) =>
+      service.updateProfile(auth.authz, userId, input),
+    );
+    return { status: 200, body: { profile } };
   }
 
   /**
@@ -173,4 +215,97 @@ function readReason(body: unknown): string {
     throw Problems.validation([{ field: 'reason', message: '理由を入力してください' }]);
   }
   return reason;
+}
+
+const MEMBER_FILTER_KEYS = new Set(['departmentId', 'managerUserId', 'jobTitle']);
+const PROFILE_KEYS = new Set([
+  'primaryDepartmentId',
+  'managerUserId',
+  'jobTitle',
+  'location',
+  'employeeId',
+]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 利用者一覧の絞り込みを読み取る (WP-P4-IDM-013 §6)。
+ *
+ * **知らないキーは拒否する。** とくに `organization_id` は、値を採用しないだけでなく
+ * 要求そのものを 400 にする(指定できると思わせない)。
+ */
+export function parseMemberFilters(
+  query: Record<string, string | string[] | undefined>,
+): MemberFilters {
+  for (const key of Object.keys(query)) {
+    if (!MEMBER_FILTER_KEYS.has(key)) {
+      throw Problems.validation([{ field: key, message: 'この条件は指定できません' }]);
+    }
+  }
+  const readId = (key: string): string | null => {
+    const value = query[key];
+    if (value === undefined || value === '') return null;
+    if (typeof value !== 'string' || !UUID_RE.test(value)) {
+      throw Problems.validation([{ field: key, message: 'IDの形式が正しくありません' }]);
+    }
+    return value.toLowerCase();
+  };
+  const jobTitleValue = query.jobTitle;
+  if (jobTitleValue !== undefined && typeof jobTitleValue !== 'string') {
+    throw Problems.validation([{ field: 'jobTitle', message: '文字列で入力してください' }]);
+  }
+  const jobTitle = (jobTitleValue ?? '').trim();
+  if (jobTitle.length > 200) {
+    throw Problems.validation([{ field: 'jobTitle', message: '200文字以内で入力してください' }]);
+  }
+  return {
+    departmentId: readId('departmentId'),
+    managerUserId: readId('managerUserId'),
+    jobTitle: jobTitle.length > 0 ? jobTitle : null,
+  };
+}
+
+/**
+ * プロフィール更新の本文を読み取る。
+ *
+ * 値の意味(部署の有効性・上長の所属)はサービス層が再検証する。
+ * ここでは型と、指定できる項目だけを確定する。
+ */
+export function readProfileUpdate(body: unknown): ProfileUpdateInput {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    throw Problems.validation([{ field: 'body', message: '要求の形式が正しくありません' }]);
+  }
+  const record = body as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (!PROFILE_KEYS.has(key)) {
+      throw Problems.validation([{ field: key, message: 'この項目は指定できません' }]);
+    }
+  }
+  const out: ProfileUpdateInput = {};
+  for (const key of ['primaryDepartmentId', 'managerUserId'] as const) {
+    if (Object.hasOwn(record, key)) {
+      out[key] = readNullableId(record[key], key);
+    }
+  }
+  for (const key of ['jobTitle', 'location', 'employeeId'] as const) {
+    if (Object.hasOwn(record, key)) {
+      out[key] = readNullableText(record[key], key);
+    }
+  }
+  return out;
+}
+
+function readNullableId(value: unknown, field: string): string | null {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string' || !UUID_RE.test(value)) {
+    throw Problems.validation([{ field, message: 'IDの形式が正しくありません' }]);
+  }
+  return value.toLowerCase();
+}
+
+function readNullableText(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string') {
+    throw Problems.validation([{ field, message: '文字列で入力してください' }]);
+  }
+  return value;
 }
