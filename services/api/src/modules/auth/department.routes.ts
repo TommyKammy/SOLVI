@@ -54,6 +54,11 @@ export class DepartmentController {
     return { status: 200, body: { items } };
   }
 
+  async head(auth: AuthenticatedRequest, departmentId: string) {
+    const head = await this.run(auth, (service) => service.getHead(auth.authz, departmentId), true);
+    return { status: 200, body: { head } };
+  }
+
   async create(auth: AuthenticatedRequest, body: unknown) {
     const input = readCreate(body);
     const department = await this.run(auth, (service) => service.create(auth.authz, input));

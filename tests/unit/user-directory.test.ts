@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTORY_ROLES,
   directoryHref,
+  managerFieldReasons,
+  managerOptions,
   parseDirectoryQuery,
   selectDirectoryMembers,
   type DirectoryHrefOverrides,
@@ -26,6 +28,11 @@ function member(index: number, overrides: Partial<DirectoryMember> = {}): Direct
     roleCodes: ['requester'],
     temporaryRoles: [],
     openTicketCount: 0,
+    primaryDepartmentId: null,
+    primaryDepartmentName: null,
+    managerUserId: null,
+    managerDisplayName: null,
+    jobTitle: null,
     ...overrides,
   };
 }
@@ -41,7 +48,15 @@ describe('利用者ディレクトリの条件', () => {
         status: 'deactivated',
         page: '2',
       }),
-    ).toEqual({ q: 'ＡＫＩ 山田', role: 'agent', status: 'deactivated', page: 2 });
+    ).toEqual({
+      q: 'ＡＫＩ 山田',
+      role: 'agent',
+      status: 'deactivated',
+      department: 'all',
+      manager: 'all',
+      jobTitle: '',
+      page: 2,
+    });
     expect(parseDirectoryQuery({ role: 'owner', status: 'deleted' })).toEqual(defaultQuery);
     expect(parseDirectoryQuery({ role: 'platform_auditor' }).role).toBe('platform_auditor');
     expect(DIRECTORY_ROLES).not.toContain('platform_auditor');
@@ -167,6 +182,90 @@ describe('利用者ディレクトリの検索とページ', () => {
   });
 });
 
+describe('部署・上長・役職の絞り込みと上長候補 (WP-P4-IDM-013 §6)', () => {
+  const dept = '10000000-0000-4000-8000-000000000001';
+  const other = '10000000-0000-4000-8000-000000000002';
+  const members = [
+    member(1, {
+      displayName: '山田 一郎',
+      primaryDepartmentId: dept,
+      primaryDepartmentName: '合成部署',
+      managerUserId: null,
+      jobTitle: '課長',
+    }),
+    member(2, {
+      displayName: '山田 二郎',
+      primaryDepartmentId: dept,
+      managerUserId: member(1).userId,
+      jobTitle: '担当',
+    }),
+    member(3, { displayName: '鈴木', primaryDepartmentId: other, jobTitle: '部長' }),
+    member(4, { displayName: '佐藤', status: 'deactivated' }),
+  ];
+
+  it('部署・上長・役職で絞り込み、未設定も選べる', () => {
+    const byDepartment = selectDirectoryMembers(members, {
+      ...defaultQuery,
+      department: dept,
+    });
+    expect(byDepartment.items.map((person) => person.displayName)).toEqual([
+      '山田 一郎',
+      '山田 二郎',
+    ]);
+    expect(
+      selectDirectoryMembers(members, { ...defaultQuery, manager: member(1).userId }).items.map(
+        (person) => person.displayName,
+      ),
+    ).toEqual(['山田 二郎']);
+    expect(
+      selectDirectoryMembers(members, { ...defaultQuery, manager: 'unset' }).items.map(
+        (person) => person.displayName,
+      ),
+    ).toEqual(['佐藤', '山田 一郎', '鈴木']);
+    expect(
+      selectDirectoryMembers(members, { ...defaultQuery, department: 'unset' }).items.map(
+        (person) => person.displayName,
+      ),
+    ).toEqual(['佐藤']);
+    expect(
+      selectDirectoryMembers(members, { ...defaultQuery, jobTitle: '部長' }).items.map(
+        (person) => person.displayName,
+      ),
+    ).toEqual(['鈴木']);
+  });
+
+  it('不正なIDは条件に採用せず、検索語の長さを制限する', () => {
+    expect(parseDirectoryQuery({ department: 'javascript:alert(1)' }).department).toBe('all');
+    expect(parseDirectoryQuery({ manager: ['x'] }).manager).toBe('all');
+    expect(parseDirectoryQuery({ jobTitle: 'あ'.repeat(201) }).jobTitle).toHaveLength(200);
+  });
+
+  it('上長候補から本人・停止者を外し、循環になる候補は理由付きで残す', () => {
+    const options = managerOptions(members, members[0]!);
+    expect(options.map((option) => option.userId)).not.toContain(members[0]!.userId);
+    expect(options.find((option) => option.userId === members[3]!.userId)?.disabledReason).toBe(
+      '停止中のため上長に選べません',
+    );
+    expect(options.find((option) => option.userId === members[1]!.userId)?.disabledReason).toBe(
+      '選ぶと上長の関係が循環するため選べません',
+    );
+    expect(
+      options.find((option) => option.userId === members[2]!.userId)?.disabledReason,
+    ).toBeNull();
+  });
+
+  it('本人と組織管理者の上長欄を無効にする理由を返す', () => {
+    expect(managerFieldReasons(members[0]!, false)).toEqual([]);
+    expect(managerFieldReasons(members[0]!, true)).toEqual([
+      '自分自身の上長は自分では変更できません。別の組織管理者に設定を依頼してください。',
+    ]);
+    expect(managerFieldReasons(member(5, { roleCodes: ['org_admin'] }), false)).toEqual([
+      '組織管理者の上長は設定できません。上長を設定するには、先に組織管理者の役割を取り消してください。',
+    ]);
+    expect(managerFieldReasons(member(5, { roleCodes: ['org_admin'] }), true)).toHaveLength(2);
+  });
+});
+
 describe('利用者ディレクトリの内部URL', () => {
   it('再読込用の条件とページを保持し、フィルター変更では1ページ目へ戻す', () => {
     const query = parseDirectoryQuery({ q: '山田', role: 'agent', status: 'active', page: '3' });
@@ -179,6 +278,9 @@ describe('利用者ディレクトリの内部URL', () => {
       { q: '鈴木' },
       { role: 'requester' },
       { status: 'deactivated' as const },
+      { department: 'unset' as const },
+      { manager: 'unset' as const },
+      { jobTitle: '部長' },
     ]) {
       expect(
         new URL(directoryHref(query, overrides), 'https://solvi.test').searchParams.has('page'),

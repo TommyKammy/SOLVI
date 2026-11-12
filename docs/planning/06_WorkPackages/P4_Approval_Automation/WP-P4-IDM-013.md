@@ -7,11 +7,11 @@ type: "workpackage"
 status: "baseline"
 version: "0.3.0"
 created: "2026-11-12"
-updated: "2026-11-12"
+updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "identity", "organization", "ui"]
 source_of_truth: true
-implementation_status: "in-progress"
+implementation_status: "review"
 story_points: 8
 risk: "high"
 workstream: "IDM"
@@ -44,7 +44,7 @@ depends_on: ["WP-P4-IDM-012"]
 
 [[WP-P4-IDM-012]](done。Migration `0037`)。ADR-0023 は `accepted`。2026-11-12 に利用者の決定(組織管理者の上長は常に未設定)を受けて `baseline` に実体化した。
 
-**作業は2段階で行う**: (段階A)API・監査・security/unitテスト。使い捨てDBで検証する。(段階B)UI・ブラウザ確認・スクリーンショットとaxe。段階Bは、開発用DBへの Migration `0037` の適用について利用者の指示を得てから着手する。
+**作業は2段階で行う**: (段階A)API・監査・security/unitテスト。使い捨てDBで検証する。(段階B)UI・ブラウザ確認・スクリーンショットとaxe。段階Bは、開発用DBへの Migration `0037` の適用について利用者の指示を得てから着手する(2026-11-12 適用済み)。段階Bのブラウザ確認は、利用者の指示(2026-11-13)により稼働中の開発環境で行う。確認用の合成データ(目印付きの部署・部署長・プロフィール変更)が開発用DBに残る。
 
 ## 4. Scope / Allowed Paths
 
@@ -57,6 +57,7 @@ depends_on: ["WP-P4-IDM-012"]
 - `apps/web/src/app/ops/users/page.tsx`
 - `apps/web/src/app/ops/users/actions.ts`
 - `apps/web/src/app/ops/departments/`
+- `apps/web/src/app/ops/users/`(プロフィール編集の部品を同じ場所に置くため。2026-11-13 監督者が追加)
 - `apps/web/src/lib/api.ts`
 - `apps/web/src/lib/user-directory.ts`
 - `apps/web/src/lib/navigation.ts`
@@ -254,3 +255,53 @@ services/api/src/modules/auth/user-admin.* / apps/web/src/app/ops/users。
 - 同一組織で2人が互いを上長に設定する同時更新では、対象行の `FOR UPDATE`(先)と、トリガの advisory lock・外部キーの `FOR KEY SHARE`(後)の組み合わせにより、PostgreSQL がデッドロックを検出して片方を失敗させる可能性がある(fail closed。データは壊れない)。本修正の対象(同じ利用者への「上長設定」と「`org_admin` 付与」)は同じ行で直列化されるため該当しない。WP-P4-IDM-012 のトリガ設計に関わるため、必要なら別WPで扱う。
 
 **Evidence**: `evidence/WP-P4-IDM-013/20261112-2158/`
+
+### 13.3 段階B(UI・ブラウザ確認・Evidence)(2026-11-13)
+
+**変更ファイル**
+
+- `apps/web/src/app/ops/users/page.tsx` — 部署・上長・役職の列、部署/上長/役職の絞り込み、プロフィール充足状況、組織プロフィール編集、`/ops/departments` への導線
+- `apps/web/src/app/ops/users/actions.ts` — 組織プロフィール更新(変更された項目だけを送る。アカウント・組織・`org_admin` を毎回再確認)
+- `apps/web/src/app/ops/departments/page.tsx`(新規) — ツリー、追加、編集、メンバー、部署長の設定/終了、無効化の確認画面と拒否理由
+- `apps/web/src/app/ops/departments/actions.ts`(新規) — 部署の各変更。操作のたびに `api.me()` でアカウント・組織・権限を再確認。APIの日本語の理由だけを画面へ返す
+- `apps/web/src/app/ops/departments/department-ui.ts`(新規) — 選択中部署・確認状態の解析、内部URL、ツリーの平坦化、親部署の選択不可理由
+- `apps/web/src/lib/user-directory.ts` — 部署/上長/役職の条件、`unset`、URL生成、上長候補(循環・停止者)と無効理由、プロフィール通知
+- `apps/web/src/lib/navigation.ts` — `isOrgAdmin`(選択中の組織で有効な `org_admin` か)
+- `apps/web/src/lib/api.ts` — プロフィール取得/更新、部署ツリー/メンバー/部署長/作成/編集/無効化/設定/終了、一覧の追加項目と充足率
+- `services/api/src/modules/auth/department.service.ts` — `getHead`(現在の部署長を1件読む。`org_admin` のみ)
+- `services/api/src/modules/auth/department.routes.ts`(新規経路) — `GET /departments/:id/head`
+- `services/api/src/main.ts` — 上記経路の登録
+- `tests/unit/department-ui.test.ts`(新規) — 条件・URL・ツリー・親候補・画面表示・権限なし
+- `tests/unit/user-directory.test.ts` — 部署/上長/役職の絞り込み、上長候補の循環、無効理由
+- `tests/security/department-api.test.ts` — `head` の役割×エンドポイント拒否と、現在の部署長の読み取り
+- `tools/ui_department_check.mjs`(新規) — ループバック限定のブラウザ検査。目印付き合成データ、書込み回数の上限、再実行は `summary.json` を読む読み取り照合だけ、最後に片付け
+
+**Migration**: なし。スキーマ変更なし。APIは加算的な `GET /departments/:id/head` のみ。ロールバックはWeb/APIのrevertで戻せる。確認用の合成データ(無効化済み部署・終了済み部署長)は残る。
+
+**検証**
+
+| コマンド | 結果 |
+|---|---|
+| `npx vitest run tests/unit/department-ui.test.ts tests/unit/user-directory.test.ts tests/unit/user-directory-read.test.ts` | 41 passed |
+| `npm run test:unit` | 34 failed / 4,326 passed。失敗名の集合は段階Aの基点と同一(新規失敗0)。追加した13件は成功 |
+| `npm run typecheck` / `npm run lint` | 成功 |
+| `npm run check:all` | 成功 |
+| security再実行(使い捨てDB `solvi_wp013_test`): `department-api` / `department-api-concurrency` / `user-admin` | 93 passed |
+| ブラウザ WebKit | 15 checks、axe 9回・違反0、1440/375px、スクリーンショット9枚。通しの操作と片付けまで成功 |
+| ブラウザ Chromium | 14 checks、axe 10回・違反0、1440/375px、スクリーンショット10枚。書き込み(部署3・部署長1・プロフィール1)と片付けは成功。セレクタ競合の修正後、データ上限(Chromiumの合成部署6件)のため新規作成せず、記録済みIDの読み取り照合で残りを確認 |
+
+**受入基準(§7)の充足**
+
+1〜8、10は段階A(13.1・13.2)のとおり。9(UI・キーボード・axe・スクリーンショット)を充足。`/ops/users` と `/ops/departments` のキーボード操作、1440/375px の横溢れなし、axe serious/critical 0、画面画像を保存した。無効化の拒否理由(子部署・メンバー・部署長)はWebKitの通し操作で画面表示を確認。Chromiumは拒否理由の表示を読み取り状態で確認し、実操作の拒否3種はWebKitで確認した。
+
+**セキュリティ影響**: あり(認可・個人データ・監査)。UIは `org_admin` のときだけ変更導線を出し、操作のたびにAPIで権限を再確認する。主部署・上長はAPIから得た同一組織の選択肢だけで、本人・組織管理者の欄は無効化し理由を表示する。社員番号は一覧・URL・ログに出さない。APIの拒否理由だけを表示し、内部の例外文は出さない。**人間のSecurity Reviewerのレビューが必要**。
+
+**未解決事項**
+
+- 左レールの管理メニュー(`apps/web/src/lib/navigation-groups.ts`)と `/ops/admin` のカードはWP §4 Allowed Paths外のため変更していない。`/ops/users` の見出しに `/ops/departments` へのボタンを置いた。管理メニュー本体への追加は監督者の判断でAllowed Pathsを広げるか別PRが必要。
+- `platform_admin` は `/ops/users` を表示できる(`navigationRoles().admin`)が、部署・プロフィールの変更APIは `org_admin` だけを受け付ける。段階Bでは `/ops/departments` とプロフィール編集を `isOrgAdmin` で出し分けた。`platform_admin` の扱いはADR-0023 §3の`要確認`のまま。
+- 役職の絞り込みは§6の要求どおり `jobTitle` クエリに検索語を載せている。§9が役職を「個人データ」に含めるため、URLに載せない方式(POST+クッキー等)が必要か確認したい。社員番号・勤務地はURLに載せていない。
+- 開発用DBには、失敗した試行を含む合成部署11件(すべて `UI013-SYN-`、すべて無効)と、終了済み部署長3件が残る。既存利用者のプロフィールはすべて未設定へ戻した。Chromiumのブラウザ検査は合成部署の上限6件に達したため、完全な通しの再実行をしていない(上表)。
+- `tests/unit` の既存34失敗(ナレッジのfixture欠落、性能比較の固定source/commit不足)は変更前から。テストの削除・skipはしていない。
+
+**Evidence**: `evidence/WP-P4-IDM-013/20261113-0832/`

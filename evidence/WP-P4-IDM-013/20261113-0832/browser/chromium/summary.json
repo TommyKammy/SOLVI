@@ -1,0 +1,261 @@
+{
+  "workPackage": "WP-P4-IDM-013",
+  "stage": "B",
+  "browser": "chromium",
+  "marker": "UI013-SYN-1794526521592-chromium",
+  "success": true,
+  "createdAt": "2026-11-12T23:35:21.592Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "checks": [
+    {
+      "name": "利用者一覧に部署・上長・役職の列と絞り込みがある",
+      "passed": true
+    },
+    {
+      "name": "管理メニューの導線から部署管理をキーボードで開ける",
+      "passed": true
+    },
+    {
+      "name": "キーボードだけでルート部署を作成できる",
+      "passed": true
+    },
+    {
+      "name": "子部署を作成し、ツリーに親子が表示される",
+      "passed": true
+    },
+    {
+      "name": "部署長用の部署を作成し、管理画面のツリーを撮影する",
+      "passed": true
+    },
+    {
+      "name": "管理者が主部署と上長を設定できる",
+      "passed": true
+    },
+    {
+      "name": "読み取り: 利用者一覧の列・絞り込み・充足状況",
+      "passed": true
+    },
+    {
+      "name": "読み取り: 部署ツリーと無効化済み部署の詳細",
+      "passed": true
+    },
+    {
+      "name": "読み取り: 無効化の拒否理由を画面に表示する",
+      "passed": true
+    },
+    {
+      "name": "読み取り: 本人かつ組織管理者の欄が無効で理由が出る",
+      "passed": true
+    },
+    {
+      "name": "読み取り: 社員番号を一覧・URLに出さない",
+      "passed": true
+    },
+    {
+      "name": "読み取り: 1440px と 375px で横溢れがない",
+      "passed": true
+    },
+    {
+      "name": "読み取り: org_admin 以外には画面も導線も出ない",
+      "passed": true
+    },
+    {
+      "name": "前回の合成データを読み取りで照合した",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "users-list-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-tree-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "users-profile-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "users-list-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-tree-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-detail-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-error-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "users-self-disabled-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "users-list-readonly-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-detail-readonly-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "users-list-desktop-1440.png",
+    "departments-tree-desktop-1440.png",
+    "users-profile-desktop-1440.png",
+    "users-list-desktop-1440-readonly.png",
+    "departments-tree-desktop-1440-readonly.png",
+    "departments-detail-desktop-1440-readonly.png",
+    "departments-error-desktop-1440-readonly.png",
+    "users-self-disabled-desktop-1440-readonly.png",
+    "users-list-readonly-mobile-375.png",
+    "departments-detail-readonly-mobile-375.png"
+  ],
+  "writes": {
+    "departments": 3,
+    "headsAssigned": 1,
+    "profileUpdates": 1,
+    "deactivations": 3,
+    "rejectedDeactivations": 0
+  },
+  "profilePeople": [
+    "00000000-0000-4000-9000-000000000102"
+  ],
+  "ids": {
+    "rootDepartment": "01a1d21d-b476-7000-bad1-9d8764491621",
+    "childDepartment": "01a1d21d-b8a0-7000-bf6e-1f5e84b6e59b",
+    "headDepartment": "01a1d21d-c057-7000-a2c7-73aec5cab5cc",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "managerUser": "00000000-0000-4000-9000-000000000105",
+    "adminUser": "00000000-0000-4000-9000-000000000101"
+  },
+  "applied": {
+    "root": true,
+    "child": true,
+    "head": true,
+    "headAssigned": true,
+    "profile": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "部署長の終了",
+        "passed": true
+      },
+      {
+        "name": "プロフィールを未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "子部署を最上位へ移す",
+        "passed": true
+      },
+      {
+        "name": "子部署の無効化",
+        "passed": true
+      },
+      {
+        "name": "ルート部署の無効化",
+        "passed": true
+      },
+      {
+        "name": "部署長用部署の無効化",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "tabsBefore": 5,
+    "focus": {
+      "id": "department-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter"
+  },
+  "blocked": [],
+  "reconciliation": {
+    "readOnly": true,
+    "syntheticDepartments": [
+      {
+        "code": "UI013-SYN-1794526521592-chromium-CHILD",
+        "active": false
+      },
+      {
+        "code": "UI013-SYN-1794526521592-chromium-HEAD",
+        "active": false
+      },
+      {
+        "code": "UI013-SYN-1794526521592-chromium-ROOT",
+        "active": false
+      }
+    ],
+    "profileRestored": true,
+    "headsEnded": true
+  },
+  "browserVersion": "157.0.8103.51",
+  "currentStep": "complete"
+}

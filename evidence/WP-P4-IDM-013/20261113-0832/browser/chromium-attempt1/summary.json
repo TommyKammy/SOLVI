@@ -1,0 +1,142 @@
+{
+  "workPackage": "WP-P4-IDM-013",
+  "stage": "B",
+  "browser": "chromium",
+  "marker": "UI013-SYN-1794526364473-chromium",
+  "success": false,
+  "createdAt": "2026-11-12T23:32:44.473Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "checks": [
+    {
+      "name": "利用者一覧に部署・上長・役職の列と絞り込みがある",
+      "passed": true
+    },
+    {
+      "name": "管理メニューの導線から部署管理をキーボードで開ける",
+      "passed": true
+    },
+    {
+      "name": "キーボードだけでルート部署を作成できる",
+      "passed": true
+    },
+    {
+      "name": "子部署を作成し、ツリーに親子が表示される",
+      "passed": true
+    },
+    {
+      "name": "部署長用の部署を作成し、管理画面のツリーを撮影する",
+      "passed": true
+    },
+    {
+      "name": "管理者が主部署と上長を設定できる",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "users-list-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-tree-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "users-profile-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "users-list-desktop-1440.png",
+    "departments-tree-desktop-1440.png",
+    "users-profile-desktop-1440.png"
+  ],
+  "writes": {
+    "departments": 3,
+    "headsAssigned": 1,
+    "profileUpdates": 1,
+    "deactivations": 3,
+    "rejectedDeactivations": 0
+  },
+  "profilePeople": [
+    "00000000-0000-4000-9000-000000000102"
+  ],
+  "ids": {
+    "rootDepartment": "01a1d21b-4fd3-7000-b864-6edd97ba3d8d",
+    "childDepartment": "01a1d21b-53a4-7000-aa85-a0ace23ee891",
+    "headDepartment": "01a1d21b-5b25-7000-8f94-22cd11796c18",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "managerUser": "00000000-0000-4000-9000-000000000105",
+    "adminUser": "00000000-0000-4000-9000-000000000101"
+  },
+  "applied": {
+    "root": true,
+    "child": true,
+    "head": true,
+    "headAssigned": true,
+    "profile": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "部署長の終了",
+        "passed": true
+      },
+      {
+        "name": "プロフィールを未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "子部署を最上位へ移す",
+        "passed": true
+      },
+      {
+        "name": "子部署の無効化",
+        "passed": true
+      },
+      {
+        "name": "ルート部署の無効化",
+        "passed": true
+      },
+      {
+        "name": "部署長用部署の無効化",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "tabsBefore": 2,
+    "focus": {
+      "id": "department-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter"
+  },
+  "blocked": [],
+  "reconciliation": null,
+  "browserVersion": "157.0.8103.51",
+  "currentStep": "cleanup-complete",
+  "failure": "Expected values to be strictly equal:\n\n0 !== 1\n"
+}

@@ -792,6 +792,11 @@ async function bootstrap(): Promise<void> {
       const result = await departments.members(authenticated, params.id ?? '');
       return result.body;
     })
+    .get('/departments/:id/head', async (req, _res, params) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await departments.head(authenticated, params.id ?? '');
+      return result.body;
+    })
     .post('/departments/:id/head', async (req, res, params) => {
       const authenticated = await auth.authenticate(req.headers);
       const result = await departments.assignHead(

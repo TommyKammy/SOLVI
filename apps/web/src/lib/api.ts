@@ -141,6 +141,68 @@ export interface SessionView {
   roles: Array<{ roleCode: string; organizationId: string | null }>;
 }
 
+/** 部署ツリー (WP-P4-IDM-013)。管理画面だけが使う。 */
+export interface DepartmentNode {
+  id: string;
+  code: string;
+  name: string;
+  parentId: string | null;
+  active: boolean;
+  depth: number;
+  children: DepartmentNode[];
+}
+
+export interface DepartmentRecord {
+  id: string;
+  code: string;
+  name: string;
+  parentId: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DepartmentHeadView {
+  id: string;
+  departmentId: string;
+  userId: string;
+  displayName: string;
+  validFrom: string;
+  validUntil: string | null;
+}
+
+export interface DepartmentMemberView {
+  userId: string;
+  displayName: string;
+  status: 'active' | 'deactivated';
+  jobTitle: string | null;
+  managerUserId: string | null;
+  managerDisplayName: string | null;
+  activeMembership: boolean;
+}
+
+/** 組織プロフィール (FR-IDM-014)。`limited` は agent 向けの最小表示。 */
+export interface MemberProfileView {
+  userId: string;
+  displayName: string;
+  visibility: 'full' | 'limited';
+  primaryDepartmentId?: string | null;
+  primaryDepartmentName?: string | null;
+  managerUserId?: string | null;
+  managerDisplayName?: string | null;
+  jobTitle?: string | null;
+  location?: string | null;
+  employeeId?: string | null;
+}
+
+export interface ProfileCompleteness {
+  totalMembers: number;
+  missingManager: number;
+  missingDepartment: number;
+  totalDepartments: number;
+  missingDepartmentHead: number;
+}
+
 export interface CommentView {
   authorIsRequester?: boolean;
   id: string;
@@ -1604,8 +1666,83 @@ export const api = {
           expiringSoon: boolean;
         }>;
         openTicketCount: number;
+        /** 主部署 (WP-P4-IDM-013)。未設定は null。 */
+        primaryDepartmentId: string | null;
+        primaryDepartmentName: string | null;
+        managerUserId: string | null;
+        managerDisplayName: string | null;
+        jobTitle: string | null;
       }>;
+      /** プロフィール充足率 (WP-P4-IDM-013 §6)。 */
+      profileCompleteness: ProfileCompleteness;
     }>('/users'),
+
+  /** 組織プロフィール (FR-IDM-014 / WP-P4-IDM-013)。閲覧範囲はAPIが決める。 */
+  getProfile: (userId: string) =>
+    call<{ profile: MemberProfileView }>(`/users/${encodeURIComponent(userId)}/profile`),
+
+  /** 主部署・上長・役職・勤務地・社員番号の更新。 */
+  updateProfile: (
+    userId: string,
+    body: {
+      primaryDepartmentId?: string | null;
+      managerUserId?: string | null;
+      jobTitle?: string | null;
+      location?: string | null;
+      employeeId?: string | null;
+    },
+  ) =>
+    call<{ profile: MemberProfileView }>(`/users/${encodeURIComponent(userId)}/profile`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  /** 部署ツリー (WP-P4-IDM-013)。org_admin のみ。 */
+  listDepartments: () => call<{ items: DepartmentNode[] }>('/departments'),
+
+  departmentMembers: (departmentId: string) =>
+    call<{ items: DepartmentMemberView[] }>(
+      `/departments/${encodeURIComponent(departmentId)}/members`,
+    ),
+
+  /** 現在の部署長。未設定は null。 */
+  departmentHead: (departmentId: string) =>
+    call<{ head: DepartmentHeadView | null }>(
+      `/departments/${encodeURIComponent(departmentId)}/head`,
+    ),
+
+  createDepartment: (body: { code: string; name: string; parentId?: string | null }) =>
+    call<{ department: DepartmentRecord }>('/departments', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editDepartment: (
+    departmentId: string,
+    body: { code?: string; name?: string; parentId?: string | null },
+  ) =>
+    call<{ department: DepartmentRecord }>(
+      `/departments/${encodeURIComponent(departmentId)}/edit`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  deactivateDepartment: (departmentId: string) =>
+    call<{ department: DepartmentRecord }>(
+      `/departments/${encodeURIComponent(departmentId)}/deactivate`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+
+  assignDepartmentHead: (departmentId: string, userId: string) =>
+    call<{ head: DepartmentHeadView }>(`/departments/${encodeURIComponent(departmentId)}/head`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+
+  endDepartmentHead: (departmentId: string, validUntil: string | null) =>
+    call<{ head: DepartmentHeadView }>(
+      `/departments/${encodeURIComponent(departmentId)}/head/end`,
+      { method: 'POST', body: JSON.stringify({ validUntil }) },
+    ),
 
   /** 利用者を作る (WP-P1-IDM-016)。作るだけで、入れるようにはしない。 */
   createUser: (body: { email: string; displayName: string; roleCode: string; reason: string }) =>

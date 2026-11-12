@@ -370,6 +370,7 @@ describe('役割×エンドポイントの総当り (TL-06)', () => {
       () => departments.deactivate(actor.ctx, deptId),
       () => departments.assignHead(actor.ctx, deptId, { userId: managerA.id }),
       () => departments.endHead(actor.ctx, deptId, {}),
+      () => departments.head(actor.ctx, deptId),
       () => users.updateProfile(actor.ctx, employeeA.id, { jobTitle: '拒否' }),
     ] as Array<() => Promise<unknown>>) {
       await expectProblem(run(call), 403);
@@ -824,6 +825,22 @@ describe('部署長の重複と終了日 (FR-IDM-012)', () => {
       [deptId],
     );
     expect(rows[0].n).toBe(1);
+  });
+
+  it('**現在の部署長を読み取れ、終了後は未設定になる**', async () => {
+    const deptId = await mkDepartment('head-read');
+    expect((await run(() => departments.head(adminA.ctx, deptId))).body.head).toBeNull();
+    await run(() => departments.assignHead(adminA.ctx, deptId, { userId: managerA.id }));
+    const current = await run(() => departments.head(adminA.ctx, deptId));
+    expect(current.status).toBe(200);
+    expect(current.body.head).toMatchObject({
+      departmentId: deptId,
+      userId: managerA.id,
+      displayName: expect.any(String),
+      validUntil: null,
+    });
+    await run(() => departments.endHead(adminA.ctx, deptId, { validUntil: null }));
+    expect((await run(() => departments.head(adminA.ctx, deptId))).body.head).toBeNull();
   });
 
   it('**終了日は延長できない**(履歴を書き換えない)', async () => {

@@ -19,6 +19,19 @@ export function navigationRoles(session: SessionView) {
   };
 }
 
+/**
+ * 選択中の組織で有効な `org_admin` か (WP-P4-IDM-013)。
+ *
+ * 部署・上長・主部署の変更APIは `org_admin` だけを受け付ける。
+ * 画面の導線も**同じ条件**で出し、押すと必ず拒否される入口を並べない。
+ * `navigationRoles().admin` は `platform_admin` を含むため、変更操作には使わない。
+ */
+export function isOrgAdmin(session: SessionView): boolean {
+  return session.roles.some(
+    (r) => r.roleCode === 'org_admin' && r.organizationId === session.organizationId,
+  );
+}
+
 /** 戻り先はアプリの一覧と詳細だけ。任意URLへのredirectを作らない。 */
 export function safeReturnTo(value: unknown, depth = 0): string | null {
   if (typeof value !== 'string' || value.length > 2000 || !value.startsWith('/')) return null;

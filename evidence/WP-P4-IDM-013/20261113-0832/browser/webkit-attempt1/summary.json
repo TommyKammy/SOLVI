@@ -1,0 +1,94 @@
+{
+  "workPackage": "WP-P4-IDM-013",
+  "stage": "B",
+  "browser": "webkit",
+  "marker": "UI013-SYN-1794526617676-webkit",
+  "success": false,
+  "createdAt": "2026-11-12T23:36:57.676Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "checks": [
+    {
+      "name": "利用者一覧に部署・上長・役職の列と絞り込みがある",
+      "passed": true
+    },
+    {
+      "name": "管理メニューの導線から部署管理をキーボードで開ける",
+      "passed": true
+    },
+    {
+      "name": "キーボードだけでルート部署を作成できる",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "users-list-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "users-list-desktop-1440.png"
+  ],
+  "writes": {
+    "departments": 2,
+    "headsAssigned": 0,
+    "profileUpdates": 0,
+    "deactivations": 1,
+    "rejectedDeactivations": 0
+  },
+  "profilePeople": [],
+  "ids": {
+    "rootDepartment": "01a1d21f-2c74-7000-a124-effe42c7206b",
+    "childDepartment": "01a1d21f-30d8-7000-a727-e482889e9683"
+  },
+  "applied": {
+    "root": true,
+    "child": true,
+    "head": false,
+    "headAssigned": false,
+    "profile": false
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": false,
+    "steps": [
+      {
+        "name": "子部署を最上位へ移す",
+        "passed": true
+      },
+      {
+        "name": "ルート部署の無効化",
+        "passed": true
+      }
+    ],
+    "errors": [
+      {
+        "name": "子部署の無効化",
+        "message": "page.goto: Navigation to \"http://127.0.0.1:3000/ops/departments?department=01a1d21f-30d8-7000-a727-e482889e9683\" is interrupted by another navigation to \"http://127.0.0.1:3000/ops/departments?department=01a1d21f-30d8-7000-a727-e482889e9683&notice=updated\"\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/ops/departments?department=01a1d21f-30d8-7000-a727-e482889e9683\", waiting until \"load\"\u001b[22m\n"
+      }
+    ]
+  },
+  "keyboard": {
+    "tabsBefore": 8,
+    "submitTabs": 1,
+    "focus": {
+      "id": "department-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter"
+  },
+  "blocked": [],
+  "reconciliation": null,
+  "browserVersion": "26.5",
+  "currentStep": "cleanup-complete",
+  "failure": "page.goto: Navigation to \"http://127.0.0.1:3000/ops/departments\" is interrupted by another navigation to \"http://127.0.0.1:3000/ops/departments?department=01a1d21f-30d8-7000-a727-e482889e9683&notice=created\"\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/ops/departments\", waiting until \"load\"\u001b[22m\n"
+}

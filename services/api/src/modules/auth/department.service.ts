@@ -605,6 +605,19 @@ export class DepartmentService {
     };
   }
 
+  /**
+   * 現在の部署長 (WP-P4-IDM-013 段階B)。
+   *
+   * 画面は「誰が部署長か」と「終了できるか」を出す必要がある。
+   * 一覧のツリーへ混ぜると全部署ぶんの個人名を運ぶことになるため、
+   * 選択中の1件だけを読む経路にした。読めるのは組織管理者だけである。
+   */
+  async getHead(ctx: AuthzContext, departmentId: string): Promise<DepartmentHeadRecord | null> {
+    this.requireAdmin(ctx);
+    const department = await this.requireDepartment(ctx, departmentId);
+    return this.currentHead(ctx, department.id);
+  }
+
   async assignHead(
     ctx: AuthzContext,
     departmentId: string,
