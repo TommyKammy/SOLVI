@@ -260,7 +260,7 @@ const onlyKeys = (value: Record<string, unknown>, allowed: string[]) =>
 export function parseApprovalRoute(value: unknown): ApprovalRoute | null {
   if (!isObject(value) || !onlyKeys(value, ['steps', 'ruleRef'])) return null;
   const steps = value.steps;
-  if (!Array.isArray(steps) || steps.length === 0) return null;
+  if (!Array.isArray(steps) || steps.length === 0 || steps.length > 3) return null;
 
   const parsed: ApprovalRouteStep[] = [];
   const approvers = new Set<string>();

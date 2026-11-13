@@ -85,6 +85,14 @@ export const AUDIT_EVENT_TYPES = [
   'approval.invalidated',
   'approval.cancelled',
   'approval.expired',
+  // 承認ルーティング (WP-P4-APR-015 / 02.17 §2.2)。
+  // 経路を決めた各版・ルールの作成/改版/無効化・組織単位の有効化切替を記録する。
+  'approval.route.resolved',
+  'approval.rule.created',
+  'approval.rule.revised',
+  'approval.rule.deactivated',
+  'approval.routing.enabled',
+  'approval.routing.disabled',
   'article.saved',
   'article.review',
   'article.restore',

@@ -285,6 +285,29 @@ function database(
   };
   const originalSnapshot = structuredClone(snapshot);
   const query = vi.fn(async (sql: string, _params: unknown[] = []) => {
+    if (sql.includes('SELECT clock_timestamp() AS now'))
+      return { rows: [{ now: new Date('2026-11-13T00:00:00Z') }], rowCount: 1 };
+    if (sql.includes('FROM org_approval_setting')) return { rows: [], rowCount: 0 };
+    if (sql.includes('AS active_membership'))
+      return {
+        rows: [
+          {
+            id: requester,
+            status: 'active',
+            active_membership: true,
+            has_approver_role: false,
+            is_org_admin: false,
+          },
+          {
+            id: approver,
+            status: 'active',
+            active_membership: true,
+            has_approver_role: true,
+            is_org_admin: false,
+          },
+        ],
+        rowCount: 2,
+      };
     if (sql.includes('FROM local_service_request'))
       return { rows: sql.includes('idempotency_key') && !replay ? [] : [request], rowCount: 1 };
     if (sql.includes('SELECT * FROM local_request_revision'))

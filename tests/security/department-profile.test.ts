@@ -1001,6 +1001,33 @@ describe('Migration: バックフィル・up/down (TL-05)', () => {
     await admin.query('DELETE FROM department');
   }
 
+  /** 0039 の down を検証する前に、後続Migrationが残した承認ルール/設定を空にする。 */
+  async function allApprovalRulesEmpty(): Promise<void> {
+    let disabled = false;
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET CONSTRAINTS approval_rule_current_revision_fk DEFERRED');
+      await admin.query(
+        'ALTER TABLE approval_rule_revision DISABLE TRIGGER approval_rule_revision_immutable',
+      );
+      disabled = true;
+      await admin.query('DELETE FROM approval_rule_revision');
+      await admin.query('DELETE FROM approval_rule');
+      await admin.query('DELETE FROM org_approval_setting');
+      await admin.query('COMMIT');
+    } catch (error) {
+      await admin.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      if (disabled)
+        await admin
+          .query(
+            'ALTER TABLE approval_rule_revision ENABLE TRIGGER approval_rule_revision_immutable',
+          )
+          .catch(() => undefined);
+    }
+  }
+
   it('**バックフィルは有効な org スコープの所属ごとに1行を作る**(期限切れ・将来開始・platform のみは作らない)', async () => {
     const org = await mkOrg('bf');
     const other = await mkOrg('bf2');
@@ -1090,6 +1117,7 @@ describe('Migration: バックフィル・up/down (TL-05)', () => {
     const org = await mkOrg('updown');
     const user = await mkUser('ud', { bindingOrg: org });
     try {
+      await allApprovalRulesEmpty();
       const reverted = migrate('down', '--to', '0037');
       expect(reverted.ok, reverted.output).toBe(true);
       const { rows: latest } = await admin.query<{ version: string | null }>(

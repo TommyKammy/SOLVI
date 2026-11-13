@@ -27,6 +27,7 @@ import { ChangeController } from './modules/change/change.routes.js';
 import { AssetsController } from './modules/assets/assets.routes.js';
 import { CatalogAdminController } from './modules/catalog/catalog-admin.routes.js';
 import { CatalogController } from './modules/catalog/catalog.routes.js';
+import { ApprovalRuleController } from './modules/catalog/approval-rule.routes.js';
 import { AuditExportController } from './modules/audit/audit-export.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
@@ -156,6 +157,7 @@ async function bootstrap(): Promise<void> {
   const assets = new AssetsController(db.authPool());
   const assetImports = new AssetImportsController(db.authPool());
   const catalogAdmin = new CatalogAdminController(db.authPool(), env.NODE_ENV === 'development');
+  const approvalRules = new ApprovalRuleController(db.authPool(), env.NODE_ENV === 'development');
   const catalog = new CatalogController(
     db.authPool(),
     objectStorage,
@@ -421,6 +423,74 @@ async function bootstrap(): Promise<void> {
       ),
     )
     .get('/catalog', async (req) => catalog.catalog(await auth.authenticate(req.headers)))
+    // ---- 承認ルール・有効化設定・経路プレビュー (WP-P4-APR-015 段階A) ----
+    .get('/approval-rules', async (req, res) => {
+      const result = await approvalRules.list(await auth.authenticate(req.headers));
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/approval-rules', async (req, res) => {
+      const result = await approvalRules.create(
+        await auth.authenticate(req.headers),
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/approval-rules/:id/revisions', async (req, res, params) => {
+      const result = await approvalRules.revise(
+        await auth.authenticate(req.headers),
+        params['id']!,
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/approval-rules/:id/deactivate', async (req, res, params) => {
+      const result = await approvalRules.deactivate(
+        await auth.authenticate(req.headers),
+        params['id']!,
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .get('/approval-rules/:id/history', async (req, res, params) => {
+      const result = await approvalRules.history(
+        await auth.authenticate(req.headers),
+        params['id']!,
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .get('/approval-rules/:id/unresolved', async (req, res, params) => {
+      const result = await approvalRules.unresolved(
+        await auth.authenticate(req.headers),
+        params['id']!,
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .get('/approval-routing', async (req, res) => {
+      const result = await approvalRules.settings(await auth.authenticate(req.headers));
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/approval-routing', async (req, res) => {
+      const result = await approvalRules.updateSettings(
+        await auth.authenticate(req.headers),
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
+    .post('/approval-routing/preview', async (req, res) => {
+      const result = await approvalRules.preview(
+        await auth.authenticate(req.headers),
+        await readJsonBody(req),
+      );
+      res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result.body));
+    })
     .get('/service-requests', async (req) =>
       catalog.list(
         await auth.authenticate(req.headers),

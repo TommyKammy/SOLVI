@@ -8,7 +8,7 @@
  * - 新しい列にデータがあると down は拒否する
  * - 既存データに重複があれば Migration は失敗する(黙って直さない)
  *
- * DB名は `solvi_wp014_test_compat_<乱数>`。テストが自分で作成し、最後に削除する。
+ * DB名は `solvi_wp015_test_compat_<乱数>`。テストが自分で作成し、最後に削除する。
  * 開発用DB(`solvi`)には接続しない(名前ガードで即失敗する)。
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -26,7 +26,7 @@ import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/a
 
 const ROOT = join(__dirname, '../..');
 const MIGRATIONS = join(ROOT, 'db/migrations');
-const DB_NAME = `solvi_wp014_test_compat_${randomUUID().slice(0, 8)}`;
+const DB_NAME = `solvi_wp015_test_compat_${randomUUID().slice(0, 8)}`;
 const ORG = uuidv7();
 const REQUESTER = uuidv7();
 const APPROVER = uuidv7();
@@ -117,9 +117,9 @@ async function applyThrough(target: string): Promise<void> {
   }
 }
 
-function migrate(command: 'up' | 'down'): { ok: boolean; output: string } {
+function migrate(...args: string[]): { ok: boolean; output: string } {
   try {
-    const out = execFileSync('node', ['tools/migrate.mjs', command], {
+    const out = execFileSync('node', ['tools/migrate.mjs', ...args], {
       cwd: ROOT,
       env: { ...process.env, DATABASE_ADMIN_URL: adminUrl },
       encoding: 'utf8',
@@ -213,9 +213,9 @@ beforeAll(async () => {
   maintenance = new pg.Client({ connectionString: maintenanceUrl.toString() });
   await maintenance.connect();
   const current = (await maintenance.query('SELECT current_database() AS n')).rows[0].n as string;
-  if (current.includes('test') && !current.includes('wp014'))
+  if (current.includes('test') && !current.includes('wp015'))
     throw new Error('保守接続のDB名が想定と違います。中止します');
-  if (!/^[a-z0-9_]+$/.test(DB_NAME) || !DB_NAME.includes('wp014') || !DB_NAME.includes('test'))
+  if (!/^[a-z0-9_]+$/.test(DB_NAME) || !DB_NAME.includes('wp015') || !DB_NAME.includes('test'))
     throw new Error('テスト用DB名が不正です。中止します');
 
   const exists = await maintenance.query('SELECT 1 FROM pg_database WHERE datname=$1', [DB_NAME]);
@@ -231,7 +231,7 @@ beforeAll(async () => {
   appUrl.pathname = `/${DB_NAME}`;
   pool = new pg.Pool({ connectionString: appUrl.toString(), max: 4 });
   const name = (await pool.query('SELECT current_database() AS n')).rows[0].n as string;
-  if (!name.includes('wp014') || !name.includes('test'))
+  if (!name.includes('wp015') || !name.includes('test'))
     throw new Error(`接続先 ${name} は使い捨てDBではありません。中止します`);
 
   // 0037 までの状態を作る
@@ -313,7 +313,7 @@ afterAll(async () => {
   await admin?.end().catch(() => undefined);
   if (maintenance) {
     try {
-      if (DB_NAME.includes('wp014') && DB_NAME.includes('test'))
+      if (DB_NAME.includes('wp015') && DB_NAME.includes('test'))
         await maintenance.query(`DROP DATABASE IF EXISTS ${DB_NAME} WITH (FORCE)`);
     } finally {
       await maintenance.end().catch(() => undefined);
@@ -441,7 +441,7 @@ describe('0038: 適用前後の互換(TL-05)', () => {
   }, 120_000);
 
   it('新しい列にデータが無ければ down → up でき、移行前の行は legacy のまま', async () => {
-    const down = migrate('down');
+    const down = migrate('down', '--to', '0037');
     expect(down.ok, down.output).toBe(true);
     const columns = (
       await q(
@@ -470,7 +470,7 @@ describe('0038: 適用前後の互換(TL-05)', () => {
       'UPDATE local_request_revision SET route=$2,route_hash=$3 WHERE request_id=$1 AND revision=1',
       [controlId, route, routeHash(route)],
     );
-    const down = migrate('down');
+    const down = migrate('down', '--to', '0037');
     expect(down.ok).toBe(false);
     expect(down.output).toContain('0038 rollback refused');
     expect((await q("SELECT 1 FROM schema_migration WHERE version='0038'")).rowCount).toBe(1);

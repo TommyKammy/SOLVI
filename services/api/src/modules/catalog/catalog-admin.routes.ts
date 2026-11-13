@@ -11,11 +11,15 @@ import {
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 import { definitionSchema } from './catalog-definition.js';
+import { activeRuleExists } from './approval-rule.service.js';
 const content = z
   .object({
     title: z.string().trim().min(1).max(200),
     description: z.string().trim().min(1).max(2000),
-    definition: definitionSchema.refine((d) => Boolean(d.approval), '固定承認者を設定してください'),
+    definition: definitionSchema.refine(
+      (d) => Boolean(d.approval),
+      '固定承認者または承認ルールを設定してください',
+    ),
   })
   .strict();
 const createSchema = content
@@ -111,6 +115,13 @@ export class CatalogAdminController {
       groups,
       questionSets: await this.questionSets(c, auth.authz.organizationId),
       approvers: (await c.query(approversSql, [auth.authz.organizationId])).rows,
+      // 定義に結び付けられる有効な承認ルール(同じ組織だけ。RLS + 明示条件)。
+      rules: (
+        await c.query(
+          'SELECT id,code,name,current_revision AS "currentRevision" FROM approval_rule WHERE organization_id=$1 AND active ORDER BY code,id',
+          [auth.authz.organizationId],
+        )
+      ).rows,
       canCreate: true,
       canPublish: this.administrator(auth),
       canManageQuestionSets: this.administrator(auth),
@@ -122,6 +133,7 @@ export class CatalogAdminController {
       owners: Array<{ id: string; name: string }>;
       groups: Array<{ id: string; name: string }>;
       approvers: Array<{ id: string; name: string }>;
+      rules: Array<{ id: string; code: string; name: string }>;
     },
   ) {
     const parsed = definitionSchema.safeParse(value),
@@ -130,11 +142,19 @@ export class CatalogAdminController {
     if (!parsed.success) issues.push(...parsed.error.issues.map((issue) => issue.message));
     else {
       const definition = parsed.data;
-      if (
-        !definition.approval ||
-        !options.approvers.some((person) => person.id === definition.approval!.approverId)
-      )
-        issues.push('現在有効な固定承認者を設定してください');
+      if (!definition.approval) issues.push('固定承認者または承認ルールを設定してください');
+      else {
+        if (
+          definition.approval.approverId &&
+          !options.approvers.some((person) => person.id === definition.approval!.approverId)
+        )
+          issues.push('現在有効な固定承認者を設定してください');
+        if (
+          definition.approval.ruleId &&
+          !options.rules.some((rule) => rule.id === definition.approval!.ruleId)
+        )
+          issues.push('現在有効な承認ルールを設定してください');
+      }
       if (definition.ownerId && !options.owners.some((person) => person.id === definition.ownerId))
         issues.push('責任者が現在有効な同じ組織の候補にありません');
       if (
@@ -152,6 +172,18 @@ export class CatalogAdminController {
     auth: AuthenticatedRequest,
     definition: CatalogDefinition,
   ) {
+    // 版属性 `ruleId` は保存時点で同じ組織の有効なルールを指すこと(WP §6.1)。
+    // 他組織・無効・不在は 400。組織の有効化設定が無効でも保存自体は許す(準備のため)。
+    if (
+      definition.approval?.ruleId &&
+      !(await activeRuleExists(c, auth.authz.organizationId, definition.approval.ruleId))
+    )
+      throw Problems.validation([
+        {
+          field: 'definition.approval.ruleId',
+          message: '現在有効な同じ組織の承認ルールを設定してください',
+        },
+      ]);
     const options = await this.options(c, auth),
       readiness = this.readiness(definition, options);
     if (!readiness.ready)
@@ -161,7 +193,9 @@ export class CatalogAdminController {
             ? 'definition.ownerId'
             : message.startsWith('処理グループ')
               ? 'definition.fulfillmentGroupId'
-              : 'definition.approval.approverId',
+              : message.startsWith('現在有効な承認ルール')
+                ? 'definition.approval.ruleId'
+                : 'definition.approval.approverId',
           message,
         })),
       );
@@ -380,7 +414,10 @@ export class CatalogAdminController {
         const d = parse(definitionSchema, r.definition);
         if (!d.approval)
           throw Problems.validation([
-            { field: 'approval', message: '下書きを編集して固定承認者を設定してください' },
+            {
+              field: 'approval',
+              message: '下書きを編集して固定承認者または承認ルールを設定してください',
+            },
           ]);
         await this.references(c, auth, d);
         await c.query(

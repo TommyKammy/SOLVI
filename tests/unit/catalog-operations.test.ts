@@ -198,6 +198,37 @@ function database({
         ],
         rowCount: 2,
       };
+    if (sql.includes('FROM approval_rule')) return { rows: [], rowCount: 0 };
+    if (sql.includes('SELECT clock_timestamp() AS now'))
+      return { rows: [{ now: new Date('2026-11-13T00:00:00Z') }], rowCount: 1 };
+    if (sql.includes('FROM org_approval_setting')) return { rows: [], rowCount: 0 };
+    if (sql.includes('AS active_membership'))
+      return {
+        rows: [
+          {
+            id: editorId,
+            status: 'active',
+            active_membership: true,
+            has_approver_role: false,
+            is_org_admin: false,
+          },
+          {
+            id: otherId,
+            status: 'active',
+            active_membership: true,
+            has_approver_role: false,
+            is_org_admin: false,
+          },
+          {
+            id: approverId,
+            status: 'active',
+            active_membership: true,
+            has_approver_role: true,
+            is_org_admin: false,
+          },
+        ],
+        rowCount: 3,
+      };
     if (sql.includes('FROM assignment_group'))
       return { rows: [{ id: groupId, name: '処理グループ' }], rowCount: 1 };
     if (sql.includes('FROM local_catalog_question_set_revision')) return { rows: [], rowCount: 0 };

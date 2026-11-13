@@ -25,6 +25,11 @@ import {
   type ApprovalStepRow,
   type RequestState,
 } from './approval-state.js';
+import {
+  approvalResolutionProblem,
+  resolveRouteForRequest,
+  type ResolverFailure,
+} from './approval-resolver.js';
 import { canonical, hash } from './snapshot-hash.js';
 
 const uuid = z.string().uuid();
@@ -32,7 +37,8 @@ const inputSchema = z
   .object({
     reason: z.string().trim().max(2000).optional(),
     durationDays: z.number().finite().optional(),
-    approverId: uuid,
+    // ルールで経路を決める版では使わない(WP §6.1)。ルールを使わない版では従来どおり必須。
+    approverId: uuid.optional(),
     values: z
       .record(
         z.union([
@@ -95,6 +101,16 @@ function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
     );
   return r.data;
 }
+/** 経路解決の拒否。`run` がロールバック後に拒否の監査を書くために運ぶ。 */
+class ApprovalRouteDenied extends Error {
+  constructor(
+    readonly reason: ResolverFailure,
+    readonly target: { type: 'catalog_item' | 'service_request'; id: string },
+  ) {
+    super(reason.message);
+    this.name = 'ApprovalRouteDenied';
+  }
+}
 export class CatalogController {
   constructor(
     private readonly pool: pg.Pool,
@@ -116,9 +132,57 @@ export class CatalogController {
       return result;
     } catch (e) {
       await c.query('ROLLBACK').catch(() => undefined);
+      // 解決不能の監査は業務トランザクションの外に置く(拒否で業務は巻き戻るため)。
+      // 同じ接続のロールバック後に独立したトランザクションで書く。
+      if (e instanceof ApprovalRouteDenied) {
+        await this.recordDenied(c, auth, e.target, e.reason);
+        throw approvalResolutionProblem(e.reason);
+      }
       throw e;
     } finally {
       c.release();
+    }
+  }
+  /**
+   * 解決不能の拒否を監査する(02.17 §2.2)。
+   * 業務トランザクションは既にロールバック済み。同じ接続で新しいトランザクションを張り、
+   * `outcome=denied` と足りない設定の種別だけを残す。拒否の事実を監査失敗で覆さない。
+   */
+  private async recordDenied(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    target: { type: 'catalog_item' | 'service_request'; id: string },
+    reason: ResolverFailure,
+  ): Promise<void> {
+    try {
+      await c.query('BEGIN');
+      await c.query("SELECT set_config('app.current_org',$1,true)", [auth.authz.organizationId]);
+      await recordAuditEvent(c, {
+        eventType: 'approval.route.resolved',
+        organizationId: auth.authz.organizationId,
+        actorType: 'user',
+        actorId: auth.userId,
+        targetType: target.type,
+        targetId: target.id,
+        action: 'approval.route.resolved',
+        outcome: 'denied',
+        policyDecision: {
+          reason: reason.code,
+          missing: reason.missing,
+          stepNo: reason.stepNo ?? null,
+        },
+        afterState: {
+          resolved: false,
+          stepNo: reason.stepNo ?? null,
+          authorityType: reason.authorityType ?? null,
+        },
+      });
+      await c.query('COMMIT');
+    } catch (error) {
+      await c.query('ROLLBACK').catch(() => undefined);
+      this.logger?.warn('catalog.approval.route.denial_audit_failed', {
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
   private staff(auth: AuthenticatedRequest) {
@@ -199,23 +263,70 @@ export class CatalogController {
       throw Problems.forbidden('現在有効な同組織の承認者を選んでください');
   }
   /**
-   * 申請・変更時に経路を決める**唯一の関数**(WP §6.1)。
-   * 本WPでは常に1段。定義に固定承認者があれば `fixed`、申請者が選んだなら `legacy`。
-   * WP-P4-APR-015 はこの関数を差し替える(それ以外の箇所で経路を作らない)。
+   * 申請・変更時に経路を決める**唯一の関数**(WP §6.1 / ADR-0023 §9)。
+   *
+   * 組織で有効化されていて定義に `ruleId` がある版だけルールで解決し、
+   * それ以外は現行互換(固定承認者、無ければ申請者が選んだ承認者)の1段にする。
+   * 解決できない場合は例外にし、申請者が選んだ承認者や固定承認者で代用しない。
    */
-  private resolveRoute(definition: Definition, selectedApproverId: string): ApprovalRoute {
-    const fixed = definition.approval?.approverId;
+  private async resolveRoute(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    definition: Definition,
+    selectedApproverId: string | null,
+    target: { type: 'catalog_item' | 'service_request'; id: string },
+  ): Promise<{ route: ApprovalRoute; usingRule: boolean; ruleRoutingEnabled: boolean }> {
+    const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+    const resolution = await resolveRouteForRequest(c, {
+      organizationId: auth.authz.organizationId,
+      requesterId: auth.userId,
+      definition,
+      selectedApproverId,
+      now,
+    });
+    const usingRule = resolution.ruleRoutingEnabled && Boolean(definition.approval?.ruleId);
+    if (!resolution.ok) throw new ApprovalRouteDenied(resolution.reason, target);
     return {
-      steps: [
-        {
-          stepNo: 1,
-          approverId: fixed ?? selectedApproverId,
-          authorityType: fixed ? 'fixed' : 'legacy',
-          resolvedFrom: null,
-        },
-      ],
-      ruleRef: null,
+      route: resolution.route,
+      usingRule,
+      ruleRoutingEnabled: resolution.ruleRoutingEnabled,
     };
+  }
+  /**
+   * 経路を決めた各版に `approval.route.resolved` を記録する(WP §6.1 / 02.17 §2.2)。
+   * after にはルール参照・段数・各段の種別と resolvedFrom だけを入れ、
+   * 申請の入力値・個人データは載せない(承認者IDは参照でありPIIではない)。
+   */
+  private async routeResolvedEvent(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    requestId: string,
+    route: ApprovalRoute,
+    revision: number,
+    ruleRoutingEnabled: boolean,
+  ) {
+    await recordAuditEvent(c, {
+      eventType: 'approval.route.resolved',
+      organizationId: auth.authz.organizationId,
+      actorType: 'user',
+      actorId: auth.userId,
+      targetType: 'service_request',
+      targetId: requestId,
+      action: 'approval.route.resolved',
+      outcome: 'success',
+      afterState: {
+        revision,
+        routeGeneration: 1,
+        ruleRoutingEnabled,
+        ruleId: route.ruleRef?.ruleId ?? null,
+        ruleRevision: route.ruleRef?.revision ?? null,
+        stepCount: route.steps.length,
+        stepTypes: route.steps.map((step) => step.authorityType).join(','),
+        resolvedFrom: route.steps.map((step) => step.resolvedFrom ?? '').join(','),
+        approverIds: route.steps.map((step) => step.approverId).join(','),
+        routeHash: routeHash(route),
+      },
+    });
   }
   async catalog(auth: AuthenticatedRequest) {
     return this.run(auth, async (c) => ({
@@ -585,19 +696,19 @@ export class CatalogController {
         });
         if (!routeCheck.ok) throw Problems.conflict('同じ送信キーの承認経路を確認できません');
         if (routeCheck.route === null) {
-          if (originalSteps.length !== 1 || originalSteps[0]!.approver_id !== input.approverId)
-            throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
-        } else {
-          // 固定承認者の申請では、送信された承認者が固定承認者と一致すること。
           if (
-            original.item.definition.approval &&
-            original.item.definition.approval.approverId !== input.approverId
+            originalSteps.length !== 1 ||
+            !input.approverId ||
+            originalSteps[0]!.approver_id !== input.approverId
           )
             throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
-          const expected = this.resolveRoute(original.item.definition, input.approverId);
-          if (routeHash(expected) !== originalRevision.route_hash)
+        } else if (routeCheck.route.ruleRef === null) {
+          // ルールを使わない版は、従来どおり入力の承認者が経路の承認者と一致すること。
+          if (!input.approverId || routeCheck.route.steps[0]?.approverId !== input.approverId)
             throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
         }
+        // ルールで決めた版は、入力の approverId を経路決定に使っていない。
+        // そのため approverId の違いだけを「別の申請内容」とみなさない(WP §6.1)。
         const normalized = validateRequestInputs(original.item.definition, input);
         if (
           original.item.id !== input.itemId ||
@@ -637,9 +748,21 @@ export class CatalogController {
         ]);
       const inputs = validateRequestInputs(definition, input);
       const values = validateValues(definition, input.values);
-      if (definition.approval && definition.approval.approverId !== input.approverId)
-        throw Problems.forbidden('設定された固定承認者を変更できません');
-      await this.validateApprover(c, auth.authz.organizationId, auth.userId, input.approverId);
+      const { route, usingRule, ruleRoutingEnabled } = await this.resolveRoute(
+        c,
+        auth,
+        definition,
+        input.approverId ?? null,
+        { type: 'catalog_item', id: item.id },
+      );
+      if (!usingRule) {
+        // ルールを使わない版では、従来どおり入力の承認者を必須とし、
+        // 固定承認者が設定されていれば変更を拒否する。
+        if (!input.approverId)
+          throw Problems.validation([{ field: 'approverId', message: '承認者を選んでください' }]);
+        if (definition.approval?.approverId && definition.approval.approverId !== input.approverId)
+          throw Problems.forbidden('設定された固定承認者を変更できません');
+      }
       const snapshot: Snapshot = {
         item: { id: item.id, version: item.version, title: item.title, definition },
         inputs: {
@@ -648,7 +771,6 @@ export class CatalogController {
         },
         requesterId: auth.userId,
       };
-      const route = this.resolveRoute(definition, input.approverId);
       const firstStep = route.steps[0]!;
       const ticket = await new TicketService(c).create(
         auth.authz,
@@ -705,6 +827,7 @@ export class CatalogController {
         q.current_approval_id,
         firstStep,
       );
+      await this.routeResolvedEvent(c, auth, q.id, route, 1, ruleRoutingEnabled);
       await this.event(c, auth, q.id, 'submitted', 1);
       await this.approvalEvent(
         c,
@@ -738,9 +861,6 @@ export class CatalogController {
       const definition = parse(definitionSchema, q.snapshot.item.definition);
       const inputs = validateRequestInputs(definition, input);
       const values = validateValues(definition, input.values);
-      if (definition.approval && definition.approval.approverId !== input.approverId)
-        throw Problems.forbidden('この申請版の固定承認者を変更できません');
-      await this.validateApprover(c, q.organization_id, q.requester_id, input.approverId);
 
       const currentSteps = await this.steps(c, q, revision);
       const routeCheck = checkRouteAgainstSteps({
@@ -762,7 +882,19 @@ export class CatalogController {
         },
       };
       const nextSnapshotHash = hash(nextSnapshot);
-      const route = this.resolveRoute(definition, input.approverId);
+      const { route, usingRule, ruleRoutingEnabled } = await this.resolveRoute(
+        c,
+        auth,
+        definition,
+        input.approverId ?? null,
+        { type: 'service_request', id },
+      );
+      if (!usingRule) {
+        if (!input.approverId)
+          throw Problems.validation([{ field: 'approverId', message: '承認者を選んでください' }]);
+        if (definition.approval?.approverId && definition.approval.approverId !== input.approverId)
+          throw Problems.forbidden('この申請版の固定承認者を変更できません');
+      }
       const firstStep = route.steps[0]!;
       const nextApprovalId = uuidv7();
       const invalidated = await invalidateApprovalSteps(c, {
@@ -788,6 +920,7 @@ export class CatalogController {
         nextApprovalId,
         firstStep,
       );
+      await this.routeResolvedEvent(c, auth, id, route, nextRevision, ruleRoutingEnabled);
       await this.event(c, auth, id, 'changed', nextRevision);
       for (const step of invalidated.invalidated)
         await this.approvalEvent(

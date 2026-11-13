@@ -49,7 +49,7 @@ type RequestRow = {
   requester_id: string;
   revision: number;
   state: string;
-  snapshot: { item: { definition: { approval?: { approverId: string } } } };
+  snapshot: { item: { definition: { approval?: { approverId?: string; ruleId?: string } } } };
   snapshot_hash: string;
   current_approval_id: string;
 };
@@ -176,7 +176,8 @@ export async function checkApprovalComplete(
   // 8. 固定承認者。route が NULL の移行前の1行にだけ、カタログ定義との一致を要求する。
   if (revision.route === null) {
     const fixed = q.snapshot.item.definition.approval;
-    if (fixed && fixed.approverId !== rows[0]!.approver_id) return fail('fixed_approver_mismatch');
+    if (fixed?.approverId && fixed.approverId !== rows[0]!.approver_id)
+      return fail('fixed_approver_mismatch');
   }
 
   // 9. 申請者と承認者が同一でない(静的な検査)/承認者同士が重複しない

@@ -150,6 +150,42 @@ export const catalogFieldSchema = z
         message: '数値の上限は下限以上にしてください',
       });
   });
+/**
+ * 承認ルールの1ステップ(WP-P4-APR-015 / ADR-0023 §9・§10)。
+ *
+ * `fixed` は利用者IDを指す。`manager` / `department_head` は申請者から関係をたどる。
+ * 未知のキーは拒否し、最大3段は `approvalRuleStepsSchema` で検証する。
+ */
+export const approvalRuleStepSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('fixed'),
+      approverId: z
+        .string({ invalid_type_error: '固定承認者を選んでください' })
+        .uuid('固定承認者を選んでください'),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('manager'),
+      onUnresolved: z.enum(['department_head', 'reject'], {
+        errorMap: () => ({ message: '上長を解決できない場合の扱いを選んでください' }),
+      }),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('department_head'),
+      onUnresolved: z.literal('reject'),
+    })
+    .strict(),
+]);
+export const approvalRuleStepsSchema = z
+  .array(approvalRuleStepSchema, { invalid_type_error: '承認ステップを1〜3段で設定してください' })
+  .min(1, '承認ステップを1段以上設定してください')
+  .max(3, '承認ステップは3段以内にしてください');
+export type ApprovalRuleStep = z.infer<typeof approvalRuleStepSchema>;
+
 export const catalogSectionSchema = z
   .object({
     key: keySchema,
@@ -208,12 +244,33 @@ export const catalogDefinitionSchema = z
       .optional(),
     approval: z
       .object({
-        mode: z.literal('fixed'),
+        // 旧属性(mode / approverId)は省略できる。新しい版は ruleId だけでもよい。
+        mode: z.literal('fixed').optional(),
         approverId: z
           .string({ invalid_type_error: '固定の承認者を選んでください' })
-          .uuid('固定の承認者を選んでください'),
+          .uuid('固定の承認者を選んでください')
+          .optional(),
+        // WP-P4-APR-015: 組織の承認ルールを版属性として結び付ける(ADR-0023 §10)。
+        ruleId: z
+          .string({ invalid_type_error: '承認ルールを選んでください' })
+          .uuid('承認ルールを選んでください')
+          .optional(),
       })
       .strict()
+      .superRefine((approval, context) => {
+        if (!approval.approverId && !approval.ruleId)
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['approverId'],
+            message: '固定承認者または承認ルールを設定してください',
+          });
+        if (approval.mode === 'fixed' && !approval.approverId)
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['approverId'],
+            message: '固定モードでは固定承認者を設定してください',
+          });
+      })
       .optional(),
     category: z
       .string({ invalid_type_error: '業務カテゴリは文字列で入力してください' })

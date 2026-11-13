@@ -11,7 +11,7 @@ updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "authorization", "resolver"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "in-progress"
 story_points: 8
 risk: "critical"
 workstream: "APR"
@@ -198,4 +198,130 @@ WP-P4-IDM-012 のスキーマ / WP-P4-APR-014 の状態機械・assertApprovalCo
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-13 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階A 完了。段階B 未着手 | `evidence/WP-P4-APR-015/20261113-2225/` | ルール・有効化設定・リゾルバ・プレビュー・申請/変更の経路解決。`decide` の認可は変更せず |
+
+### 2026-11-13 段階A 実装記録
+
+**範囲**: WP §6 の 1・2・3・4・7・8(段階A)。決定の認可・可視性・滞留・再割当・変更履歴API(段階B)は未着手。
+
+#### 変更ファイル
+
+- `db/migrations/0039_approval_rules_and_routing.sql`(新規)
+- `packages/shared/src/catalog.ts`
+- `services/api/src/common/audit/audit.ts`
+- `services/api/src/main.ts`
+- `services/api/src/modules/catalog/approval-resolver.ts`(新規)
+- `services/api/src/modules/catalog/approval-rule.service.ts`(新規)
+- `services/api/src/modules/catalog/approval-rule.routes.ts`(新規)
+- `services/api/src/modules/catalog/approval-assertion.ts`
+- `services/api/src/modules/catalog/approval-state.ts`
+- `services/api/src/modules/catalog/catalog-admin.routes.ts`
+- `services/api/src/modules/catalog/catalog.routes.ts`
+- `tests/unit/approval-resolver.test.ts`(新規)
+- `tests/unit/catalog-flexible.test.ts`(偽DBの追従)
+- `tests/unit/catalog-operations.test.ts`(偽DBの追従)
+- `tests/security/approval-rule.test.ts`(新規)
+- `tests/security/approval-routing.test.ts`(新規)
+- `tests/security/approval-steps.test.ts`(新しい経路解決イベントへの追従)
+- `tests/security/approval-migration-compat.test.ts`(0039 と使い捨てDB名への追従)
+- `tests/security/department-profile.test.ts`(0039 の down 前の後片付け)
+
+#### Migration 0039
+
+- 新規: `approval_rule`、`approval_rule_revision`(append-only)、`org_approval_setting`。
+- 3テーブルとも `organization_id` + RLS(ENABLE/FORCE)+ 組織分離ポリシー。
+- `approval_rule`: 組織内コード一意、`UNIQUE(id, organization_id)`、識別列不変、
+  `current_revision` の後退禁止、無効化の一方向化。`current_revision` は実在する版を
+  遅延外部キーで参照する。
+- `approval_rule_revision`: `(rule_id, organization_id, revision)` 主キー。複合FKで他組織の
+  ルール改版を作れない。`UPDATE/DELETE` は `reject_asset_history_change()` トリガで拒否。
+- `steps` は jsonb 配列で1〜3要素(CHECK)。要素の形は共有 Zod スキーマで検証する。
+- `org_approval_setting`: 組織ごとの1行。行が無ければ無効。切替は `org_admin` のみ。
+- GRANT: アプリロールに `approval_rule` は SELECT/INSERT/UPDATE、`approval_rule_revision` は
+  SELECT/INSERT、`org_approval_setting` は SELECT/INSERT/UPDATE。**DELETE は与えない**。
+- 部署の無効化トリガへの追加は行わない(§6.1 で取り下げ)。
+- **ロールバック**: down は3テーブルのいずれかに行があれば拒否する(前進修復)。
+  データが無ければ 0039 を削除し、`approval_rule_guard()` を削除する。
+  検証: down(データなし)→up、データあり down の拒否を実施。
+
+#### 検証コマンドと結果
+
+すべて使い捨てDB `solvi_wp015_test`(Migration 0039・seed 済み)で実行。接続文字列は記録しない。
+
+```text
+node tools/migrate.mjs up                       # 39 件適用
+node tools/migrate.mjs down                     # 0039 を巻き戻し(データなし)
+node tools/migrate.mjs up                       # 0039 を再適用
+node tools/migrate.mjs down                     # データあり: 0039 rollback refused
+npx vitest run tests/unit/approval-resolver.test.ts \
+  tests/security/approval-rule.test.ts tests/security/approval-routing.test.ts \
+  tests/security/approval-steps.test.ts tests/security/approval-assertion.test.ts \
+  tests/security/approval-migration-compat.test.ts tests/security/department-profile.test.ts
+# 149 passed / 0 failed
+npx vitest run tests/security
+# 734 passed / 10 skipped / 個別テストの失敗0(既知の読み込み不能6ファイルのみ失敗)
+npm run test:unit
+# 34 failed / 4397 passed。変更前と失敗テスト名が完全一致(差分0)
+node tools/check_rls.mjs                        # 問題0件 / OK
+npm run typecheck                               # exit 0
+npm run lint                                    # exit 0
+npm run check:all                               # exit 0
+```
+
+開発用DB `solvi` の件数(`app_user` 15、`role_binding` 21、`ticket` 23、
+`local_service_request` 12、`local_request_revision` 17、`local_request_approval` 17、
+`local_simulation_receipt` 4、`department` 17、`org_member_profile` 15、`department_head` 5)は
+作業前後で完全一致。`schema_migration` は38件・最大 `0038` のまま。
+
+#### §7 受入基準の充足(段階A)
+
+- ✅ リゾルバの全分岐(固定・上長・部署長・多段・互換・決定性):
+  `tests/unit/approval-resolver.test.ts`(29 tests)。
+- ✅ `onUnresolved=reject` の解決不能で申請を拒否し、足りない設定を応答に含める。
+  部署長不在でも `org_admin` へフォールバックしない: `tests/security/approval-routing.test.ts`。
+- ⏳ `approver` ロールを持たない上長の決定: 段階B。段階Aでは `decide` のロール要求を残し、
+  テストで 403 になることを固定。
+- ✅ `approver` ロールを持たない利用者が `fixed` / `legacy` を決定できない: 既存の
+  `tests/security/approval-steps.test.ts`。
+- ⏳ 決定時の6項目の各違反: 段階B(既存の検証は変更しない)。
+- ⏳ 承認者の期限切れ・停止後の滞留と自動差し替えなし: 段階B。
+- ⏳ 再割当: 段階B。
+- ✅ 上長が変わっても進行中の申請の経路が変わらない: `tests/security/approval-routing.test.ts`。
+- ✅ ルールのある項目で `approverId` を送っても承認者に使われない:
+  `tests/security/approval-routing.test.ts`。他人の申請IDの404・一覧の可視性は段階B。
+- ✅ ルール版の UPDATE/DELETE 拒否、他組織ルールの拒否、有効化を無効にしても進行中の
+  多段申請が1段で実行できない: `tests/security/approval-rule.test.ts` /
+  `tests/security/approval-routing.test.ts`。
+- ✅ `highRisk` の保存拒否、0段/4段のAPI・DB拒否: `tests/security/approval-rule.test.ts`。
+- ✅ 無効な組織では `ruleId` があっても現行互換。切替は `org_admin` のみで監査に残る:
+  `tests/security/approval-rule.test.ts` / `tests/security/approval-routing.test.ts`。
+- ✅ `org_admin` の申請者は上長が未設定として解決される: `tests/unit/approval-resolver.test.ts`。
+- ⏳ 再割当の409条件・変更履歴API: 段階B。
+- ✅ 新規テーブルが `check_rls` を通り、`check:all` が通り、新規依存0件。
+
+#### セキュリティ影響
+
+- 承認者・上長・部署長は同じ組織のレコード経由でのみ解決する。入力IDは再検証する。
+- ルール・設定は `org_admin` のみ。RLS・API認可・複合FKの二層で組織境界を守る。
+- ルール版は append-only。APIにUPDATE/DELETE経路を作らず、DBでも拒否する。
+- 解決不能は現行互換へ落とさず拒否。`approval.route.resolved` は成功時に業務と同一
+  トランザクション、拒否時にロールバック後の独立トランザクションで記録する。
+- 監査・エラー応答・プレビューに申請入力値や個人データ(役職・勤務地・社員番号)を載せない。
+  プレビューの表示名は同じ組織の有効な所属に限定する。
+- `decide` の認可・状態機械・実行前検証は変更していない。
+- 新規依存パッケージ0件。`apps/web/`、`package.json`、lockfile、`.env` は未変更。
+
+#### 未解決事項
+
+- 段階B(決定の認可、承認待ち一覧・詳細の可視性、滞留の導出、再割当API、
+  上長・部署長の変更履歴API)は未着手。
+- `docs/planning/03_Requirements/03.18_*`(RTM)と `docs/planning/MANIFEST.md` は
+  ブリーフの指示により変更していない。RTMの Status 更新は監督者の判断で行う。
+- 高リスクの判定基準は WP-P4-APR-017 で確定する。それまで `highRisk` を含むルールは保存できない。
+- 経路プレビューのカタログ項目は**公開済みの定義**を使う。下書きプレビューは WP-P4-APR-016 のUIで扱う。
+- ルールの再有効化は設けていない(無効化は一方向)。必要になった場合は監査付きの新しい経路を追加する。
+
+#### Evidence
+
+`evidence/WP-P4-APR-015/20261113-2225/`(`README.md` と `raw/`)。使い捨てDBは
+`solvi_wp015_test` を検査用に残している。

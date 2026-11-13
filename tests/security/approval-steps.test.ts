@@ -367,13 +367,25 @@ describe('2段の直列承認(TL-02)', () => {
       )
     ).rows;
     expect(rows.map((r) => r.event_type)).toEqual([
+      'approval.route.resolved', // 作成時の経路解決
       'approval.requested', // 作成時の1段目
       'approval.approved', // 1段目
       'approval.requested', // 2段目の作成
       'approval.approved', // 2段目
     ]);
+    expect(rows[0]!.after_state).toMatchObject({
+      revision: 1,
+      routeGeneration: 1,
+      ruleId: null,
+      ruleRevision: null,
+      stepCount: 1,
+      stepTypes: 'fixed',
+      resolvedFrom: 'fixed',
+    });
+    expect(rows[0]!.after_state.routeHash).toMatch(/^[0-9a-f]{64}$/);
+    const stepEvents = rows.filter((row) => row.event_type !== 'approval.route.resolved');
     const stepCounts = [1, 2, 2, 2];
-    for (const [index, row] of rows.entries()) {
+    for (const [index, row] of stepEvents.entries()) {
       expect(row.approval_ref).toBeTruthy();
       expect(row.after_state).toMatchObject({
         revision: 1,
