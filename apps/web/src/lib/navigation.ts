@@ -7,12 +7,18 @@ export function navigationRoles(session: SessionView) {
         (r.organizationId === session.organizationId || r.organizationId === null) &&
         codes.includes(r.roleCode),
     );
+  /**
+   * 選択中の組織で有効な `org_admin` か。部署・プロフィールの変更は
+   * `org_admin` だけができるため、管理メニューの導線もこの条件で出す。
+   */
+  const orgAdmin = session.roles.some(
+    (r) => r.roleCode === 'org_admin' && r.organizationId === session.organizationId,
+  );
   return {
     staff: has('agent', 'org_admin', 'platform_admin'),
     admin: has('org_admin', 'platform_admin'),
-    notifications: session.roles.some(
-      (r) => r.roleCode === 'org_admin' && r.organizationId === session.organizationId,
-    ),
+    orgAdmin,
+    notifications: orgAdmin,
     inbox: has('agent', 'org_admin', 'platform_admin', 'approver'),
     changes: has('agent', 'org_admin', 'platform_admin', 'approver', 'auditor'),
     auditor: has('auditor'),
@@ -27,9 +33,7 @@ export function navigationRoles(session: SessionView) {
  * `navigationRoles().admin` は `platform_admin` を含むため、変更操作には使わない。
  */
 export function isOrgAdmin(session: SessionView): boolean {
-  return session.roles.some(
-    (r) => r.roleCode === 'org_admin' && r.organizationId === session.organizationId,
-  );
+  return navigationRoles(session).orgAdmin;
 }
 
 /** 戻り先はアプリの一覧と詳細だけ。任意URLへのredirectを作らない。 */

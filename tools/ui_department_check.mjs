@@ -15,6 +15,21 @@ assert.ok(password, 'SOLVI_SMOKE_PASSWORD is required');
 const engine = process.env.SOLVI_UI_BROWSER ?? 'chromium';
 assert.ok(['chromium', 'webkit'].includes(engine));
 const output = resolve(process.env.SOLVI_UI_OUT ?? `evidence/WP-P4-IDM-013/browser/${engine}`);
+// 段階Bの再実行(B2)は、エンジンごとに追加3件までの部署と、部署長1件・
+// プロフィール1人を認める。累計の合成部署は9件を超えない。
+const MAX_SYNTHETIC_DEPARTMENTS = 9;
+const ADDITIONAL_DEPARTMENTS = 3;
+const ADDITIONAL_HEADS = 1;
+const ADDITIONAL_PROFILES = 1;
+// 途中で失敗したときの再開。`hold` は片付けを保留し、`verify` は
+// 別エンジンが保留した有効な合成データを読み取りと拒否操作だけで確認し、
+// `cleanup` は保留したデータを片付ける。新規の部署は作らない。
+const phase = process.env.SOLVI_UI_PHASE ?? 'full';
+assert.ok(
+  ['full', 'hold', 'verify', 'cleanup', 'menu'].includes(phase),
+  `Unknown phase ${phase}`,
+);
+const donorPath = process.env.SOLVI_UI_DONOR ? resolve(process.env.SOLVI_UI_DONOR) : null;
 
 let previous;
 try {
@@ -143,6 +158,10 @@ async function readApi(name, path) {
   return response.json();
 }
 
+function flattenDepartments(items) {
+  return items.flatMap((item) => [item, ...flattenDepartments(item.children ?? [])]);
+}
+
 async function go(page, path) {
   const target = new URL(path, base).href;
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -255,6 +274,7 @@ async function cleanup(admin) {
   if (ids.headDepartment && report.applied.headAssigned) {
     await step('部署長の終了', async () => {
       await go(admin, `/ops/departments?department=${ids.headDepartment}`);
+      if ((await admin.locator('#department-head-end').count()) === 0) return;
       await admin.locator('#department-head-end').fill('');
       await submit(
         admin,
@@ -267,6 +287,15 @@ async function cleanup(admin) {
   if (ids.agentUser && report.applied.profile) {
     await step('プロフィールを未設定へ戻す', async () => {
       await go(admin, `/ops/users?selected=${ids.agentUser}`);
+      const fields = ['#profile-primary-department', '#profile-manager', '#profile-job-title'];
+      if ((await admin.locator(fields[0]).count()) === 0) return;
+      const empty =
+        (await admin.locator(fields[0]).inputValue()) === '' &&
+        (await admin.locator(fields[1]).inputValue()) === '' &&
+        (await admin.locator(fields[2]).inputValue()) === '' &&
+        (await admin.locator('#profile-location').inputValue()) === '' &&
+        (await admin.locator('#profile-employee-id').inputValue()) === '';
+      if (empty) return;
       await admin.locator('#profile-primary-department').selectOption('');
       await admin.locator('#profile-manager').selectOption('');
       await admin.locator('#profile-job-title').fill('');
@@ -283,6 +312,8 @@ async function cleanup(admin) {
   if (ids.childDepartment && ids.rootDepartment && report.applied.child) {
     await step('子部署を最上位へ移す', async () => {
       await go(admin, `/ops/departments?department=${ids.childDepartment}`);
+      if ((await admin.locator('#department-edit-parent').count()) === 0) return;
+      if ((await admin.locator('#department-edit-parent').inputValue()) === '') return;
       await admin.locator('#department-edit-parent').selectOption('');
       await submit(
         admin,
@@ -303,6 +334,8 @@ async function cleanup(admin) {
     if (!report.applied[appliedKey]) continue;
     await step(label, async () => {
       await go(admin, `/ops/departments?department=${id}`);
+      if ((await admin.getByRole('link', { name: 'この部署を無効化する', exact: true }).count()) === 0)
+        return;
       await admin.getByRole('link', { name: 'この部署を無効化する', exact: true }).click();
       await admin.waitForURL((url) => url.searchParams.get('confirm') === 'deactivate');
       await submit(
@@ -429,6 +462,246 @@ async function readOnlyChecks(admin) {
   });
 }
 
+async function menuChecks(admin) {
+  report.accessibility = report.accessibility.filter(
+    (scan) => scan.name !== 'admin-rail-desktop-1440',
+  );
+  report.screenshots = report.screenshots.filter((name) => name !== 'admin-rail-desktop-1440.png');
+  await check('管理ホームと左レールに部署管理の導線がある', async () => {
+    await go(admin, '/ops/admin');
+    const card = admin.locator('.fs-admin-grid a[href="/ops/departments"]');
+    assert.equal(await card.count(), 1, 'The admin home must contain the departments card');
+    await accessible(admin, 'admin-home-desktop-1440');
+    await shot(admin, 'admin-home-desktop-1440', card);
+
+    await go(admin, '/ops/users');
+    const rail = admin.locator('.fs-rail a[href="/ops/departments"]');
+    assert.equal(await rail.count(), 1, 'The admin rail must contain /ops/departments');
+    await admin.locator('.fs-rail a.fs-rail-link[href="/ops/admin"]').focus();
+    await rail.waitFor({ state: 'visible' });
+    await rail.focus();
+    await Promise.all([
+      admin.waitForURL((url) => url.pathname === '/ops/departments'),
+      admin.keyboard.press('Enter'),
+    ]);
+    await admin.waitForLoadState('networkidle');
+    assert.equal(await admin.getByRole('heading', { name: '部署管理', exact: true }).count(), 1);
+  });
+  assert.deepEqual(report.blocked, []);
+  report.success = true;
+  report.currentStep = 'complete';
+  delete report.failure;
+  await flush();
+}
+
+async function completionChecks(admin) {
+  assert.ok(donorPath, 'SOLVI_UI_DONOR is required for the verify phase');
+  const donor = JSON.parse(await readFile(donorPath, 'utf8'));
+  assert.equal(donor.browser, 'webkit', 'The donor run must be WebKit');
+  assert.equal(donor.held, true, 'The donor run must hold its synthetic data');
+  const ids = donor.ids;
+  for (const key of ['rootDepartment', 'childDepartment', 'headDepartment', 'agentUser']) {
+    assert.ok(ids?.[key], `The donor summary must contain ${key}`);
+  }
+  const departments = (await readApi('org_admin', '/departments')).items;
+  const byId = new Map(
+    flattenDepartments(departments).map((department) => [department.id, department]),
+  );
+  for (const key of ['rootDepartment', 'childDepartment', 'headDepartment']) {
+    const department = byId.get(ids[key]);
+    assert.ok(department, `Donor department ${key} must be readable`);
+    assert.equal(department.active, true, `Donor department ${key} must still be active`);
+  }
+  const donorAgent = (await readApi('org_admin', '/users')).items.find(
+    (user) => user.userId === ids.agentUser,
+  );
+  assert.ok(donorAgent, 'The donor agent must exist');
+  report.donor = { browser: donor.browser, marker: donor.marker, ids };
+
+  await check('再開: 合成データが入れ子のまま有効で残っている', async () => {
+    const root = byId.get(ids.rootDepartment);
+    assert.equal(root.children.length, 1, 'The donor root must still have one child');
+    assert.equal(root.children[0].id, ids.childDepartment);
+    assert.equal(root.children[0].active, true);
+  });
+
+  await check('再開: 現在の部署長が表示される', async () => {
+    await go(admin, `/ops/departments?department=${ids.headDepartment}`);
+    await admin.locator('#department-head').getByText(/現在の部署長:/).waitFor();
+    const text = await admin.locator('#department-head').innerText();
+    assert.ok(text.includes('現在の部署長:'), 'The current head must be labelled');
+    assert.ok(text.includes(donorAgent.displayName), 'The current head must be the donor agent');
+    await accessible(admin, 'departments-head-desktop-1440-resume');
+    await shot(
+      admin,
+      'departments-head-desktop-1440-resume',
+      admin.locator('#department-head'),
+    );
+  });
+
+  const rejected = async (name, departmentId, pattern, screenshot) => {
+    await check(name, async () => {
+      await go(admin, `/ops/departments?department=${departmentId}`);
+      await admin.getByRole('link', { name: 'この部署を無効化する', exact: true }).click();
+      await admin.waitForURL((url) => url.searchParams.get('confirm') === 'deactivate');
+      await admin.locator('#department-confirm-title').waitFor();
+      await submit(admin, admin.getByRole('button', { name: '無効化する', exact: true }), (url) =>
+        Boolean(url.searchParams.get('error')),
+      );
+      report.writes.rejectedDeactivations += 1;
+      await admin.locator('#department-error').waitFor();
+      assert.match(await admin.locator('#department-error').innerText(), pattern);
+      await accessible(admin, `${screenshot}-desktop-1440-resume`);
+      await shot(admin, `${screenshot}-desktop-1440-resume`, admin.locator('#department-error'));
+    });
+  };
+  await rejected(
+    '再開: 子部署が残る部署の無効化が理由付きで拒否される',
+    ids.rootDepartment,
+    /子部署が残っているため無効化できません/,
+    'departments-reject-child',
+  );
+  await rejected(
+    '再開: メンバーが残る部署の無効化が理由付きで拒否される',
+    ids.childDepartment,
+    /有効な所属メンバーが残っているため無効化できません/,
+    'departments-reject-member',
+  );
+  await rejected(
+    '再開: 部署長が残る部署の無効化が理由付きで拒否される',
+    ids.headDepartment,
+    /有効な部署長が残っているため無効化できません/,
+    'departments-reject-head',
+  );
+
+  await check('再開: 同じ文言の見出しと凡例が視覚的に重ならない', async () => {
+    await go(admin, `/ops/departments?department=${ids.childDepartment}`);
+    assert.equal(await admin.getByRole('heading', { name: '部署を編集', exact: true }).count(), 1);
+    const departmentLegend = await admin
+      .locator('#department-details fieldset legend')
+      .first()
+      .evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { position: style.position, width: style.width };
+      });
+    assert.deepEqual(departmentLegend, { position: 'absolute', width: '1px' });
+    assert.equal(await admin.locator('.sr-only').count(), 0, 'No undefined sr-only class');
+
+    await go(admin, `/ops/users?selected=${report.ids.adminUser}`);
+    assert.equal(
+      await admin.getByRole('heading', { name: '組織プロフィール', exact: true }).count(),
+      1,
+    );
+    const profileLegend = await admin
+      .locator('.directory-profile fieldset legend')
+      .first()
+      .evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { position: style.position, width: style.width };
+      });
+    assert.deepEqual(profileLegend, { position: 'absolute', width: '1px' });
+    assert.equal(await admin.locator('.sr-only').count(), 0, 'No undefined sr-only class');
+  });
+
+  await check('再開: 本人かつ組織管理者の行では主部署と上長が無効で理由が出る', async () => {
+    await go(admin, `/ops/users?selected=${report.ids.adminUser}`);
+    assert.equal(await admin.locator('#profile-primary-department').isDisabled(), true);
+    assert.equal(await admin.locator('#profile-manager').isDisabled(), true);
+    assert.match(
+      await admin.locator('#profile-manager-reason').innerText(),
+      /組織管理者の上長は設定できません/,
+    );
+    assert.match(
+      await admin.locator('#profile-primary-department-reason').innerText(),
+      /自分自身の主部署は自分では変更できません/,
+    );
+    await accessible(admin, 'users-self-disabled-desktop-1440-resume');
+    await shot(
+      admin,
+      'users-self-disabled-desktop-1440-resume',
+      admin.locator('#directory-profile-title'),
+    );
+  });
+
+  await check('再開: 社員番号を一覧・URLに出さない', async () => {
+    await go(admin, '/ops/users');
+    const table = await admin.locator('table.directory-table').innerText();
+    assert.ok(!table.includes('社員番号'));
+    assert.ok(!admin.url().includes('employeeId'));
+  });
+
+  await check('再開: 1440px と 375px で横溢れがない', async () => {
+    await go(admin, '/ops/users');
+    await mobile(admin, 'users-list-resume', admin.getByRole('heading', { level: 1 }));
+    await go(admin, `/ops/departments?department=${ids.childDepartment}`);
+    await mobile(admin, 'departments-detail-resume', admin.getByRole('heading', { level: 1 }));
+    await go(admin, '/ops/departments');
+    const rootNode = admin.locator('li.group', { hasText: `${donor.marker}-ROOT` }).first();
+    await rootNode.getByText('子部署 1 件', { exact: true }).waitFor();
+    assert.equal(await rootNode.getByText(`${donor.marker}-CHILD`, { exact: true }).count(), 1);
+    await mobile(admin, 'departments-tree-resume', rootNode);
+  });
+
+  await check('再開: org_admin 以外には画面も導線も出ない', async () => {
+    const agent = await actor('agent');
+    await go(agent, '/portal');
+    assert.equal(await agent.getByRole('link', { name: '部署管理', exact: true }).count(), 0);
+    await go(agent, '/ops/departments');
+    assert.match(await agent.locator('main').innerText(), /この画面を表示する権限がありません/);
+    await go(agent, '/ops/users');
+    assert.match(await agent.locator('main').innerText(), /この画面を表示する権限がありません/);
+    assert.equal(
+      await agent.locator('.fs-rail a[href="/ops/departments"]').count(),
+      0,
+      'Non org_admin must not see the departments rail item',
+    );
+  });
+
+  const after = flattenDepartments((await readApi('org_admin', '/departments')).items);
+  for (const key of ['rootDepartment', 'childDepartment', 'headDepartment']) {
+    assert.equal(
+      after.find((department) => department.id === ids[key])?.active,
+      true,
+      `The donor department ${key} must be left for the donor cleanup`,
+    );
+  }
+  assert.deepEqual(report.blocked, []);
+  report.success = true;
+  report.currentStep = 'complete';
+  delete report.failure;
+  await flush();
+}
+
+async function cleanupOnly(admin) {
+  report.cleanup = { attempted: false, complete: false, steps: [], errors: [] };
+  await cleanup(admin);
+  assert.ok(report.cleanup.complete, `Cleanup: ${JSON.stringify(report.cleanup.errors)}`);
+  const departments = (await readApi('org_admin', '/departments')).items;
+  const ownDepartments = flattenDepartments(departments).filter((department) =>
+    [report.ids.rootDepartment, report.ids.childDepartment, report.ids.headDepartment].includes(
+      department.id,
+    ),
+  );
+  assert.equal(ownDepartments.length, 3);
+  assert.ok(ownDepartments.every((department) => !department.active));
+  for (const department of ownDepartments) {
+    const head = (await readApi('org_admin', `/departments/${department.id}/head`)).head;
+    assert.equal(head, null);
+  }
+  const agent = (await readApi('org_admin', '/users')).items.find(
+    (user) => user.userId === report.ids.agentUser,
+  );
+  assert.equal(agent.primaryDepartmentId, null);
+  assert.equal(agent.managerUserId, null);
+  assert.equal(agent.jobTitle, null);
+  assert.deepEqual(report.blocked, []);
+  report.held = false;
+  report.success = true;
+  report.currentStep = 'complete';
+  delete report.failure;
+  await flush();
+}
+
 async function reconcile() {
   const departments = (await readApi('org_admin', '/departments')).items;
   const ownIds = [
@@ -497,7 +770,7 @@ async function preflight() {
       department.code.startsWith('UI013-SYN-') && department.code.includes(`-${engine}-`),
   );
   assert.ok(
-    engineDepartments.length + 3 <= 6,
+    engineDepartments.length + ADDITIONAL_DEPARTMENTS <= MAX_SYNTHETIC_DEPARTMENTS,
     `Synthetic department cap for ${engine}: ${engineDepartments.length} already exist`,
   );
 }
@@ -525,9 +798,27 @@ async function firstRun(admin) {
   });
 
   await check('管理メニューの導線から部署管理をキーボードで開ける', async () => {
-    const link = admin.getByRole('link', { name: '部署管理', exact: true });
+    const link = admin
+      .locator('.directory-heading-actions')
+      .getByRole('link', { name: '部署管理', exact: true });
     assert.equal(await link.count(), 1, 'The users screen must link to /ops/departments');
     await link.focus();
+    await Promise.all([
+      admin.waitForURL((url) => url.pathname === '/ops/departments'),
+      admin.keyboard.press('Enter'),
+    ]);
+    await admin.waitForLoadState('networkidle');
+    assert.equal(await admin.getByRole('heading', { name: '部署管理', exact: true }).count(), 1);
+  });
+
+  await check('左レールと管理ホームにも部署管理の導線がある', async () => {
+    await go(admin, '/ops/users');
+    const rail = admin.locator('.fs-rail a[href="/ops/departments"]');
+    assert.equal(await rail.count(), 1, 'The admin rail must contain /ops/departments');
+    await go(admin, '/ops/admin');
+    const card = admin.locator('.fs-admin-grid a[href="/ops/departments"]');
+    assert.equal(await card.count(), 1, 'The admin home must contain the departments card');
+    await card.focus();
     await Promise.all([
       admin.waitForURL((url) => url.pathname === '/ops/departments'),
       admin.keyboard.press('Enter'),
@@ -559,7 +850,7 @@ async function firstRun(admin) {
     report.applied.root = true;
     report.writes.departments += 1;
     report.keyboard = { tabsBefore, submitTabs, focus, submittedWith: 'Enter' };
-    assert.ok(report.writes.departments <= 6);
+    assert.ok(report.writes.departments <= ADDITIONAL_DEPARTMENTS);
   });
 
   await check('子部署を作成し、ツリーに親子が表示される', async () => {
@@ -576,11 +867,21 @@ async function firstRun(admin) {
     assert.ok(report.ids.childDepartment);
     report.applied.child = true;
     report.writes.departments += 1;
-    assert.ok(report.writes.departments <= 6);
+    assert.ok(report.writes.departments <= ADDITIONAL_DEPARTMENTS);
     await go(admin, '/ops/departments');
-    await admin.getByText('子部署 1 件', { exact: true }).waitFor();
+    const rootNode = admin.locator('li.group', { hasText: `${marker}-ROOT` }).first();
+    await rootNode.getByText('子部署 1 件', { exact: true }).waitFor();
+    assert.equal(
+      await rootNode.getByText(`${marker}-CHILD`, { exact: true }).count(),
+      1,
+      'The child department must be nested under the root',
+    );
     await accessible(admin, 'departments-tree-desktop-1440');
     await shot(admin, 'departments-tree-desktop-1440', admin.getByRole('heading', { level: 1 }));
+    // 片付け(子部署を最上位へ移す)より前の入れ子を、子部署数の表示ごと残す。
+    await accessible(admin, 'departments-tree-nested-desktop-1440');
+    await shot(admin, 'departments-tree-nested-desktop-1440', rootNode);
+    await mobile(admin, 'departments-tree-nested', rootNode);
   });
 
   await check('部署長用の部署を作成し、管理画面のツリーを撮影する', async () => {
@@ -596,7 +897,7 @@ async function firstRun(admin) {
     assert.ok(report.ids.headDepartment);
     report.applied.head = true;
     report.writes.departments += 1;
-    assert.ok(report.writes.departments <= 6);
+    assert.ok(report.writes.departments <= ADDITIONAL_DEPARTMENTS);
   });
 
   await check('管理者が主部署と上長を設定できる', async () => {
@@ -625,7 +926,7 @@ async function firstRun(admin) {
     report.applied.profile = true;
     report.writes.profileUpdates += 1;
     report.profilePeople = [...new Set([...report.profilePeople, report.ids.agentUser])];
-    assert.ok(report.profilePeople.length <= 3);
+    assert.ok(report.profilePeople.length <= ADDITIONAL_PROFILES);
     await admin.locator('#directory-notice').waitFor();
   });
 
@@ -639,13 +940,47 @@ async function firstRun(admin) {
     );
     report.applied.headAssigned = true;
     report.writes.headsAssigned += 1;
-    assert.ok(report.writes.headsAssigned <= 2);
+    assert.ok(report.writes.headsAssigned <= ADDITIONAL_HEADS);
     await admin
       .locator('#department-head')
       .getByText(/現在の部署長:/)
       .waitFor();
     await accessible(admin, 'departments-detail-desktop-1440');
     await shot(admin, 'departments-detail-desktop-1440', admin.locator('#department-head'));
+  });
+
+  await check('同じ文言の見出しと凡例が視覚的に重ならない', async () => {
+    await go(admin, `/ops/departments?department=${report.ids.childDepartment}`);
+    assert.equal(
+      await admin.getByRole('heading', { name: '部署を編集', exact: true }).count(),
+      1,
+      'The department edit heading must appear once',
+    );
+    const legendStyle = await admin
+      .locator('#department-details fieldset legend')
+      .first()
+      .evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { position: style.position, width: style.width };
+      });
+    assert.deepEqual(legendStyle, { position: 'absolute', width: '1px' });
+    assert.equal(await admin.locator('.sr-only').count(), 0, 'No undefined sr-only class');
+
+    await go(admin, `/ops/users?selected=${report.ids.agentUser}`);
+    assert.equal(
+      await admin.getByRole('heading', { name: '組織プロフィール', exact: true }).count(),
+      1,
+      'The profile heading must appear once',
+    );
+    const profileLegendStyle = await admin
+      .locator('.directory-profile fieldset legend')
+      .first()
+      .evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { position: style.position, width: style.width };
+      });
+    assert.deepEqual(profileLegendStyle, { position: 'absolute', width: '1px' });
+    assert.equal(await admin.locator('.sr-only').count(), 0, 'No undefined sr-only class');
   });
 
   await check('子部署が残る部署の無効化が理由付きで拒否される', async () => {
@@ -741,12 +1076,27 @@ async function firstRun(admin) {
     assert.equal(await agent.getByText('部署のツリー', { exact: true }).count(), 0);
     await go(agent, '/ops/users');
     assert.match(await agent.locator('main').innerText(), /この画面を表示する権限がありません/);
+    assert.equal(
+      await agent.locator('.fs-rail a[href="/ops/departments"]').count(),
+      0,
+      'Non org_admin must not see the departments rail item',
+    );
   });
 
+  if (phase === 'hold') {
+    // 片付けは別の再開実行で行う。作った部署は有効なまま残る。
+    report.held = true;
+    report.cleanup = { ...report.cleanup, complete: false };
+    assert.deepEqual(report.blocked, []);
+    report.success = true;
+    report.currentStep = 'held';
+    await flush();
+    return;
+  }
+
   await cleanup(admin);
-  assert.ok(report.cleanup.complete, `Cleanup: ${JSON.stringify(report.cleanup.errors)}`);
   const departments = (await readApi('org_admin', '/departments')).items;
-  const ownDepartments = departments.filter((department) =>
+  const ownDepartments = flattenDepartments(departments).filter((department) =>
     [report.ids.rootDepartment, report.ids.childDepartment, report.ids.headDepartment].includes(
       department.id,
     ),
@@ -772,6 +1122,20 @@ async function main() {
   );
   report.browserVersion = browser.version();
   const admin = await actor('org_admin');
+  if (phase === 'menu') {
+    await menuChecks(admin);
+    return;
+  }
+  if (phase === 'verify') {
+    assert.ok(previous, 'The verify phase needs the previous summary');
+    await completionChecks(admin);
+    return;
+  }
+  if (phase === 'cleanup') {
+    assert.ok(previous, 'The cleanup phase needs the previous summary');
+    await cleanupOnly(admin);
+    return;
+  }
   if (previous) {
     await reconcile();
     return;

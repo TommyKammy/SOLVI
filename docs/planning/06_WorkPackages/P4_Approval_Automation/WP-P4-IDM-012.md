@@ -229,3 +229,4 @@ Migrationの `down` は、データが入っていれば拒否する(取り込�
 **Evidence の保存先**: `evidence/WP-P4-IDM-012/20261112-1521/`(`README.md` は追跡、`raw/` は gitignore)。使い捨てDB `solvi_wp012_test` / `_nolock` / `_base` を検査用に残している。
 
 - 2026-11-12(監督者による追記): 利用者(人間)がセキュリティレビューとして本WPを承認した。利用者の指示により、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。**開発用DBへの Migration 0037 の適用は未実施**(適用は利用者の指示を待つ)。未確認: `user-directory-consistency.test.ts` に追加した後始末(同ファイルは変更前から読み込めない)。
+- 2026-11-12(監督者による追記): 利用者の指示により、開発用DBへ Migration `0037` を適用した。適用前後で既存データの件数は不変、`org_member_profile` は有効な所属と同数の15行がバックフィルされた。

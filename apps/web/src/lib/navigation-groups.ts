@@ -115,6 +115,7 @@ export function buildNavigationGroups(
             items: [
               item('/ops/admin', '管理ホーム'),
               item('/ops/users', '利用者管理'),
+              ...(roles.orgAdmin ? [item('/ops/departments', '部署管理')] : []),
               item('/ops/groups', '担当グループ'),
               ...(roles.notifications ? [item('/ops/notifications', '通知状況')] : []),
               item('/ops/access-review', 'アクセスレビュー'),

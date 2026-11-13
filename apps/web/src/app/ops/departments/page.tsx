@@ -181,7 +181,7 @@ export default async function ManageDepartments({
             </p>
           )}
           <fieldset className="directory-form-grid">
-            <legend className="sr-only">部署を追加</legend>
+            <legend className="visually-hidden">部署を追加</legend>
             <div className="field">
               <label htmlFor="department-code">部署コード</label>
               <p className="hint" id="department-code-hint">
@@ -271,7 +271,7 @@ export default async function ManageDepartments({
                 aria-describedby={detailError}
               >
                 <fieldset className="directory-form-grid">
-                  <legend className="sr-only">部署を編集</legend>
+                  <legend className="visually-hidden">部署を編集</legend>
                   <div className="field">
                     <label htmlFor="department-edit-code">部署コード</label>
                     <input

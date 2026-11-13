@@ -3,6 +3,8 @@ import React, { type AnchorHTMLAttributes, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, requireSession, type DepartmentNode } from '../../apps/web/src/lib/api';
+import { navigationRoles } from '../../apps/web/src/lib/navigation';
+import { buildNavigationGroups } from '../../apps/web/src/lib/navigation-groups';
 import {
   departmentHref,
   departmentNoticeText,
@@ -213,6 +215,13 @@ describe('部署管理画面の表示', () => {
   const render = async (values: Record<string, string | string[] | undefined> = {}) =>
     renderToStaticMarkup(await ManageDepartments({ searchParams: Promise.resolve(values) }));
 
+  it('同じ文言の見出しと凡例を視覚的に重ねない', async () => {
+    const html = await render({ department: child.id });
+    expect(html).toMatch(/<legend class="visually-hidden">部署を追加<\/legend>/);
+    expect(html).toMatch(/<legend class="visually-hidden">部署を編集<\/legend>/);
+    expect(html).not.toContain('sr-only');
+  });
+
   it('ツリー・追加・選択中のメンバーと部署長を表示する', async () => {
     const html = await render({ department: child.id });
     expect(html).toContain('部署のツリー');
@@ -262,5 +271,30 @@ describe('部署管理画面の表示', () => {
     expect(html).toContain('この画面を表示する権限がありません');
     expect(api.listDepartments).not.toHaveBeenCalled();
     expect(api.departmentMembers).not.toHaveBeenCalled();
+  });
+});
+
+describe('管理メニューの導線', () => {
+  const organizationId = '60000000-0000-4000-8000-000000000001';
+  const destinations = (roleCode: string, roleOrganization = organizationId) =>
+    buildNavigationGroups(
+      navigationRoles({
+        userId: '50000000-0000-4000-8000-000000000001',
+        organizationId,
+        roles: [{ roleCode, organizationId: roleOrganization }],
+      }),
+      '/ops/admin',
+    ).flatMap((group) => group.items.map((item) => item.href));
+
+  it('選択中の組織で有効な org_admin にだけ部署管理を出す', () => {
+    expect(destinations('org_admin')).toContain('/ops/departments');
+    expect(destinations('platform_admin')).not.toContain('/ops/departments');
+    expect(destinations('agent')).not.toContain('/ops/departments');
+  });
+
+  it('他組織の org_admin では部署管理を出さない', () => {
+    expect(destinations('org_admin', '60000000-0000-4000-8000-000000000002')).not.toContain(
+      '/ops/departments',
+    );
   });
 });

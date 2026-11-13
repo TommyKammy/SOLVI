@@ -61,6 +61,8 @@ depends_on: ["WP-P4-IDM-012"]
 - `apps/web/src/lib/api.ts`
 - `apps/web/src/lib/user-directory.ts`
 - `apps/web/src/lib/navigation.ts`
+- `apps/web/src/lib/navigation-groups.ts`(管理メニューへ「部署管理」を1項目追加するだけ。2026-11-13 監督者が追加)
+- `apps/web/src/app/ops/admin/page.tsx`(管理画面のカードへ「部署管理」を1件追加するだけ。2026-11-13 監督者が追加)
 - `tests/security/department-api.test.ts`
 - `tests/unit/department-ui.test.ts`
 - `tests/unit/user-directory.test.ts`
@@ -161,6 +163,7 @@ services/api/src/modules/auth/user-admin.* / apps/web/src/app/ops/users。
 |---|---|---|---|---|---|
 | 2026-11-12 | Codex(段階A) | 作業ツリー(未コミット / 基点 `8c7b27d`) | 段階A完了(API・監査・security/unitテスト)。UIは段階B | `evidence/WP-P4-IDM-013/20261112-2141/` | 開発用DBは SELECT のみ。検証は使い捨てDB `solvi_wp013_test` |
 | 2026-11-12 | Codex(段階A・A2) | 作業ツリー(未コミット / 基点 `8c7b27d`) | 監督者の検査による1点修正(上長設定と `org_admin` 付与の同時実行)。関連テスト157件通過 | `evidence/WP-P4-IDM-013/20261112-2158/` | 行ロック(`FOR UPDATE`)で直列化。ロックなしで失敗することを確認して戻した |
+| 2026-11-13 | Codex(段階B・B2) | 作業ツリー(未コミット / 基点 `a63e492`) | 監督者の検査による3点(管理メニューの導線、見出しの重複、入れ子ツリーとChromiumの通し) | `evidence/WP-P4-IDM-013/20261113-0856/` | 開発用DBは部署+6・部署長+2。すべて無効・終了済み。既存項目と判定は変更なし |
 
 ### 13.1 段階Aの記録(2026-11-12)
 
@@ -305,3 +308,45 @@ services/api/src/modules/auth/user-admin.* / apps/web/src/app/ops/users。
 - `tests/unit` の既存34失敗(ナレッジのfixture欠落、性能比較の固定source/commit不足)は変更前から。テストの削除・skipはしていない。
 
 **Evidence**: `evidence/WP-P4-IDM-013/20261113-0832/`
+
+### 13.4 段階Bの仕上げ(B2: 導線・見出し・入れ子の証拠)(2026-11-13)
+
+**変更ファイル**
+
+- `apps/web/src/lib/navigation-groups.ts` — 管理メニューの「利用者管理」の次に「部署管理」(`/ops/departments`)を1項目追加。`org_admin` のときだけ出す
+- `apps/web/src/app/ops/admin/page.tsx` — ユーザー管理カードに「部署管理」を1件追加。`visible` は `isOrgAdmin` と同じ条件
+- `apps/web/src/lib/navigation.ts` — `navigationRoles()` に `orgAdmin`(選択中の組織で有効な `org_admin`)を追加し、`isOrgAdmin` を同じ導出に統一
+- `apps/web/src/app/ops/departments/page.tsx` — 追加・編集フォームの `legend` を、未定義だった `sr-only` から既存の `visually-hidden` へ変更(見出しと凡例の視覚的な重複を解消)
+- `apps/web/src/app/ops/users/page.tsx` — プロフィール編集の `legend` と一覧の `caption` を同じく `visually-hidden` へ変更
+- `tests/unit/department-ui.test.ts` — 管理メニューの表示条件(有効な `org_admin` のみ、他組織は不可)と、凡例が視覚的に隠れることを追加。既存の期待値は削除・skipしていない
+- `tools/ui_department_check.mjs` — B2 の上限(累計9件・追加3件)、入れ子ツリーの1440/375px撮影、管理メニューと管理ホームの導線確認、`hold` / `verify` / `cleanup` / `menu` の再開フェーズを追加。片付けは冪等にした
+- `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-IDM-013.md` — 本記録
+
+**Migration**: なし。スキーマ変更なし。Web の revert で戻せる。ロールバックしても合成データ(無効化済み部署・終了済み部署長)は残る。
+
+**検証**
+
+| コマンド | 結果 |
+|---|---|
+| `npm run typecheck` | 成功 |
+| `npm run lint` | 成功(`--max-warnings=0`) |
+| `npm run check:all` | 成功 |
+| `npx vitest run tests/unit/department-ui.test.ts tests/unit/user-directory.test.ts tests/unit/user-directory-read.test.ts tests/unit/support-portal-ui.test.ts tests/unit/notification-list-ui.test.ts` | 118 passed |
+| `npm run test:unit`(JSON: `raw/unit-after.json`) | 34 failed / 4,329 passed(4,363)。失敗したテスト名の集合は段階Bの基点(34 failed / 4,326 passed)と同一。新規失敗0。追加した3件は成功 |
+| ブラウザ WebKit(`SOLVI_UI_PHASE=hold` → `cleanup`) | 17 checks、axe 12回・違反0、画像12枚。通し・拒否3種・現在の部署長・375px・非`org_admin`・片付けまで成功 |
+| ブラウザ Chromium(通し → `verify`) | 19 checks、axe 15回・違反0、画像15枚。1回目は `.sr-only` の検査で停止し片付け済み。再開は WebKit が保留した有効な合成データへの読み取り照合と実操作で完了。新規部署は追加していない |
+| 管理導線(`SOLVI_UI_PHASE=menu`、両エンジン) | 管理ホームのカード、左レールの項目、キーボード遷移を確認。`admin-home-desktop-1440.png` を保存 |
+| 開発用DB `solvi` の件数(作業前後) | `app_user` 15→15 / `role_binding` 21→21 / `ticket` 23→23 / `local_service_request` 12→12 / `local_request_approval` 17→17 / `org_member_profile` 15→15。`department` 11→17(+6)、`department_head` 3→5(+2)、`audit_event` +35、`session` +11。検査後、有効な部署0件、終了していない部署長0件、値の入ったプロフィール0件 |
+
+**受入基準(§7)の充足**
+
+1〜8、10は段階A(13.1・13.2)のとおり。9(UI・キーボード・axe・スクリーンショット)を充足。`/ops/departments` の詳細で「部署を編集」の見出しと凡例が重ならず、`/ops/users` の詳細で「組織プロフィール」の見出しが1つになった。入れ子ツリーは片付け前の状態を1440px/375pxで保存した。無効化拒否3種と「現在の部署長」は両エンジンの実操作で確認した。管理メニューと管理ホームの導線は、選択中の組織で有効な `org_admin` のときだけ出る。
+
+**セキュリティ影響**: あり(認可・個人データ)。管理メニューと管理ホームの導線は `org_admin` のときだけ出し、`platform_admin` には出さない(`/ops/departments` の画面とAPIは従来どおり `org_admin` のみ)。既存の項目・並び・判定は変えていない。未定義だった `sr-only` を既存の `visually-hidden` に置き換えただけで、支援技術に渡す構造(見出し・fieldset/legend・caption)は維持している。**人間のSecurity Reviewerのレビューが必要**。
+
+**未解決事項**
+
+- 左レールの「管理」メニューを開いた状態の axe では、既存の `.fs-flyout-title` に `color-contrast`(serious)が出る。今回の変更は項目の追加のみで、スタイル(`globals.css`)は Allowed Paths 外のため変更していない。変更した画面のスキャンは違反0。
+- Chromium の通しは、1回目が `.sr-only` の検査で停止したため、片付け後の読み取り照合と、WebKit が保留した有効な合成データへの実操作で完了した。累計9件の上限を超えないための措置で、新規の Chromium 部署は追加していない。
+
+**Evidence**: `evidence/WP-P4-IDM-013/20261113-0856/`

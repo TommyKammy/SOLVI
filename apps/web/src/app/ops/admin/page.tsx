@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireSession } from '../../../lib/api';
-import { navigationRoles } from '../../../lib/navigation';
+import { isOrgAdmin, navigationRoles } from '../../../lib/navigation';
 import { FreshserviceIcon, type FreshserviceIconName } from '../../../components/FreshserviceIcon';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +16,7 @@ type AdminCard = {
 export default async function AdminHome() {
   const session = await requireSession();
   const roles = navigationRoles(session);
+  const orgAdmin = isOrgAdmin(session);
 
   if (!roles.admin) {
     return (
@@ -64,6 +65,13 @@ export default async function AdminHome() {
           title: '利用者管理',
           description: '在籍者・役割・アクセス状態を確認します。',
           icon: 'admin',
+        },
+        {
+          href: '/ops/departments',
+          title: '部署管理',
+          description: '部署の階層、メンバー、部署長を管理します。',
+          icon: 'admin',
+          visible: orgAdmin,
         },
         {
           href: '/ops/groups',

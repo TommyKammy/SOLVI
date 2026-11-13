@@ -366,7 +366,7 @@ export default async function ManageUsers({
           ) : (
             <div className="directory-table-wrap">
               <table className="directory-table">
-                <caption className="sr-only">
+                <caption className="visually-hidden">
                   利用者一覧。名前、メール、部署、上長、役職、役割、状態、対応中の問い合わせ件数を表示します。
                 </caption>
                 <thead>
@@ -512,7 +512,7 @@ export default async function ManageUsers({
                         value={profile.employeeId ?? ''}
                       />
                       <fieldset className="directory-form-grid">
-                        <legend className="sr-only">組織プロフィールの編集</legend>
+                        <legend className="visually-hidden">組織プロフィールの編集</legend>
                         <div className="field">
                           <label htmlFor="profile-primary-department">主部署</label>
                           <select
