@@ -11,7 +11,7 @@ updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "authorization", "resolver"]
 source_of_truth: true
-implementation_status: "in-progress"
+implementation_status: "done"
 story_points: 8
 risk: "critical"
 workstream: "APR"
@@ -465,3 +465,5 @@ npm run check:all                                  # exit 0
 
 `evidence/WP-P4-APR-015/20261114-0722/`(`README.md` と `raw/`)。使い捨てDBは
 `solvi_wp015_test` を検査用に残している。
+
+- 2026-11-14(監督者による追記): 利用者(人間)がセキュリティレビューとして本WP(段階A・B)を承認した。利用者の指示により、開発用DBへ Migration `0039` を適用し、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。再割当(§6-6)は §6.2 のとおり [[WP-P4-APR-017]] へ移管しており、FR-CAT-013 のうち再割当は未充足のまま残る。ルールの使用は組織ごとに無効が既定で、有効化とルール管理の画面は [[WP-P4-APR-016]]。段階Bの実行中にモデル提供元との接続が1回切れ、同じセッションを再開して完了させた。
