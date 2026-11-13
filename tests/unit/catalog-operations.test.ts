@@ -91,6 +91,11 @@ function database({
     id: approverId,
     approver_id: approverId,
     state: 'approved',
+    step_no: 1,
+    route_generation: 1,
+    authority_type: 'legacy',
+    resolved_from: null,
+    decided_by: approverId,
     snapshot_hash: request.snapshot_hash,
     revision: requestRevision,
     expires_at: new Date('2099-01-01'),
@@ -107,6 +112,38 @@ function database({
       return { rows: [], rowCount: 0 };
     if (sql.includes('SELECT * FROM local_service_request'))
       return { rows: noRequest ? [] : [request], rowCount: noRequest ? 0 : 1 };
+    if (
+      sql.includes(
+        'SELECT route,route_hash,route_generation,snapshot_hash FROM local_request_revision',
+      )
+    )
+      return {
+        rows: [
+          {
+            route: null,
+            route_hash: null,
+            route_generation: 1,
+            snapshot_hash: request.snapshot_hash,
+          },
+        ],
+        rowCount: 1,
+      };
+    if (sql.includes('SELECT * FROM local_request_revision'))
+      return {
+        rows: [
+          {
+            request_id: requestId,
+            organization_id: org,
+            revision: requestRevision,
+            snapshot: request.snapshot,
+            snapshot_hash: request.snapshot_hash,
+            route: null,
+            route_hash: null,
+            route_generation: 1,
+          },
+        ],
+        rowCount: 1,
+      };
     if (sql.includes('revision_hash_ok'))
       return {
         rows: [{ ...approval, revision_hash_ok: params[3] === approval.snapshot_hash }],

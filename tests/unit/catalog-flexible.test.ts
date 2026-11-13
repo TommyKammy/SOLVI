@@ -273,6 +273,11 @@ function database(
     id: approver,
     approver_id: approver,
     state: 'approved',
+    step_no: 1,
+    route_generation: 1,
+    authority_type: 'legacy',
+    resolved_from: null,
+    decided_by: approver,
     snapshot_hash: request.snapshot_hash,
     revision: 1,
     expires_at: new Date('2099-01-01'),
@@ -282,8 +287,38 @@ function database(
   const query = vi.fn(async (sql: string, _params: unknown[] = []) => {
     if (sql.includes('FROM local_service_request'))
       return { rows: sql.includes('idempotency_key') && !replay ? [] : [request], rowCount: 1 };
-    if (sql.includes('SELECT snapshot FROM local_request_revision'))
-      return { rows: [{ snapshot: originalSnapshot }], rowCount: 1 };
+    if (sql.includes('SELECT * FROM local_request_revision'))
+      return {
+        rows: [
+          {
+            request_id: requestId,
+            organization_id: org,
+            revision: 1,
+            snapshot: originalSnapshot,
+            snapshot_hash: request.snapshot_hash,
+            route: null,
+            route_hash: null,
+            route_generation: 1,
+          },
+        ],
+        rowCount: 1,
+      };
+    if (
+      sql.includes(
+        'SELECT route,route_hash,route_generation,snapshot_hash FROM local_request_revision',
+      )
+    )
+      return {
+        rows: [
+          {
+            route: null,
+            route_hash: null,
+            route_generation: 1,
+            snapshot_hash: request.snapshot_hash,
+          },
+        ],
+        rowCount: 1,
+      };
     if (sql.includes('revision_hash_ok'))
       return {
         rows: [{ ...approval, revision_hash_ok: _params[3] === approval.snapshot_hash }],
@@ -299,6 +334,20 @@ function database(
       sql.includes('FROM local_request_checklist_progress')
     )
       return { rows: [], rowCount: 0 };
+    if (sql.includes('UPDATE local_service_request')) {
+      if (sql.includes('snapshot=$3')) {
+        request.revision = _params[4] as number;
+        request.snapshot = _params[2] as typeof request.snapshot;
+        request.snapshot_hash = _params[3] as string;
+        request.current_approval_id = _params[5] as string;
+        request.state = _params[1] as string;
+        request.version += 1;
+      } else {
+        request.state = 'completed';
+        request.version += 1;
+      }
+      return { rows: [], rowCount: 1 };
+    }
     if (
       /^(BEGIN|COMMIT|ROLLBACK|SELECT set_config|SELECT pg_advisory_xact_lock|INSERT|UPDATE)/.test(
         sql.trim(),

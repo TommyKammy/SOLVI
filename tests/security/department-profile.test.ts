@@ -1085,9 +1085,18 @@ describe('Migration: バックフィル・up/down (TL-05)', () => {
 
   it('**down は3テーブルのいずれかに行があれば拒否し、すべて空なら成功する(up→down→up)**', async () => {
     // このテストは Migration を巻き戻す。使い捨てDBの全体を触るので、最後に必ず up へ戻す。
+    // 0037 より後の Migration があっても成り立つよう、先に後続をすべて巻き戻して
+    // 0037 を最後の適用済みにしてから down を検証する(「0037 が最後」という前提を置かない)。
     const org = await mkOrg('updown');
     const user = await mkUser('ud', { bindingOrg: org });
     try {
+      const reverted = migrate('down', '--to', '0037');
+      expect(reverted.ok, reverted.output).toBe(true);
+      const { rows: latest } = await admin.query<{ version: string | null }>(
+        'SELECT max(version) AS version FROM schema_migration',
+      );
+      expect(latest[0]?.version).toBe('0037');
+
       await allProfilesEmpty();
 
       // 1. department に行がある

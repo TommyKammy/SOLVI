@@ -73,6 +73,11 @@ type Approval = {
   request_id: string;
   approver_id: string;
   state: string;
+  step_no: number;
+  route_generation: number;
+  authority_type: string;
+  resolved_from: string | null;
+  decided_by: string | null;
   snapshot_hash: string;
   revision: number;
   expires_at: Date;
@@ -112,6 +117,11 @@ function database({ fixed = true } = {}) {
       request_id: requestId,
       approver_id: approver,
       state: 'approved',
+      step_no: 1,
+      route_generation: 1,
+      authority_type: 'legacy',
+      resolved_from: null,
+      decided_by: approver,
       snapshot_hash: request.snapshot_hash,
       revision: 1,
       expires_at: new Date(Date.now() + 3_600_000),
@@ -120,6 +130,9 @@ function database({ fixed = true } = {}) {
   ];
   const state = {
     revisionHash: request.snapshot_hash,
+    route: null as unknown,
+    routeHash: null as unknown,
+    routeGeneration: 1 as unknown,
     progress: null as null | object,
     omit: [] as string[],
   };
@@ -128,15 +141,54 @@ function database({ fixed = true } = {}) {
       return { rows: [], rowCount: 0 };
     if (sql.includes('SELECT * FROM local_service_request'))
       return { rows: [request], rowCount: 1 };
-    if (sql.includes("a.state<>'invalidated'")) {
+    if (sql.includes('SELECT * FROM local_request_revision'))
+      return {
+        rows: [
+          {
+            request_id: requestId,
+            organization_id: org,
+            revision: request.revision,
+            snapshot: request.snapshot,
+            snapshot_hash: request.snapshot_hash,
+            route: null,
+            route_hash: null,
+            route_generation: 1,
+          },
+        ],
+        rowCount: 1,
+      };
+    if (
+      sql.includes(
+        'SELECT route,route_hash,route_generation,snapshot_hash FROM local_request_revision',
+      )
+    )
+      return {
+        rows: [
+          {
+            route: state.route,
+            route_hash: state.routeHash,
+            route_generation: state.routeGeneration,
+            snapshot_hash: state.revisionHash,
+          },
+        ],
+        rowCount: 1,
+      };
+    if (sql.includes('FROM local_request_approval a JOIN local_request_revision'))
+      return { rows: [], rowCount: 0 };
+    if (sql.includes('FROM local_request_approval a')) {
       const rows = approvals
-        .filter((a) => a.revision === params[2] && a.state !== 'invalidated')
+        .filter((a) => a.revision === params[2] && a.route_generation === params[4])
+        .filter((a) => !sql.includes("a.state<>'invalidated'") || a.state !== 'invalidated')
         .map((a) => ({ ...a, revision_hash_ok: state.revisionHash === params[3] }))
         .map((a) => {
           const copy: Record<string, unknown> = { ...a };
           for (const key of state.omit) delete copy[key];
           return copy;
         });
+      return { rows, rowCount: rows.length };
+    }
+    if (sql.includes('SELECT * FROM local_request_approval') && sql.includes('ORDER BY step_no')) {
+      const rows = approvals.filter((a) => a.request_id === params[0] && a.revision === params[2]);
       return { rows, rowCount: rows.length };
     }
     if (sql.includes('SELECT * FROM local_request_approval')) {
@@ -294,6 +346,93 @@ describe('assertApprovalComplete: 拒否(409)', () => {
     await expect(checkApprovalComplete(db.client, params)).resolves.toEqual({
       ok: false,
       reason: 'request_not_found',
+    });
+  });
+});
+
+describe('多段(route 非NULL)の実行前検証(WP-P4-APR-014)', () => {
+  const secondApprovalId = '77777777-7777-4777-8777-777777777777';
+  const route = () => ({
+    steps: [
+      { stepNo: 1, approverId: approver, authorityType: 'fixed', resolvedFrom: null },
+      { stepNo: 2, approverId: otherApprover, authorityType: 'fixed', resolvedFrom: null },
+    ],
+    ruleRef: null,
+  });
+  function multi() {
+    const db = database();
+    const value = route();
+    db.state.route = value;
+    db.state.routeHash = hash(value);
+    db.approvals[0]!.authority_type = 'fixed';
+    db.approvals.push({
+      ...db.approvals[0]!,
+      id: secondApprovalId,
+      approver_id: otherApprover,
+      step_no: 2,
+      decided_by: otherApprover,
+    });
+    db.request.current_approval_id = secondApprovalId;
+    return { db, value };
+  }
+  it('2段とも approved で、current_approval_id が最終ステップなら通る', async () => {
+    const { db } = multi();
+    expect(await checkApprovalComplete(db.client, params)).toEqual({
+      ok: true,
+      steps: [
+        { approvalId, approverId: approver },
+        { approvalId: secondApprovalId, approverId: otherApprover },
+      ],
+    });
+  });
+  it.each([
+    [
+      'route_hash が再計算値と違う',
+      (db: ReturnType<typeof database>) => (db.state.routeHash = '0'.repeat(64)),
+      'route_hash_mismatch',
+    ],
+    [
+      'route の段数と行数が違う',
+      (db: ReturnType<typeof database>) => db.approvals.pop(),
+      'route_step_count',
+    ],
+    [
+      'ステップの承認者が経路と違う',
+      (db: ReturnType<typeof database>) => (db.approvals[1]!.approver_id = approver),
+      'route_step_mismatch',
+    ],
+    [
+      'route_generation が行と違う',
+      (db: ReturnType<typeof database>) => (db.state.routeGeneration = 2),
+      'no_current_approval',
+    ],
+    [
+      'route が不正(空の段)',
+      (db: ReturnType<typeof database>) => (db.state.route = { steps: [], ruleRef: null }),
+      'route_invalid',
+    ],
+    [
+      'current_approval_id が最終ステップでない',
+      (db: ReturnType<typeof database>) => (db.request.current_approval_id = approvalId),
+      'approval_not_current',
+    ],
+    [
+      '2段目が approved でない',
+      (db: ReturnType<typeof database>) => (db.approvals[1]!.state = 'pending'),
+      'approval_not_approved',
+    ],
+  ] as const)('%s なら拒否する', async (_name, mutate, reason) => {
+    const { db } = multi();
+    mutate(db);
+    expect(await checkApprovalComplete(db.client, params)).toEqual({ ok: false, reason });
+    await expect(assertApprovalComplete(db.client, params)).rejects.toMatchObject({ status: 409 });
+  });
+  it('経路の列が欠けた行は fail closed', async () => {
+    const { db } = multi();
+    delete (db.state as unknown as Record<string, unknown>).route;
+    expect(await checkApprovalComplete(db.client, params)).toEqual({
+      ok: false,
+      reason: 'route_invalid',
     });
   });
 });

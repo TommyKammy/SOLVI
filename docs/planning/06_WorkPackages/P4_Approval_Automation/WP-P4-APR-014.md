@@ -11,7 +11,7 @@ updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "state-machine", "audit"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "review"
 story_points: 8
 risk: "high"
 workstream: "APR"
@@ -59,6 +59,7 @@ depends_on: ["WP-P4-APR-011"]
 - `tests/unit/approval-assertion.test.ts`(多段への追従。2026-11-13 監督者が追加)
 - `tests/unit/catalog-flexible.test.ts`(偽DBを新しい列・問い合わせへ追従させる変更だけ。期待値の緩和は不可。2026-11-13 監督者が追加)
 - `tests/unit/catalog-operations.test.ts`(同上)
+- `tests/security/department-profile.test.ts`(Migration `0037` の down を検証するテストが「最後のMigrationは0037」を前提にしている箇所だけを、後続のMigrationがあっても成り立つ形へ直す。検証内容の緩和は不可。2026-11-13 監督者が追加)
 - `services/api/src/modules/inbox/inbox.routes.ts`(承認待ちの抽出が多段で誤らないための最小限の変更だけ。不要なら変更しない。2026-11-13 監督者が追加)
 - `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-014.md`
 - `evidence/WP-P4-APR-014/`
@@ -94,6 +95,7 @@ depends_on: ["WP-P4-APR-011"]
 - **APIの応答は加算的に変える**: `detail` の `approval`(現在のステップ)と `history` は形を保ち、`steps`(現在の版・現在の `route_generation` の全ステップ)を追加する。`list` の項目の意味は「現在のステップ」とする。Web(`apps/web/`)は本WPで変更しない([[WP-P4-APR-016]])。既存の画面が壊れないこと。
 - **決定者の記録**: 決定時に `decided_by` へ決定者を記録する(本WPでは常に `approver_id` と同じ。代理は[[WP-P4-APR-017]])。
 - **一意制約**: `UNIQUE(request_id, organization_id, revision, route_generation, step_no)` は、既存データに重複があれば Migration を失敗させる(黙って直さない)。
+- **承認取消・却下・期限切れの申請は、内容の変更で再申請できる(現行の挙動を維持)**: 申請者による内容の変更は、申請が `pending` / `approved` / `rejected` / `invalidated` のいずれでも新しい版を作り、新しい承認を生成する(03.5 の「再申請として新しいApprovalを生成する」は、この新しい版の承認を指す)。拒否するのは `completed` と `cancelled` だけ。既存の画面は取消済み・却下済みの申請に「理由を確認して修正・再申請する」を案内している。2026-11-13 監督者の検査で確定。
 - **011のテストの不備を直す**: `tests/security/approval-assertion.test.ts` の「DBに既存の申請がある」ことを前提にしたテストを、テスト内で必要なデータを作る形へ直す(空のDBでも通ること)。
 
 ## 7. Acceptance Criteria
@@ -166,4 +168,23 @@ services/api/src/modules/catalog/catalog.routes.ts / WP-P4-APR-011 の approval-
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-13 | Codex (WP-P4-APR-014) | 作業ツリー(未コミット) | Implemented / review requested | `evidence/WP-P4-APR-014/20261113-0946/` | Migration 0038、`approval-state.ts`、`assertApprovalComplete` の多段拡張、`approval.*` 監査への移行。受入基準の充足は下記。 |
+| 2026-11-13 | Codex (WP-P4-APR-014 R2) | 作業ツリー(未コミット) | R2 fixed / review requested | `evidence/WP-P4-APR-014/20261113-1006/` | 検査指摘3点の修正: 取消後の変更の復帰、`department-profile` の0037 down追従、`decide` の `state`/`stepState`。下記R2メモ。 |
+
+### 2026-11-13 実装メモ
+
+- 変更ファイル: `db/migrations/0038_approval_route_and_steps.sql`(新規)、`services/api/src/modules/catalog/approval-state.ts`(新規)、`catalog.routes.ts`、`approval-assertion.ts`、`common/audit/audit.ts`、`tests/unit/approval-state.test.ts`(新規)、`tests/unit/approval-assertion.test.ts`、`tests/unit/catalog-flexible.test.ts`、`tests/unit/catalog-operations.test.ts`、`tests/security/approval-steps.test.ts`(新規)、`tests/security/approval-migration-compat.test.ts`(新規)、`tests/security/approval-assertion.test.ts`、本WP。
+- Migration: `local_request_revision` に `route` / `route_hash` / `route_generation`、`local_request_approval` に `step_no` / `route_generation` / `authority_type` / `resolved_from` / `decided_by` を加算。既存行は `step_no=1, authority_type='legacy', route_generation=1`、既存版の `route` は NULL のまま(再解決しない)。`UNIQUE(request_id, organization_id, revision, route_generation, step_no)`。down は新しい列にデータがあれば拒否(前進修復)。
+- ロールバック: 0038 の down は `route IS NOT NULL`、`step_no<>1`、`authority_type<>'legacy'`、`resolved_from`/`decided_by` 非NULL のいずれかで拒否する。データが無ければ down 可能で、旧コードは legacy 1段として読める。
+- 状態機械: `approval-state.ts` の `APPROVAL_TRANSITIONS` が 03.5 の多段の読み方と1:1。遷移の検証と承認行・申請行の更新は同ファイルの関数だけが行う。未定義遷移は 409。
+- 検証: `tests/unit` の変更前後比較で新規失敗0(既存34失敗は不変)。`tests/security` は既知の読み込み不能6ファイルを除き、`department-profile.test.ts` の「最後のMigration=0037」前提1件を除いて失敗0。詳細は `.local/briefs/WP-P4-APR-014.report.md`。
+- 未解決: `tests/security/department-profile.test.ts:1095` は `migrate down` が最後のMigrationを戻す前提で、0038 を最後に追加したため1件失敗する(Allowed Paths外のため未修正。`down --to 0036` 相当への追従が必要)。`03.18` の Status 3行更新は指示により未実施(`node tools/check_traceability.mjs --write` が必要)。(R2 で `down --to 0037` により解消。`03.18` は監督者が更新済み。)
+- セキュリティ影響: 承認の判定を全ステップ・経路世代・route_hash に拡張し、実行前検証を fail closed にした。決定時の認可(approver ロール、approver_id 一致、自己承認拒否)は緩めていない。承認行の DELETE 経路は追加していない。監査は業務と同一トランザクションで `approval.*` を記録し、既存 `request.*` 行は変更しない。
+
+### 2026-11-13 R2 修正メモ(検査指摘への対応)
+
+- 変更ファイル: `services/api/src/modules/catalog/approval-state.ts`(遷移表に `edit: approved/rejected` と `edit: invalidated/invalidated` を追加。既に `invalidated` のステップは UPDATE も `approval.invalidated` も重ねない)、`catalog.routes.ts`(`edit` の拒否を `completed` / `cancelled` だけに戻す。`decide` は `state`=申請の状態、`stepState`=ステップの状態を返す)、`tests/unit/approval-state.test.ts`、`tests/security/approval-steps.test.ts`、`tests/security/approval-migration-compat.test.ts`(応答の追従)、`tests/security/department-profile.test.ts`(`down --to 0037` で後続 Migration を先に巻き戻してから 0037 の down を検証し、最後に必ず up へ戻す)、本WP、`evidence/WP-P4-APR-014/20261113-1006/`。
+- Migration: 変更なし(0038 のまま。R2 ではスキーマを変えない)。
+- 検証: `npm run test:unit` 34 failed / 4368 passed(4402)。失敗テスト名は前回の基点と差分なし(新規失敗0)。`vitest run tests/security` は既知の読み込み不能6ファイル以外 0 failed(687 passed / 10 skipped)。対象8ファイルは 235 passed。`npm run check:all` 成功(exit 0)、`typecheck` / `lint` 成功。使い捨てDBで 0038 down → up を確認。開発用DBの件数は不変、`schema_migration` は37件・最大 `0037`。
+- セキュリティ影響: 取消済みの申請の変更は新しい版・経路・最初のステップを作り、旧版のステップは `invalidated` のまま決定・実行の対象にならない。認可(approver ロール、approver_id 一致、自己承認拒否、有効な所属)・固定承認者の一致は変更していない。承認行の削除経路・環境変数による切替は追加していない。
+- 詳細: `.local/briefs/WP-P4-APR-014-R2.report.md`、`evidence/WP-P4-APR-014/20261113-1006/README.md`。

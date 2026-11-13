@@ -14,6 +14,17 @@ import {
   type Definition,
 } from './catalog-definition.js';
 import { assertApprovalComplete, checkApprovalComplete } from './approval-assertion.js';
+import {
+  applyApprovalDecision,
+  checkRouteAgainstSteps,
+  completeApprovalRequest,
+  invalidateApprovalSteps,
+  routeHash,
+  type ApprovalRoute,
+  type ApprovalRouteStep,
+  type ApprovalStepRow,
+  type RequestState,
+} from './approval-state.js';
 import { canonical, hash } from './snapshot-hash.js';
 
 const uuid = z.string().uuid();
@@ -57,20 +68,22 @@ type RequestRow = {
   ticket_id: string;
   version: number;
   revision: number;
-  state: string;
+  state: RequestState;
   snapshot: Snapshot;
   snapshot_hash: string;
   current_approval_id: string;
 };
-type ApprovalRow = {
-  id: string;
-  approver_id: string;
-  state: string;
-  snapshot_hash: string;
+type RevisionRow = {
+  request_id: string;
+  organization_id: string;
   revision: number;
-  expires_at: Date;
-  reason: string | null;
+  snapshot: Snapshot;
+  snapshot_hash: string;
+  route: unknown;
+  route_hash: unknown;
+  route_generation: unknown;
 };
+type ApprovalRow = ApprovalStepRow;
 const approverSql = `SELECT DISTINCT u.id,u.display_name AS name FROM app_user u JOIN role_binding rb ON rb.user_id=u.id JOIN role r ON r.id=rb.role_id
  WHERE rb.organization_id=$1 AND r.code='approver' AND rb.valid_from<=clock_timestamp()
  AND (rb.valid_until IS NULL OR rb.valid_until>clock_timestamp()) AND u.status='active' AND u.id<>$2`;
@@ -115,7 +128,7 @@ export class CatalogController {
     c: pg.PoolClient,
     auth: AuthenticatedRequest,
     id: string,
-    action: 'submitted' | 'changed' | 'approved' | 'rejected' | 'revoked' | 'simulated',
+    action: 'submitted' | 'changed' | 'simulated',
     revision: number,
   ) {
     await recordAuditEvent(c, {
@@ -128,6 +141,47 @@ export class CatalogController {
       action: `request.${action}`,
       outcome: 'success',
       afterState: { revision, simulation: true },
+    });
+  }
+  /**
+   * ステップ単位の監査イベント(02.17 §2.1 / WP §6.1)。
+   * after には版・経路世代・ステップ番号・段数・権限種別だけを入れ、
+   * 申請の入力値・スナップショット本文は載せない。
+   */
+  private async approvalEvent(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    request: { id: string; organization_id: string },
+    eventType:
+      'approval.requested' | 'approval.approved' | 'approval.rejected' | 'approval.invalidated',
+    step: {
+      id: string;
+      step_no: number;
+      route_generation: number;
+      authority_type: string;
+    },
+    revision: number,
+    stepCount: number,
+    extra: Record<string, string | number | boolean | null> = {},
+  ) {
+    await recordAuditEvent(c, {
+      eventType,
+      organizationId: request.organization_id,
+      actorType: 'user',
+      actorId: auth.userId,
+      targetType: 'service_request',
+      targetId: request.id,
+      action: eventType,
+      outcome: 'success',
+      approvalRef: step.id,
+      afterState: {
+        revision,
+        routeGeneration: step.route_generation,
+        stepNo: step.step_no,
+        stepCount,
+        authorityType: step.authority_type,
+        ...extra,
+      },
     });
   }
   private async validateApprover(
@@ -143,6 +197,25 @@ export class CatalogController {
         .rowCount
     )
       throw Problems.forbidden('現在有効な同組織の承認者を選んでください');
+  }
+  /**
+   * 申請・変更時に経路を決める**唯一の関数**(WP §6.1)。
+   * 本WPでは常に1段。定義に固定承認者があれば `fixed`、申請者が選んだなら `legacy`。
+   * WP-P4-APR-015 はこの関数を差し替える(それ以外の箇所で経路を作らない)。
+   */
+  private resolveRoute(definition: Definition, selectedApproverId: string): ApprovalRoute {
+    const fixed = definition.approval?.approverId;
+    return {
+      steps: [
+        {
+          stepNo: 1,
+          approverId: fixed ?? selectedApproverId,
+          authorityType: fixed ? 'fixed' : 'legacy',
+          resolvedFrom: null,
+        },
+      ],
+      ruleRef: null,
+    };
   }
   async catalog(auth: AuthenticatedRequest) {
     return this.run(auth, async (c) => ({
@@ -208,8 +281,11 @@ export class CatalogController {
         conditions.push(`q.state=$${values.length}`);
         if (['pending', 'approved'].includes(filter.state)) conditions.push(`NOT ${expired}`);
       }
+      // 一覧の項目は「現在のステップ」。現在の版・現在の経路世代の行だけを結合する。
       const from = `FROM local_service_request q
+        JOIN local_request_revision r ON r.request_id=q.id AND r.organization_id=q.organization_id AND r.revision=q.revision
         JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id
+          AND a.request_id=q.id AND a.revision=q.revision AND a.route_generation=r.route_generation
         JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
         JOIN app_user u ON u.id=q.requester_id JOIN app_user ap ON ap.id=a.approver_id
         WHERE ${conditions.join(' AND ')}`;
@@ -269,17 +345,54 @@ export class CatalogController {
     if (!r.rows[0]) throw Problems.notFound('申請');
     return r.rows[0];
   }
+  private async revision(c: pg.PoolClient, q: RequestRow): Promise<RevisionRow> {
+    const r = await c.query<RevisionRow>(
+      'SELECT * FROM local_request_revision WHERE request_id=$1 AND organization_id=$2 AND revision=$3',
+      [q.id, q.organization_id, q.revision],
+    );
+    if (!r.rows[0]) throw Problems.conflict('申請の版を確認できません');
+    return r.rows[0];
+  }
   private async approval(c: pg.PoolClient, q: RequestRow): Promise<ApprovalRow> {
     const r = await c.query<ApprovalRow>(
-      'SELECT * FROM local_request_approval WHERE id=$1 AND organization_id=$2 AND request_id=$3',
-      [q.current_approval_id, q.organization_id, q.id],
+      'SELECT * FROM local_request_approval WHERE id=$1 AND organization_id=$2 AND request_id=$3 AND revision=$4',
+      [q.current_approval_id, q.organization_id, q.id, q.revision],
     );
     if (!r.rows[0]) throw Problems.conflict('承認記録を確認できません');
     return r.rows[0];
   }
-  private visible(auth: AuthenticatedRequest, q: RequestRow, a: ApprovalRow) {
-    if (q.requester_id !== auth.userId && a.approver_id !== auth.userId && !this.staff(auth))
-      throw Problems.notFound('申請');
+  private async steps(
+    c: pg.PoolClient,
+    q: RequestRow,
+    revision: RevisionRow,
+  ): Promise<ApprovalStepRow[]> {
+    return (
+      await c.query<ApprovalStepRow>(
+        `SELECT * FROM local_request_approval
+          WHERE request_id=$1 AND organization_id=$2 AND revision=$3 AND route_generation=$4
+          ORDER BY step_no, id`,
+        [q.id, q.organization_id, q.revision, revision.route_generation],
+      )
+    ).rows;
+  }
+  /**
+   * 可視性は「申請者・担当者・現在の版/世代のいずれかのステップの承認者」。
+   * 現在の1行だけを見ない(多段で過去ステップの承認者が見えなくなるのを防ぐ)。
+   */
+  private async visible(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    q: RequestRow,
+    revision: RevisionRow,
+  ) {
+    if (q.requester_id === auth.userId || this.staff(auth)) return;
+    const r = await c.query(
+      `SELECT 1 FROM local_request_approval
+        WHERE request_id=$1 AND organization_id=$2 AND revision=$3 AND route_generation=$4
+          AND approver_id=$5 LIMIT 1`,
+      [q.id, q.organization_id, q.revision, revision.route_generation, auth.userId],
+    );
+    if (!r.rowCount) throw Problems.notFound('申請');
   }
   private async checklistProgress(c: pg.PoolClient, q: RequestRow) {
     return (
@@ -331,12 +444,14 @@ export class CatalogController {
   async detail(auth: AuthenticatedRequest, id: string) {
     return this.run(auth, async (c) => {
       const q = await this.lock(c, auth, id),
+        revision = await this.revision(c, q),
         a = await this.approval(c, q);
-      this.visible(auth, q, a);
+      await this.visible(c, auth, q, revision);
+      const steps = await this.steps(c, q, revision);
       const names = (
         await c.query<{ id: string; display_name: string }>(
           'SELECT id,display_name FROM app_user WHERE id=ANY($1::uuid[])',
-          [[q.requester_id, a.approver_id]],
+          [[q.requester_id, ...steps.map((step) => step.approver_id)]],
         )
       ).rows;
       return {
@@ -353,11 +468,25 @@ export class CatalogController {
           ticketId: q.ticket_id,
         },
         approval: a,
+        // 現在の版・現在の経路世代の全ステップ(加算的な追加。既存の approval/history の形は変えない)
+        steps: steps.map((step) => ({
+          id: step.id,
+          stepNo: step.step_no,
+          state: step.state,
+          approverId: step.approver_id,
+          approverName: names.find((u) => u.id === step.approver_id)?.display_name ?? '承認者',
+          authorityType: step.authority_type,
+          resolvedFrom: step.resolved_from,
+          reason: step.reason,
+          decidedAt: step.decided_at,
+          decidedBy: step.decided_by,
+          expiresAt: step.expires_at,
+        })),
         history: (
           await c.query(
             `SELECT a.id,a.state,a.revision,a.approver_id AS "approverId",u.display_name AS "approverName",a.reason,a.decided_at AS "decidedAt",a.expires_at AS "expiresAt",r.snapshot->'inputs' AS inputs,r.snapshot->'item' AS item
              FROM local_request_approval a JOIN local_request_revision r ON r.request_id=a.request_id AND r.organization_id=a.organization_id AND r.revision=a.revision JOIN app_user u ON u.id=a.approver_id
-             WHERE a.request_id=$1 AND a.organization_id=$2 ORDER BY a.revision`,
+             WHERE a.request_id=$1 AND a.organization_id=$2 ORDER BY a.revision,a.route_generation,a.step_no`,
             [id, q.organization_id],
           )
         ).rows,
@@ -374,19 +503,44 @@ export class CatalogController {
       };
     });
   }
-  private async addApproval(
+  /** 新しい版と最初のステップを保存する。経路は版に固定する。 */
+  private async addRevisionAndStep(
     c: pg.PoolClient,
     auth: AuthenticatedRequest,
     q: RequestRow,
-    approverId: string,
+    revision: number,
+    snapshot: Snapshot,
+    snapshotHash: string,
+    route: ApprovalRoute,
+    approvalId: string,
+    step: ApprovalRouteStep,
   ) {
     await c.query(
-      'INSERT INTO local_request_revision(request_id,organization_id,revision,snapshot,snapshot_hash,changed_by) VALUES($1,$2,$3,$4,$5,$6)',
-      [q.id, q.organization_id, q.revision, q.snapshot, q.snapshot_hash, auth.userId],
+      'INSERT INTO local_request_revision(request_id,organization_id,revision,snapshot,snapshot_hash,changed_by,route,route_hash,route_generation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,1)',
+      [
+        q.id,
+        q.organization_id,
+        revision,
+        snapshot,
+        snapshotHash,
+        auth.userId,
+        route,
+        routeHash(route),
+      ],
     );
     await c.query(
-      "INSERT INTO local_request_approval(id,organization_id,request_id,revision,snapshot_hash,approver_id,state,expires_at) VALUES($1,$2,$3,$4,$5,$6,'pending',clock_timestamp()+interval '72 hours')",
-      [q.current_approval_id, q.organization_id, q.id, q.revision, q.snapshot_hash, approverId],
+      "INSERT INTO local_request_approval(id,organization_id,request_id,revision,route_generation,step_no,snapshot_hash,approver_id,authority_type,resolved_from,state,expires_at) VALUES($1,$2,$3,$4,1,$5,$6,$7,$8,$9,'pending',clock_timestamp()+interval '72 hours')",
+      [
+        approvalId,
+        q.organization_id,
+        q.id,
+        revision,
+        step.stepNo,
+        snapshotHash,
+        step.approverId,
+        step.authorityType,
+        step.resolvedFrom,
+      ],
     );
   }
   async create(auth: AuthenticatedRequest, value: unknown) {
@@ -402,25 +556,54 @@ export class CatalogController {
         )
       ).rows[0];
       if (previous) {
-        const original = (
-          await c.query<{ snapshot: Snapshot }>(
-            'SELECT snapshot FROM local_request_revision WHERE request_id=$1 AND organization_id=$2 AND revision=1',
+        const originalRevision = (
+          await c.query<RevisionRow>(
+            'SELECT * FROM local_request_revision WHERE request_id=$1 AND organization_id=$2 AND revision=1',
             [previous.id, previous.organization_id],
           )
-        ).rows[0]!.snapshot;
-        const originalApprover = (
-          await c.query<{ approver_id: string }>(
-            'SELECT approver_id FROM local_request_approval WHERE request_id=$1 AND revision=1',
-            [previous.id],
+        ).rows[0];
+        if (!originalRevision) throw Problems.conflict('同じ送信キーの申請を確認できません');
+        const original = originalRevision.snapshot;
+        // 経路の同一性は route_hash で判定する(移行前の route NULL は従来の1行比較)。
+        if (originalRevision.route_generation !== 1)
+          throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
+        const originalSteps = (
+          await c.query<ApprovalStepRow>(
+            `SELECT * FROM local_request_approval
+              WHERE request_id=$1 AND organization_id=$2 AND revision=1 AND route_generation=1
+              ORDER BY step_no, id`,
+            [previous.id, previous.organization_id],
           )
-        ).rows[0]!.approver_id;
+        ).rows;
+        const routeCheck = checkRouteAgainstSteps({
+          route: originalRevision.route,
+          routeHash: originalRevision.route_hash,
+          routeGeneration: originalRevision.route_generation,
+          revision: 1,
+          steps: originalSteps,
+          allowPartial: true,
+        });
+        if (!routeCheck.ok) throw Problems.conflict('同じ送信キーの承認経路を確認できません');
+        if (routeCheck.route === null) {
+          if (originalSteps.length !== 1 || originalSteps[0]!.approver_id !== input.approverId)
+            throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
+        } else {
+          // 固定承認者の申請では、送信された承認者が固定承認者と一致すること。
+          if (
+            original.item.definition.approval &&
+            original.item.definition.approval.approverId !== input.approverId
+          )
+            throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
+          const expected = this.resolveRoute(original.item.definition, input.approverId);
+          if (routeHash(expected) !== originalRevision.route_hash)
+            throw Problems.conflict('同じ送信キーで異なる申請内容は送信できません');
+        }
         const normalized = validateRequestInputs(original.item.definition, input);
         if (
           original.item.id !== input.itemId ||
           original.item.version !== input.itemVersion ||
           original.inputs.reason !== normalized.reason ||
           original.inputs.durationDays !== normalized.durationDays ||
-          originalApprover !== input.approverId ||
           canonical(original.inputs.values ?? {}) !==
             canonical(validateValues(original.item.definition, input.values))
         )
@@ -465,6 +648,8 @@ export class CatalogController {
         },
         requesterId: auth.userId,
       };
+      const route = this.resolveRoute(definition, input.approverId);
+      const firstStep = route.steps[0]!;
       const ticket = await new TicketService(c).create(
         auth.authz,
         {
@@ -509,8 +694,33 @@ export class CatalogController {
           q.current_approval_id,
         ],
       );
-      await this.addApproval(c, auth, q, input.approverId);
+      await this.addRevisionAndStep(
+        c,
+        auth,
+        q,
+        1,
+        snapshot,
+        q.snapshot_hash,
+        route,
+        q.current_approval_id,
+        firstStep,
+      );
       await this.event(c, auth, q.id, 'submitted', 1);
+      await this.approvalEvent(
+        c,
+        auth,
+        q,
+        'approval.requested',
+        {
+          id: q.current_approval_id,
+          step_no: firstStep.stepNo,
+          route_generation: 1,
+          authority_type: firstStep.authorityType,
+        },
+        1,
+        route.steps.length,
+        { requestState: 'pending' },
+      );
       return { id: q.id, ticketId: ticket.id, replayed: false };
     });
   }
@@ -520,76 +730,177 @@ export class CatalogController {
       const q = await this.lock(c, auth, id);
       if (q.requester_id !== auth.userId) throw Problems.notFound('申請');
       if (q.version !== input.expectedVersion) throw Problems.stale('申請');
+      // 変更を受け付けるのは pending / approved / rejected / invalidated。完了と取下げだけを拒否する
+      // (承認取消・却下・期限切れの申請は、理由を確認して修正・再申請できる。WP §6.1 / 03.5)。
       if (['completed', 'cancelled'].includes(q.state))
-        throw Problems.conflict('完了・取消済みの申請は変更できません');
+        throw Problems.conflict('完了・取下げ済みの申請は変更できません');
+      const revision = await this.revision(c, q);
       const definition = parse(definitionSchema, q.snapshot.item.definition);
       const inputs = validateRequestInputs(definition, input);
       const values = validateValues(definition, input.values);
       if (definition.approval && definition.approval.approverId !== input.approverId)
         throw Problems.forbidden('この申請版の固定承認者を変更できません');
       await this.validateApprover(c, q.organization_id, q.requester_id, input.approverId);
-      await c.query(
-        "UPDATE local_request_approval SET state='invalidated',reason='申請内容の変更による再承認',decided_at=clock_timestamp() WHERE id=$1 AND state IN ('pending','approved')",
-        [q.current_approval_id],
-      );
-      q.snapshot = {
+
+      const currentSteps = await this.steps(c, q, revision);
+      const routeCheck = checkRouteAgainstSteps({
+        route: revision.route,
+        routeHash: revision.route_hash,
+        routeGeneration: revision.route_generation,
+        revision: q.revision,
+        steps: currentSteps,
+        allowPartial: true,
+      });
+      if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
+
+      const nextRevision = q.revision + 1;
+      const nextSnapshot: Snapshot = {
         ...q.snapshot,
         inputs: {
           ...inputs,
           ...(definition.fields ? { values } : {}),
         },
       };
-      q.snapshot_hash = hash(q.snapshot);
-      q.revision += 1;
-      q.version += 1;
-      q.current_approval_id = uuidv7();
-      q.state = 'pending';
-      await this.addApproval(c, auth, q, input.approverId);
-      await c.query(
-        "UPDATE local_service_request SET snapshot=$2,snapshot_hash=$3,revision=$4,version=$5,current_approval_id=$6,state='pending',updated_at=clock_timestamp() WHERE id=$1",
-        [id, q.snapshot, q.snapshot_hash, q.revision, q.version, q.current_approval_id],
+      const nextSnapshotHash = hash(nextSnapshot);
+      const route = this.resolveRoute(definition, input.approverId);
+      const firstStep = route.steps[0]!;
+      const nextApprovalId = uuidv7();
+      const invalidated = await invalidateApprovalSteps(c, {
+        request: q,
+        steps: currentSteps,
+        trigger: 'edit',
+        reason: '申請内容の変更による再承認',
+        next: {
+          snapshot: nextSnapshot,
+          snapshotHash: nextSnapshotHash,
+          revision: nextRevision,
+          currentApprovalId: nextApprovalId,
+        },
+      });
+      await this.addRevisionAndStep(
+        c,
+        auth,
+        q,
+        nextRevision,
+        nextSnapshot,
+        nextSnapshotHash,
+        route,
+        nextApprovalId,
+        firstStep,
       );
-      await this.event(c, auth, id, 'changed', q.revision);
-      return { id, version: q.version };
+      await this.event(c, auth, id, 'changed', nextRevision);
+      for (const step of invalidated.invalidated)
+        await this.approvalEvent(
+          c,
+          auth,
+          q,
+          'approval.invalidated',
+          step,
+          q.revision,
+          routeCheck.stepCount,
+          { cause: 'request_changed', requestState: invalidated.requestState },
+        );
+      await this.approvalEvent(
+        c,
+        auth,
+        q,
+        'approval.requested',
+        {
+          id: nextApprovalId,
+          step_no: firstStep.stepNo,
+          route_generation: 1,
+          authority_type: firstStep.authorityType,
+        },
+        nextRevision,
+        route.steps.length,
+        { requestState: 'pending' },
+      );
+      return { id, version: q.version + 1 };
     });
   }
   async decide(auth: AuthenticatedRequest, id: string, value: unknown) {
     const input = parse(decisionSchema, value);
     return this.run(auth, async (c) => {
       const q = await this.lock(c, auth, id),
+        revision = await this.revision(c, q),
         a = await this.approval(c, q);
-      this.visible(auth, q, a);
+      await this.visible(c, auth, q, revision);
       if (input.decision === 'revoke') {
-        if (a.approver_id !== auth.userId && !hasRole(auth.authz, 'org_admin', 'platform_admin'))
+        if (q.requester_id === auth.userId)
+          throw Problems.forbidden('自己承認・自己決定はできません');
+        if (q.version !== input.expectedVersion) throw Problems.stale('申請');
+        if (q.state !== 'approved') throw Problems.conflict('承認済みの申請だけ取り消せます');
+        const steps = await this.steps(c, q, revision);
+        const routeCheck = checkRouteAgainstSteps({
+          route: revision.route,
+          routeHash: revision.route_hash,
+          routeGeneration: revision.route_generation,
+          revision: q.revision,
+          steps,
+        });
+        if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
+        if (steps.some((step) => step.state !== 'approved'))
+          throw Problems.conflict('承認済みの申請だけ取り消せます');
+        if (q.current_approval_id !== steps[steps.length - 1]!.id)
+          throw Problems.conflict('承認記録を確認できません');
+        if (
+          !hasRole(auth.authz, 'org_admin', 'platform_admin') &&
+          !steps.some((step) => step.approver_id === auth.userId)
+        )
           throw Problems.forbidden();
-      } else {
-        requireRole(auth.authz, 'approver');
-        if (a.approver_id !== auth.userId)
-          throw Problems.forbidden('指定された承認者だけが決定できます');
+        if (!input.reason)
+          throw Problems.validation([{ field: 'reason', message: '取消理由を入力してください' }]);
+        const invalidated = await invalidateApprovalSteps(c, {
+          request: q,
+          steps,
+          trigger: 'revoke',
+          reason: input.reason,
+        });
+        for (const step of invalidated.invalidated)
+          await this.approvalEvent(
+            c,
+            auth,
+            q,
+            'approval.invalidated',
+            step,
+            q.revision,
+            routeCheck.stepCount,
+            { cause: 'revoked', requestState: invalidated.requestState },
+          );
+        return { id };
       }
+
+      requireRole(auth.authz, 'approver');
+      if (a.approver_id !== auth.userId)
+        throw Problems.forbidden('指定された承認者だけが決定できます');
       if (q.requester_id === auth.userId)
         throw Problems.forbidden('自己承認・自己決定はできません');
       if (q.version !== input.expectedVersion) throw Problems.stale('申請');
-      if (input.decision === 'revoke') {
-        if (q.state !== 'approved' || a.state !== 'approved')
-          throw Problems.conflict('承認済みの申請だけ取り消せます');
-        if (!input.reason)
-          throw Problems.validation([{ field: 'reason', message: '取消理由を入力してください' }]);
-        await c.query(
-          "UPDATE local_request_approval SET state='invalidated',reason=$2,decided_at=clock_timestamp() WHERE id=$1",
-          [a.id, input.reason],
-        );
-        await c.query(
-          "UPDATE local_service_request SET state='invalidated',version=version+1,updated_at=clock_timestamp() WHERE id=$1",
-          [id],
-        );
-        await this.event(c, auth, id, 'revoked', q.revision);
-        return { id };
-      }
-      if (q.state !== 'pending' || a.state !== 'pending' || a.expires_at.getTime() <= Date.now())
+      if (q.state !== 'pending' || a.state !== 'pending')
         throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
+      if (!(a.expires_at instanceof Date) || a.expires_at.getTime() <= Date.now())
+        throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
+
+      const steps = await this.steps(c, q, revision);
+      const routeCheck = checkRouteAgainstSteps({
+        route: revision.route,
+        routeHash: revision.route_hash,
+        routeGeneration: revision.route_generation,
+        revision: q.revision,
+        steps,
+        allowPartial: true,
+      });
+      if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
+      // 現在のステップが、その世代で最後に作られたステップであること。
+      if (a.step_no !== steps.length) throw Problems.conflict('承認ステップが申請版と一致しません');
+      if (steps.some((step) => step.id !== a.id && step.state !== 'approved'))
+        throw Problems.conflict('前の承認ステップが完了していません');
+      const isFinalStep = a.step_no === routeCheck.stepCount;
+      const nextRouteStep = isFinalStep ? null : routeCheck.route!.steps[a.step_no]!;
+
       await this.validateApprover(c, q.organization_id, q.requester_id, a.approver_id);
       if (
+        revision.route === null &&
         q.snapshot.item.definition.approval &&
         q.snapshot.item.definition.approval.approverId !== a.approver_id
       )
@@ -597,22 +908,54 @@ export class CatalogController {
       if (
         a.snapshot_hash !== q.snapshot_hash ||
         hash(q.snapshot) !== q.snapshot_hash ||
+        revision.snapshot_hash !== q.snapshot_hash ||
         a.revision !== q.revision
       )
         throw Problems.conflict('申請内容のハッシュが承認対象と一致しません');
       if (input.decision === 'reject' && !input.reason)
         throw Problems.validation([{ field: 'reason', message: '却下理由を入力してください' }]);
-      const state = input.decision === 'approve' ? 'approved' : 'rejected';
-      await c.query(
-        'UPDATE local_request_approval SET state=$2,reason=$3,decided_at=clock_timestamp() WHERE id=$1',
-        [a.id, state, input.reason || null],
+
+      const result = await applyApprovalDecision(c, {
+        request: q,
+        step: a,
+        decision: input.decision,
+        isFinalStep,
+        reason: input.reason || null,
+        actorId: auth.userId,
+        nextStep: nextRouteStep,
+      });
+      await this.approvalEvent(
+        c,
+        auth,
+        q,
+        result.stepState === 'approved' ? 'approval.approved' : 'approval.rejected',
+        a,
+        q.revision,
+        routeCheck.stepCount,
+        {
+          requestState: result.requestState,
+          finalStep: isFinalStep,
+        },
       );
-      await c.query(
-        'UPDATE local_service_request SET state=$2,version=version+1,updated_at=clock_timestamp() WHERE id=$1',
-        [id, state],
-      );
-      await this.event(c, auth, id, state, q.revision);
-      return { id, state };
+      if (result.nextStepId && nextRouteStep)
+        await this.approvalEvent(
+          c,
+          auth,
+          q,
+          'approval.requested',
+          {
+            id: result.nextStepId,
+            step_no: nextRouteStep.stepNo,
+            route_generation: a.route_generation,
+            authority_type: nextRouteStep.authorityType,
+          },
+          q.revision,
+          routeCheck.stepCount,
+          { requestState: 'pending' },
+        );
+      // `state` は従来どおり**申請**の状態(途中ステップの承認なら pending)。
+      // ステップの状態は `stepState` として加算する。
+      return { id, state: result.requestState, stepState: result.stepState };
     });
   }
   async updateChecklist(auth: AuthenticatedRequest, id: string, value: unknown) {
@@ -693,11 +1036,12 @@ export class CatalogController {
       ).rows[0];
       if (existing) return { receipt: existing, replayed: true };
       if (q.version !== input.expectedVersion) throw Problems.stale('申請');
-      const [step] = await assertApprovalComplete(
+      const steps = await assertApprovalComplete(
         c,
         { organizationId: q.organization_id, requestId: q.id },
         this.logger,
       );
+      const finalStep = steps[steps.length - 1]!;
       const definition = parse(definitionSchema, q.snapshot.item.definition);
       validateRequestInputs(definition, q.snapshot.inputs);
       validateValues(definition, q.snapshot.inputs.values ?? {});
@@ -732,7 +1076,7 @@ export class CatalogController {
       };
       await c.query(
         'INSERT INTO local_simulation_receipt(id,organization_id,request_id,approval_id,snapshot_hash,idempotency_key,simulation,result) VALUES($1,$2,$3,$4,$5,$6,true,$7)',
-        [receiptId, q.organization_id, id, step!.approvalId, q.snapshot_hash, key, result],
+        [receiptId, q.organization_id, id, finalStep.approvalId, q.snapshot_hash, key, result],
       );
       const tickets = new TicketService(c);
       let ticket = await tickets.findById(auth.authz, q.ticket_id);
@@ -776,10 +1120,11 @@ export class CatalogController {
           `結果証跡: ${receiptId}`,
         ].join('\n'),
       });
-      await c.query(
-        "UPDATE local_service_request SET state='completed',version=version+1,updated_at=clock_timestamp() WHERE id=$1",
-        [id],
-      );
+      await completeApprovalRequest(c, {
+        requestId: id,
+        organizationId: q.organization_id,
+        expectedVersion: q.version,
+      });
       await this.event(c, auth, id, 'simulated', q.revision);
       return { receipt: { id: receiptId, result }, replayed: false };
     });

@@ -76,6 +76,15 @@ export const AUDIT_EVENT_TYPES = [
   'request.revoked',
   'request.simulated',
   'request.checklist.updated',
+  // 承認の事実はステップ単位で approval.* に記録する (02.17 §2.1 / WP-P4-APR-014)。
+  // 既存の request.* 行は書き換えない。切替後は request.approved/rejected/revoked を書かない。
+  // approval.cancelled は申請の取下げ用、approval.expired は期限処理を持つ WP-P4-APR-017 用に予約する。
+  'approval.requested',
+  'approval.approved',
+  'approval.rejected',
+  'approval.invalidated',
+  'approval.cancelled',
+  'approval.expired',
   'article.saved',
   'article.review',
   'article.restore',

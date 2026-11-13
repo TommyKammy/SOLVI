@@ -208,10 +208,16 @@ afterAll(async () => {
 
 describe('既存の保存済み snapshot_hash との互換(TL-02)', () => {
   it('DBにある全申請・全版の snapshot_hash が、抽出後の hash() の再計算値と一致する', async () => {
-    const requests = (await q('SELECT id, snapshot, snapshot_hash FROM local_service_request'))
-      .rows;
+    // 空のDBでも通るよう、比較対象をこのテストで作る(既存申請の存在を前提にしない)。
+    const c = await approvedRequest();
+    const requests = (
+      await q('SELECT id, snapshot, snapshot_hash FROM local_service_request WHERE id=$1', [c.id])
+    ).rows;
     const revisions = (
-      await q('SELECT request_id, revision, snapshot, snapshot_hash FROM local_request_revision')
+      await q(
+        'SELECT request_id, revision, snapshot, snapshot_hash FROM local_request_revision WHERE request_id=$1',
+        [c.id],
+      )
     ).rows;
     expect(requests.length).toBeGreaterThan(0);
     for (const row of [...requests, ...revisions])
@@ -241,7 +247,8 @@ describe('成功経路(固定承認者なし/あり)', () => {
       expect(events).toEqual(
         expect.arrayContaining([
           'request.submitted',
-          'request.approved',
+          'approval.requested',
+          'approval.approved',
           'request.checklist.updated',
           'request.simulated',
         ]),
@@ -343,8 +350,8 @@ describe('承認バイパスの拒否(TL-16): 承認後にDBの状態が壊れ�
       async (c) => {
         const extra = await makeUser('approver');
         await q(
-          `INSERT INTO local_request_approval(id,organization_id,request_id,revision,snapshot_hash,approver_id,state,expires_at)
-           SELECT $2,organization_id,request_id,revision,snapshot_hash,$3,'pending',expires_at FROM local_request_approval WHERE request_id=$1`,
+          `INSERT INTO local_request_approval(id,organization_id,request_id,revision,route_generation,step_no,snapshot_hash,approver_id,authority_type,state,expires_at)
+           SELECT $2,organization_id,request_id,revision,route_generation,2,snapshot_hash,$3,'legacy','pending',expires_at FROM local_request_approval WHERE request_id=$1 AND step_no=1`,
           [c.id, uuidv7(), extra.id],
         );
       },
@@ -413,6 +420,10 @@ describe('申請者=承認者(自己承認)', () => {
       [bindingId, c.requester.id, r.id, r.scope, ORG, PAST],
     );
     made.bindings.push(bindingId);
+    // 移行前(route NULL)の1行として、自己承認の静的検査を通す
+    await q('UPDATE local_request_revision SET route=NULL,route_hash=NULL WHERE request_id=$1', [
+      c.id,
+    ]);
     await q('UPDATE local_request_approval SET approver_id=$2 WHERE request_id=$1', [
       c.id,
       c.requester.id,
