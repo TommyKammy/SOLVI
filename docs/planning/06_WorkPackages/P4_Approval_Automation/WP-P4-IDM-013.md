@@ -11,7 +11,7 @@ updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "identity", "organization", "ui"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "high"
 workstream: "IDM"
@@ -350,3 +350,5 @@ services/api/src/modules/auth/user-admin.* / apps/web/src/app/ops/users。
 - Chromium の通しは、1回目が `.sr-only` の検査で停止したため、片付け後の読み取り照合と、WebKit が保留した有効な合成データへの実操作で完了した。累計9件の上限を超えないための措置で、新規の Chromium 部署は追加していない。
 
 **Evidence**: `evidence/WP-P4-IDM-013/20261113-0856/`
+
+- 2026-11-13(監督者による追記): 利用者(人間)がセキュリティレビューとして本WP(段階A・B)を承認した。利用者の指示により、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。残る事項: Chromium単独での通しの完走記録が無い(WebKitの合成データをChromiumで操作して確認した)。左メニューを開いた状態の既存のコントラスト違反(本WPより前からある共通スタイル)。開発用DBに `UI013-SYN-` の合成部署17件(すべて無効)と終了済みの部署長5件が残る。
