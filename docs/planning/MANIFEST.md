@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 310 |
 | Markdown | 302 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,395,372 bytes |
+| 合計サイズ | 7,403,000 bytes |
 
 ## ファイル一覧
 
@@ -223,7 +223,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-010.md` | 16747 | `4e4f211b9e1e21ace108fed8c5801295415d5c071133e96a2603c7cfab3edfaa` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-011.md` | 20626 | `cc6e8e20942e32da44d8d8e72eb4a0cc99524bd2077591e66aeedbfea5427243` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-014.md` | 22490 | `2c3460f1e14b3eec36469b522c8fb9610afa290bd004e13189f8c88f288e8829` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-015.md` | 13382 | `76b433f12d9f63315c780ef2c1a733ebdb5c017fc4f99bf15f573bd09c173adf` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-015.md` | 20853 | `915cf9848cd4857187cd9fdf34ebcc9dcb69e141fb38e1d7faf4355a5d70a5cb` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-016.md` | 8003 | `89f3b684caca18f8558f01ab573d765c6bf1daf30a176b1473a7b5bd96938100` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-017.md` | 9235 | `316f851e45638f67c47c60cf924f6e09954bc71437a362dcb1425ce3e26e9b51` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
@@ -283,7 +283,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0020_Catalog_Form_Definition_Extensions.md` | 3185 | `beef8e6b59d02328492409060d2c58de1d8c068db78a5cb82ca555301250f817` |
 | `07_ADR/ADR-0021_Catalog_Delegation_And_Fulfillment.md` | 3699 | `978934f8f7b0ffa5ff1e28c0480b7132a8683e24c5fd95e3e711b44f5240b0eb` |
 | `07_ADR/ADR-0022_Catalog_Optional_Request_Fields.md` | 2705 | `7279011634ed299ccdea3d77298d0272f96dbadfbcbe7322836e5d75269bb4b8` |
-| `07_ADR/ADR-0023_Relationship_Based_Approval_Authority.md` | 29189 | `422559cced6096e14b86ce36c87c53c638e53b7c441e08772c21ce4f9c764c17` |
+| `07_ADR/ADR-0023_Relationship_Based_Approval_Authority.md` | 29346 | `23f249a64a999bc5297304ec60f7c8bc2d348baa0bb542b2ac3c842b8c3bacfe` |
 | `08_Runbooks/08.10_Audit_Export.md` | 1469 | `bb53a1a948cd80930b2c54fc35fa61cfde15402be7fe1343fe79b323fe93785a` |
 | `08_Runbooks/08.11_Data_Reconciliation.md` | 1469 | `66e555c4385a67399c03768b05450f30a69ae382b54ae23db9b4dfe526ef49ab` |
 | `08_Runbooks/08.12_Security_Incident.md` | 1502 | `073b4046e12371a776cfa1d45ce7f2f3cc9563e2755dfcabc1d8a1398b9743c6` |

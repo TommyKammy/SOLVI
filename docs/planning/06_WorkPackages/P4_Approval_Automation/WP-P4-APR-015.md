@@ -4,10 +4,10 @@ doc_id: "WP-P4-APR-015"
 title: "承認ルール・リゾルバ・プレビュー・関係ベース認可・一覧の可視性"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "draft"
-version: "0.1.0"
+status: "baseline"
+version: "0.2.0"
 created: "2026-11-12"
-updated: "2026-11-12"
+updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "authorization", "resolver"]
 source_of_truth: true
@@ -44,7 +44,9 @@ depends_on: ["WP-P4-IDM-012", "WP-P4-APR-014"]
 
 **有効化の前提(2026-11-12 監督者が追加)**: 上長・部署長の変更履歴をアクセスレビュー([[WP-P1-SEC-024]])で確認できるようにしてから、関係ベース承認を組織で有効化する(リスク受容 RA-04 の検知手段。[[WP-P4-IDM-013]] は監査イベントの記録までを行う)。本WPの成果物と受入基準に含める。
 
-[[WP-P4-IDM-012]], [[WP-P4-APR-014]]。実体化(`draft` → `baseline`)は、ADR-0023が `accepted` であることを確認し、`要確認` の2点(最大段数、高リスク申請の判定基準)をレビューで確定してから行う。
+[[WP-P4-IDM-012]](done)、[[WP-P4-IDM-013]](done)、[[WP-P4-APR-014]](done)。ADR-0023 は `accepted`。2026-11-13 に利用者の決定(最大3段、変更の見直しは変更履歴の一覧まで)と §6.1 の確定事項を加えて `baseline` に実体化した。
+
+**作業は2段階で行う**: (段階A)ルール・有効化設定・リゾルバ・プレビュー・申請と変更での経路解決。(段階B)関係ベースの決定の認可・一覧の可視性・滞留・再割当・上長と部署長の変更履歴API。
 
 ## 4. Scope / Allowed Paths
 
@@ -56,6 +58,21 @@ depends_on: ["WP-P4-IDM-012", "WP-P4-APR-014"]
 - `services/api/src/modules/catalog/catalog-definition.ts`
 - `services/api/src/modules/catalog/catalog.routes.ts`
 - `services/api/src/modules/catalog/approval-assertion.ts`
+- `services/api/src/modules/catalog/approval-state.ts`
+- `services/api/src/modules/catalog/catalog-admin.routes.ts`(定義の `ruleId` の保存時検証だけ)
+- `services/api/src/modules/inbox/inbox.routes.ts`(承認待ちの抽出を「自分が承認者のステップ」で判定するための最小限の変更だけ)
+- `services/api/src/modules/auth/relationship-change.service.ts`
+- `services/api/src/modules/auth/relationship-change.routes.ts`
+- `services/api/src/main.ts`(経路の登録だけ)
+- `tests/security/relationship-change.test.ts`
+- `tests/security/approval-steps.test.ts`(新しい認可・経路解決への追従だけ。検証内容の緩和は不可)
+- `tests/security/approval-assertion.test.ts`(同上)
+- `tests/security/approval-migration-compat.test.ts`(同上)
+- `tests/security/department-profile.test.ts`(Migrationの巻き戻しを伴うテストが後続のMigrationでも成り立つための追従だけ)
+- `tests/unit/approval-state.test.ts`
+- `tests/unit/approval-assertion.test.ts`
+- `tests/unit/catalog-flexible.test.ts`(偽DBの追従だけ。期待値の緩和は不可)
+- `tests/unit/catalog-operations.test.ts`(同上)
 - `services/api/src/common/audit/audit.ts`
 - `tests/unit/approval-resolver.test.ts`
 - `tests/security/approval-routing.test.ts`
@@ -79,6 +96,31 @@ depends_on: ["WP-P4-IDM-012", "WP-P4-APR-014"]
 7. 承認ルール管理API(作成・版追加・無効化・一覧・版履歴。`org_admin` のみ)と、経路プレビュー(「この申請者なら誰が承認するか」)、現在の全利用者のうち解決できない人の一覧。`approval.rule.created|revised|deactivated` を記録する。
 8. 高リスク申請: 関係ベースのステップだけの経路は承認として成立しない。`fixed` 段を必須とする保存時検証(判定基準は[[WP-P4-APR-017]]で確定。`要確認`)。
 
+### 6.1 実体化で確定した事項(2026-11-13)
+
+利用者の決定:
+
+- **最大段数は3**。ルールの `steps` は1〜3要素。DB(CHECK)とAPI(共有スキーマ)の両方で検証する。
+- **上長・部署長の変更の見直しは「変更履歴の一覧」まで**。本WPは読み取りAPIを作り、画面への表示は[[WP-P4-APR-016]]。アクセスレビューの項目として1件ずつ判定する仕組みは作らない(必要になれば別WP)。
+
+監督者の確定:
+
+- **有効化設定**: `org_approval_setting(organization_id PK, rule_routing_enabled boolean NOT NULL DEFAULT false, updated_by, updated_at)` を新設する(RLS、行が無ければ無効)。切替は `org_admin` のみ。切替を `approval.routing.enabled` / `approval.routing.disabled` として監査する。環境変数・フラグにしない。
+- **無効な組織での扱い**: 定義に `ruleId` があっても、組織で無効なら新規の版ではルールを使わず、現行互換(固定承認者、無ければ申請者が選ぶ)で経路を決める。定義への `ruleId` の保存は無効な組織でも許す(準備のため)。進行中の申請の検証は設定に関係なく全ステップを要求する。
+- **`approverId` の扱い**: ルールで経路を決める版では、入力の `approverId` を承認者として使わない(無視する。Webは[[WP-P4-APR-016]]まで従来どおり送ってくるため、拒否はしない)。`create` / 変更の入力で `approverId` を任意にし、ルールを使わない版では従来どおり必須とする。
+- **使うルールの版**: 申請・変更の時点の `current_revision`。経路の `ruleRef` に `{ruleId, revision}` を保存する。ルールが無効(`active=false`)・他組織・存在しない場合は、申請を拒否する(現行互換へ黙って落とさない)。
+- **申請者が組織管理者の場合**: 当該組織で有効な `org_admin` ロールを持つ申請者は、プロフィールのデータに関係なく上長を未設定として扱う(ADR-0023 §3)。
+- **部署長の探索**: 申請者の主部署から祖先へ。無効な部署は飛ばす。その時点で有効な部署長(期間内)で、有効な所属であり、申請者本人でない者を採用する。探索は部署の深さ上限(10)で打ち切る。
+- **経路内の重複**: 解決した結果、同一人物が複数の段に現れる場合は申請を拒否する(統合しない)。
+- **`resolvedFrom` の語彙**: `fixed` / `requester_selected` / `manager` / `manager>department_head`(上長が解決できず部署長へ進んだ)/ `department_head:self`(自部署)/ `department_head:ancestor`(祖先)。本WP以降に作る版に入れる。既存の版は変更しない。
+- **決定の認可**: `manager` / `department_head` のステップは `approver` ロールを要求しない。ADR-0023 §2 の6項目を毎回検証する。`fixed` / `legacy` は従来どおり `approver` ロールを要求する。
+- **滞留**: 現在の `pending` のステップの承認者が有効な所属でない(`fixed` / `legacy` は `approver` ロールも無い)申請を「承認者不在」とする。一覧に導出の項目として出し、`org_admin` が絞り込める。状態は変えない。
+- **再割当**: ルールで決めた経路だけが対象。現在の `pending` のステップが「承認者不在」のときだけ実行できる(それ以外は409)。再解決にはその時点の `current_revision` を使い、新しい `ruleRef` を保存する。承認済みのステップと重複する承認者・申請者本人になる経路は拒否する。ルールを使わない経路(固定・申請者選択)は再割当の対象外とし、申請者による内容の変更(承認者の選び直し)で対処する。
+- **高リスク**: ルールの共有スキーマは未知のキーを拒否する。`highRisk` を含むルールは保存できない(判定基準は[[WP-P4-APR-017]])。
+- **部署の無効化トリガへの追加は行わない**: 承認ルールは部署を参照しない(`manager` / `department_head` は申請者から辿る。`fixed` は利用者を指す)。進行中の申請の経路は版に固定されているため、部署の無効化で変わらない。§6-1 の「部署の無効化トリガへ承認ルールの参照を追加する」は取り下げる。
+- **変更履歴API**: 上長・主部署の変更(`org.member.profile.updated` のうち上長または主部署が変わったもの)と、部署長の設定・終了(`org.department.head.assigned|removed`)を、期間を指定して新しい順に返す。`org_admin` と `auditor` だけ。操作者・対象者・変更前後・時刻を返し、社員番号・役職・勤務地は返さない。監査イベントを読むだけで、新しいテーブルは作らない。
+- **監査イベント**: `approval.route.resolved`(経路を決めた各版)、`approval.reassigned`、`approval.rule.created|revised|deactivated`、`approval.routing.enabled|disabled`。`afterState` には、ルール参照・段数・各段の種別と `resolvedFrom` を入れる。申請の入力値・個人データは載せない。
+
 ## 7. Acceptance Criteria
 
 - [ ] リゾルバの全分岐に単体テストがある: 固定(正常・無効・他組織・`approver` ロールなし)/ 上長(正常・未設定・無効な所属・`role_binding` 期限切れ・申請者本人)/ 部署長(自部署・祖先・申請者本人が部署長で上位へ・期限切れ・不在)/ 多段(順序・同一人物の重複拒否)/ 互換(`approverId` のみの定義・どちらも無い定義)/ 決定性(同じ入力で同じ `routeHash`)。
@@ -91,7 +133,11 @@ depends_on: ["WP-P4-IDM-012", "WP-P4-APR-014"]
 - [ ] 上長が変更されても、進行中の申請の経路は変わらない(再割当以外で経路が変わるコード経路が無い)。
 - [ ] 他人の申請IDを指定した決定・閲覧が404。ルールのある項目で `approverId` を送っても承認者として使われない。`approver_id` を持たない `approver` ロール保持者は承認待ち一覧に他人宛てを見ない。
 - [ ] ルールの版(`approval_rule_revision`)を `UPDATE` / `DELETE` できない(トリガ)。他組織のルールを参照・指定できない。組織単位の有効化を無効にしても、進行中の多段申請は全ステップの承認を要求し続ける(1段だけで実行可能にならない)。
-- [ ] 高リスク扱いのルール保存で `fixed` 段が無いものが拒否される(判定基準確定後。確定までは `highRisk` 指定そのものを拒否する)。
+- [ ] `highRisk` を含むルールの保存が拒否される(判定基準は[[WP-P4-APR-017]])。4段以上・0段のルールがAPIとDBの両方で拒否される。
+- [ ] 組織で有効化していない間は、`ruleId` のある定義でも現行互換の経路になる。有効化・無効化は `org_admin` だけができ、監査に残る。
+- [ ] 有効な `org_admin` ロールを持つ申請者は、プロフィールに上長のデータがあっても上長が未設定として解決される。
+- [ ] 再割当は、現在のステップが承認者不在のときだけ実行でき、それ以外は409。ルールを使わない経路は再割当できない。
+- [ ] 変更履歴APIが、上長・主部署の変更と部署長の設定・終了を期間指定で返し、`org_admin` と `auditor` 以外には403、他組織の変更は含まれず、社員番号・役職・勤務地を含まない。
 - [ ] 新規テーブルが `tools/check_rls.mjs` を通り、`check:all` が通り、新規依存が0件である。
 
 ## 8. Verification and Evidence

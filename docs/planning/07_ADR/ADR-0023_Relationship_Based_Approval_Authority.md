@@ -5,7 +5,7 @@ title: "関係ベースの承認権限(上長・部署長)と承認経路の固�
 category: "07_ADR"
 type: "adr"
 status: "accepted"
-version: "0.2.0"
+version: "0.3.0"
 created: "2026-11-12"
 updated: "2026-11-12"
 owner: "SOLVI Product Team"
@@ -76,7 +76,7 @@ SOLVIに「部署・上長・承認ルーティング」を追加する(利用�
 - 変更できるのは `org_admin` のみ。**本人は自分の上長と主部署を変更できない**(`org_admin` 本人の分を含む。`platform_admin` が組織切替下で操作する場合の扱いは `要確認`)。
 - **組織管理者の上長は常に未設定とする**(2026-11-12 利用者の決定。当初の `要確認` を確定)。当該組織で有効期間内の `org_admin` ロールを持つ利用者には、誰も上長を設定できない。上長が設定済みの利用者へ `org_admin` を付与する場合は、先に上長を外す(自動では外さない)。帰結: 組織管理者が申請者で、ルールが上長承認の場合、上長は未設定として扱われ、ルールの `onUnresolved`(部署長へ進む、または拒否)に従う。組織管理者の主部署は、本人ではなく別の `org_admin` が設定する(単独の `org_admin` 組織では主部署を設定できない。必要になった時点で後継の決定とする)。
 - すべての変更を before/after つきの監査イベントに残す。別の履歴テーブルは作らない(申請時点の経路は承認側に保存されるため再現に不要)。
-- `org_admin` が自分の部下・上長関係を作って承認者を作る脅威は、検知で対処する(監査イベント + アクセスレビュー([[WP-P1-SEC-024]]の対象)に追加)。二重承認までは求めない。脅威は [[02.14_Threat_Model]] T-26。
+- `org_admin` が自分の部下・上長関係を作って承認者を作る脅威は、検知で対処する(監査イベント + アクセスレビュー([[WP-P1-SEC-024]])の期ごとに変更履歴の一覧を人が確認する。一覧のAPIは[[WP-P4-APR-015]]、画面は[[WP-P4-APR-016]]。2026-11-13 利用者の決定)。二重承認までは求めない。脅威は [[02.14_Threat_Model]] T-26。
 - 上長・部署の循環は、組織単位のadvisory lockを取ってから祖先をたどるトリガで拒否する(同時更新のすり抜けを防ぐ)。部署の深さ上限は10とし、DBとAPIの両方で検証する。
 
 ### 4. 高リスク申請は固定承認者を必須とする
@@ -126,7 +126,7 @@ Executorとの接続は本ADRの対象外とし、[[WP-P4-EXEC-004]]で[[02.16_E
 
 ### 10. 承認ルールとカタログ定義の結び付け
 
-ルール(`approval_rule` と、append-onlyの `approval_rule_revision`)は組織スコープで管理し、**カタログ定義の版属性 `approval.ruleId`** で項目に結び付ける。`scope_type/scope_id/priority` 方式は採らない。業務カテゴリは版属性でありIDを持たない([[ADR-0020_Catalog_Form_Definition_Extensions]])こと、定義の版に含めれば申請snapshotにルール参照が自然に固定されることが理由である。旧属性の欠落は受理し、旧版・過去申請を補完更新しない([[ADR-0020_Catalog_Form_Definition_Extensions]]〜[[ADR-0022_Catalog_Optional_Request_Fields]]と同じ方針)。`steps` の各要素は共有のZodスキーマで検証する(`fixed: {approverId}` / `manager: {onUnresolved: 'department_head'|'reject'}` / `department_head: {onUnresolved: 'reject'}`)。最大段数は `要確認`(WP-P4-APR-015で上限値を確定する)。
+ルール(`approval_rule` と、append-onlyの `approval_rule_revision`)は組織スコープで管理し、**カタログ定義の版属性 `approval.ruleId`** で項目に結び付ける。`scope_type/scope_id/priority` 方式は採らない。業務カテゴリは版属性でありIDを持たない([[ADR-0020_Catalog_Form_Definition_Extensions]])こと、定義の版に含めれば申請snapshotにルール参照が自然に固定されることが理由である。旧属性の欠落は受理し、旧版・過去申請を補完更新しない([[ADR-0020_Catalog_Form_Definition_Extensions]]〜[[ADR-0022_Catalog_Optional_Request_Fields]]と同じ方針)。`steps` の各要素は共有のZodスキーマで検証する(`fixed: {approverId}` / `manager: {onUnresolved: 'department_head'|'reject'}` / `department_head: {onUnresolved: 'reject'}`)。最大段数は3とする(2026-11-13 利用者の決定。DBとAPIの両方で検証する)。
 
 ### 11. 模擬テーブルの拡張
 
