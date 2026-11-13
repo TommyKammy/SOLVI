@@ -979,6 +979,61 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  /** 承認ルールの管理 (WP-P4-APR-016 段階A)。すべて org_admin。 */
+  approvalRules: () => call<{ items: ApprovalRuleSummary[] }>('/approval-rules'),
+  createApprovalRule: (body: { code: string; name: string; steps: ApprovalRuleStepView[] }) =>
+    call<{ rule: { id: string; revision: number } }>('/approval-rules', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  reviseApprovalRule: (
+    id: string,
+    body: { expectedRevision: number; steps: ApprovalRuleStepView[]; name?: string },
+  ) =>
+    call<{ rule: { id: string; revision: number } }>(
+      `/approval-rules/${encodeURIComponent(id)}/revisions`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  deactivateApprovalRule: (id: string) =>
+    call<{ rule: { id: string; active: false } }>(
+      `/approval-rules/${encodeURIComponent(id)}/deactivate`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  approvalRuleHistory: (id: string) =>
+    call<{ items: ApprovalRuleRevisionSummary[] }>(
+      `/approval-rules/${encodeURIComponent(id)}/history`,
+    ),
+  approvalRuleUnresolved: (id: string) =>
+    call<ApprovalUnresolvedResult>(`/approval-rules/${encodeURIComponent(id)}/unresolved`),
+
+  /** 組織で承認ルールを使うかの設定。行が無ければ無効。 */
+  approvalRouting: () => call<{ setting: ApprovalRuleSettings }>('/approval-routing'),
+  updateApprovalRouting: (enabled: boolean) =>
+    call<{ setting: { enabled: boolean; changed: boolean } }>('/approval-routing', {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    }),
+  approvalPreview: (body: {
+    requesterId: string;
+    itemId?: string;
+    ruleId?: string;
+    approverId?: string;
+  }) =>
+    call<ApprovalPreviewResult>('/approval-routing/preview', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  /** 上長・主部署・部署長の変更履歴 (org_admin / auditor)。 */
+  relationshipChanges: (query: { from: string; to: string; page: number }) => {
+    const params = new URLSearchParams({
+      from: query.from,
+      to: query.to,
+      page: String(query.page),
+    });
+    return call<RelationshipChangeResult>(`/relationship-changes?${params.toString()}`);
+  },
   serviceRequests: async (query = '') => {
     type List = {
       items: ServiceRequestSummary[];
@@ -1820,6 +1875,8 @@ export interface CatalogAuthoringOptions {
   owners?: Array<{ id: string; name: string }>;
   groups?: Array<{ id: string; name: string }>;
   questionSets?: CatalogQuestionSet[];
+  /** 定義に結び付けられる、同じ組織で有効な承認ルール (WP-P4-APR-016)。 */
+  rules?: Array<{ id: string; code: string; name: string; currentRevision: number }>;
   canCreate?: boolean;
   canPublish?: boolean;
   canManageQuestionSets?: boolean;
@@ -1898,6 +1955,8 @@ export interface ServiceRequestSummary {
   createdAt: string;
   ticketId: string;
   approvalState: string;
+  /** 現在の pending ステップの承認者が有効な所属でない (WP-P4-APR-015 §6.1)。 */
+  approverUnavailable?: boolean;
 }
 export interface ServiceRequestDetail {
   requesterName: string;
@@ -1960,6 +2019,96 @@ export interface ServiceRequestDetail {
     idempotencyKey: string;
     snapshotHash: string;
   } | null;
+}
+
+export type ApprovalRuleStepView = import('@solvi/shared/catalog').ApprovalRuleStep;
+
+/** 承認ルールの一覧行 (WP-P4-APR-016 段階A)。 */
+export interface ApprovalRuleSummary {
+  id: string;
+  code: string;
+  name: string;
+  active: boolean;
+  currentRevision: number;
+  steps: ApprovalRuleStepView[];
+  /** 保存済みの steps が共有スキーマで読めるか。false なら内容を推測しない。 */
+  stepsValid: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApprovalRuleRevisionSummary {
+  revision: number;
+  steps: ApprovalRuleStepView[];
+  stepsValid: boolean;
+  createdBy: string | null;
+  createdByName: string | null;
+  createdAt: string;
+}
+
+export interface ApprovalRuleSettings {
+  enabled: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
+export interface ApprovalResolverReason {
+  code: string;
+  message: string;
+  missing: string;
+  stepNo?: number;
+  authorityType?: string;
+}
+
+export interface ApprovalPreviewStep {
+  stepNo: number;
+  approverId: string;
+  approverName: string | null;
+  authorityType: string;
+  resolvedFrom: string;
+}
+
+export interface ApprovalPreviewResult {
+  resolved: boolean;
+  requesterId: string;
+  requesterName: string | null;
+  ruleRoutingEnabled: boolean;
+  rule: { id: string; code: string; revision: number; active: boolean } | null;
+  steps?: ApprovalPreviewStep[];
+  routeHash?: string;
+  reason?: ApprovalResolverReason;
+}
+
+export interface ApprovalUnresolvedResult {
+  rule: { id: string; code: string; revision: number; active: boolean };
+  scanned: number;
+  items: Array<{ userId: string; displayName: string; reason: ApprovalResolverReason }>;
+}
+
+export type RelationshipChangeType =
+  | 'manager'
+  | 'primary_department'
+  | 'manager_and_primary_department'
+  | 'department_head_assigned'
+  | 'department_head_removed';
+
+export interface RelationshipChangeItem {
+  eventId: string;
+  occurredAt: string;
+  changeType: RelationshipChangeType;
+  actor: { userId: string | null; displayName: string | null };
+  subject: { userId: string | null; displayName: string | null };
+  before: unknown;
+  after: unknown;
+}
+
+export interface RelationshipChangeResult {
+  items: RelationshipChangeItem[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  from: string;
+  to: string;
 }
 
 /**

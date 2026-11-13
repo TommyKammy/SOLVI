@@ -1,4 +1,5 @@
 import type pg from 'pg';
+import { requireRole } from '../../common/authz/authz.js';
 import {
   RelationshipChangeService,
   parseRelationshipChangeQuery,
@@ -20,6 +21,9 @@ export class RelationshipChangeController {
   constructor(private readonly deps: RelationshipChangeRouteDeps) {}
 
   async list(auth: AuthenticatedRequest, query: URLSearchParams) {
+    // 権限の確認を入力の検証より先に行う。権限の無い利用者には、期間の指定が
+    // 無くても 400 ではなく 403 を返す(WP-P4-APR-016 §8)。
+    requireRole(auth.authz, 'org_admin', 'auditor');
     const input = parseRelationshipChangeQuery(Object.fromEntries(query));
     const client = await this.deps.pool.connect();
     try {

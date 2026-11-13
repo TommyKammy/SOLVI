@@ -85,6 +85,13 @@ export default async function AdminHome() {
           description: '現在の役割を1件ずつ見直し、必要なら失効させます。',
           icon: 'change',
         },
+        {
+          href: '/ops/approvals',
+          title: '承認ルール',
+          description: '承認の段、経路プレビュー、組織での使用を管理します。',
+          icon: 'change',
+          visible: orgAdmin,
+        },
       ],
     },
   ];

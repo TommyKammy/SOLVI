@@ -1,0 +1,138 @@
+{
+  "workPackage": "WP-P4-APR-016",
+  "stage": "A",
+  "browser": "chromium",
+  "marker": "UI016-SYN-1794612220485-chromium",
+  "success": true,
+  "createdAt": "2026-11-13T23:23:40.486Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> node tools/ui_approval_routing_check.mjs",
+  "commitSha": "921d7f9ab6e1cca34136dce60822ac8c464b62bb",
+  "checks": [
+    {
+      "name": "再検証: 無効化したルールの版の履歴を読み取れる",
+      "passed": true
+    },
+    {
+      "name": "org_admin 以外には画面も導線も出ない(auditor は変更履歴だけ)",
+      "passed": true
+    },
+    {
+      "name": "1440px と 375px で横溢れがない",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "approvals-rule-detail-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-auditor-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "approvals-rule-detail-desktop-1440-readonly.png",
+    "approvals-permission-agent-desktop-1440.png",
+    "approvals-changes-auditor-desktop-1440.png",
+    "approvals-rule-detail-mobile-375.png",
+    "approvals-changes-mobile-375.png"
+  ],
+  "writes": {
+    "rulesCreated": 1,
+    "revisions": 1,
+    "catalogCreated": 1,
+    "catalogUpdates": 2,
+    "catalogPublished": 1,
+    "catalogUnpublished": 1,
+    "routingEnabled": 1,
+    "routingDisabled": 1,
+    "ruleDeactivations": 1
+  },
+  "ids": {
+    "rule": "01a1d739-630f-7000-9c48-235c2c481e6f",
+    "catalogItem": "01a1d739-88f9-7000-8aa8-a1150a48efd4",
+    "adminUser": "00000000-0000-4000-9000-000000000101",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "approverUser": "00000000-0000-4000-9000-000000000103"
+  },
+  "applied": {
+    "rule": true,
+    "revision": true,
+    "catalog": true,
+    "catalogRuleBound": true,
+    "catalogPublished": true,
+    "routingEnabledOnce": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目から承認ルールの結び付けを外す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目を非公開にする",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "tabsBefore": 20,
+    "submitTabs": 10,
+    "focus": {
+      "id": "approval-create-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter"
+  },
+  "blocked": [],
+  "browserVersion": "157.0.8103.51",
+  "currentStep": "verify-complete",
+  "finishedAt": "2026-11-13T23:26:23.828Z"
+}

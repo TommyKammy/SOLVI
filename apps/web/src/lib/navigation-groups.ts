@@ -119,7 +119,19 @@ export function buildNavigationGroups(
               item('/ops/groups', '担当グループ'),
               ...(roles.notifications ? [item('/ops/notifications', '通知状況')] : []),
               item('/ops/access-review', 'アクセスレビュー'),
+              ...(roles.orgAdmin ? [item('/ops/approvals', '承認ルール')] : []),
             ],
+          },
+        ]
+      : []),
+    ...(roles.auditor
+      ? [
+          {
+            id: 'audit',
+            label: '監査',
+            href: '/ops/approvals/changes',
+            icon: 'change' as const,
+            items: [item('/ops/approvals/changes', '承認の変更履歴')],
           },
         ]
       : []),

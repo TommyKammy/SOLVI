@@ -11,7 +11,7 @@ updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "ui", "accessibility"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "in-progress"
 story_points: 8
 risk: "medium"
 workstream: "APR"
@@ -167,4 +167,84 @@ WP-P4-APR-015 のAPI契約 / apps/web の既存の申請・詳細・カタログ
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階A 完了。段階B 未着手 | `evidence/WP-P4-APR-016/20261114-0822/` | 承認ルール管理・プレビュー・組織での有効化・カタログ項目への結び付け・承認者不在の一覧・変更履歴・導線・変更履歴APIの403先行。Chromium と WebKit で PASS |
+
+### 2026-11-14 段階A 実装記録
+
+**範囲**: 本WP §3 の段階A(管理者向け)。段階B(申請画面の経路表示、申請者自身の経路確認API、詳細の承認の経過、承認待ち一覧・受信トレイ、通しのブラウザ確認)は未着手。
+
+#### 変更ファイル
+
+- `apps/web/src/app/ops/approvals/page.tsx`(新規。一覧・作成・版の追加・履歴・無効化・プレビュー・解決できない人・組織での有効化・承認者不在)
+- `apps/web/src/app/ops/approvals/actions.ts`(新規。操作ごとのアカウント・組織・権限の再確認)
+- `apps/web/src/app/ops/approvals/changes/page.tsx`(新規。上長・主部署・部署長の変更履歴)
+- `apps/web/src/lib/approval-route.ts`(新規。表示整形・段の入力解析・URL組み立ての純関数)
+- `apps/web/src/lib/api.ts`(承認ルール・有効化・プレビュー・変更履歴の型と読み書き、`approverUnavailable`、カタログの `rules`)
+- `apps/web/src/components/CatalogAdminForm.tsx`(「承認と検証設定」に承認ルールの選択。固定承認者・プレビュー・公開の動作は維持)
+- `apps/web/src/app/catalog/manage/actions.ts`(下書きに `approval.ruleId` を任意で送る)
+- `apps/web/src/lib/navigation-groups.ts`(管理メニューに承認ルール、監査に変更履歴を追加)
+- `apps/web/src/app/ops/admin/page.tsx`(管理カードに承認ルールを追加)
+- `apps/web/src/app/ops/access-review/page.tsx`(変更履歴への導線のみ)
+- `services/api/src/modules/auth/relationship-change.routes.ts`(認可を入力の検証より先に)
+- `tests/security/relationship-change.test.ts`(期間未指定でも403になる検証を1件)
+- `tests/unit/approval-route-ui.test.ts`(新規)
+- `tests/unit/navigation-ui.test.ts`(新規)
+- `tools/ui_approval_routing_check.mjs`(新規。ループバック限定、目印付き合成データ、上限、再実行は読み取り照合、片付け、axe、1440/375px)
+
+Migration: **なし**。スキーマ変更なし。ロールバックはコードの巻き戻しのみ。
+
+#### 実行した検証コマンドと結果
+
+```text
+npm run typecheck                                  # exit 0
+npm run lint                                       # exit 0
+npm run check:all                                  # exit 0
+npx vitest run tests/unit/approval-route-ui.test.ts \
+  tests/unit/navigation-ui.test.ts \
+  tests/unit/catalog-authoring-ui.test.ts \
+  tests/unit/department-ui.test.ts                 # 87 passed / 0 failed
+npm run test:unit                                  # 34 failed / 4418 passed
+                                                   # 変更前 34 failed / 4397 passed。失敗名の差分なし(新規失敗0)
+# 使い捨てDB solvi_wp016_wp015_test(Migration 39件)で実行
+npx vitest run tests/security/relationship-change.test.ts \
+  tests/security/approval-rule.test.ts             # 39 passed / 0 failed
+SOLVI_UI_BROWSER=chromium node tools/ui_approval_routing_check.mjs  # PASS 18 checks / 16 axe scans
+SOLVI_UI_BROWSER=webkit   node tools/ui_approval_routing_check.mjs  # PASS 18 checks / 16 axe scans
+```
+
+開発用DB `solvi` の件数は、変更しないテーブル(`app_user` 15、`role_binding` 21、`ticket` 23、`local_service_request` 12、`local_request_revision` 17、`local_request_approval` 17、`department` 17、`org_member_profile` 15、`department_head` 5)が前後で一致。増分は `local_catalog_item` +2、`approval_rule` +5、`approval_rule_revision` +8、`org_approval_setting` +1(無効)、`audit_event` +95、`session` +48 で、ブラウザ確認の画面操作とログインに対応する。**有効な組織は0件、有効な合成ルールは0件。**
+
+#### §7 受入基準の充足(段階A)
+
+- ⏳ 申請画面の経路表示・送信の無効化: 段階B。
+- ⏳ ルールのある項目で承認者選択を出さず `approverId` を送らない: 段階B。
+- ⏳ `approver` ロールを持たない上長の承認待ち: 段階B。
+- ⏳ 詳細の承認タイムライン: 段階B。
+- ✅ 承認者不在の申請の一覧を `org_admin` に表示し、申請者による内容の変更で対処する旨を案内する。再割当の操作は出さない。`org_admin` 以外には導線も一覧も出ない。`tools/ui_approval_routing_check.mjs`。
+- ⏳ 申請者自身の経路確認API: 段階B(本WP §4 の読み取りAPI)。本段階では追加していない。
+- ✅ 組織での有効化・無効化を確認画面付きで実行でき、`org_admin` 以外には操作が出ない。カタログ項目にルールを結び付けて保存・公開できる。ブラウザ検査の checks 7〜9。
+- ✅ 上長・部署長の変更履歴を期間指定・新しい順・ページングで表示し、アクセスレビューから辿れる。`org_admin` と `auditor` だけが読める。権限の無い利用者には期間未指定でも403(`tests/security/relationship-change.test.ts`)。ブラウザ検査 checks 11〜12・15。
+- ✅ 承認ルール管理で、申請者を選んだ経路プレビュー(解決できない理由を含む)と、解決できない利用者の一覧を表示する。ブラウザ検査 checks 4〜6。
+- ✅ 追加・変更した画面でキーボード操作・可視フォーカス・axe violations 0・1440/375px の横溢れなし。スクリーンショットは Evidence に保存。
+- ✅ `check:all`・型・lint・関連unitが通り、新規依存は0件。
+
+#### セキュリティ影響
+
+- 画面の表示制御は認可ではない。サーバーアクションは操作のたびに `api.me()` でアカウント・組織・権限を再確認し、APIが最終的な認可と検証を行う。
+- 画面から送るIDは、APIが返した候補だけを選択式で出す。組織IDは送らない。
+- 表示する個人データはAPIが返した範囲だけ。社員番号・役職・勤務地は一覧・URL・ログ・Evidenceに出していない。
+- ルールの作成・版の追加・無効化・有効化・変更履歴の閲覧は `org_admin`(変更履歴は `auditor` も)に限る。APIの認可を変更していない。
+- APIの変更は `relationship-change.routes.ts` の認可順序だけ(権限の無い利用者に期間未指定でも403)。
+- 新規依存0件。`package.json`、lockfile、`next.config.*`、`.env`、Migration は未変更。
+
+#### 未解決事項
+
+- 段階B(申請画面の経路表示、申請者自身の経路確認API、詳細のタイムライン、承認待ち一覧・受信トレイ、通しのブラウザ確認)は未着手。
+- 承認ルールAPIは `NODE_ENV=development` のときだけ有効(`ApprovalRuleController` の `enabled`)。本番構成での有効化は本WPの範囲外として変更していない。監督者の判断を仰ぐ。
+- ブリーフは合成ルールのコードを `UI016-SYN-` で始めると指定するが、APIのコード検証は英小文字のみを許す。コードは `ui016-syn-`、名称に `UI016` を含めて識別した。
+- Chromium の初回ブラウザ実行はツールの左レール操作の不具合で失敗した。作成済みの合成ルールは無効化し、修正後の再実行ではカタログ項目の上限1件を守るため既存の合成項目を再利用した。さらに重複コードの拒否を確認する再検証で、ツールが新しい目印からコードを作ってしまい、Chromium と WebKit に1件ずつ合成ルールを誤って作成した。どちらも直ちに無効化し、ツールを修正して既存コードを使うように直した。最終状態で有効な合成ルールは0件。合成ルールは Chromium 3件、WebKit 2件(いずれも無効、上限4件以内)。
+- `docs/planning/03_Requirements/03.18_*`(RTM)と `docs/planning/MANIFEST.md` はブリーフの指示により変更していない。
+
+#### Evidence
+
+`evidence/WP-P4-APR-016/20261114-0822/`(README、`browser/chromium/`、`browser/webkit/`、`raw/`)。

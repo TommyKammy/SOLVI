@@ -1,0 +1,318 @@
+{
+  "workPackage": "WP-P4-APR-016",
+  "stage": "A",
+  "browser": "webkit",
+  "marker": "UI016-SYN-1794612524420-webkit",
+  "success": true,
+  "createdAt": "2026-11-13T23:28:44.421Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> node tools/ui_approval_routing_check.mjs",
+  "commitSha": "921d7f9ab6e1cca34136dce60822ac8c464b62bb",
+  "checks": [
+    {
+      "name": "管理ホームと左レールに承認ルールの導線がある",
+      "passed": true
+    },
+    {
+      "name": "キーボードだけで上長→固定承認者の2段ルールを作成できる",
+      "passed": true
+    },
+    {
+      "name": "既存の版を変えずに新しい版を追加できる",
+      "passed": true
+    },
+    {
+      "name": "ルールのプレビューで解決できない理由を表示する",
+      "passed": true
+    },
+    {
+      "name": "公開済みカタログ項目のプレビューで承認者の経路を表示する",
+      "passed": true
+    },
+    {
+      "name": "解決できない人の一覧を表示し、利用者管理へ辿れる",
+      "passed": true
+    },
+    {
+      "name": "合成カタログ項目を作成し、承認ルールを結び付けて公開できる",
+      "passed": true
+    },
+    {
+      "name": "有効化の確認画面に3点を表示し、有効化して状態を確認できる",
+      "passed": true
+    },
+    {
+      "name": "組織での承認ルールを確認画面を挟んで無効へ戻せる",
+      "passed": true
+    },
+    {
+      "name": "承認者不在の申請の節と案内を表示し、再割当を出さない",
+      "passed": true
+    },
+    {
+      "name": "上長・部署長の変更履歴を期間指定で表示する",
+      "passed": true
+    },
+    {
+      "name": "アクセスレビューから変更履歴へ辿れる",
+      "passed": true
+    },
+    {
+      "name": "再検証: 無効化したルールの版の履歴を読み取れる",
+      "passed": true
+    },
+    {
+      "name": "再検証: 承認者不在の節が案内と再割当の不在を表示する",
+      "passed": true
+    },
+    {
+      "name": "再検証: 変更した既存画面に新しい導線と選択肢がある(axe)",
+      "passed": true
+    },
+    {
+      "name": "再検証: APIの拒否理由を画面に表示する(重複コード)",
+      "passed": true
+    },
+    {
+      "name": "org_admin 以外には画面も導線も出ない(auditor は変更履歴だけ)",
+      "passed": true
+    },
+    {
+      "name": "1440px と 375px で横溢れがない",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "approvals-rules-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-unresolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unresolved-people-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-enable-confirm-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-desktop-1440-readonly",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "admin-home-desktop-1440-verify",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "catalog-new-desktop-1440-verify",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "access-review-desktop-1440-verify",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-create-error-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-auditor-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "approvals-rules-desktop-1440.png",
+    "approvals-rule-detail-desktop-1440.png",
+    "approvals-preview-unresolved-desktop-1440.png",
+    "approvals-preview-resolved-desktop-1440.png",
+    "approvals-unresolved-people-desktop-1440.png",
+    "catalog-rule-bound-desktop-1440.png",
+    "approvals-enable-confirm-desktop-1440.png",
+    "approvals-routing-enabled-desktop-1440.png",
+    "approvals-unavailable-desktop-1440.png",
+    "approvals-changes-desktop-1440.png",
+    "approvals-permission-agent-desktop-1440.png",
+    "approvals-changes-auditor-desktop-1440.png",
+    "approvals-rule-detail-mobile-375.png",
+    "approvals-changes-mobile-375.png",
+    "approvals-rule-detail-desktop-1440-readonly.png",
+    "approvals-unavailable-desktop-1440-readonly.png",
+    "approvals-create-error-desktop-1440.png"
+  ],
+  "writes": {
+    "rulesCreated": 1,
+    "revisions": 1,
+    "catalogCreated": 1,
+    "catalogUpdates": 2,
+    "catalogPublished": 1,
+    "catalogUnpublished": 1,
+    "routingEnabled": 1,
+    "routingDisabled": 1,
+    "ruleDeactivations": 2
+  },
+  "ids": {
+    "rule": "01a1d73e-0d6e-7000-8f07-960fa7393162",
+    "catalogItem": "01a1d73e-32b2-7000-9d66-257f1165b540",
+    "adminUser": "00000000-0000-4000-9000-000000000101",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "approverUser": "00000000-0000-4000-9000-000000000103"
+  },
+  "applied": {
+    "rule": true,
+    "revision": true,
+    "catalog": true,
+    "catalogRuleBound": true,
+    "catalogPublished": true,
+    "routingEnabledOnce": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目から承認ルールの結び付けを外す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目を非公開にする",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する(ui016-syn-1794613358244-webkit)",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "tabsBefore": 25,
+    "submitTabs": 10,
+    "focus": {
+      "id": "approval-create-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter"
+  },
+  "blocked": [],
+  "browserVersion": "26.5",
+  "currentStep": "verify-complete",
+  "finishedAt": "2026-11-13T23:44:46.598Z"
+}

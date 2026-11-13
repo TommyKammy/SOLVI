@@ -30,6 +30,8 @@ type EditorValues = {
   maxReason: number;
   requestFields: CatalogItem['definition']['requestFields'];
   approver: string;
+  /** 組織の承認ルール (WP-P4-APR-016)。空文字は「使わない」。 */
+  ruleId: string;
   fields: CatalogField[];
   category: string;
   sections: CatalogSection[];
@@ -54,6 +56,7 @@ function editorValues(
     maxReason: d?.definition.maxReasonLength ?? 2000,
     requestFields: d?.definition.requestFields,
     approver: d?.definition.approval?.approverId ?? '',
+    ruleId: d?.definition.approval?.ruleId ?? '',
     fields: d?.definition.fields ?? [],
     category: d?.definition.category ?? '',
     sections: d?.definition.sections ?? [],
@@ -74,6 +77,7 @@ function editProjection(values: EditorValues) {
       maxReason: values.maxReason,
       requestFields: catalogRequestFieldVisibility({ requestFields: values.requestFields }),
       approver: values.approver,
+      ruleId: values.ruleId,
       category: values.category,
       ownerId: values.ownerId,
       fulfillmentGroupId: values.fulfillmentGroupId,
@@ -197,6 +201,7 @@ function EditorForm({
     maxReason,
     requestFields,
     approver,
+    ruleId,
     fields,
     category,
     sections,
@@ -220,6 +225,7 @@ function EditorForm({
   const setRequestField = (field: 'reason' | 'duration', visible: boolean) =>
     edit('requestFields', (old) => ({ ...old, [field]: visible }));
   const setApprover = (value: string) => edit('approver', value);
+  const setRuleId = (value: string) => edit('ruleId', value);
   const setFields = (value: CatalogField[] | ((old: CatalogField[]) => CatalogField[])) =>
     edit('fields', value);
   const setCategory = (value: string) => edit('category', value);
@@ -1105,6 +1111,29 @@ function EditorForm({
                 </select>
                 <p className="hint">
                   この版での申請先です。申請者本人が承認者になる申請は受け付けません。
+                </p>
+              </FormField>
+              <FormField className="field">
+                <label htmlFor="catalog-approval-rule">承認ルール</label>
+                <select
+                  id="catalog-approval-rule"
+                  name="ruleId"
+                  value={ruleId}
+                  onChange={(e) => setRuleId(e.target.value)}
+                  aria-describedby="catalog-approval-rule-hint"
+                >
+                  <option value="">使わない（固定の承認者を使う）</option>
+                  {ruleId && !options.rules?.some((rule) => rule.id === ruleId) && (
+                    <option value={ruleId}>現在選べない承認ルール（選び直してください）</option>
+                  )}
+                  {options.rules?.map((rule) => (
+                    <option key={rule.id} value={rule.id}>
+                      {rule.code} — {rule.name}（版{rule.currentRevision}）
+                    </option>
+                  ))}
+                </select>
+                <p className="hint" id="catalog-approval-rule-hint">
+                  組織で承認ルールが有効なときだけ、このルールで承認の経路を決めます。無効な間は上の固定の承認者を使います。保存済みの版の経路は変わりません。
                 </p>
               </FormField>
               <h3>責任者と処理担当</h3>

@@ -32,7 +32,13 @@ export async function saveCatalog(
         .map((s) => Number(s.trim())),
       maxReasonLength: Number(form.get('maxReasonLength')),
       ...(requestFields !== undefined ? { requestFields } : {}),
-      approval: { mode: 'fixed', approverId: String(form.get('approverId') ?? '') },
+      approval: {
+        mode: 'fixed',
+        approverId: String(form.get('approverId') ?? ''),
+        ...(String(form.get('ruleId') ?? '').trim()
+          ? { ruleId: String(form.get('ruleId')).trim() }
+          : {}),
+      },
       fields,
       ...(String(form.get('category') ?? '').trim()
         ? { category: String(form.get('category')).trim() }

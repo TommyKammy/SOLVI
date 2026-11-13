@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ContextLink } from '../../../components/ContextLink';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -92,7 +93,8 @@ export default async function AccessReviewPage({
         <ContextLink back href="/ops">
           対応待ちの一覧へ戻る
         </ContextLink>{' '}
-        ・ <ContextLink href="/ops/users">在籍者の管理へ</ContextLink>
+        ・ <ContextLink href="/ops/users">在籍者の管理へ</ContextLink> ・{' '}
+        <Link href="/ops/approvals/changes">上長・部署長の変更履歴</Link>
       </p>
 
       <h1>アクセスレビュー</h1>

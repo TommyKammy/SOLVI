@@ -256,6 +256,24 @@ describe('役割×エンドポイント (TL-06)', () => {
       expect(result.body.pageSize).toBe(50);
     }
   });
+
+  it('**期間を指定しなくても、権限の無い利用者には403(入力の検証より認可が先)**', async () => {
+    for (const person of [agentA, requesterA, managerA]) {
+      await expectProblem(
+        run(() => changes.list(person.ctx, new URLSearchParams())),
+        403,
+      );
+      await expectProblem(
+        run(() => changes.list(person.ctx, new URLSearchParams({ unexpected: '1' }))),
+        403,
+      );
+    }
+    // 権限のある利用者では、従来どおり期間の検証が 400 を返す。
+    await expectProblem(
+      run(() => changes.list(adminA.ctx, new URLSearchParams())),
+      400,
+    );
+  });
 });
 
 describe('上長・主部署・部署長の変更 (ADR-0023 §3)', () => {
@@ -274,9 +292,7 @@ describe('上長・主部署・部署長の変更 (ADR-0023 §3)', () => {
     await run(() => departments.assignHead(adminA.ctx, deptId, { userId: managerA.id }));
     await run(() => departments.endHead(adminA.ctx, deptId, { validUntil: null }));
     // 上長だけの変更。
-    await run(() =>
-      users.updateProfile(adminA.ctx, employeeA.id, { managerUserId: agentA.id }),
-    );
+    await run(() => users.updateProfile(adminA.ctx, employeeA.id, { managerUserId: agentA.id }));
     return { deptId, deptName };
   }
 
@@ -299,8 +315,7 @@ describe('上長・主部署・部署長の変更 (ADR-0023 §3)', () => {
     expect(times).toEqual([...times].sort((a, b) => b - a));
 
     const profileWithDepartment = result.body.items.find(
-      (item: { changeType: string }) =>
-        item.changeType === 'manager_and_primary_department',
+      (item: { changeType: string }) => item.changeType === 'manager_and_primary_department',
     );
     expect(profileWithDepartment.subject).toEqual({
       userId: employeeA.id,
@@ -342,9 +357,7 @@ describe('上長・主部署・部署長の変更 (ADR-0023 §3)', () => {
   }, 30_000);
 
   it('**上長・主部署が変わらないプロフィール更新は返さない**', async () => {
-    await run(() =>
-      users.updateProfile(adminA.ctx, employeeA.id, { jobTitle: '役職だけの変更' }),
-    );
+    await run(() => users.updateProfile(adminA.ctx, employeeA.id, { jobTitle: '役職だけの変更' }));
     const result = await list(adminA);
     expect(result.body.items).toHaveLength(0);
   }, 30_000);
@@ -396,11 +409,7 @@ describe('上長・主部署・部署長の変更 (ADR-0023 §3)', () => {
     expect(outside.body.items).toHaveLength(0);
     await expectProblem(list(adminA, { from: '2020-02-02', to: '2020-02-01' }), 400);
     await expectProblem(list(adminA, { from: '2020-02-30', to: '2020-03-01' }), 400);
-    await expectProblem(
-      list(adminA, { from: '2019-01-01', to: '2020-12-31' }),
-      400,
-      ['366日'],
-    );
+    await expectProblem(list(adminA, { from: '2019-01-01', to: '2020-12-31' }), 400, ['366日']);
   }, 30_000);
 
   it('**ページングと件数の上限を持つ。未知の項目は400**', async () => {
@@ -409,9 +418,6 @@ describe('上長・主部署・部署長の変更 (ADR-0023 §3)', () => {
     expect(first.body).toMatchObject({ page: 1, pageSize: 50, hasMore: false });
     const second = await list(adminA, { from: TODAY, to: TODAY, page: '2' });
     expect(second.body.items).toHaveLength(0);
-    await expectProblem(
-      list(adminA, { from: TODAY, to: TODAY, organization_id: orgB }),
-      400,
-    );
+    await expectProblem(list(adminA, { from: TODAY, to: TODAY, organization_id: orgB }), 400);
   }, 30_000);
 });
