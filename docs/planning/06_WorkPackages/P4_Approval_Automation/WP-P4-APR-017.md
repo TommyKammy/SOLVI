@@ -16,7 +16,7 @@ story_points: 13
 risk: "critical"
 workstream: "APR"
 phase: "P4"
-requirement_ids: ["FR-CAT-006", "FR-CAT-010", "FR-CAT-011"]
+requirement_ids: ["FR-CAT-013", "FR-CAT-006", "FR-CAT-010", "FR-CAT-011"]
 depends_on: ["WP-P4-APR-015"]
 ---
 
@@ -65,6 +65,7 @@ depends_on: ["WP-P4-APR-015"]
 
 ## 6. Deliverables
 
+- **再割当**([[WP-P4-APR-015]] §6.2 から移管、2026-11-14): 承認者不在の申請について、組織管理者が残りのステップだけを再解決する。版の経路を更新できない(アプリロールは版のテーブルに SELECT / INSERT のみ)ため、Migration と設計判断(版の経路の列だけ更新を許す案、または経路の世代を追記専用の別テーブルに持つ案)が必要。承認済みステップの行を複製・書き換えしないこと。実体化の際に、本項を独立したWPへ分けるかを判断する。
 1. 代理承認(`approval_delegation`: 組織・原承認者・代理者・期間・範囲・作成者。期間限定、RLS付き)。決定時に委任の有効性を検証し、`decided_by`(代理者)と `approver_id`(原承認者)の両方を監査に残す。代理経由でも自己承認・重複・SoDを拒否する。
 2. 高リスク二重承認とSoD評価器: Critical Action(Allowlist変更、Critical Command)の承認で独立した2名を要求し、申請者・1人目承認者と同一人物による2人目の承認を拒否する。**高リスクかどうかの判定基準(カタログ定義の属性か、Executor側の分類か)をここで確定する**(`要確認`)。関係ベース承認だけの経路を高リスクとして成立させない([[ADR-0023_Relationship_Based_Approval_Authority]] §4)。
 3. 並列ステップ・定足数・グループ承認(`steps` の拡張。直列のみの初期仕様を超えるため、データモデルとADRの要否を実体化時に確定する)。

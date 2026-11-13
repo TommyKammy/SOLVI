@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type pg from 'pg';
 import { z } from 'zod';
 import { Problems, currentElapsedSeconds } from '@solvi/shared';
-import { hasRole, requireRole } from '../../common/authz/authz.js';
+import { hasRole } from '../../common/authz/authz.js';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 const sourceKinds = ['ticket', 'request_approval', 'change'] as const;
@@ -86,13 +86,38 @@ export class InboxController {
   private staff(auth: AuthenticatedRequest) {
     return hasRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
   }
+  /**
+   * 受信箱の利用者を絞る。
+   *
+   * 従来のロール(担当者・承認者など)に加え、**現在の pending ステップの
+   * 承認者である利用者**を許す。上長・部署長は `approver` ロールを持たないため
+   * (ADR-0023 §2 / §5)、ロールだけでは自分宛ての承認依頼に到達できない。
+   * 承認待ちの抽出と同じ判定をここでも使う。
+   */
+  private async authorize(c: pg.PoolClient, auth: AuthenticatedRequest): Promise<void> {
+    if (hasRole(auth.authz, 'agent', 'org_admin', 'platform_admin', 'approver')) return;
+    const r = await c.query(
+      `SELECT 1
+         FROM local_service_request q
+         JOIN local_request_revision r
+           ON r.request_id=q.id AND r.organization_id=q.organization_id AND r.revision=q.revision
+         JOIN local_request_approval a
+           ON a.id=q.current_approval_id AND a.organization_id=q.organization_id
+          AND a.request_id=q.id AND a.revision=q.revision
+          AND a.route_generation=r.route_generation
+        WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending'
+          AND a.approver_id=$2 AND q.requester_id<>$2
+        LIMIT 1`,
+      [auth.authz.organizationId, auth.userId],
+    );
+    if (!r.rowCount) throw Problems.forbidden('必要な権限がありません');
+  }
   private async run<T>(
     auth: AuthenticatedRequest,
     writing: boolean,
     fn: (c: pg.PoolClient) => Promise<T>,
   ) {
     if (!this.enabled) throw Problems.notFound('ローカル業務受信箱');
-    requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin', 'approver');
     const c = await this.pool.connect();
     try {
       await c.query(writing ? 'BEGIN' : 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
@@ -100,6 +125,7 @@ export class InboxController {
         "SELECT set_config('app.current_org',$1,true),set_config('app.inbox_user',$2,true)",
         [auth.authz.organizationId, auth.userId],
       );
+      await this.authorize(c, auth);
       const result = await fn(c);
       await c.query('COMMIT');
       return result;
@@ -196,7 +222,9 @@ export class InboxController {
         );
       }
     }
-    if (hasRole(auth.authz, 'approver') && (!only || only.kind === 'request_approval')) {
+    // 承認待ちはロールではなく「自分が現在の pending ステップの承認者である」で抽出する
+    // (ADR-0023 §5 / WP-P4-APR-015 §6-5)。上長・部署長は approver ロールを持たない。
+    if (!only || only.kind === 'request_approval') {
       const rows = (
         await c.query(
           `SELECT q.id,q.version,q.updated_at,q.snapshot->'item'->>'title' AS title,t.number,a.id AS approval_id,a.expires_at

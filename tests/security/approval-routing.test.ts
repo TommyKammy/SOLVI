@@ -1,13 +1,17 @@
 /**
- * WP-P4-APR-015 段階A: 申請・変更での経路解決と保存 (TL-02 / TL-04 / TL-16)。
+ * WP-P4-APR-015 段階A・段階B: 経路解決・関係ベースの決定認可・可視性・滞留
+ * (TL-02 / TL-04 / TL-06 / TL-16)。
  *
  * - ルールで決めた経路は版に固定し、`route_hash` とステップ行で検証できる。
  * - 解決不能な申請は拒否し、足りない設定を応答へ含める。現行互換へ黙って落とさない。
  * - 組織で無効なら `ruleId` があっても現行互換(固定承認者、無ければ申請者選択)の1段。
  * - ルールで決めた版では入力の `approverId` を承認者に使わない。
- * - 2段・3段の経路は1段目だけでは実行できない。段階Aでは `decide` の
- *   `approver` ロール要求を緩めない(段階Bで変更する)。
+ * - `manager` / `department_head` は `approver` ロール無しで決定できる。
+ *   `fixed` / `legacy` は従来どおり `approver` ロールを要求する。
+ * - 承認待ち一覧・受信箱は「自分が現在の pending ステップの承認者」で判定する。
+ * - 承認者不在は一覧に導出し、申請者の内容変更で新しい版が現在のデータから解決される。
  * - 上長が変わっても進行中の申請の経路は変わらない。経路を変えるのは変更(新しい版)だけ。
+ * - 再割当は `local_request_revision` の UPDATE 権限が無いため、この段階では実装しない。
  *
  * 実行先は使い捨てDB(名前に `wp015` と `test` を含む)に限る。合成データだけを使う。
  */
@@ -25,6 +29,7 @@ import {
 import { ApprovalRuleController } from '../../services/api/src/modules/catalog/approval-rule.routes.js';
 import { CatalogAdminController } from '../../services/api/src/modules/catalog/catalog-admin.routes.js';
 import { CatalogController } from '../../services/api/src/modules/catalog/catalog.routes.js';
+import { InboxController } from '../../services/api/src/modules/inbox/inbox.routes.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
 import type { RoleCode } from '../../services/api/src/common/authz/authz.js';
 import { cleanAuditData } from '../support/cleanup.js';
@@ -224,6 +229,70 @@ async function createRequest(
   );
 }
 
+const decide = (
+  person: Person,
+  id: string,
+  expectedVersion: number,
+  decision: 'approve' | 'reject' | 'revoke' = 'approve',
+  reason = '',
+) => run(() => catalog.decide(person.auth, id, { decision, expectedVersion, reason }));
+
+const listFor = (person: Person, params: Record<string, string> = {}) =>
+  run(() => catalog.list(person.auth, new URLSearchParams(params)));
+
+const detailFor = (person: Person, id: string) => run(() => catalog.detail(person.auth, id));
+
+/** 指定した状態コードのいずれかで拒否されることを確かめる。 */
+async function expectDenied(
+  promise: Promise<unknown>,
+  statuses: number[],
+  messageParts: string[] = [],
+): Promise<void> {
+  let caught: (Error & { status?: number; errors?: unknown }) | undefined;
+  try {
+    await promise;
+  } catch (error) {
+    caught = error as Error & { status?: number; errors?: unknown };
+  }
+  expect(caught, '拒否されるべき操作が成功した').toBeDefined();
+  expect(statuses, caught?.message).toContain(caught?.status);
+  const text = `${caught?.message ?? ''} ${JSON.stringify(caught?.errors ?? [])}`;
+  for (const part of messageParts) expect(text).toContain(part);
+}
+
+/** 経路と承認行を直接その利用者・種別へ差し替える(認可の検査を分離するため)。 */
+async function forceStep(
+  requestId: string,
+  input: {
+    approverId: string;
+    authorityType: 'legacy' | 'fixed' | 'manager' | 'department_head';
+    stepNo?: number;
+  },
+): Promise<void> {
+  const revision = await revisionRow(requestId);
+  const route = revision.route as ApprovalRoute;
+  const stepNo = input.stepNo ?? 1;
+  const nextRoute: ApprovalRoute = {
+    ...route,
+    steps: route.steps.map((step) =>
+      step.stepNo === stepNo
+        ? { ...step, approverId: input.approverId, authorityType: input.authorityType }
+        : step,
+    ),
+  };
+  await q('UPDATE local_request_revision SET route=$2,route_hash=$3 WHERE request_id=$1', [
+    requestId,
+    nextRoute,
+    routeHash(nextRoute),
+  ]);
+  await q(
+    `UPDATE local_request_approval
+        SET approver_id=$2, authority_type=$3
+      WHERE request_id=$1 AND step_no=$4`,
+    [requestId, input.approverId, input.authorityType, stepNo],
+  );
+}
+
 const requestRow = async (id: string) =>
   (await q('SELECT * FROM local_service_request WHERE id=$1', [id])).rows[0];
 const revisionRow = async (id: string, revision = 1) =>
@@ -348,6 +417,12 @@ async function resetProfiles(): Promise<void> {
   await q(`UPDATE app_user SET status='active', deactivated_at=NULL WHERE id = ANY($1::uuid[])`, [
     made.users,
   ]);
+  // 期限切れの role_binding を試すテストがあるため、毎回の基準状態へ戻す。
+  await q(
+    `UPDATE role_binding SET valid_until=NULL
+      WHERE organization_id=$1 AND user_id = ANY($2::uuid[])`,
+    [org, made.users],
+  );
   await setDepartment(requester.id, deptPrimary);
   await setManager(requester.id, manager.id);
   await setDepartment(manager.id, deptPrimary);
@@ -553,7 +628,7 @@ describe('ルールによる経路解決と保存 (WP §6-4)', () => {
     );
   });
 
-  it('**段階Aでは上長ステップの決定にも approver ロールが必要**(段階Bで変更する)**', async () => {
+  it('**関係ベースの段は approver ロール無しで決定できる**(段階B)**', async () => {
     const ruleId = await createRule([fixedStep(fixed.id), managerStep()]);
     const itemId = await publishItem({ ruleId });
     await enableRouting();
@@ -561,15 +636,13 @@ describe('ルールによる経路解決と保存 (WP §6-4)', () => {
     await run(() =>
       catalog.decide(fixed.auth, created.id, { decision: 'approve', expectedVersion: 1 }),
     );
-    // manager は自分宛てのステップの承認者なので可視(404ではない)だが、
-    // 段階Aでは approver ロール要求を残すため 403。
-    await expectProblem(
-      run(() =>
-        catalog.decide(manager.auth, created.id, { decision: 'approve', expectedVersion: 2 }),
-      ),
-      403,
-    );
-    expect((await stepRows(created.id)).map((step) => step.state)).toEqual(['approved', 'pending']);
+    expect(manager.auth.authz.principal.bindings.map((b) => b.roleCode)).toEqual(['requester']);
+    await expect(decide(manager, created.id, 2)).resolves.toMatchObject({
+      state: 'approved',
+      stepState: 'approved',
+    });
+    expect((await stepRows(created.id)).map((step) => step.state)).toEqual(['approved', 'approved']);
+    expect((await requestRow(created.id)).state).toBe('approved');
   });
 });
 
@@ -1003,4 +1076,327 @@ describe('経路の改ざん検知 (TL-16)', () => {
       409,
     );
   });
+});
+
+describe('決定の認可: 関係ベースのステップ (WP §6-5 / ADR-0023 §2)', () => {
+  it('**approver ロールを持たない上長が、自分宛ての manager ステップを承認・却下できる**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    expect(manager.auth.authz.principal.bindings.map((b) => b.roleCode)).toEqual(['requester']);
+
+    const approved = await createRequest(requester, itemId);
+    await expect(decide(manager, approved.id, 1)).resolves.toEqual({
+      id: approved.id,
+      state: 'approved',
+      stepState: 'approved',
+    });
+    expect((await requestRow(approved.id)).state).toBe('approved');
+
+    const rejected = await createRequest(requester, itemId);
+    await expect(
+      decide(manager, rejected.id, 1, 'reject', '合成: 上長による却下'),
+    ).resolves.toEqual({ id: rejected.id, state: 'rejected', stepState: 'rejected' });
+    expect((await requestRow(rejected.id)).state).toBe('rejected');
+  }, 30_000);
+
+  it('**approver ロールを持たない部署長が department_head ステップを承認できる**', async () => {
+    const ruleId = await createRule([headStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    expect(head.auth.authz.principal.bindings.map((b) => b.roleCode)).toEqual(['requester']);
+    await expect(decide(head, created.id, 1)).resolves.toMatchObject({ state: 'approved' });
+  }, 30_000);
+
+  it('**2段・3段で関係ベースと固定が混在しても、全段の承認後に実行できる**', async () => {
+    const ruleId = await createRule([managerStep(), fixedStep(fixed.id), headStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await expect(decide(manager, created.id, 1)).resolves.toMatchObject({
+      state: 'pending',
+      stepState: 'approved',
+    });
+    await expect(decide(fixed, created.id, 2)).resolves.toMatchObject({
+      state: 'pending',
+      stepState: 'approved',
+    });
+    await expect(decide(head, created.id, 3)).resolves.toMatchObject({
+      state: 'approved',
+      stepState: 'approved',
+    });
+    const approved = await requestRow(created.id);
+    expect((await stepRows(created.id)).map((step) => step.state)).toEqual([
+      'approved',
+      'approved',
+      'approved',
+    ]);
+    await expect(
+      run(() => catalog.simulate(agent.auth, created.id, { expectedVersion: approved.version })),
+    ).resolves.toMatchObject({ replayed: false });
+    expect((await requestRow(created.id)).state).toBe('completed');
+  }, 30_000);
+
+  it('**他人宛てのステップは決定できない（approver ロールを持つ利用者も）**', async () => {
+    const ruleId = await createRule([fixedStep(fixed.id), managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await decide(fixed, created.id, 1);
+    await expectDenied(decide(otherApprover, created.id, 2), [404, 403]);
+    await expectDenied(decide(head, created.id, 2), [404, 403]);
+    expect((await stepRows(created.id)).map((step) => step.state)).toEqual(['approved', 'pending']);
+  }, 30_000);
+
+  it('**6項目-1: 決定者が現在のステップの approver_id と一致しなければ拒否する**', async () => {
+    const ruleId = await createRule([managerStep(), fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await decide(manager, created.id, 1);
+    // 前の段の承認者(manager)は、現在の段(固定承認者)の決定者ではない。
+    await expectProblem(decide(manager, created.id, 2), 403);
+    expect((await stepRows(created.id)).map((step) => step.state)).toEqual(['approved', 'pending']);
+  }, 30_000);
+
+  it('**6項目-2: 決定者が有効な所属でなければ拒否する（停止・role_binding 期限切れ）**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+
+    const deactivated = await createRequest(requester, itemId);
+    await q("UPDATE app_user SET status='deactivated', deactivated_at=now() WHERE id=$1", [
+      manager.id,
+    ]);
+    await expectProblem(decide(manager, deactivated.id, 1), 403);
+    expect((await requestRow(deactivated.id)).state).toBe('pending');
+
+    // 2件目は停止を戻してから作る(申請時の解決で承認者が有効である必要がある)。
+    await q("UPDATE app_user SET status='active', deactivated_at=NULL WHERE id=$1", [manager.id]);
+    const expired = await createRequest(requester, itemId);
+    await q(
+      `UPDATE role_binding SET valid_until=clock_timestamp()-interval '1 second'
+        WHERE organization_id=$1 AND user_id=$2`,
+      [org, manager.id],
+    );
+    await expectProblem(decide(manager, expired.id, 1), 403);
+    expect((await requestRow(expired.id)).state).toBe('pending');
+  }, 30_000);
+
+  it('**6項目-3: 申請者本人は決定できない**', async () => {
+    const ruleId = await createRule([fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    // 経路と承認行を直接申請者へ差し替える(自己承認の検査だけを分離する)。
+    await forceStep(created.id, { approverId: requester.id, authorityType: 'fixed' });
+    await expectProblem(decide(requester, created.id, 1), 403, ['自己承認']);
+    expect((await stepRows(created.id))[0]!.state).toBe('pending');
+  }, 30_000);
+
+  it('**6項目-4: pending・期限内・現在の経路世代でなければ拒否する**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+
+    const expired = await createRequest(requester, itemId);
+    await q(
+      "UPDATE local_request_approval SET expires_at=clock_timestamp()-interval '1 second' WHERE request_id=$1",
+      [expired.id],
+    );
+    await expectProblem(decide(manager, expired.id, 1), 409);
+
+    const decided = await createRequest(requester, itemId);
+    await decide(manager, decided.id, 1);
+    await expectProblem(decide(manager, decided.id, 2), 409);
+
+    const oldGeneration = await createRequest(requester, itemId);
+    await q('UPDATE local_request_revision SET route_generation=2 WHERE request_id=$1', [
+      oldGeneration.id,
+    ]);
+    await expectDenied(decide(manager, oldGeneration.id, 1), [404, 409]);
+  }, 30_000);
+
+  it('**6項目-5: revision / snapshot_hash / route_hash が一致しなければ拒否する**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+
+    const snapshotTampered = await createRequest(requester, itemId);
+    await q("UPDATE local_request_approval SET snapshot_hash=repeat('0',64) WHERE request_id=$1", [
+      snapshotTampered.id,
+    ]);
+    await expectProblem(decide(manager, snapshotTampered.id, 1), 409);
+
+    const routeTampered = await createRequest(requester, itemId);
+    await q("UPDATE local_request_revision SET route_hash=repeat('0',64) WHERE request_id=$1", [
+      routeTampered.id,
+    ]);
+    await expectProblem(decide(manager, routeTampered.id, 1), 409);
+  }, 30_000);
+
+  it('**6項目-6: fixed / legacy は approver ロールを要求する（行を直接書き換えても拒否）**', async () => {
+    const ruleId = await createRule([fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const fixedRequest = await createRequest(requester, itemId);
+    await forceStep(fixedRequest.id, { approverId: manager.id, authorityType: 'fixed' });
+    // manager は有効な所属だが approver ロールを持たない。
+    await expectProblem(decide(manager, fixedRequest.id, 1), 403);
+    expect((await stepRows(fixedRequest.id))[0]!.state).toBe('pending');
+
+    const legacyItem = await publishItem({ approverId: fixed.id });
+    const legacyRequest = await createRequest(requester, legacyItem, { approverId: fixed.id });
+    await forceStep(legacyRequest.id, { approverId: manager.id, authorityType: 'legacy' });
+    await expectProblem(decide(manager, legacyRequest.id, 1), 403);
+    expect((await stepRows(legacyRequest.id))[0]!.state).toBe('pending');
+  }, 30_000);
+
+  it('**上長が変わっても、新しい上長は進行中の申請を決定できず、元の上長は決定できる**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    const before = await revisionRow(created.id);
+    await setManager(requester.id, head.id);
+    // 経路は申請時に固定されている。
+    expect((await revisionRow(created.id)).route).toEqual(before.route);
+    await expectDenied(decide(head, created.id, 1), [404, 403]);
+    await expect(decide(manager, created.id, 1)).resolves.toMatchObject({ state: 'approved' });
+  }, 30_000);
+
+  it('**承認者の role_binding が期限切れ・停止なら決定できず、一覧で承認者不在になり、自動で差し替わらない**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+
+    const deactivated = await createRequest(requester, itemId);
+    await q("UPDATE app_user SET status='deactivated', deactivated_at=now() WHERE id=$1", [
+      manager.id,
+    ]);
+    await expectProblem(decide(manager, deactivated.id, 1), 403);
+    const ownList = await listFor(requester);
+    expect(ownList.items.find((item) => item.id === deactivated.id)).toMatchObject({
+      state: 'pending',
+      approverUnavailable: true,
+    });
+    const adminList = await listFor(adminUser, { approverUnavailable: '1' });
+    expect(adminList.items.map((item) => item.id)).toContain(deactivated.id);
+    // 絞り込みは組織管理者だけ。
+    await expectProblem(listFor(requester, { approverUnavailable: '1' }), 403);
+    // 状態も承認者も変わらない。
+    const unchanged = await requestRow(deactivated.id);
+    expect(unchanged.state).toBe('pending');
+    expect((await stepRows(deactivated.id))[0]).toMatchObject({
+      state: 'pending',
+      approver_id: manager.id,
+    });
+
+    // 2件目は停止を戻してから作り、role_binding の期限切れだけを試す。
+    await q("UPDATE app_user SET status='active', deactivated_at=NULL WHERE id=$1", [manager.id]);
+    const expired = await createRequest(requester, itemId);
+    await q(
+      `UPDATE role_binding SET valid_until=clock_timestamp()-interval '1 second'
+        WHERE organization_id=$1 AND user_id=$2`,
+      [org, manager.id],
+    );
+    await expectProblem(decide(manager, expired.id, 1), 403);
+    const expiredList = await listFor(adminUser, { approverUnavailable: '1' });
+    expect(expiredList.items.map((item) => item.id)).toContain(expired.id);
+  }, 30_000);
+});
+
+describe('滞留の扱い: 申請内容の変更で経路を解決し直す (WP §6.1)', () => {
+  it('**承認者不在の申請は、申請者が内容を変更すると新しい版で現在のデータから解決し直される**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await q("UPDATE app_user SET status='deactivated', deactivated_at=now() WHERE id=$1", [
+      manager.id,
+    ]);
+
+    const unavailable = await listFor(requester);
+    const item = unavailable.items.find((entry) => entry.id === created.id)!;
+    expect(item).toMatchObject({ state: 'pending', approverUnavailable: true });
+    expect(item.nextAction).toContain('内容を変更');
+    // 一覧の案内は申請者・担当者にだけ出す(理由の詳細や役職は返さない)。
+    expect(JSON.stringify(item)).not.toContain('deactivated');
+
+    // 上長を有効な利用者へ変え、申請者が内容を変更する。
+    await setManager(requester.id, head.id);
+    await run(() =>
+      catalog.edit(requester.auth, created.id, {
+        expectedVersion: 1,
+        reason: '合成: 承認者不在のため内容を変更',
+        durationDays: 7,
+      }),
+    );
+    const request = await requestRow(created.id);
+    expect(request.revision).toBe(2);
+    expect(request.state).toBe('pending');
+    const nextRevision = await revisionRow(created.id, 2);
+    expect((nextRevision.route as ApprovalRoute).steps).toEqual([
+      { stepNo: 1, approverId: head.id, authorityType: 'manager', resolvedFrom: 'manager' },
+    ]);
+    expect((await stepRows(created.id, 1)).map((step) => step.state)).toEqual(['invalidated']);
+    expect(
+      (await stepRows(created.id, 2)).map((step) => [step.step_no, step.state, step.approver_id]),
+    ).toEqual([[1, 'pending', head.id]]);
+
+    const recovered = await listFor(requester);
+    expect(recovered.items.find((entry) => entry.id === created.id)!.approverUnavailable).toBe(
+      false,
+    );
+    await expect(decide(head, created.id, 2)).resolves.toMatchObject({ state: 'approved' });
+  }, 30_000);
+});
+
+describe('承認待ち一覧の可視性 (WP §6-5 / ADR-0023 §5)', () => {
+  it('**approver ロールの無い上長に自分宛てが出る。approver ロールがあっても自分宛てでない申請は出ない**', async () => {
+    const ruleId = await createRule([fixedStep(fixed.id), managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await decide(fixed, created.id, 1);
+
+    const managerList = await listFor(manager, { view: 'approvals' });
+    expect(managerList.items.map((item) => item.id)).toEqual([created.id]);
+    expect(managerList.items[0]).toMatchObject({ assigned: true, own: false });
+
+    // approver ロールを持つが、自分宛てではない。
+    const otherList = await listFor(otherApprover, { view: 'approvals' });
+    expect(otherList.items.map((item) => item.id)).not.toContain(created.id);
+    // 申請者本人の承認待ちにも出ない。
+    const requesterList = await listFor(requester, { view: 'approvals' });
+    expect(requesterList.items.map((item) => item.id)).not.toContain(created.id);
+  }, 30_000);
+
+  it('**他人の申請IDを指定した決定・閲覧は404**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await expectProblem(detailFor(otherApprover, created.id), 404);
+    await expectProblem(decide(otherApprover, created.id, 1), 404);
+    await expect(detailFor(requester, created.id)).resolves.toMatchObject({
+      request: { id: created.id },
+    });
+  }, 30_000);
+
+  it('**受信箱の承認待ちも「自分が現在のステップの承認者」で判定する**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    const inbox = new InboxController(pool, true);
+    const managerInbox = await run(() => inbox.list(manager.auth, { kind: 'approval' }));
+    expect(managerInbox.items.map((item) => item.id)).toContain(created.id);
+    // approver ロールを持っていても、自分宛てでなければ出ない。
+    const otherInbox = await run(() => inbox.list(otherApprover.auth, { kind: 'approval' }));
+    expect(otherInbox.items.map((item) => item.id)).not.toContain(created.id);
+    // どのロールも持たず、承認者でもない利用者は受信箱を開けない。
+    await expectProblem(run(() => inbox.list(requester.auth, { kind: 'approval' })), 403);
+  }, 30_000);
 });

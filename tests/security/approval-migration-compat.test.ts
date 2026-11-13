@@ -8,8 +8,9 @@
  * - 新しい列にデータがあると down は拒否する
  * - 既存データに重複があれば Migration は失敗する(黙って直さない)
  *
- * DB名は `solvi_wp015_test_compat_<乱数>`。テストが自分で作成し、最後に削除する。
- * 開発用DB(`solvi`)には接続しない(名前ガードで即失敗する)。
+ * DB名は**接続先の使い捨てDB名を基準に** `..._compat_<乱数>` を作る。
+ * WP番号を直接書かないため、どのWPの使い捨てDBでも同じテストが動く。
+ * テストが自分で作成し、最後に削除する。開発用DBには接続しない(名前ガードで即失敗する)。
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
@@ -26,7 +27,6 @@ import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/a
 
 const ROOT = join(__dirname, '../..');
 const MIGRATIONS = join(ROOT, 'db/migrations');
-const DB_NAME = `solvi_wp015_test_compat_${randomUUID().slice(0, 8)}`;
 const ORG = uuidv7();
 const REQUESTER = uuidv7();
 const APPROVER = uuidv7();
@@ -68,6 +68,10 @@ let admin: pg.Client;
 let pool: pg.Pool;
 let controller: CatalogController;
 let adminUrl: string;
+/** 接続先の使い捨てDB名(基準)。WP番号に依存しない。 */
+let referenceDb = '';
+/** このテストが作るDB名。 */
+let dbName = '';
 
 type Migration = { name: string; up: string; checksum: string };
 
@@ -213,25 +217,30 @@ beforeAll(async () => {
   maintenance = new pg.Client({ connectionString: maintenanceUrl.toString() });
   await maintenance.connect();
   const current = (await maintenance.query('SELECT current_database() AS n')).rows[0].n as string;
-  if (current.includes('test') && !current.includes('wp015'))
+  // 基準DBの名前から、WP番号に依存しない使い捨てDB名を作る。
+  referenceDb = new URL(rawAdmin).pathname.replace(/^\//, '');
+  if (!/^[a-z0-9_]+$/.test(referenceDb) || !referenceDb.includes('test'))
+    throw new Error(`基準DB ${referenceDb} は使い捨てテストDBではありません。中止します`);
+  if (current !== 'postgres' && current !== referenceDb)
     throw new Error('保守接続のDB名が想定と違います。中止します');
-  if (!/^[a-z0-9_]+$/.test(DB_NAME) || !DB_NAME.includes('wp015') || !DB_NAME.includes('test'))
+  dbName = `${referenceDb}_compat_${randomUUID().slice(0, 8)}`;
+  if (dbName.length > 63 || !dbName.includes('test'))
     throw new Error('テスト用DB名が不正です。中止します');
 
-  const exists = await maintenance.query('SELECT 1 FROM pg_database WHERE datname=$1', [DB_NAME]);
-  if (exists.rowCount) throw new Error(`テスト用DB ${DB_NAME} が既に存在します。中止します`);
-  await maintenance.query(`CREATE DATABASE ${DB_NAME}`);
+  const exists = await maintenance.query('SELECT 1 FROM pg_database WHERE datname=$1', [dbName]);
+  if (exists.rowCount) throw new Error(`テスト用DB ${dbName} が既に存在します。中止します`);
+  await maintenance.query(`CREATE DATABASE ${dbName}`);
 
   const dbAdmin = new URL(rawAdmin);
-  dbAdmin.pathname = `/${DB_NAME}`;
+  dbAdmin.pathname = `/${dbName}`;
   adminUrl = dbAdmin.toString();
   admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
   const appUrl = new URL(rawApp);
-  appUrl.pathname = `/${DB_NAME}`;
+  appUrl.pathname = `/${dbName}`;
   pool = new pg.Pool({ connectionString: appUrl.toString(), max: 4 });
   const name = (await pool.query('SELECT current_database() AS n')).rows[0].n as string;
-  if (!name.includes('wp015') || !name.includes('test'))
+  if (name !== dbName || !name.includes('test'))
     throw new Error(`接続先 ${name} は使い捨てDBではありません。中止します`);
 
   // 0037 までの状態を作る
@@ -313,8 +322,14 @@ afterAll(async () => {
   await admin?.end().catch(() => undefined);
   if (maintenance) {
     try {
-      if (DB_NAME.includes('wp015') && DB_NAME.includes('test'))
-        await maintenance.query(`DROP DATABASE IF EXISTS ${DB_NAME} WITH (FORCE)`);
+      // 自分が作った名前(基準DB + _compat_ + 乱数)だけを削除する。
+      if (
+        dbName &&
+        referenceDb &&
+        dbName.startsWith(`${referenceDb}_compat_`) &&
+        dbName.includes('test')
+      )
+        await maintenance.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`);
     } finally {
       await maintenance.end().catch(() => undefined);
     }

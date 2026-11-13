@@ -20,6 +20,7 @@ import { RelationController } from './modules/ticket/relation.routes.js';
 import { GroupController } from './modules/ticket/group.routes.js';
 import { UserAdminController } from './modules/auth/user-admin.routes.js';
 import { DepartmentController } from './modules/auth/department.routes.js';
+import { RelationshipChangeController } from './modules/auth/relationship-change.routes.js';
 import { AccessReviewController } from './modules/auth/access-review.routes.js';
 import { KnowledgeController } from './modules/knowledge/knowledge.routes.js';
 import { AssetImportsController } from './modules/assets/asset-import.routes.js';
@@ -168,6 +169,7 @@ async function bootstrap(): Promise<void> {
   const groups = new GroupController({ pool: db.authPool(), denialRecorder });
   const userAdmin = new UserAdminController({ pool: db.authPool() });
   const departments = new DepartmentController({ pool: db.authPool() });
+  const relationshipChanges = new RelationshipChangeController({ pool: db.authPool() });
   const accessReview = new AccessReviewController({ pool: db.authPool() });
   const auditExport = new AuditExportController({ pool: db.authPool() });
 
@@ -883,6 +885,15 @@ async function bootstrap(): Promise<void> {
         authenticated,
         params.id ?? '',
         await readJsonBody(req),
+      );
+      return result.body;
+    })
+    // ---- 上長・主部署・部署長の変更履歴 (WP-P4-APR-015 §6.1) -----------------
+    .get('/relationship-changes', async (req) => {
+      const authenticated = await auth.authenticate(req.headers);
+      const result = await relationshipChanges.list(
+        authenticated,
+        new URL(req.url ?? '/', 'http://localhost').searchParams,
       );
       return result.body;
     })

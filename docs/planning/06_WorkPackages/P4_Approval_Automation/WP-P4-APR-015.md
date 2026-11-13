@@ -7,7 +7,7 @@ type: "workpackage"
 status: "baseline"
 version: "0.2.0"
 created: "2026-11-12"
-updated: "2026-11-13"
+updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "authorization", "resolver"]
 source_of_truth: true
@@ -121,6 +121,14 @@ depends_on: ["WP-P4-IDM-012", "WP-P4-APR-014"]
 - **変更履歴API**: 上長・主部署の変更(`org.member.profile.updated` のうち上長または主部署が変わったもの)と、部署長の設定・終了(`org.department.head.assigned|removed`)を、期間を指定して新しい順に返す。`org_admin` と `auditor` だけ。操作者・対象者・変更前後・時刻を返し、社員番号・役職・勤務地は返さない。監査イベントを読むだけで、新しいテーブルは作らない。
 - **監査イベント**: `approval.route.resolved`(経路を決めた各版)、`approval.reassigned`、`approval.rule.created|revised|deactivated`、`approval.routing.enabled|disabled`。`afterState` には、ルール参照・段数・各段の種別と `resolvedFrom` を入れる。申請の入力値・個人データは載せない。
 
+### 6.2 再割当の見送り(2026-11-14 監督者)
+
+§6-6 の再割当APIと、§7 の再割当に関する受入基準(2項目)は、本WPでは実装しない。[[WP-P4-APR-017]]へ移す。
+
+- 理由: 再割当は版に保存した経路(`local_request_revision.route` / `route_hash` / `route_generation`)を更新する必要があるが、アプリロールは同テーブルに SELECT / INSERT しか持たない(版は不変、という既存の設計)。実現には新しい Migration と、「版の経路の列だけ更新を許す」か「経路の世代を追記専用の別テーブルに持つ」かの設計判断が要る。認可モデルの変更(本WPの段階B)と同じ差分に混ぜない。
+- それまでの対処: 承認者不在の申請は、一覧で `approverUnavailable` として見分けられる。申請者が内容を変更すると、新しい版でその時点のデータから経路が解決し直される(テストで固定)。
+- FR-CAT-013 のうち「経路の固定」は本WPで充足し、「再割当」は[[WP-P4-APR-017]]まで未充足として残る。
+
 ## 7. Acceptance Criteria
 
 - [ ] リゾルバの全分岐に単体テストがある: 固定(正常・無効・他組織・`approver` ロールなし)/ 上長(正常・未設定・無効な所属・`role_binding` 期限切れ・申請者本人)/ 部署長(自部署・祖先・申請者本人が部署長で上位へ・期限切れ・不在)/ 多段(順序・同一人物の重複拒否)/ 互換(`approverId` のみの定義・どちらも無い定義)/ 決定性(同じ入力で同じ `routeHash`)。
@@ -199,6 +207,7 @@ WP-P4-IDM-012 のスキーマ / WP-P4-APR-014 の状態機械・assertApprovalCo
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-11-13 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階A 完了。段階B 未着手 | `evidence/WP-P4-APR-015/20261113-2225/` | ルール・有効化設定・リゾルバ・プレビュー・申請/変更の経路解決。`decide` の認可は変更せず |
+| 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階B 完了(再割当は見送り) | `evidence/WP-P4-APR-015/20261114-0722/` | 決定の関係ベース認可・可視性・滞留の導出・変更履歴API・互換テストのDB名一般化。再割当は `local_request_revision` の UPDATE 権限が無く、Migration なしでは実装できないため見送り |
 
 ### 2026-11-13 段階A 実装記録
 
@@ -324,4 +333,135 @@ npm run check:all                               # exit 0
 #### Evidence
 
 `evidence/WP-P4-APR-015/20261113-2225/`(`README.md` と `raw/`)。使い捨てDBは
+`solvi_wp015_test` を検査用に残している。
+
+### 2026-11-14 段階B 実装記録
+
+**範囲**: WP §6 の 5(決定の認可)・6 のうち再割当以外(可視性・滞留)・6.1(変更履歴API)、
+および段階Aからの持ち越し(互換テストのDB名)。**再割当は見送った**(理由は後述)。
+
+#### 変更ファイル
+
+- `services/api/src/modules/catalog/catalog.routes.ts`(決定の6項目認可、承認待ち一覧・滞留、可視性)
+- `services/api/src/modules/inbox/inbox.routes.ts`(承認待ちの抽出と受信箱の利用者判定)
+- `services/api/src/modules/auth/relationship-change.service.ts`(新規)
+- `services/api/src/modules/auth/relationship-change.routes.ts`(新規)
+- `services/api/src/main.ts`(変更履歴APIの経路登録)
+- `tests/security/approval-routing.test.ts`(段階Bの認可・可視性・滞留の検証を追加)
+- `tests/security/relationship-change.test.ts`(新規)
+- `tests/security/approval-migration-compat.test.ts`(使い捨てDB名を接続先から導出)
+
+Migration: **なし**。既存スキーマ・既存データを変更しない。ロールバックはコードの巻き戻しのみ。
+
+#### 決定の認可
+
+- `fixed` / `legacy` は従来どおり `approver` ロール(セッションとDBの両方)を要求する。
+- `manager` / `department_head` は `approver` ロールを要求せず、ADR-0023 §2 の6項目を
+  決定のたびにDBの現在値で検証する。権限種別は版の `route` と承認行を照合した後の値だけを使う。
+- `route IS NULL` の版は `legacy` として扱う。
+- 承認取消の権限は現行のまま(その版のステップの承認者、または `org_admin` / `platform_admin`)。
+
+#### 可視性・滞留
+
+- 承認待ち一覧と `nextAction` は「自分が現在の `pending` ステップの `approver_id`」で判定する。
+- 詳細は「申請者・担当者・その版のいずれかのステップの承認者」を保つ。
+- 一覧に `approverUnavailable`(承認者不在)を加算。返すのは申請者・担当者・`org_admin`。
+  `org_admin` は `approverUnavailable=1` で絞り込める。状態は変更せず、自動差し替えもしない。
+- 承認者不在の申請は、申請者が内容を変更すると新しい版でその時点のデータから経路が
+  解決し直されることをテストで固定し、一覧の案内文にも反映した。
+- 受信箱はロールではなく現在の pending ステップの承認者でも開けるようにした(変更は最小限)。
+
+#### 変更履歴API
+
+- `GET /relationship-changes?from=YYYY-MM-DD&to=YYYY-MM-DD&page=N`。
+- `org_admin` と `auditor` だけ。期間は366日以内、1ページ50件、`hasMore` を返す。
+- `org.member.profile.updated`(上長または主部署が変わったもの)、
+  `org.department.head.assigned` / `removed` を監査イベントから読む。
+- 社員番号・役職・勤務地は応答に含めない。他組織の変更は RLS と組織IDの絞り込みで含めない。
+- アプリロールへの新しい権限付与は不要(`audit_event` は既に SELECT 可能)。
+
+#### 再割当を見送った理由
+
+再割当は `local_request_revision` の `route` / `route_hash` / `route_generation` を
+書き換える必要があるが、アプリ接続ロール `solvi_app` の権限は SELECT / INSERT のみで、
+UPDATE が無い。実行すると `42501 permission denied for table local_request_revision` に
+なることを確認した。`GRANT UPDATE` または SECURITY DEFINER 関数の追加は Migration を
+必要とし、ブリーフの「段階Bでは新しい Migration を作らない」に反するため実装を止めた。
+再割当用に入れた遷移表の行・監査イベント型・API・テストは作業ツリーから削除した。
+
+設計上の選択肢(監督者の判断待ち):
+
+1. **`local_request_revision` に UPDATE を許可する** — 版の経路だけを書き換える最小の
+   変更。ただし版が不変であるという現在の前提を崩すため、`route_generation` の増加以外の
+   UPDATE を拒否するトリガと、更新可能な列を限定する権限設計が必要。
+2. **経路世代を追記専用の別テーブルに持つ** — `local_request_route_generation`
+   (request_id, revision, route_generation, route, route_hash, created_at)を新設し、
+   版は初回の経路だけを持つ。既存の検証は「現在の世代の行」を参照するように変更する。
+   版を不変に保てるが、新テーブル・RLS・検証コードの変更を伴う。
+
+#### 検証コマンドと結果
+
+すべて使い捨てDB `solvi_wp015_test`(Migration 0039)で実行。接続文字列は記録しない。
+
+```text
+npm run typecheck                                  # exit 0
+npm run lint                                       # exit 0
+npx vitest run tests/security/approval-*.test.ts \
+  tests/security/department-*.test.ts tests/security/user-admin.test.ts \
+  tests/security/relationship-change.test.ts
+# 11 files / 250 passed / 0 failed
+
+npx vitest run tests/unit/approval-*.test.ts tests/unit/catalog-*.test.ts
+# 19 files / 731 passed / 0 failed
+npx vitest run tests/security
+# 35 passed / 6 failed(既知の読み込み不能6ファイル) / 760 passed / 10 skipped
+npm run test:unit
+# 34 failed / 4397 passed。変更前と失敗テスト名が完全一致(新規失敗0)
+node tools/check_rls.mjs                           # 問題0件 / OK
+npm run check:all                                  # exit 0
+```
+
+開発用DB `solvi` の件数(`app_user` 15、`role_binding` 21、`ticket` 23、
+`local_service_request` 12、`local_request_revision` 17、`local_request_approval` 17、
+`local_simulation_receipt` 4、`department` 17、`org_member_profile` 15、`department_head` 5)は
+作業前後で完全一致。`schema_migration` は38件・最大 `0038` のまま。
+
+#### §7 受入基準の充足(段階B)
+
+- ✅ `approver` ロールを持たない上長・部署長が自分宛ての `manager` / `department_head`
+  ステップを承認・却下できる: `tests/security/approval-routing.test.ts`。
+- ✅ 他人宛てのステップは決定できない(404/403)。`approver` ロール保持者でも同様。
+- ✅ `approver` ロールを持たない利用者は `fixed` / `legacy` を決定できない
+  (承認行と経路をDBで直接書き換えても403)。
+- ✅ 決定時の6項目の各違反を拒否(1項目1テスト)。
+- ✅ 上長変更後、新しい上長は決定できず元の上長は決定できる(経路は変わらない)。
+- ✅ 承認者の停止・`role_binding` 期限切れで決定拒否、一覧で承認者不在、自動差し替えなし。
+- ✅ 承認待ち一覧: `approver` ロールの無い上長に自分宛てが出る。ロールがあっても
+  自分宛てでない申請は出ない。受信箱も同じ判定。
+- ✅ 承認者不在の申請は、申請者の内容変更で新しい版が現在のデータから再解決される。
+- ✅ 2段・3段で関係ベースと固定が混在する一連の承認と実行ができる。
+- ✅ 変更履歴API: ロール×エンドポイント、他組織の除外、期間指定、ページング、
+  社員番号・役職・勤務地の非返却。
+- ⏳ 再割当(`org_admin` のみ、承認者不在時のみ、承認済みステップの保持、
+  `approval.reassigned`): 上記の権限の制約により**未実装**。WPは `in-progress` のまま。
+
+#### セキュリティ影響
+
+- 認可を広げたのは、関係ベースのステップの承認者本人に対する `approver` ロール要件だけ。
+  `fixed` / `legacy` の検証、ロール付与、ルール管理、プロフィール変更、担当者操作は広げていない。
+- 決定の6項目は毎回DBの現在値で検証する。所属・期限はDBの `clock_timestamp()` を使う。
+- `approverUnavailable` は申請者・担当者・`org_admin` にだけ返し、理由の詳細・役職・勤務地は返さない。
+- 変更履歴APIは `org_admin` / `auditor` だけ。監査のRLSと組織IDの絞り込みの二層。
+- 新規依存0件。`apps/web/`、`package.json`、lockfile、`.env` は未変更。
+
+#### 未解決事項
+
+- 再割当の実装(上記の権限・設計の決定待ち)。
+- 高リスクの判定基準は WP-P4-APR-017 で確定する。
+- `docs/planning/03_Requirements/03.18_*`(RTM)と `docs/planning/MANIFEST.md` は
+  ブリーフの指示により変更していない。
+
+#### Evidence
+
+`evidence/WP-P4-APR-015/20261114-0722/`(`README.md` と `raw/`)。使い捨てDBは
 `solvi_wp015_test` を検査用に残している。

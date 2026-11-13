@@ -26,7 +26,10 @@ import {
   type RequestState,
 } from './approval-state.js';
 import {
+  activeMembershipSql,
   approvalResolutionProblem,
+  isActiveMember,
+  loadUserFacts,
   resolveRouteForRequest,
   type ResolverFailure,
 } from './approval-resolver.js';
@@ -359,16 +362,31 @@ export class CatalogController {
             ])
             .default('all'),
           view: z.enum(['all', 'mine', 'approvals']).default('all'),
+          // 承認者不在の申請だけに絞り込む(組織管理者だけ)。WP §6.1。
+          approverUnavailable: z.enum(['0', '1']).default('0'),
           page: z.coerce.number().int().min(1).max(10000).default(1),
         })
         .strict(),
       Object.fromEntries(query),
     );
     return this.run(auth, async (c) => {
+      // 承認者不在の絞り込みは組織管理者だけ。機能が無効な環境では 404 を優先する。
+      if (filter.approverUnavailable === '1') requireRole(auth.authz, 'org_admin');
       const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
       const pageSize = 25;
       const values: unknown[] = [auth.authz.organizationId, this.staff(auth), auth.userId, now];
       const expired = "(q.state IN ('pending','approved') AND a.expires_at <= $4::timestamptz)";
+      // 権限種別は経路(版に固定)を優先する。DBの承認行だけを信用しない。
+      const authorityType = `COALESCE(r.route->'steps'->(a.step_no-1)->>'authorityType', a.authority_type)`;
+      const approverRole = `EXISTS (
+        SELECT 1 FROM role_binding arb JOIN role ar ON ar.id=arb.role_id
+         WHERE arb.user_id=a.approver_id AND arb.organization_id=q.organization_id
+           AND arb.role_scope='org' AND ar.code='approver'
+           AND arb.valid_from<=$4 AND (arb.valid_until IS NULL OR arb.valid_until>$4))`;
+      // 承認者不在 = 有効な所属でない、または fixed/legacy で approver ロールが無い。
+      const approverAvailable = `(ap.status='active'
+        AND ${activeMembershipSql('a.approver_id', 'q.organization_id', '$4')}
+        AND (${authorityType} NOT IN ('fixed','legacy') OR ${approverRole}))`;
       const conditions = [
         'q.organization_id=$1',
         '($2::boolean OR q.requester_id=$3 OR a.approver_id=$3)',
@@ -381,11 +399,11 @@ export class CatalogController {
       }
       if (filter.view === 'mine') conditions.push('q.requester_id=$3');
       if (filter.view === 'approvals')
+        // ロールではなく「自分が現在の pending ステップの approver_id である」で決める。
         conditions.push(
-          hasRole(auth.authz, 'approver')
-            ? `a.approver_id=$3 AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`
-            : 'false',
+          `a.approver_id=$3 AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`,
         );
+      if (filter.approverUnavailable === '1') conditions.push(`NOT ${approverAvailable}`);
       if (filter.state === 'expired') conditions.push(expired);
       else if (filter.state !== 'all') {
         values.push(filter.state);
@@ -411,11 +429,16 @@ export class CatalogController {
           `SELECT q.id,q.state,q.version,q.snapshot->'item'->>'title' AS title,
           q.created_at AS "createdAt",q.updated_at AS "updatedAt",a.state AS "approvalState",q.ticket_id AS "ticketId",t.number,
           u.display_name AS "requesterName",ap.display_name AS "approverName",a.expires_at AS "expiresAt",
-          a.reason AS "decisionReason",q.requester_id=$3 AS own,a.approver_id=$3 AS assigned,${expired} AS expired
+          a.reason AS "decisionReason",q.requester_id=$3 AS own,a.approver_id=$3 AS assigned,${expired} AS expired,
+          NOT ${approverAvailable} AS "approverUnavailable"
          ${from} ORDER BY q.updated_at DESC,q.id DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
           [...values, pageSize, (filter.page - 1) * pageSize],
         )
       ).rows.map((row) => {
+        // 承認者不在は申請者・担当者・組織管理者にだけ返す(理由の詳細・役職は返さない)。
+        const { approverUnavailable, ...rest } = row;
+        const showUnavailable = row.own || this.staff(auth);
+        const unavailable = showUnavailable && approverUnavailable === true;
         const nextAction =
           row.state === 'completed'
             ? '結果を確認する'
@@ -430,15 +453,23 @@ export class CatalogController {
                     ? '理由を確認して修正・再申請する'
                     : '申請者の修正を待っています'
                   : row.state === 'pending'
-                    ? row.assigned && !row.own && hasRole(auth.authz, 'approver')
-                      ? '内容を確認して承認・却下を判断する'
-                      : '承認者の判断を待っています'
+                    ? unavailable
+                      ? row.own
+                        ? '承認者が不在です。内容を変更して再承認を依頼してください'
+                        : '承認者が不在です。申請者に内容の変更を依頼してください'
+                      : row.assigned && !row.own
+                        ? '内容を確認して承認・却下を判断する'
+                        : '承認者の判断を待っています'
                     : row.state === 'approved'
                       ? this.staff(auth)
                         ? '承認内容を確認して模擬実行へ進む'
                         : '担当者の模擬実行を待っています'
                       : '内容を確認する';
-        return { ...row, nextAction };
+        return {
+          ...rest,
+          ...(showUnavailable ? { approverUnavailable: approverUnavailable === true } : {}),
+          nextAction,
+        };
       });
       return { items, total, page: filter.page, pageSize, appliedFilter: filter };
     });
@@ -487,7 +518,7 @@ export class CatalogController {
     ).rows;
   }
   /**
-   * 可視性は「申請者・担当者・現在の版/世代のいずれかのステップの承認者」。
+   * 可視性は「申請者・担当者・その版のいずれかのステップの承認者」(WP-P4-APR-014 / ADR-0023 §5)。
    * 現在の1行だけを見ない(多段で過去ステップの承認者が見えなくなるのを防ぐ)。
    */
   private async visible(
@@ -1003,17 +1034,6 @@ export class CatalogController {
         return { id };
       }
 
-      requireRole(auth.authz, 'approver');
-      if (a.approver_id !== auth.userId)
-        throw Problems.forbidden('指定された承認者だけが決定できます');
-      if (q.requester_id === auth.userId)
-        throw Problems.forbidden('自己承認・自己決定はできません');
-      if (q.version !== input.expectedVersion) throw Problems.stale('申請');
-      if (q.state !== 'pending' || a.state !== 'pending')
-        throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
-      if (!(a.expires_at instanceof Date) || a.expires_at.getTime() <= Date.now())
-        throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
-
       const steps = await this.steps(c, q, revision);
       const routeCheck = checkRouteAgainstSteps({
         route: revision.route,
@@ -1025,19 +1045,30 @@ export class CatalogController {
       });
       if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
       // 現在のステップが、その世代で最後に作られたステップであること。
-      if (a.step_no !== steps.length) throw Problems.conflict('承認ステップが申請版と一致しません');
+      if (steps.length === 0 || steps[steps.length - 1]!.id !== a.id)
+        throw Problems.conflict('承認ステップが申請版と一致しません');
       if (steps.some((step) => step.id !== a.id && step.state !== 'approved'))
         throw Problems.conflict('前の承認ステップが完了していません');
-      const isFinalStep = a.step_no === routeCheck.stepCount;
-      const nextRouteStep = isFinalStep ? null : routeCheck.route!.steps[a.step_no]!;
 
-      await this.validateApprover(c, q.organization_id, q.requester_id, a.approver_id);
-      if (
-        revision.route === null &&
-        q.snapshot.item.definition.approval &&
-        q.snapshot.item.definition.approval.approverId !== a.approver_id
-      )
-        throw Problems.conflict('固定承認者が申請版と一致しません');
+      // 権限種別は、DBの承認行と版の経路の**両方**を照合した後の値だけを使う。
+      const routeStep = routeCheck.route === null ? null : routeCheck.route.steps[a.step_no - 1];
+      const authorityType = routeStep?.authorityType ?? 'legacy';
+
+      // 1. 決定者が現在のステップの approver_id と一致する。
+      if (a.approver_id !== auth.userId)
+        throw Problems.forbidden('指定された承認者だけが決定できます');
+      // 3. 決定者が申請者本人でない。
+      if (q.requester_id === auth.userId)
+        throw Problems.forbidden('自己承認・自己決定はできません');
+      // 4. ステップが pending で期限内、かつ現在の経路世代に属する。
+      //    期限の判定はDBの現在時刻で行う(アプリ時計を信用しない)。
+      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+      if (q.version !== input.expectedVersion) throw Problems.stale('申請');
+      if (q.state !== 'pending' || a.state !== 'pending')
+        throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
+      if (!(a.expires_at instanceof Date) || a.expires_at.getTime() <= now.getTime())
+        throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
+      // 5. revision / snapshot_hash / route_hash の一致(route_hash は routeCheck が見る)。
       if (
         a.snapshot_hash !== q.snapshot_hash ||
         hash(q.snapshot) !== q.snapshot_hash ||
@@ -1045,6 +1076,29 @@ export class CatalogController {
         a.revision !== q.revision
       )
         throw Problems.conflict('申請内容のハッシュが承認対象と一致しません');
+      if (
+        revision.route === null &&
+        q.snapshot.item.definition.approval &&
+        q.snapshot.item.definition.approval.approverId !== a.approver_id
+      )
+        throw Problems.conflict('固定承認者が申請版と一致しません');
+
+      // 2. 決定者が有効な所属である / 6. fixed・legacy は approver ロールを持つ。
+      //    関係ベース(manager / department_head)は approver ロールを要求しない。
+      //    どちらも毎回DBの現在の値で検証する。
+      if (authorityType === 'fixed' || authorityType === 'legacy') {
+        requireRole(auth.authz, 'approver');
+        await this.validateApprover(c, q.organization_id, q.requester_id, a.approver_id);
+      } else {
+        // 所属の有効性はDBの現在時刻で判定する(アプリ時計を信用しない / ADR-0023 §1)。
+        const facts = await loadUserFacts(c, q.organization_id, [a.approver_id], now);
+        if (!isActiveMember(facts.get(a.approver_id)))
+          throw Problems.forbidden('現在有効な所属の承認者だけが決定できます');
+      }
+
+      const isFinalStep = a.step_no === routeCheck.stepCount;
+      const nextRouteStep = isFinalStep ? null : routeCheck.route!.steps[a.step_no]!;
+
       if (input.decision === 'reject' && !input.reason)
         throw Problems.validation([{ field: 'reason', message: '却下理由を入力してください' }]);
 
