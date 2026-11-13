@@ -11,7 +11,7 @@ updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "state-machine", "audit"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "high"
 workstream: "APR"
@@ -188,3 +188,5 @@ services/api/src/modules/catalog/catalog.routes.ts / WP-P4-APR-011 の approval-
 - 検証: `npm run test:unit` 34 failed / 4368 passed(4402)。失敗テスト名は前回の基点と差分なし(新規失敗0)。`vitest run tests/security` は既知の読み込み不能6ファイル以外 0 failed(687 passed / 10 skipped)。対象8ファイルは 235 passed。`npm run check:all` 成功(exit 0)、`typecheck` / `lint` 成功。使い捨てDBで 0038 down → up を確認。開発用DBの件数は不変、`schema_migration` は37件・最大 `0037`。
 - セキュリティ影響: 取消済みの申請の変更は新しい版・経路・最初のステップを作り、旧版のステップは `invalidated` のまま決定・実行の対象にならない。認可(approver ロール、approver_id 一致、自己承認拒否、有効な所属)・固定承認者の一致は変更していない。承認行の削除経路・環境変数による切替は追加していない。
 - 詳細: `.local/briefs/WP-P4-APR-014-R2.report.md`、`evidence/WP-P4-APR-014/20261113-1006/README.md`。
+
+- 2026-11-13(監督者による追記): 利用者(人間)がセキュリティレビューとして本WPを承認した。利用者の指示により、開発用DBへ Migration `0038` を適用し、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。残る事項: ブラウザでの申請→承認→模擬完了の通し確認は行っていない(本WPはWebを変更していない)。関係ベースのステップの認可(`approver` ロール不要)は [[WP-P4-APR-015]]。
