@@ -4,10 +4,10 @@ doc_id: "WP-P4-APR-014"
 title: "承認の経路・ステップのスキーマ、状態機械、監査イベントのapproval.*移行"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "draft"
-version: "0.1.0"
+status: "baseline"
+version: "0.2.0"
 created: "2026-11-12"
-updated: "2026-11-12"
+updated: "2026-11-13"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "state-machine", "audit"]
 source_of_truth: true
@@ -42,7 +42,7 @@ depends_on: ["WP-P4-APR-011"]
 
 ## 3. Dependencies
 
-[[WP-P4-APR-011]]。実体化(`draft` → `baseline`)は、ADR-0023が `accepted` であることを確認して行う。
+[[WP-P4-APR-011]](done)。ADR-0023 は `accepted`。2026-11-13 に監督者が §6.1 の確定事項を加えて `baseline` に実体化した。
 
 ## 4. Scope / Allowed Paths
 
@@ -55,6 +55,11 @@ depends_on: ["WP-P4-APR-011"]
 - `tests/unit/approval-state.test.ts`
 - `tests/security/approval-steps.test.ts`
 - `tests/security/approval-migration-compat.test.ts`
+- `tests/security/approval-assertion.test.ts`(多段への追従と、「DBに既存の申請がある」前提の除去。2026-11-13 監督者が追加)
+- `tests/unit/approval-assertion.test.ts`(多段への追従。2026-11-13 監督者が追加)
+- `tests/unit/catalog-flexible.test.ts`(偽DBを新しい列・問い合わせへ追従させる変更だけ。期待値の緩和は不可。2026-11-13 監督者が追加)
+- `tests/unit/catalog-operations.test.ts`(同上)
+- `services/api/src/modules/inbox/inbox.routes.ts`(承認待ちの抽出が多段で誤らないための最小限の変更だけ。不要なら変更しない。2026-11-13 監督者が追加)
 - `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-014.md`
 - `evidence/WP-P4-APR-014/`
 
@@ -72,6 +77,24 @@ depends_on: ["WP-P4-APR-011"]
 4. 冪等リプレイ・一覧・詳細・取消・変更の各処理を「現在の1行」前提から「その版・現在の `route_generation` の全ステップ」前提へ改修する(現行の `catalog.routes.ts` の `decide`、`create` の冪等リプレイ(revision=1の承認行1行を前提に `approverId` を比較している箇所)、変更、`list`、`detail`)。
 5. `assertApprovalComplete` の拡張: 現在の版・現在の `route_generation` のステップがすべて `approved`、`route` のステップ数と行数の一致、`route_hash` が `route` の再計算値と一致(`route` がある場合)。
 6. 監査イベントの `request.*` → `approval.*` 移行([[02.17_Audit_Event_Catalog]] §2.1 の対応表に従う)。`AUDIT_EVENT_TYPES` へ追加し、既存行は書き換えない。
+
+### 6.1 実体化で確定した事項(2026-11-13 監督者)
+
+- **経路の形**: `local_request_revision.route` は `{ "steps": [{ "stepNo": 1, "approverId": "<uuid>", "authorityType": "legacy|fixed|manager|department_head", "resolvedFrom": "<text|null>" }], "ruleRef": null }`。`ruleRef` は[[WP-P4-APR-015]]が `{ "ruleId", "revision" }` を入れる。`route_hash` は `snapshot-hash.ts` の `hash(route)`(sha256、64桁)で算出する。
+- **新規の版には必ず経路を保存する**: 本WP以降に作られる版(新規申請・申請内容の変更)は、1段の経路を保存する。定義に固定承認者があれば `authorityType='fixed'`、申請者が選んだ承認者なら `'legacy'`。Migration 以前の行だけが `route IS NULL` で、その場合は従来の1行の検証を行う。
+- **経路を決める箇所を1つにする**: 申請・変更時に経路を決める処理を1つの関数にまとめる(本WPでは常に1段を返す)。[[WP-P4-APR-015]]はこの関数を差し替える。2段以上の経路は本WPの製品コードからは生成されないが、状態機械・検証・監査は `route` の段数に従って動く(テストは、版の `route` に2段を持つ申請をDBへ直接用意して、製品コードの決定処理で2段目が作られることを確かめる)。
+- **次のステップの作成**: 前のステップの承認と同一トランザクションで、`route` の次の段から行を作る。作成時に承認者が無効でも行は作る(自動では差し替えない。決定は拒否される。ADR-0023 §6)。申請行のロック(既存の `FOR UPDATE`)の内側で行い、同時の決定で2段目が二重に作られないこと。
+- **監査イベントの対応(02.17 §2.1 の `要確認` を確定)**:
+  - 申請内容の変更: `request.changed` を維持し、無効化したステップごとに `approval.invalidated`(原因 `request_changed`)、新版の最初のステップに `approval.requested` を記録する。
+  - 承認取消: 無効化したステップごとに `approval.invalidated`(原因 `revoked`)。`request.revoked` は書かない。
+  - `approval.cancelled` は申請の取下げ用に予約し、本WPでは書かない(現行に取下げ操作が無い)。
+  - `approval.expired` は本WPでは書かない(期限切れは導出のまま。記録は期限処理を持つ[[WP-P4-APR-017]])。
+  - `request.submitted` / `request.simulated` / `request.checklist.updated` は維持する。
+  - 各 `approval.*` イベントは `afterState` に、版・`route_generation`・`stepNo`・段数・`authorityType` を含める。申請の入力値・スナップショット本文は載せない。
+- **APIの応答は加算的に変える**: `detail` の `approval`(現在のステップ)と `history` は形を保ち、`steps`(現在の版・現在の `route_generation` の全ステップ)を追加する。`list` の項目の意味は「現在のステップ」とする。Web(`apps/web/`)は本WPで変更しない([[WP-P4-APR-016]])。既存の画面が壊れないこと。
+- **決定者の記録**: 決定時に `decided_by` へ決定者を記録する(本WPでは常に `approver_id` と同じ。代理は[[WP-P4-APR-017]])。
+- **一意制約**: `UNIQUE(request_id, organization_id, revision, route_generation, step_no)` は、既存データに重複があれば Migration を失敗させる(黙って直さない)。
+- **011のテストの不備を直す**: `tests/security/approval-assertion.test.ts` の「DBに既存の申請がある」ことを前提にしたテストを、テスト内で必要なデータを作る形へ直す(空のDBでも通ること)。
 
 ## 7. Acceptance Criteria
 
