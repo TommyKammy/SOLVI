@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import { z } from 'zod';
 import type { CatalogValues } from '@solvi/shared/catalog';
-import { Problems, type Logger, type ObjectStorage } from '@solvi/shared';
+import { Problems, ProblemError, type Logger, type ObjectStorage } from '@solvi/shared';
 import { hasRole, requireRole } from '../../common/authz/authz.js';
 import { uuidv7, recordAuditEvent } from '../../common/audit/audit.js';
 import { TicketService } from '../ticket/ticket.service.js';
@@ -16,10 +16,10 @@ import {
 import { assertApprovalComplete, checkApprovalComplete } from './approval-assertion.js';
 import {
   applyApprovalDecision,
+  applyReassignment,
   checkRouteAgainstSteps,
   completeApprovalRequest,
   invalidateApprovalSteps,
-  parseApprovalRoute,
   routeHash,
   type ApprovalRoute,
   type ApprovalRouteStep,
@@ -27,11 +27,23 @@ import {
   type RequestState,
 } from './approval-state.js';
 import {
-  activeMembershipSql,
+  effectiveAuthorityTypeSql,
+  effectiveGenerationForStep,
+  effectiveGenerationSql,
+  effectiveRouteStep,
+  effectiveStepRow,
+  isApproverUnavailable,
+  approverAvailabilitySql,
+  loadRouteState,
+  type RouteState,
+} from './approval-route-state.js';
+import {
   approvalResolutionProblem,
   isActiveMember,
+  loadRuleRevision,
   loadUserFacts,
   resolveRouteForRequest,
+  resolveRouteRemainderForRequest,
   type ResolverFailure,
 } from './approval-resolver.js';
 import { canonical, hash } from './snapshot-hash.js';
@@ -66,6 +78,20 @@ const decisionSchema = z.object({
   expectedVersion: z.number().int().positive(),
   reason: z.string().trim().max(2000).default(''),
 });
+/**
+ * 再割当の入力 (WP-P4-APR-018 §6-4)。
+ * **承認者ID・段・経路を受け取らない。** 未知のキーは 400 にする。
+ * 利用者入力は理由だけであり、承認者は固定したルールと現在の組織データからのみ解決する。
+ */
+const reassignSchema = z
+  .object({
+    reason: z
+      .string({ required_error: '再割当の理由を入力してください' })
+      .trim()
+      .min(1, '再割当の理由を入力してください')
+      .max(2000, '再割当の理由は2000文字以内で入力してください'),
+  })
+  .strict();
 type Snapshot = {
   item: { id: string; version: number; title: string; definition: Definition };
   inputs: { reason?: string; durationDays?: number; values?: CatalogValues };
@@ -92,6 +118,7 @@ type RevisionRow = {
   route: unknown;
   route_hash: unknown;
   route_generation: unknown;
+  created_at: Date;
 };
 type ApprovalRow = ApprovalStepRow;
 const approverSql = `SELECT DISTINCT u.id,u.display_name AS name FROM app_user u JOIN role_binding rb ON rb.user_id=u.id JOIN role r ON r.id=rb.role_id
@@ -104,6 +131,44 @@ function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
       r.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
     );
   return r.data;
+}
+/** 再割当の再解決失敗を 409 と理由コードで返す(WP-P4-APR-018 §6-4)。 */
+function reassignmentProblem(reason: ResolverFailure): ProblemError {
+  return new ProblemError({
+    status: 409,
+    type: 'https://solvi.internal/problems/approval-reassign-unresolved',
+    title: '再割当の承認者を解決できません',
+    detail: reason.message,
+    errors: [
+      {
+        field: reason.stepNo === undefined ? 'approval' : `approval.steps.${reason.stepNo}`,
+        // 画面・テストが分岐に使えるよう、理由のコードを返す(個人データは含めない)。
+        message: reason.code,
+      },
+    ],
+  });
+}
+/**
+ * 再割当の条件外を 409 と理由コードで返す。
+ * 画面は理由コードから利用者向けの文を組み立てる(APIの日本語をそのまま出さない)。
+ * コードの語彙は `apps/web/src/lib/approval-route.ts` の `REASSIGN_REASON_TEXT` と同じ。
+ */
+export type ReassignConflictCode =
+  | 'not_pending'
+  | 'legacy_route'
+  | 'expired'
+  | 'approver_available'
+  | 'step_mismatch'
+  | 'approver_unchanged'
+  | 'concurrent_update';
+function reassignConflict(code: ReassignConflictCode, detail: string): ProblemError {
+  return new ProblemError({
+    status: 409,
+    type: 'https://solvi.internal/problems/approval-reassign-conflict',
+    title: '再割当できません',
+    detail,
+    errors: [{ field: 'approval', message: code }],
+  });
 }
 /** 経路解決の拒否。`run` がロールバック後に拒否の監査を書くために運ぶ。 */
 class ApprovalRouteDenied extends Error {
@@ -494,17 +559,32 @@ export class CatalogController {
       const pageSize = 25;
       const values: unknown[] = [auth.authz.organizationId, this.staff(auth), auth.userId, now];
       const expired = "(q.state IN ('pending','approved') AND a.expires_at <= $4::timestamptz)";
-      // 権限種別は経路(版に固定)を優先する。DBの承認行だけを信用しない。
-      const authorityType = `COALESCE(r.route->'steps'->(a.step_no-1)->>'authorityType', a.authority_type)`;
-      const approverRole = `EXISTS (
-        SELECT 1 FROM role_binding arb JOIN role ar ON ar.id=arb.role_id
-         WHERE arb.user_id=a.approver_id AND arb.organization_id=q.organization_id
-           AND arb.role_scope='org' AND ar.code='approver'
-           AND arb.valid_from<=$4 AND (arb.valid_until IS NULL OR arb.valid_until>$4))`;
+      // 現在の承認ステップが属する有効な世代。再割当後は版の route_generation と異なる。
+      const effectiveGeneration = effectiveGenerationSql({
+        requestId: 'q.id',
+        organizationId: 'q.organization_id',
+        revision: 'q.revision',
+        stepNo: 'a.step_no',
+        baseGeneration: 'r.route_generation',
+      });
+      // 権限種別は有効な世代の経路を優先する。DBの承認行だけを信用しない。
+      const authorityType = effectiveAuthorityTypeSql({
+        requestId: 'q.id',
+        organizationId: 'q.organization_id',
+        revision: 'q.revision',
+        stepNo: 'a.step_no',
+        baseRouteAuthority: `r.route->'steps'->(a.step_no-1)->>'authorityType'`,
+        fallback: 'a.authority_type',
+      });
       // 承認者不在 = 有効な所属でない、または fixed/legacy で approver ロールが無い。
-      const approverAvailable = `(ap.status='active'
-        AND ${activeMembershipSql('a.approver_id', 'q.organization_id', '$4')}
-        AND (${authorityType} NOT IN ('fixed','legacy') OR ${approverRole}))`;
+      // 判定は approval-route-state.ts の共有述語だけを使う(結論をここで書き直さない)。
+      const approverAvailable = approverAvailabilitySql({
+        organizationId: 'q.organization_id',
+        approverId: 'a.approver_id',
+        at: '$4',
+        authorityType,
+        userStatus: 'ap.status',
+      });
       const conditions = [
         'q.organization_id=$1',
         '($2::boolean OR q.requester_id=$3 OR a.approver_id=$3)',
@@ -528,11 +608,12 @@ export class CatalogController {
         conditions.push(`q.state=$${values.length}`);
         if (['pending', 'approved'].includes(filter.state)) conditions.push(`NOT ${expired}`);
       }
-      // 一覧の項目は「現在のステップ」。現在の版・現在の経路世代の行だけを結合する。
+      // 一覧の項目は「現在のステップ」。現在の版の、その段の有効な世代の行だけを結合する。
       const from = `FROM local_service_request q
         JOIN local_request_revision r ON r.request_id=q.id AND r.organization_id=q.organization_id AND r.revision=q.revision
         JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id
-          AND a.request_id=q.id AND a.revision=q.revision AND a.route_generation=r.route_generation
+          AND a.request_id=q.id AND a.revision=q.revision
+          AND a.route_generation=${effectiveGeneration}
         JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
         JOIN app_user u ON u.id=q.requester_id JOIN app_user ap ON ap.id=a.approver_id
         WHERE ${conditions.join(' AND ')}`;
@@ -621,23 +702,103 @@ export class CatalogController {
     if (!r.rows[0]) throw Problems.conflict('承認記録を確認できません');
     return r.rows[0];
   }
-  private async steps(
-    c: pg.PoolClient,
-    q: RequestRow,
-    revision: RevisionRow,
-  ): Promise<ApprovalStepRow[]> {
+  /**
+   * 現在の版の全ステップ(全世代)。再割当で置き換えられた `invalidated` の行も含む。
+   * 「現在の世代の行」だけが必要な表示では、`routeState.currentGeneration` で絞る。
+   */
+  private async steps(c: pg.PoolClient, q: RequestRow): Promise<ApprovalStepRow[]> {
     return (
       await c.query<ApprovalStepRow>(
         `SELECT * FROM local_request_approval
-          WHERE request_id=$1 AND organization_id=$2 AND revision=$3 AND route_generation=$4
-          ORDER BY step_no, id`,
-        [q.id, q.organization_id, q.revision, revision.route_generation],
+          WHERE request_id=$1 AND organization_id=$2 AND revision=$3
+          ORDER BY route_generation, step_no, id`,
+        [q.id, q.organization_id, q.revision],
       )
     ).rows;
   }
   /**
+   * 版の列と世代の行から現在の経路を導出する。整合性が取れなければ 409(fail closed)。
+   * 決定・変更・取消・再割当・詳細のすべてがこの関数を通る。
+   */
+  private async routeState(c: pg.PoolClient, q: RequestRow): Promise<RouteState> {
+    const result = await loadRouteState(c, {
+      organizationId: q.organization_id,
+      requestId: q.id,
+      revision: q.revision,
+    });
+    if (!result.ok) {
+      this.logger?.warn('catalog.approval.route_state_invalid', {
+        organizationId: q.organization_id,
+        requestId: q.id,
+        reason: result.reason,
+      });
+      throw Problems.conflict('承認経路が申請版と一致しません');
+    }
+    return result.state;
+  }
+  /**
+   * 現在の承認ステップが「その段の有効な世代」に属し、前の段が承認済みで、
+   * 後ろの段がまだ作られていないことを検証する(決定・再割当で同じ判定を使う)。
+   * 有効な世代でない行は、置き換えられた `invalidated` だけを許す。
+   */
+  private currentStepPosition(
+    state: RouteState,
+    steps: ApprovalStepRow[],
+    current: ApprovalStepRow,
+  ): { stepCount: number } {
+    const route = state.currentRoute;
+    // 移行前(route NULL)の版は1段の legacy だけを許す。
+    if (!route) {
+      if (
+        current.step_no !== 1 ||
+        current.route_generation !== 1 ||
+        current.authority_type !== 'legacy'
+      )
+        throw Problems.conflict('承認ステップが申請版と一致しません');
+      const others = steps.filter((step) => step.id !== current.id && step.state !== 'invalidated');
+      if (others.length > 0) throw Problems.conflict('承認ステップが申請版と一致しません');
+      return { stepCount: 1 };
+    }
+    const stepCount = route.steps.length;
+    const generation = effectiveGenerationForStep(state, current.step_no);
+    if (generation === null || generation !== current.route_generation)
+      throw Problems.conflict('承認ステップが申請版と一致しません');
+    const routeStep = route.steps[current.step_no - 1];
+    if (
+      !routeStep ||
+      current.approver_id !== routeStep.approverId ||
+      current.authority_type !== routeStep.authorityType
+    )
+      throw Problems.conflict('承認ステップが申請版と一致しません');
+    const effectiveCurrent = effectiveStepRow(state, steps, current.step_no);
+    if (!effectiveCurrent || effectiveCurrent.id !== current.id)
+      throw Problems.conflict('承認ステップが申請版と一致しません');
+    for (let stepNo = 1; stepNo < current.step_no; stepNo += 1) {
+      const prior = effectiveStepRow(state, steps, stepNo);
+      const priorRouteStep = route.steps[stepNo - 1];
+      if (
+        !prior ||
+        !priorRouteStep ||
+        prior.approver_id !== priorRouteStep.approverId ||
+        prior.authority_type !== priorRouteStep.authorityType
+      )
+        throw Problems.conflict('前の承認ステップが申請版と一致しません');
+      if (prior.state !== 'approved') throw Problems.conflict('前の承認ステップが完了していません');
+    }
+    for (let stepNo = current.step_no + 1; stepNo <= stepCount; stepNo += 1) {
+      if (effectiveStepRow(state, steps, stepNo))
+        throw Problems.conflict('後続の承認ステップが既に存在します');
+    }
+    for (const step of steps) {
+      if (step.state === 'invalidated') continue;
+      if (effectiveStepRow(state, steps, step.step_no)?.id === step.id) continue;
+      throw Problems.conflict('承認ステップが申請版と一致しません');
+    }
+    return { stepCount };
+  }
+  /**
    * 可視性は「申請者・担当者・その版のいずれかのステップの承認者」(WP-P4-APR-014 / ADR-0023 §5)。
-   * 現在の1行だけを見ない(多段で過去ステップの承認者が見えなくなるのを防ぐ)。
+   * 現在の1行だけを見ない。再割当で置き換えられた世代の承認者も、その版の承認者として扱う。
    */
   private async visible(
     c: pg.PoolClient,
@@ -648,9 +809,9 @@ export class CatalogController {
     if (q.requester_id === auth.userId || this.staff(auth)) return;
     const r = await c.query(
       `SELECT 1 FROM local_request_approval
-        WHERE request_id=$1 AND organization_id=$2 AND revision=$3 AND route_generation=$4
-          AND approver_id=$5 LIMIT 1`,
-      [q.id, q.organization_id, q.revision, revision.route_generation, auth.userId],
+        WHERE request_id=$1 AND organization_id=$2 AND revision=$3
+          AND approver_id=$4 LIMIT 1`,
+      [q.id, q.organization_id, revision.revision, auth.userId],
     );
     if (!r.rowCount) throw Problems.notFound('申請');
   }
@@ -707,14 +868,27 @@ export class CatalogController {
         revision = await this.revision(c, q),
         a = await this.approval(c, q);
       await this.visible(c, auth, q, revision);
-      const steps = await this.steps(c, q, revision);
-      // 版に固定した経路。移行前の版は null(従来の1段として表示する)。
-      const route = parseApprovalRoute(revision.route);
+      // 現在の経路は、版の列(世代1)と世代の行から共有関数で導出する。
+      const state = await this.routeState(c, q);
+      const steps = await this.steps(c, q);
+      const currentSteps = steps.filter(
+        (step) => step.route_generation === state.currentGeneration,
+      );
+      const route = state.currentRoute;
+      // 承認の経過は「段ごとの有効な世代」の行で作る。承認済みの段は旧世代、
+      // 再割当後の段は新世代の行になる。置き換えられた `invalidated` の行は
+      // 現在の段として返さない(WP-P4-APR-018 §6-6)。
+      const stepCount = route?.steps.length ?? 1;
+      const effectiveSteps = Array.from({ length: stepCount }, (_, index) =>
+        effectiveStepRow(state, steps, index + 1),
+      ).filter((step): step is ApprovalStepRow => step !== null);
       const nameIds = [
         ...new Set([
           q.requester_id,
           ...steps.map((step) => step.approver_id),
           ...(route?.steps.map((step) => step.approverId) ?? []),
+          // 再割当の実行者の表示名(世代の行の created_by)。
+          ...state.generations.map((generation) => generation.createdBy),
         ]),
       ];
       const names = (
@@ -724,20 +898,65 @@ export class CatalogController {
         )
       ).rows;
       // 現在の pending ステップの承認者が、いま決定できる状態かを導出する
-      // (一覧の approverUnavailable と同じ定義)。申請者本人にだけ返す。
+      // (一覧の approverUnavailable と同じ共有述語)。申請者本人にだけ返す。
       // 他の閲覧者(担当者・承認者)には、不要な所属の照会も行わない。
-      const routeStep = route?.steps[a.step_no - 1] ?? null;
+      const routeStep = effectiveRouteStep(state, a.step_no);
       const authorityType = routeStep?.authorityType ?? a.authority_type;
       let approverUnavailable = false;
       if (q.requester_id === auth.userId && a.state === 'pending') {
         const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
-        const facts = await loadUserFacts(c, q.organization_id, [a.approver_id], now);
-        const factsForApprover = facts.get(a.approver_id);
-        approverUnavailable =
-          !isActiveMember(factsForApprover) ||
-          (['fixed', 'legacy'].includes(authorityType) &&
-            factsForApprover?.hasApproverRole !== true);
+        approverUnavailable = await isApproverUnavailable(c, {
+          organizationId: q.organization_id,
+          approverId: a.approver_id,
+          authorityType,
+          now,
+        });
       }
+      const stepView = (step: ApprovalStepRow) => ({
+        id: step.id,
+        stepNo: step.step_no,
+        state: step.state,
+        approverId: step.approver_id,
+        approverName: names.find((u) => u.id === step.approver_id)?.display_name ?? '承認者',
+        authorityType: step.authority_type,
+        resolvedFrom: step.resolved_from,
+        reason: step.reason,
+        decidedAt: step.decided_at,
+        decidedBy: step.decided_by,
+        expiresAt: step.expires_at,
+        routeGeneration: step.route_generation,
+      });
+      // 承認の記録(全版・全世代)。再割当で無効になった行は、同じ段の次の世代が
+      // あることで判別できる(append-only の世代の行だけを使い、推測しない)。
+      const history = (
+        await c.query<{
+          id: string;
+          state: string;
+          revision: number;
+          routeGeneration: number;
+          stepNo: number;
+          authorityType: string;
+          approverId: string;
+          approverName: string;
+          reason: string | null;
+          decidedAt: Date | null;
+          expiresAt: Date;
+          invalidatedByReassign: boolean;
+          inputs: unknown;
+          item: unknown;
+        }>(
+          `SELECT a.id,a.state,a.revision,a.route_generation AS "routeGeneration",a.step_no AS "stepNo",a.authority_type AS "authorityType",a.approver_id AS "approverId",u.display_name AS "approverName",a.reason,a.decided_at AS "decidedAt",a.expires_at AS "expiresAt",r.snapshot->'inputs' AS inputs,r.snapshot->'item' AS item,
+             EXISTS (
+               SELECT 1 FROM local_request_route_generation g
+                WHERE g.request_id=a.request_id AND g.organization_id=a.organization_id
+                  AND g.revision=a.revision AND g.route_generation=a.route_generation+1
+                  AND g.from_step_no=a.step_no
+             ) AS "invalidatedByReassign"
+             FROM local_request_approval a JOIN local_request_revision r ON r.request_id=a.request_id AND r.organization_id=a.organization_id AND r.revision=a.revision JOIN app_user u ON u.id=a.approver_id
+             WHERE a.request_id=$1 AND a.organization_id=$2 ORDER BY a.revision,a.route_generation,a.step_no`,
+          [id, q.organization_id],
+        )
+      ).rows;
       return {
         requesterName: names.find((u) => u.id === q.requester_id)?.display_name ?? '申請者',
         approverName: names.find((u) => u.id === a.approver_id)?.display_name ?? '承認者',
@@ -752,21 +971,11 @@ export class CatalogController {
           ticketId: q.ticket_id,
         },
         approval: a,
-        // 現在の版・現在の経路世代の全ステップ(加算的な追加。既存の approval/history の形は変えない)
-        steps: steps.map((step) => ({
-          id: step.id,
-          stepNo: step.step_no,
-          state: step.state,
-          approverId: step.approver_id,
-          approverName: names.find((u) => u.id === step.approver_id)?.display_name ?? '承認者',
-          authorityType: step.authority_type,
-          resolvedFrom: step.resolved_from,
-          reason: step.reason,
-          decidedAt: step.decided_at,
-          decidedBy: step.decided_by,
-          expiresAt: step.expires_at,
-        })),
-        // 未作成の後続段も含む経路(加算的な読み取り。認可・検証・状態遷移は変えない)。
+        // 現在の版の現在の経路世代の全ステップ(加算的な追加。既存の approval/history の形は変えない)
+        steps: currentSteps.map(stepView),
+        // 段ごとの有効な世代のステップ(加算的)。承認の経過の表示に使う。
+        effectiveSteps: effectiveSteps.map(stepView),
+        // 未作成の後続段も含む現在の経路(加算的な読み取り。認可・検証・状態遷移は変えない)。
         // 表示名だけを返し、役職・勤務地・社員番号は返さない。
         route: route
           ? {
@@ -780,15 +989,55 @@ export class CatalogController {
               ruleRef: route.ruleRef,
             }
           : null,
+        // 再割当の記録(加算的)。世代1は版の列、2以降は追記専用の世代の行。
+        // 無効になったステップと新しい承認者は、その世代の経路と1つ前の世代の行から決まる。
+        currentRouteGeneration: state.currentGeneration,
+        routeGenerations: [
+          ...(state.baseRoute
+            ? [
+                {
+                  routeGeneration: 1,
+                  fromStepNo: 1,
+                  routeHash: state.baseRouteHash,
+                  reason: null,
+                  createdBy: null,
+                  createdByName: null,
+                  createdAt: revision.created_at,
+                  newApproverName: null,
+                  invalidatedStepNo: null,
+                  invalidatedApproverName: null,
+                },
+              ]
+            : []),
+          ...state.generations.map((generation) => {
+            const newApproverId =
+              generation.route.steps[generation.fromStepNo - 1]?.approverId ?? null;
+            const invalidated = history.find(
+              (row) =>
+                row.revision === q.revision &&
+                row.routeGeneration === generation.generation - 1 &&
+                row.stepNo === generation.fromStepNo &&
+                row.state === 'invalidated',
+            );
+            return {
+              routeGeneration: generation.generation,
+              fromStepNo: generation.fromStepNo,
+              routeHash: generation.routeHash,
+              reason: generation.reason,
+              createdBy: generation.createdBy,
+              createdByName:
+                names.find((u) => u.id === generation.createdBy)?.display_name ?? '実行者',
+              createdAt: generation.createdAt,
+              newApproverName: newApproverId
+                ? (names.find((u) => u.id === newApproverId)?.display_name ?? '承認者')
+                : null,
+              invalidatedStepNo: generation.fromStepNo,
+              invalidatedApproverName: invalidated?.approverName ?? null,
+            };
+          }),
+        ],
         approverUnavailable,
-        history: (
-          await c.query(
-            `SELECT a.id,a.state,a.revision,a.approver_id AS "approverId",u.display_name AS "approverName",a.reason,a.decided_at AS "decidedAt",a.expires_at AS "expiresAt",r.snapshot->'inputs' AS inputs,r.snapshot->'item' AS item
-             FROM local_request_approval a JOIN local_request_revision r ON r.request_id=a.request_id AND r.organization_id=a.organization_id AND r.revision=a.revision JOIN app_user u ON u.id=a.approver_id
-             WHERE a.request_id=$1 AND a.organization_id=$2 ORDER BY a.revision,a.route_generation,a.step_no`,
-            [id, q.organization_id],
-          )
-        ).rows,
+        history,
         receipt:
           (
             await c.query(
@@ -1045,21 +1294,14 @@ export class CatalogController {
       // (承認取消・却下・期限切れの申請は、理由を確認して修正・再申請できる。WP §6.1 / 03.5)。
       if (['completed', 'cancelled'].includes(q.state))
         throw Problems.conflict('完了・取下げ済みの申請は変更できません');
-      const revision = await this.revision(c, q);
       const definition = parse(definitionSchema, q.snapshot.item.definition);
       const inputs = validateRequestInputs(definition, input);
       const values = validateValues(definition, input.values);
 
-      const currentSteps = await this.steps(c, q, revision);
-      const routeCheck = checkRouteAgainstSteps({
-        route: revision.route,
-        routeHash: revision.route_hash,
-        routeGeneration: revision.route_generation,
-        revision: q.revision,
-        steps: currentSteps,
-        allowPartial: true,
-      });
-      if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
+      // 現在の経路(全世代)の整合性を先に検証する。この版の全ステップを無効化する。
+      const state = await this.routeState(c, q);
+      const stepCount = state.currentRoute?.steps.length ?? 1;
+      const currentSteps = await this.steps(c, q);
 
       const nextRevision = q.revision + 1;
       const nextSnapshot: Snapshot = {
@@ -1111,16 +1353,10 @@ export class CatalogController {
       await this.routeResolvedEvent(c, auth, id, route, nextRevision, ruleRoutingEnabled);
       await this.event(c, auth, id, 'changed', nextRevision);
       for (const step of invalidated.invalidated)
-        await this.approvalEvent(
-          c,
-          auth,
-          q,
-          'approval.invalidated',
-          step,
-          q.revision,
-          routeCheck.stepCount,
-          { cause: 'request_changed', requestState: invalidated.requestState },
-        );
+        await this.approvalEvent(c, auth, q, 'approval.invalidated', step, q.revision, stepCount, {
+          cause: 'request_changed',
+          requestState: invalidated.requestState,
+        });
       await this.approvalEvent(
         c,
         auth,
@@ -1146,37 +1382,35 @@ export class CatalogController {
         revision = await this.revision(c, q),
         a = await this.approval(c, q);
       await this.visible(c, auth, q, revision);
+      // 現在の経路は、版の列(世代1)と世代の行から共有関数で導出する。
+      const state = await this.routeState(c, q);
+      const steps = await this.steps(c, q);
       if (input.decision === 'revoke') {
         if (q.requester_id === auth.userId)
           throw Problems.forbidden('自己承認・自己決定はできません');
         if (q.version !== input.expectedVersion) throw Problems.stale('申請');
         if (q.state !== 'approved') throw Problems.conflict('承認済みの申請だけ取り消せます');
-        const steps = await this.steps(c, q, revision);
-        const routeCheck = checkRouteAgainstSteps({
-          route: revision.route,
-          routeHash: revision.route_hash,
-          routeGeneration: revision.route_generation,
-          revision: q.revision,
-          steps,
+        // 全段が有効な世代で承認済みであることを実行前検証と同じ関数で確かめる。
+        const complete = await checkApprovalComplete(c, {
+          organizationId: q.organization_id,
+          requestId: q.id,
         });
-        if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
-        if (steps.some((step) => step.state !== 'approved'))
-          throw Problems.conflict('承認済みの申請だけ取り消せます');
-        if (q.current_approval_id !== steps[steps.length - 1]!.id)
-          throw Problems.conflict('承認記録を確認できません');
+        if (!complete.ok) throw Problems.conflict('承認済みの申請だけ取り消せます');
         if (
           !hasRole(auth.authz, 'org_admin', 'platform_admin') &&
-          !steps.some((step) => step.approver_id === auth.userId)
+          !steps.some((step) => step.state === 'approved' && step.approver_id === auth.userId)
         )
           throw Problems.forbidden();
         if (!input.reason)
           throw Problems.validation([{ field: 'reason', message: '取消理由を入力してください' }]);
+        // 既に無効化済みの旧世代の行は更新しない(監査も重ねない)。
         const invalidated = await invalidateApprovalSteps(c, {
           request: q,
-          steps,
+          steps: steps.filter((step) => step.state !== 'invalidated'),
           trigger: 'revoke',
           reason: input.reason,
         });
+        const stepCount = state.currentRoute?.steps.length ?? 1;
         for (const step of invalidated.invalidated)
           await this.approvalEvent(
             c,
@@ -1185,30 +1419,18 @@ export class CatalogController {
             'approval.invalidated',
             step,
             q.revision,
-            routeCheck.stepCount,
+            stepCount,
             { cause: 'revoked', requestState: invalidated.requestState },
           );
         return { id };
       }
 
-      const steps = await this.steps(c, q, revision);
-      const routeCheck = checkRouteAgainstSteps({
-        route: revision.route,
-        routeHash: revision.route_hash,
-        routeGeneration: revision.route_generation,
-        revision: q.revision,
-        steps,
-        allowPartial: true,
-      });
-      if (!routeCheck.ok) throw Problems.conflict('承認経路が申請版と一致しません');
-      // 現在のステップが、その世代で最後に作られたステップであること。
-      if (steps.length === 0 || steps[steps.length - 1]!.id !== a.id)
-        throw Problems.conflict('承認ステップが申請版と一致しません');
-      if (steps.some((step) => step.id !== a.id && step.state !== 'approved'))
-        throw Problems.conflict('前の承認ステップが完了していません');
+      const route = state.currentRoute;
+      // 現在のステップが、その段の有効な世代の行であること(再割当で置き換えられていない)。
+      const { stepCount } = this.currentStepPosition(state, steps, a);
 
-      // 権限種別は、DBの承認行と版の経路の**両方**を照合した後の値だけを使う。
-      const routeStep = routeCheck.route === null ? null : routeCheck.route.steps[a.step_no - 1];
+      // 権限種別は、DBの承認行と現在の経路の**両方**を照合した後の値だけを使う。
+      const routeStep = effectiveRouteStep(state, a.step_no);
       const authorityType = routeStep?.authorityType ?? 'legacy';
 
       // 1. 決定者が現在のステップの approver_id と一致する。
@@ -1225,7 +1447,7 @@ export class CatalogController {
         throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
       if (!(a.expires_at instanceof Date) || a.expires_at.getTime() <= now.getTime())
         throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
-      // 5. revision / snapshot_hash / route_hash の一致(route_hash は routeCheck が見る)。
+      // 5. revision / snapshot_hash / route_hash の一致(route_hash は routeState が見る)。
       if (
         a.snapshot_hash !== q.snapshot_hash ||
         hash(q.snapshot) !== q.snapshot_hash ||
@@ -1253,8 +1475,13 @@ export class CatalogController {
           throw Problems.forbidden('現在有効な所属の承認者だけが決定できます');
       }
 
-      const isFinalStep = a.step_no === routeCheck.stepCount;
-      const nextRouteStep = isFinalStep ? null : routeCheck.route!.steps[a.step_no]!;
+      const isFinalStep = a.step_no === stepCount;
+      const nextRouteStep = isFinalStep ? null : (route?.steps[a.step_no] ?? null);
+      const nextRouteGeneration = isFinalStep
+        ? null
+        : effectiveGenerationForStep(state, a.step_no + 1);
+      if (!isFinalStep && (!nextRouteStep || nextRouteGeneration === null))
+        throw Problems.conflict('次の承認ステップを確認できません');
 
       if (input.decision === 'reject' && !input.reason)
         throw Problems.validation([{ field: 'reason', message: '却下理由を入力してください' }]);
@@ -1267,6 +1494,7 @@ export class CatalogController {
         reason: input.reason || null,
         actorId: auth.userId,
         nextStep: nextRouteStep,
+        nextRouteGeneration,
       });
       await this.approvalEvent(
         c,
@@ -1275,13 +1503,13 @@ export class CatalogController {
         result.stepState === 'approved' ? 'approval.approved' : 'approval.rejected',
         a,
         q.revision,
-        routeCheck.stepCount,
+        stepCount,
         {
           requestState: result.requestState,
           finalStep: isFinalStep,
         },
       );
-      if (result.nextStepId && nextRouteStep)
+      if (result.nextStepId && nextRouteStep && nextRouteGeneration !== null)
         await this.approvalEvent(
           c,
           auth,
@@ -1290,16 +1518,185 @@ export class CatalogController {
           {
             id: result.nextStepId,
             step_no: nextRouteStep.stepNo,
-            route_generation: a.route_generation,
+            route_generation: nextRouteGeneration,
             authority_type: nextRouteStep.authorityType,
           },
           q.revision,
-          routeCheck.stepCount,
+          stepCount,
           { requestState: 'pending' },
         );
       // `state` は従来どおり**申請**の状態(途中ステップの承認なら pending)。
       // ステップの状態は `stepState` として加算する。
       return { id, state: result.requestState, stepState: result.stepState };
+    });
+  }
+  /**
+   * 承認者不在の申請を再割当する (WP-P4-APR-018 §6-4 / ADR-0024 §3)。
+   *
+   * - `org_admin` だけ。**申請者本人は org_admin でも拒否する**(403)。
+   * - 対象は、承認ルールで決めた経路で、現在の pending ステップの承認者が
+   *   承認者不在(ADR-0023 §2 を満たさない)の申請だけ。それ以外は 409。
+   * - 承認者のID・段・経路は入力で受け取らない。申請時に固定したルールの版と
+   *   現時点の組織データから、現在のステップ以降だけを解決する。
+   * - 申請の行をロックし、決定・再割当と直列化する。監査の書込みに失敗したら全体を失敗させる。
+   */
+  async reassign(auth: AuthenticatedRequest, id: string, value: unknown) {
+    // 認可を広げない。再割当を許すのは org_admin だけである。
+    requireRole(auth.authz, 'org_admin');
+    const input = parse(reassignSchema, value);
+    return this.run(auth, async (c) => {
+      const q = await this.lock(c, auth, id);
+      // 申請者本人は org_admin であっても再割当できない(T-26 / ADR-0024 §3)。
+      if (q.requester_id === auth.userId)
+        throw Problems.forbidden('自分の申請を再割当することはできません');
+      const revision = await this.revision(c, q);
+      const a = await this.approval(c, q);
+      const state = await this.routeState(c, q);
+      const route = state.currentRoute;
+      if (q.state !== 'pending' || a.state !== 'pending')
+        throw reassignConflict('not_pending', '承認待ちの申請だけ再割当できます');
+      // ルールを使わない経路(固定承認者・申請者選択)は再割当の対象外(WP §5)。
+      if (revision.route === null || route === null || route.ruleRef === null)
+        throw reassignConflict('legacy_route', '承認ルールを使わない経路は再割当できません');
+      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+      if (!(a.expires_at instanceof Date) || a.expires_at.getTime() <= now.getTime())
+        throw reassignConflict('expired', '承認期限が過ぎています。申請者による再申請が必要です');
+      const steps = await this.steps(c, q);
+      // 現在のステップが有効な世代に属し、前の段が承認済みであること。
+      const { stepCount } = this.currentStepPosition(state, steps, a);
+      const routeStep = effectiveRouteStep(state, a.step_no);
+      const authorityType = routeStep?.authorityType ?? a.authority_type;
+      // 承認者不在の判定は、滞留の導出と同じ共有述語を使う(判定を二重に書かない)。
+      const unavailable = await isApproverUnavailable(c, {
+        organizationId: q.organization_id,
+        approverId: a.approver_id,
+        authorityType,
+        now,
+      });
+      if (!unavailable)
+        throw reassignConflict('approver_available', '現在の承認者は有効なため再割当できません');
+
+      // 申請時に固定したルールの版(経路が指すもの)を使う。現在の版へ読み替えない。
+      const ruleRef = route.ruleRef;
+      const loaded = await loadRuleRevision(c, q.organization_id, ruleRef.ruleId, ruleRef.revision);
+      if (loaded.state !== 'ok')
+        throw reassignmentProblem({
+          code: loaded.state === 'missing' ? 'rule_unavailable' : 'rule_invalid',
+          message: '申請時に固定した承認ルールの版を確認できません',
+          missing: 'rule',
+        });
+      const resolution = await resolveRouteRemainderForRequest(c, {
+        organizationId: q.organization_id,
+        requesterId: q.requester_id,
+        rule: loaded.rule,
+        fromStepNo: a.step_no,
+        prefix: route.steps.slice(0, a.step_no - 1),
+        now,
+      });
+      if (!resolution.ok) throw reassignmentProblem(resolution.reason);
+      // 段数は固定したルールの版で決まる。変わっていれば経路を保存しない。
+      if (resolution.route.steps.length !== route.steps.length)
+        throw reassignConflict('step_mismatch', '再割当後の承認経路を確認できません');
+      const newStep = resolution.route.steps[a.step_no - 1]!;
+      if (newStep.stepNo !== a.step_no || newStep.approverId === a.approver_id)
+        throw reassignConflict('approver_unchanged', '再割当後の承認者が現在の承認者と同じです');
+      const nextGeneration = state.currentGeneration + 1;
+
+      // 世代の行を追記する(版は書き換えない)。
+      try {
+        await c.query(
+          `INSERT INTO local_request_route_generation(
+             request_id, organization_id, revision, route_generation, from_step_no,
+             route, route_hash, reason, created_by
+           ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [
+            q.id,
+            q.organization_id,
+            q.revision,
+            nextGeneration,
+            a.step_no,
+            resolution.route,
+            resolution.routeHash,
+            input.reason,
+            auth.userId,
+          ],
+        );
+      } catch (error) {
+        // 同時実行で世代が二重に作られた場合は 500 ではなく 409 にする。
+        if ((error as { code?: string }).code === '23505')
+          throw reassignConflict(
+            'concurrent_update',
+            '承認経路が同時に更新されました。申請を再読み込みしてください',
+          );
+        throw error;
+      }
+
+      const result = await applyReassignment(c, {
+        request: q,
+        step: a,
+        nextStep: newStep,
+        nextRouteGeneration: nextGeneration,
+        reason: input.reason,
+        actorId: auth.userId,
+      });
+
+      await this.approvalEvent(c, auth, q, 'approval.invalidated', a, q.revision, stepCount, {
+        cause: 'reassigned',
+        requestState: result.requestState,
+      });
+      await recordAuditEvent(c, {
+        eventType: 'approval.reassigned',
+        organizationId: q.organization_id,
+        actorType: 'user',
+        actorId: auth.userId,
+        targetType: 'service_request',
+        targetId: q.id,
+        action: 'approval.reassigned',
+        outcome: 'success',
+        approvalRef: result.newApprovalId,
+        afterState: {
+          revision: q.revision,
+          fromRouteGeneration: state.currentGeneration,
+          toRouteGeneration: nextGeneration,
+          fromStepNo: a.step_no,
+          stepCount,
+          ruleId: ruleRef.ruleId,
+          ruleRevision: ruleRef.revision,
+          invalidatedApprovalId: a.id,
+          invalidatedStepNo: a.step_no,
+          invalidatedApproverId: a.approver_id,
+          newApprovalId: result.newApprovalId,
+          newStepNo: newStep.stepNo,
+          newApproverId: newStep.approverId,
+          authorityType: newStep.authorityType,
+          reason: input.reason,
+        },
+      });
+      await this.approvalEvent(
+        c,
+        auth,
+        q,
+        'approval.requested',
+        {
+          id: result.newApprovalId,
+          step_no: newStep.stepNo,
+          route_generation: nextGeneration,
+          authority_type: newStep.authorityType,
+        },
+        q.revision,
+        stepCount,
+        { requestState: 'pending' },
+      );
+      return {
+        id,
+        version: q.version + 1,
+        routeGeneration: nextGeneration,
+        fromStepNo: a.step_no,
+        invalidatedApprovalId: a.id,
+        approvalId: result.newApprovalId,
+        stepNo: newStep.stepNo,
+        approverId: newStep.approverId,
+      };
     });
   }
   async updateChecklist(auth: AuthenticatedRequest, id: string, value: unknown) {

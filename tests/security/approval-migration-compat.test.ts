@@ -497,6 +497,10 @@ describe('0038: 適用前後の互換(TL-05)', () => {
         )
       ).rowCount,
     ).toBe(1);
+    // 0040 / 0039 は先に巻き戻っている。後続の検査(決定・作業チェック・模擬完了)のため、
+    // 適用済みの状態へ戻す。0038 の拒否自体は上の assertion で固定している。
+    const restored = migrate('up');
+    expect(restored.ok, restored.output).toBe(true);
   }, 120_000);
 
   it('移行前の申請はそのまま決定・作業チェック・模擬完了できる', async () => {

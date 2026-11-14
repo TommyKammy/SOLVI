@@ -85,6 +85,9 @@ export const AUDIT_EVENT_TYPES = [
   'approval.invalidated',
   'approval.cancelled',
   'approval.expired',
+  // 再割当 (WP-P4-APR-018 / ADR-0024 §3)。旧・新の世代、無効化したステップ、
+  // 新しい承認者、実行者、理由を記録する。申請の入力値・個人データは載せない。
+  'approval.reassigned',
   // 承認ルーティング (WP-P4-APR-015 / 02.17 §2.2)。
   // 経路を決めた各版・ルールの作成/改版/無効化・組織単位の有効化切替を記録する。
   'approval.route.resolved',

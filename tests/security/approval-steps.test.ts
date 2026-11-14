@@ -825,15 +825,15 @@ describe('経路の改ざん・世代・行数の拒否(TL-16)', () => {
     await expect(simulate(f)).rejects.toMatchObject({ status: 409 });
   }, 30_000);
 
-  it('旧 route_generation のステップでは決定できない', async () => {
+  it('版の route_generation が世代1でない版は決定できない(世代は追記専用の表が正本)', async () => {
     const f = await twoStep();
     await decide(f.first, f.id, 1);
     await q(
       'UPDATE local_request_revision SET route_generation=2 WHERE request_id=$1 AND revision=1',
       [f.id],
     );
-    // 旧世代のステップは現在の版の承認者として可視でない(404)
-    await expect(decide(f.second, f.id, 2)).rejects.toMatchObject({ status: 404 });
+    // 版の列は世代1の記録である。ここが2なら現在の経路を決められないため fail closed。
+    await expect(decide(f.second, f.id, 2)).rejects.toMatchObject({ status: 409 });
     expect(await check(f.id)).toMatchObject({ ok: false });
   }, 30_000);
 

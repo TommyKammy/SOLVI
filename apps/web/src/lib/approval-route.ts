@@ -1,4 +1,5 @@
 import type { ApprovalRuleStep } from '@solvi/shared/catalog';
+import { formatDateTime } from './labels';
 
 /**
  * 承認ルール管理の表示・入力の純関数 (WP-P4-APR-016 段階A)。
@@ -195,6 +196,8 @@ export interface ApprovalQuery {
   confirm: ApprovalConfirm | null;
   /** 解決できない人の一覧を開いているか。 */
   unresolved: boolean;
+  /** 再割当が成功した申請。同じ画面に成功の表示を出すためだけに使う。 */
+  reassigned?: string;
 }
 
 export interface ApprovalPreviewQuery {
@@ -247,6 +250,7 @@ export function parseApprovalsQuery(
   const kind: ApprovalPreviewQuery['kind'] =
     kindRaw === 'rule' || kindRaw === 'item' ? kindRaw : '';
   const rule = single(params.rule);
+  const reassigned = single(params.reassigned);
   const previewRuleId = single(params.previewRuleId);
   const previewItemId = single(params.previewItemId);
   const previewRequesterId = single(params.previewRequesterId);
@@ -255,6 +259,7 @@ export function parseApprovalsQuery(
       rule: isUuid(rule) ? rule.toLowerCase() : '',
       confirm,
       unresolved: single(params.unresolved) === '1',
+      reassigned: isUuid(reassigned) ? reassigned.toLowerCase() : '',
     },
     preview: {
       kind,
@@ -270,6 +275,8 @@ export interface ApprovalHrefOverrides {
   confirm?: ApprovalConfirm | null;
   unresolved?: boolean;
   notice?: ApprovalNotice | null;
+  /** 再割当が成功した申請。次の表示で成功の文を出すためだけに付ける。 */
+  reassigned?: string | null;
   /** APIが返した日本語の理由。個人データは含めない。 */
   error?: string | null;
 }
@@ -304,6 +311,8 @@ export function approvalHref(query: ApprovalQuery, overrides: ApprovalHrefOverri
   if (nextRule) params.set('rule', nextRule);
   if (nextConfirm) params.set('confirm', nextConfirm);
   if (nextUnresolved) params.set('unresolved', '1');
+  if (overrides.reassigned && isUuid(overrides.reassigned))
+    params.set('reassigned', overrides.reassigned.toLowerCase());
   if (overrides.notice && (APPROVAL_NOTICES as readonly string[]).includes(overrides.notice))
     params.set('notice', overrides.notice);
   const error = safeError(overrides.error);
@@ -574,6 +583,10 @@ export interface RequestHistoryEntry {
   approverName: string;
   reason: string | null;
   decidedAt: string | null;
+  /** 承認ステップの段 (WP-P4-APR-018)。無い応答では位置から決める。 */
+  stepNo?: number;
+  /** 再割当で無効になったステップか。 */
+  invalidatedByReassign?: boolean;
 }
 
 export interface RequestHistoryVersion<T extends RequestHistoryEntry> {
@@ -628,4 +641,172 @@ export function requestHistoryVersions<T extends RequestHistoryEntry>(
       current: revision === currentRevision,
       rows,
     }));
+}
+
+/* ------------------------------------------------------------------ */
+/* 承認者不在の申請の再割当 (WP-P4-APR-018 段階B)                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 再割当の失敗理由コードと、利用者向けの文。
+ *
+ * 語彙は `services/api/src/modules/catalog/approval-resolver.ts` の
+ * `ResolverFailureCode` と、`catalog.routes.ts` の再割当の 409 のコードに合わせる。
+ * 文には実装の用語(API・コード名)を入れない。未知のコードは一般的な文にする。
+ */
+export const REASSIGN_REASON_TEXT: Record<string, string> = {
+  requester_not_active_member:
+    '申請者の所属が今は有効ではないため、再割当できません。申請者の所属を確認してから、もう一度実行してください。',
+  rule_unavailable:
+    '申請のときに使った承認ルールが見つからないため、再割当できません。組織の管理者に承認ルールの状態を確認してもらってください。',
+  rule_invalid:
+    '申請のときに使った承認ルールの内容を確認できないため、再割当できません。組織の管理者に承認ルールの内容を確認してもらってください。',
+  fixed_approver_invalid:
+    '固定承認者が今は有効な承認者ではないため、再割当できません。承認ルールの固定承認者を見直してください。',
+  fixed_approver_self:
+    '固定承認者が申請者本人になっているため、再割当できません。承認ルールの固定承認者を見直してください。',
+  manager_unset:
+    '上長が設定されていないため、再割当できません。申請者の上長を設定してから、もう一度実行してください。',
+  manager_inactive:
+    '上長が今は有効な所属ではないため、再割当できません。申請者の上長を確認してから、もう一度実行してください。',
+  manager_self:
+    '上長が申請者本人になっているため、再割当できません。申請者の上長を設定してから、もう一度実行してください。',
+  department_head_missing:
+    '部署長が設定されていないため、再割当できません。部署長を設定してから、もう一度実行してください。',
+  duplicate_approver:
+    '同じ人が複数の段の承認者になるため、再割当できません。申請者の上長と部署長の設定を確認してください。',
+  requester_selected_missing:
+    '承認者が選ばれていないため、再割当できません。申請者に申請内容を変更してもらってください。',
+  requester_selected_invalid:
+    '承認者が今は有効な承認者ではないため、再割当できません。申請者に申請内容を変更してもらってください。',
+  requester_selected_self:
+    '承認者が申請者本人になっているため、再割当できません。申請者に申請内容を変更してもらってください。',
+  approver_self:
+    '承認者が申請者本人になるため、再割当できません。申請者の上長や部署長の設定を確認してください。',
+  not_pending: '承認待ちの申請ではないため、再割当できません。申請の状態を確認してください。',
+  legacy_route:
+    '承認ルールを使わない経路のため、再割当できません。申請者に申請内容を変更して再承認を依頼してください。',
+  expired:
+    '承認の期限が過ぎているため、再割当できません。申請者に申請内容を変更して再承認を依頼してください。',
+  approver_available:
+    '今の承認者は有効なため、再割当できません。承認者が不在になったときに、もう一度実行してください。',
+  step_mismatch:
+    '申請の段の構成が変わっているため、再割当できません。組織の管理者に承認ルールを確認してもらってください。',
+  approver_unchanged:
+    '再割当後の承認者が今と同じ人のため、再割当できません。申請者の上長や部署長の設定を確認してから、もう一度実行してください。',
+  concurrent_update:
+    'ほかの操作で申請が同時に更新されました。申請を読み込み直してから、もう一度実行してください。',
+};
+
+const REASSIGN_GENERIC =
+  '再割当できませんでした。申請の状態と承認者の設定を確認してから、もう一度実行してください。';
+
+type ReassignProblem = {
+  status: number;
+  errors?: ReadonlyArray<{ field?: unknown; message?: unknown }> | undefined;
+};
+
+/**
+ * 再割当の失敗を、利用者向けの文にする。
+ *
+ * APIの日本語の文やコードをそのまま画面へ出さない。理由コードが分かる場合は
+ * そのコードの文(段があるものは「段N: 」を付ける)にし、分からない場合は
+ * 状態に応じた一般的な文にする。
+ */
+export function reassignmentFailureText(problem: ReassignProblem): string {
+  if (problem.status === 401)
+    return 'ログインの有効期限が切れました。ログインし直してから、もう一度実行してください。';
+  if (problem.status === 403)
+    return 'この申請を再割当する権限がありません。組織の管理者へご連絡ください。';
+  if (problem.status === 404)
+    return 'この申請を見つけられませんでした。一覧を更新してから、もう一度実行してください。';
+  if (problem.status >= 500)
+    return '再割当の結果を確認できませんでした。時間をおいて、申請の状態を確認してください。';
+  const errors = problem.errors ?? [];
+  let code = '';
+  let stepNo: number | null = null;
+  for (const error of errors) {
+    const message = typeof error.message === 'string' ? error.message : '';
+    if (!Object.hasOwn(REASSIGN_REASON_TEXT, message)) continue;
+    code = message;
+    const field = typeof error.field === 'string' ? error.field : '';
+    const match = /^approval\.steps\.(\d+)$/.exec(field);
+    if (match) stepNo = Number(match[1]);
+    break;
+  }
+  if (!code) return REASSIGN_GENERIC;
+  const text = REASSIGN_REASON_TEXT[code]!;
+  return stepNo === null ? text : `段${stepNo}: ${text}`;
+}
+
+/**
+ * 最新の再割当の記録から、起きた事実を述べる文を作る。
+ *
+ * 表示するのは記録にある段・新しい承認者の表示名・再割当の日時だけである。
+ * 「いま自分が実行した」とは限らないため「しました」ではなく「されました」とし、
+ * 記録に無い値(申請番号など)は補わない。
+ */
+export function reassignmentSuccessText(record: ReassignmentRecord): string {
+  const stepNo =
+    Number.isInteger(record.invalidatedStepNo) && record.invalidatedStepNo > 0
+      ? record.invalidatedStepNo
+      : record.fromStepNo;
+  const name =
+    typeof record.newApproverName === 'string' && record.newApproverName.trim()
+      ? `「${record.newApproverName.trim()}」`
+      : '新しい承認者';
+  return `段${stepNo}の承認者は${name}に再割当されました(${formatDateTime(record.createdAt)})。`;
+}
+
+export interface ReassignmentRecord {
+  routeGeneration: number;
+  fromStepNo: number;
+  createdAt: string;
+  createdByName: string | null;
+  reason: string;
+  invalidatedStepNo: number;
+  invalidatedApproverName: string | null;
+  newApproverName: string | null;
+}
+
+/**
+ * 詳細APIの `routeGenerations` から、再割当の記録だけを時刻の順に取り出す。
+ *
+ * 世代1(版の列)は再割当ではないため除く。形が読めない項目は推測せずに飛ばす。
+ * 理由は管理者が書いた自由文なので、そのまま文字として返す(HTMLとして解釈しない)。
+ */
+export function reassignmentRecords(value: unknown): ReassignmentRecord[] {
+  if (!Array.isArray(value)) return [];
+  const records: ReassignmentRecord[] = [];
+  for (const item of value) {
+    if (item === null || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const generation = row.routeGeneration;
+    const fromStepNo = row.fromStepNo;
+    const reason = row.reason;
+    const createdAt = row.createdAt;
+    if (!Number.isInteger(generation) || (generation as number) < 2) continue;
+    if (!Number.isInteger(fromStepNo) || (fromStepNo as number) < 1) continue;
+    if (typeof reason !== 'string' || reason.length === 0) continue;
+    if (typeof createdAt !== 'string' || Number.isNaN(Date.parse(createdAt))) continue;
+    const invalidatedStepNo = row.invalidatedStepNo;
+    records.push({
+      routeGeneration: generation as number,
+      fromStepNo: fromStepNo as number,
+      createdAt,
+      createdByName: typeof row.createdByName === 'string' ? row.createdByName : null,
+      reason,
+      invalidatedStepNo:
+        Number.isInteger(invalidatedStepNo) && (invalidatedStepNo as number) > 0
+          ? (invalidatedStepNo as number)
+          : (fromStepNo as number),
+      invalidatedApproverName:
+        typeof row.invalidatedApproverName === 'string' ? row.invalidatedApproverName : null,
+      newApproverName: typeof row.newApproverName === 'string' ? row.newApproverName : null,
+    });
+  }
+  return records.sort(
+    (left, right) =>
+      left.createdAt.localeCompare(right.createdAt) || left.routeGeneration - right.routeGeneration,
+  );
 }

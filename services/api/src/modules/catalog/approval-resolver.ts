@@ -43,7 +43,8 @@ export type ResolverFailureCode =
   | 'duplicate_approver'
   | 'requester_selected_missing'
   | 'requester_selected_invalid'
-  | 'requester_selected_self';
+  | 'requester_selected_self'
+  | 'approver_self';
 
 export type ResolverMissing =
   | 'requester'
@@ -295,6 +296,19 @@ function managerStep(
   return { ok: true, approverId: managerId, authorityType: 'manager', resolvedFrom: 'manager' };
 }
 
+function resolveRuleStep(
+  definition: ApprovalRuleStep,
+  requesterId: string,
+  snapshot: ResolverSnapshot,
+  stepNo: number,
+): StepResolution {
+  return definition.type === 'fixed'
+    ? fixedApprover(definition.approverId, requesterId, snapshot, stepNo)
+    : definition.type === 'manager'
+      ? managerStep(definition, requesterId, snapshot, stepNo)
+      : departmentHeadStep(requesterId, snapshot, stepNo);
+}
+
 function resolveRule(
   rule: RuleForResolution,
   requesterId: string,
@@ -306,12 +320,7 @@ function resolveRule(
   const steps: ApprovalRouteStep[] = [];
   for (const [index, definition] of rule.steps.entries()) {
     const stepNo = index + 1;
-    const resolved: StepResolution =
-      definition.type === 'fixed'
-        ? fixedApprover(definition.approverId, requesterId, snapshot, stepNo)
-        : definition.type === 'manager'
-          ? managerStep(definition, requesterId, snapshot, stepNo)
-          : departmentHeadStep(requesterId, snapshot, stepNo);
+    const resolved = resolveRuleStep(definition, requesterId, snapshot, stepNo);
     if (!resolved.ok) return { ok: false, reason: resolved.reason };
     if (seen.has(resolved.approverId))
       return {
@@ -432,6 +441,103 @@ export function resolveApprovalRoute(input: ResolveApprovalRouteInput): Resolver
     input.selectedApproverId,
     input.snapshot,
   );
+}
+
+export type ResolveRuleRemainderInput = {
+  rule: RuleForResolution;
+  requesterId: string;
+  /** 再解決する最初の段(1始まり)。この段より前は prefix をそのまま使う。 */
+  fromStepNo: number;
+  /** 現在の経路の 1..fromStepNo-1。承認済みの段を保持する。 */
+  prefix: ApprovalRouteStep[];
+  snapshot: ResolverSnapshot;
+};
+
+/**
+ * 再割当のための部分解決(ADR-0024 §3 / WP-P4-APR-018 §4)。
+ *
+ * 申請時に固定したルールの版のうち、`fromStepNo` 以降だけを**現時点の**組織データで
+ * 解決する。承認済みの段(`prefix`)は再解決しない。自己承認と重複は申請時と同じ規則で
+ * 拒否し、prefix の承認者と申請者を除外する。
+ */
+export function resolveRuleRemainder(input: ResolveRuleRemainderInput): ResolverResult {
+  if (!isActiveMember(input.snapshot.users.get(input.requesterId)))
+    return failure(
+      'requester_not_active_member',
+      '申請者が現在有効な所属ではありません',
+      'requester',
+    );
+  if (
+    !Number.isInteger(input.fromStepNo) ||
+    input.fromStepNo < 1 ||
+    input.fromStepNo > input.rule.steps.length
+  )
+    return failure('rule_invalid', '再解決する承認段を確認できません', 'rule');
+  if (input.prefix.length !== input.fromStepNo - 1)
+    return failure('rule_invalid', '承認済みの経路を確認できません', 'rule');
+
+  const seen = new Set<string>();
+  for (const [index, step] of input.prefix.entries()) {
+    if (step.stepNo !== index + 1 || typeof step.approverId !== 'string')
+      return failure('rule_invalid', '承認済みの経路を確認できません', 'rule');
+    if (step.approverId === input.requesterId)
+      return failure(
+        'approver_self',
+        '申請者本人が承認段に含まれています',
+        'duplicate',
+        step.stepNo,
+        step.authorityType,
+      );
+    if (seen.has(step.approverId))
+      return failure(
+        'duplicate_approver',
+        '同じ承認者が複数の承認段に指定されています',
+        'duplicate',
+        step.stepNo,
+        step.authorityType,
+      );
+    seen.add(step.approverId);
+  }
+
+  const steps: ApprovalRouteStep[] = [...input.prefix];
+  for (let index = input.fromStepNo - 1; index < input.rule.steps.length; index += 1) {
+    const stepNo = index + 1;
+    const resolved = resolveRuleStep(
+      input.rule.steps[index]!,
+      input.requesterId,
+      input.snapshot,
+      stepNo,
+    );
+    if (!resolved.ok) return { ok: false, reason: resolved.reason };
+    if (resolved.approverId === input.requesterId)
+      return failure(
+        'approver_self',
+        '申請者本人が承認段に含まれています',
+        'duplicate',
+        stepNo,
+        resolved.authorityType,
+      );
+    if (seen.has(resolved.approverId))
+      return failure(
+        'duplicate_approver',
+        '同じ承認者が複数の承認段に指定されています',
+        'duplicate',
+        stepNo,
+        resolved.authorityType,
+      );
+    seen.add(resolved.approverId);
+    steps.push({
+      stepNo,
+      approverId: resolved.approverId,
+      authorityType: resolved.authorityType,
+      resolvedFrom: resolved.resolvedFrom,
+    });
+  }
+  const route: ApprovalRoute = {
+    steps,
+    ruleRef: { ruleId: input.rule.ruleId, revision: input.rule.revision },
+  };
+  return { ok: true, route, routeHash: routeHash(route) };
 }
 
 /** 解決失敗を API の応答へ変換する。既存の申請者選択・固定承認者の拒否は従来の 403/400 を保つ。 */
@@ -784,6 +890,81 @@ export async function loadRuleById(
   });
   if (loaded.state === 'ok') return loaded;
   return { state: loaded.state === 'missing' ? 'missing' : 'invalid', rule: null };
+}
+
+/**
+ * 申請時に固定したルールの版を読む(ADR-0024 §3)。
+ *
+ * `loadRule` は `current_revision` を読むが、再割当は**経路が指す版**を使う。
+ * ルールが無効化されていても、進行中の申請の経路は変えないため `active` は要求しない。
+ */
+export async function loadRuleRevision(
+  client: pg.PoolClient,
+  organizationId: string,
+  ruleId: string,
+  revision: number,
+): Promise<
+  | { state: 'ok'; rule: RuleForResolution }
+  | { state: 'missing'; rule: null }
+  | { state: 'invalid'; rule: null }
+> {
+  const { rows } = await client.query(
+    `SELECT r.code, r.active, rev.revision, rev.steps
+       FROM approval_rule r
+       JOIN approval_rule_revision rev
+         ON rev.rule_id = r.id AND rev.organization_id = r.organization_id
+        AND rev.revision = $3
+      WHERE r.id = $1 AND r.organization_id = $2`,
+    [ruleId, organizationId, revision],
+  );
+  const row = rows[0] as
+    { code: string; active: boolean; revision: number; steps: unknown } | undefined;
+  if (!row) return { state: 'missing', rule: null };
+  if (row.steps === null || row.steps === undefined) return { state: 'invalid', rule: null };
+  const parsed = approvalRuleStepsSchema.safeParse(row.steps);
+  if (!parsed.success) return { state: 'invalid', rule: null };
+  return {
+    state: 'ok',
+    rule: {
+      ruleId,
+      code: row.code,
+      revision: row.revision,
+      active: row.active,
+      steps: parsed.data,
+    },
+  };
+}
+
+/**
+ * 再割当用の部分解決。固定したルールの版と現時点の組織データから、
+ * `fromStepNo` 以降だけを解決する。prefix は現在の経路(承認済み)を渡す。
+ */
+export async function resolveRouteRemainderForRequest(
+  client: pg.PoolClient,
+  input: {
+    organizationId: string;
+    requesterId: string;
+    rule: RuleForResolution;
+    fromStepNo: number;
+    prefix: ApprovalRouteStep[];
+    now: Date;
+  },
+): Promise<ResolverResult> {
+  const snapshot = await loadResolverSnapshot(client, {
+    organizationId: input.organizationId,
+    requesterId: input.requesterId,
+    now: input.now,
+    definition: { approval: { ruleId: input.rule.ruleId } },
+    selectedApproverId: null,
+    rule: input.rule,
+  });
+  return resolveRuleRemainder({
+    rule: input.rule,
+    requesterId: input.requesterId,
+    fromStepNo: input.fromStepNo,
+    prefix: input.prefix,
+    snapshot,
+  });
 }
 
 /**

@@ -53,7 +53,7 @@ export type ApprovalRoute = {
   ruleRef: null | { ruleId: string; revision: number };
 };
 
-export type ApprovalTrigger = 'approve' | 'reject' | 'edit' | 'revoke' | 'expire';
+export type ApprovalTrigger = 'approve' | 'reject' | 'edit' | 'revoke' | 'expire' | 'reassign';
 export type TransitionPosition = 'intermediate' | 'final' | 'any';
 
 export type ApprovalTransition = {
@@ -205,6 +205,17 @@ export const APPROVAL_TRANSITIONS: readonly ApprovalTransition[] = [
     requestFrom: 'approved',
     position: 'any',
     stepTo: 'expired',
+    requestTo: 'unchanged',
+    createNextStep: false,
+  },
+  // 再割当: 承認者不在の未決定ステップだけを Invalidated にし、申請の状態は変えない。
+  // 経路を変える唯一の遷移である(ADR-0024 §2・§3)。
+  {
+    trigger: 'reassign',
+    stepFrom: 'pending',
+    requestFrom: 'pending',
+    position: 'any',
+    stepTo: 'invalidated',
     requestTo: 'unchanged',
     createNextStep: false,
   },
@@ -416,6 +427,8 @@ export async function applyApprovalDecision(
     reason: string | null;
     actorId: string;
     nextStep: ApprovalRouteStep | null;
+    /** 次のステップを作る世代。有効な世代の導出結果を呼び出し側が渡す。 */
+    nextRouteGeneration: number | null;
   },
 ): Promise<{ stepState: StepState; requestState: RequestState; nextStepId: string | null }> {
   const transition = transitionFor(input.decision, {
@@ -426,6 +439,8 @@ export async function applyApprovalDecision(
   if (!transition) throw conflict('この承認ステップでは、その決定を受け付けられません');
   if (transition.createNextStep && !input.nextStep)
     throw conflict('次の承認ステップを確認できません');
+  if (transition.createNextStep && input.nextRouteGeneration === null)
+    throw conflict('次の承認ステップの世代を確認できません');
 
   const updated = await client.query<{ id: string }>(
     `UPDATE local_request_approval
@@ -463,7 +478,7 @@ export async function applyApprovalDecision(
           input.step.organization_id,
           input.request.id,
           input.request.revision,
-          input.step.route_generation,
+          input.nextRouteGeneration,
           next.stepNo,
           input.step.snapshot_hash,
           next.approverId,
@@ -502,9 +517,17 @@ export async function applyApprovalDecision(
 /**
  * 版の全ステップを無効化する(申請内容の変更・承認取消)。
  * すべてのステップに遷移表上の遷移があることを先に確かめてから更新する。
- * 既に無効化済みのステップ(承認取消済みの申請の変更)は更新せず、
- * `approval.invalidated` の監査も重ねて書かない。戻り値の `invalidated` は
- * **実際に状態が変わったステップ**だけを含む。
+ * 既に無効化済みのステップ(承認取消済みの申請の変更、再割当で置き換えられた
+ * 旧世代の行)は更新せず、`approval.invalidated` の監査も重ねて書かない。
+ * 戻り値の `invalidated` は**実際に状態が変わったステップ**だけを含む。
+ *
+ * ## 除外してよい `invalidated` の行
+ *
+ * 除外してよいのは、**同じ版の中で再割当に置き換えられた旧世代の行**である
+ * (ADR-0024 §2)。再割当は未決定のステップだけを `invalidated` にし、
+ * 申請の状態は変えない。そのため、その行には遷移表の `edit` / `revoke` を
+ * 重ねて要求しない。一方、全行が `invalidated` のときに申請の状態を決めるのは
+ * 遷移表だけであり、表に行が無ければ拒否する(下の `work.length === 0` の分岐)。
  */
 export async function invalidateApprovalSteps(
   client: pg.PoolClient,
@@ -523,7 +546,9 @@ export async function invalidateApprovalSteps(
   },
 ): Promise<{ invalidated: ApprovalStepRow[]; requestState: RequestState }> {
   if (input.steps.length === 0) throw conflict('無効化する承認ステップを確認できません');
-  const transitions = input.steps.map((step) =>
+  // 既に無効化済みの行(再割当で置き換えられた旧世代)は更新も監査も重ねない。
+  const work = input.steps.filter((step) => step.state !== 'invalidated');
+  const transitions = work.map((step) =>
     transitionFor(input.trigger, {
       stepState: step.state as StepState,
       requestState: input.request.state,
@@ -532,12 +557,26 @@ export async function invalidateApprovalSteps(
   );
   if (transitions.some((transition) => transition === null))
     throw conflict('この申請の状態では承認を無効化できません');
-  const requestTo = transitions[0]!.requestTo;
-  if (transitions.some((transition) => transition!.requestTo !== requestTo))
-    throw conflict('承認ステップの状態が揃っていません');
+  let requestTo: ApprovalTransition['requestTo'];
+  if (transitions.length > 0) {
+    requestTo = transitions[0]!.requestTo;
+    if (transitions.some((transition) => transition!.requestTo !== requestTo))
+      throw conflict('承認ステップの状態が揃っていません');
+  } else {
+    // 全ステップが既に無効化済み。ここでも遷移表を引く。
+    // `edit / invalidated / invalidated → pending` だけが通り、`revoke` や
+    // それ以外の申請の状態は表に行が無いため拒否する(fail closed)。
+    const transition = transitionFor(input.trigger, {
+      stepState: 'invalidated',
+      requestState: input.request.state,
+      position: 'any',
+    });
+    if (!transition) throw conflict('この申請の状態では承認を無効化できません');
+    requestTo = transition.requestTo;
+  }
 
   const invalidated: ApprovalStepRow[] = [];
-  for (const [index, step] of input.steps.entries()) {
+  for (const [index, step] of work.entries()) {
     const transition = transitions[index]!;
     // 既に無効化済みのステップは更新しない(同じ監査を重ねて書かない)。
     if (transition.stepTo === step.state) continue;
@@ -601,6 +640,106 @@ export async function invalidateApprovalSteps(
     if (request.rowCount !== 1) throw conflict();
   }
   return { invalidated, requestState };
+}
+
+/**
+ * 再割当を適用する(ADR-0024 §2・§3)。
+ *
+ * - 現在の pending ステップだけを遷移表 `reassign` 経由で `invalidated` にする。
+ * - 新しい世代の最初の未決定ステップを `pending` で作る(期限はこの時点から72時間)。
+ * - 承認済みステップの行は複製も更新もしない。
+ * - 申請の状態は変えない。`current_approval_id` と版だけを進める。
+ *
+ * 呼び出し側は申請行を `FOR UPDATE` していること(決定と直列化する)。
+ */
+export async function applyReassignment(
+  client: pg.PoolClient,
+  input: {
+    request: RequestDescriptor;
+    step: ApprovalStepRow;
+    nextStep: ApprovalRouteStep;
+    nextRouteGeneration: number;
+    reason: string;
+    actorId: string;
+  },
+): Promise<{
+  newApprovalId: string;
+  invalidatedStep: ApprovalStepRow;
+  requestState: RequestState;
+}> {
+  const transition = transitionFor('reassign', {
+    stepState: input.step.state as StepState,
+    requestState: input.request.state,
+    position: 'any',
+  });
+  if (!transition || transition.stepTo !== 'invalidated' || transition.requestTo !== 'unchanged')
+    throw conflict('この承認ステップは再割当できません');
+
+  const updated = await client.query<{ id: string }>(
+    `UPDATE local_request_approval
+        SET state=$2, reason=$3
+      WHERE id=$1 AND organization_id=$4 AND request_id=$5 AND revision=$6
+        AND route_generation=$7 AND step_no=$8 AND state=$9
+      RETURNING id`,
+    [
+      input.step.id,
+      transition.stepTo,
+      input.reason,
+      input.step.organization_id,
+      input.request.id,
+      input.request.revision,
+      input.step.route_generation,
+      input.step.step_no,
+      input.step.state,
+    ],
+  );
+  if (updated.rowCount !== 1) throw conflict();
+
+  const newApprovalId = uuidv7();
+  try {
+    await client.query(
+      `INSERT INTO local_request_approval(
+         id, organization_id, request_id, revision, route_generation, step_no,
+         snapshot_hash, approver_id, authority_type, resolved_from, state, expires_at
+       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',clock_timestamp()+interval '72 hours')`,
+      [
+        newApprovalId,
+        input.step.organization_id,
+        input.request.id,
+        input.request.revision,
+        input.nextRouteGeneration,
+        input.nextStep.stepNo,
+        input.step.snapshot_hash,
+        input.nextStep.approverId,
+        input.nextStep.authorityType,
+        input.nextStep.resolvedFrom,
+      ],
+    );
+  } catch (error) {
+    // ロックの内側で直列化しているが、主キー・一意制約違反を 500 にしない。
+    if ((error as { code?: string }).code === '23505') throw conflict();
+    throw error;
+  }
+
+  const request = await client.query<{ version: number }>(
+    `UPDATE local_service_request
+        SET current_approval_id=$2, version=version+1, updated_at=clock_timestamp()
+      WHERE id=$1 AND organization_id=$3 AND version=$4 AND state=$5
+      RETURNING version`,
+    [
+      input.request.id,
+      newApprovalId,
+      input.request.organization_id,
+      input.request.version,
+      input.request.state,
+    ],
+  );
+  if (request.rowCount !== 1) throw conflict();
+  return {
+    newApprovalId,
+    invalidatedStep: input.step,
+    requestState: input.request.state,
+  };
 }
 
 /** 模擬完了(承認済みの申請だけ)。承認の状態遷移ではないため、状態機械の外に置く。 */

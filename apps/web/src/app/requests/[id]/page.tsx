@@ -9,6 +9,7 @@ import { RequestForm, RequestActions } from '../../../components/RequestForms';
 import { safeReturnTo } from '../../../lib/navigation';
 import {
   authorityLabel,
+  reassignmentRecords,
   requestApprovalTimeline,
   requestHistoryVersions,
   stepStateLabel,
@@ -99,7 +100,10 @@ export default async function RequestPage({
   const editRouteResult = editable && editRuleId ? await api.catalogApprovalRoute(s.item.id) : null;
   const timeline = requestApprovalTimeline({
     route: data.route ?? null,
+    // 段ごとの有効な世代のステップ。再割当で置き換えられた旧世代の行は
+    // 現在の段として使わない(APIの effectiveSteps が無い場合は従来の steps)。
     steps:
+      data.effectiveSteps ??
       data.steps ??
       (data.approval
         ? [
@@ -116,6 +120,8 @@ export default async function RequestPage({
         : []),
   });
   const versions = requestHistoryVersions(data.history, q.revision);
+  // 再割当の記録は世代の行だけから作り、時刻の順に出す(申請者にも見える)。
+  const reassignments = reassignmentRecords(data.routeGenerations);
   return (
     <main id="main" className="shell">
       <ContextLink back href="/requests">
@@ -214,40 +220,65 @@ export default async function RequestPage({
           !data.fulfillment?.checks.some((check) => check.required && !check.completed)
         }
       />
-      <h2>承認の経過</h2>
-      {timeline.length > 0 ? (
-        <ol className="attachments" aria-label="承認の経過">
-          {timeline.map((step) => (
-            <li key={`step-${step.stepNo}`} className="attachment">
-              <p>
-                <strong>
-                  段{step.stepNo}（{authorityLabel(step.authorityType)}）
-                </strong>
-                {' · '}
-                {step.pendingCreation ? '前の段の承認後に依頼' : stepStateLabel(step.state)}
-                {!step.pendingCreation && step.approverName && ` · 承認者: ${step.approverName}`}
-              </p>
-              {step.pendingCreation && <p className="hint">前の段の承認後に依頼します。</p>}
-              {!step.pendingCreation && step.decidedAt && (
-                <p>決定日時: {formatDateTime(step.decidedAt)}</p>
-              )}
-              {!step.pendingCreation && step.reason && (
-                <p style={{ whiteSpace: 'pre-wrap' }}>理由: {step.reason}</p>
-              )}
-              {!step.pendingCreation && step.expiresAt && (
-                <p className="hint">
-                  期限: {formatDateTime(step.expiresAt)}
-                  {step.state === 'pending' &&
-                    new Date(step.expiresAt).getTime() <= Date.now() &&
-                    '（期限切れ）'}
+      <section aria-labelledby="approval-timeline-title">
+        <h2 id="approval-timeline-title">承認の経過</h2>
+        {timeline.length > 0 ? (
+          <ol className="attachments" aria-label="承認の経過">
+            {timeline.map((step) => (
+              <li key={`step-${step.stepNo}`} className="attachment">
+                <p>
+                  <strong>
+                    段{step.stepNo}（{authorityLabel(step.authorityType)}）
+                  </strong>
+                  {' · '}
+                  {step.pendingCreation ? '前の段の承認後に依頼' : stepStateLabel(step.state)}
+                  {!step.pendingCreation && step.approverName && ` · 承認者: ${step.approverName}`}
                 </p>
-              )}
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="hint">承認の経過はまだありません。</p>
-      )}
+                {step.pendingCreation && <p className="hint">前の段の承認後に依頼します。</p>}
+                {!step.pendingCreation && step.decidedAt && (
+                  <p>決定日時: {formatDateTime(step.decidedAt)}</p>
+                )}
+                {!step.pendingCreation && step.reason && (
+                  <p style={{ whiteSpace: 'pre-wrap' }}>理由: {step.reason}</p>
+                )}
+                {!step.pendingCreation && step.expiresAt && (
+                  <p className="hint">
+                    期限: {formatDateTime(step.expiresAt)}
+                    {step.state === 'pending' &&
+                      new Date(step.expiresAt).getTime() <= Date.now() &&
+                      '（期限切れ）'}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="hint">承認の経過はまだありません。</p>
+        )}
+        {reassignments.length > 0 && (
+          <section aria-labelledby="reassignment-records-title">
+            <h3 id="reassignment-records-title">再割当の記録</h3>
+            <ol className="attachments" aria-label="再割当の記録">
+              {reassignments.map((record) => (
+                <li key={`reassign-${record.routeGeneration}`} className="attachment">
+                  <p>
+                    <strong>段{record.invalidatedStepNo}の承認者を再割当</strong>
+                    {' · '}
+                    {formatDateTime(record.createdAt)}
+                  </p>
+                  <p>実行者: {record.createdByName ?? '確認できません'}</p>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>理由: {record.reason}</p>
+                  <p>
+                    無効になったステップ: 段{record.invalidatedStepNo}（
+                    {record.invalidatedApproverName ?? '承認者を確認できません'}）
+                  </p>
+                  <p>新しい承認者: {record.newApproverName ?? '承認者を確認できません'}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+      </section>
       <h2>承認の記録</h2>
       <ul className="attachments">
         {versions.map((version) => (
@@ -278,22 +309,27 @@ export default async function RequestPage({
                 values={version.rows[0]!.inputs.values ?? {}}
               />
             </details>
-            {!version.current && (
+            {(!version.current || version.rows.some((row) => row.invalidatedByReassign)) && (
               <>
                 <h3 className="visually-hidden">申請内容 {version.revision} の承認</h3>
                 <ul>
-                  {version.rows.map((row, index) => (
-                    <li key={row.id}>
-                      <p>
-                        <strong>段{index + 1}</strong>
-                        {' · '}
-                        {approvalStateLabels[row.state] ?? '状態を確認できません'}
-                        {row.decidedAt && ` · ${formatDateTime(row.decidedAt)}`}
-                      </p>
-                      <p>承認者: {row.approverName}</p>
-                      {row.reason && <p style={{ whiteSpace: 'pre-wrap' }}>理由: {row.reason}</p>}
-                    </li>
-                  ))}
+                  {version.rows
+                    // 現在の版の段ごとの経過は「承認の経過」が担う。ここでは
+                    // 再割当で無効になったステップだけを残す(二重に並べない)。
+                    .filter((row) => !version.current || row.invalidatedByReassign)
+                    .map((row, index) => (
+                      <li key={row.id}>
+                        <p>
+                          <strong>段{row.stepNo ?? index + 1}</strong>
+                          {' · '}
+                          {approvalStateLabels[row.state] ?? '状態を確認できません'}
+                          {row.invalidatedByReassign && '（再割当により無効）'}
+                          {row.decidedAt && ` · ${formatDateTime(row.decidedAt)}`}
+                        </p>
+                        <p>承認者: {row.approverName}</p>
+                        {row.reason && <p style={{ whiteSpace: 'pre-wrap' }}>理由: {row.reason}</p>}
+                      </li>
+                    ))}
                 </ul>
               </>
             )}

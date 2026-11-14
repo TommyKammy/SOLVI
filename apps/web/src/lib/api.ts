@@ -1157,6 +1157,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  /**
+   * 承認者不在の申請の再割当 (WP-P4-APR-018 §6-4)。
+   * 本文は理由だけ。承認者のID・段・経路は送らない。
+   */
+  reassignRequest: (id: string, body: { reason: string }) =>
+    call<{
+      id: string;
+      version: number;
+      routeGeneration: number;
+      fromStepNo: number;
+      invalidatedApprovalId: string;
+      approvalId: string;
+      stepNo: number;
+      approverId: string;
+    }>(`/service-requests/${id}/reassignments`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   simulateRequest: (id: string, body: Record<string, unknown>) =>
     call<{ receipt: { id: string } }>(`/service-requests/${id}/simulate`, {
       method: 'POST',
@@ -2003,6 +2021,28 @@ export interface ServiceRequestDetail {
     decidedAt: string | null;
     decidedBy: string | null;
     expiresAt: string;
+    routeGeneration?: number;
+  }>;
+  /**
+   * 段ごとの有効な世代のステップ (WP-P4-APR-018 §6-6)。
+   * 承認済みの段は旧世代、再割当後の段は新世代の行になる。
+   */
+  effectiveSteps?: NonNullable<ServiceRequestDetail['steps']>;
+  /** 再割当の記録。世代1は版の列、2以降が再割当で追加された世代。 */
+  currentRouteGeneration?: number;
+  routeGenerations?: Array<{
+    routeGeneration: number;
+    fromStepNo: number;
+    routeHash: string | null;
+    reason: string | null;
+    createdBy: string | null;
+    createdByName: string | null;
+    createdAt: string;
+    /** その世代で新しくなった承認者の表示名。 */
+    newApproverName?: string | null;
+    /** 再割当で無効になったステップの段と承認者。 */
+    invalidatedStepNo?: number | null;
+    invalidatedApproverName?: string | null;
   }>;
   /** 版に固定した経路。未作成の後続段も含む。移行前の版は null。 */
   route?: {
@@ -2024,6 +2064,11 @@ export interface ServiceRequestDetail {
     revision: number;
     approverId: string;
     approverName: string;
+    /** 承認ステップの段と経路世代 (WP-P4-APR-018)。 */
+    stepNo?: number;
+    routeGeneration?: number;
+    /** 再割当で無効になったステップか。 */
+    invalidatedByReassign?: boolean;
     item: { version: number; definition: CatalogItem['definition'] };
     inputs: {
       reason?: string;

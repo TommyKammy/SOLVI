@@ -5,6 +5,7 @@ import { Problems, currentElapsedSeconds } from '@solvi/shared';
 import { hasRole } from '../../common/authz/authz.js';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
+import { effectiveGenerationSql } from '../catalog/approval-route-state.js';
 const sourceKinds = ['ticket', 'request_approval', 'change'] as const;
 type SourceKind = (typeof sourceKinds)[number];
 type Deadline = {
@@ -96,6 +97,14 @@ export class InboxController {
    */
   private async authorize(c: pg.PoolClient, auth: AuthenticatedRequest): Promise<void> {
     if (hasRole(auth.authz, 'agent', 'org_admin', 'platform_admin', 'approver')) return;
+    // 現在の pending ステップの有効な世代は共有の導出式で決める(再割当後も到達できる)。
+    const effectiveGeneration = effectiveGenerationSql({
+      requestId: 'q.id',
+      organizationId: 'q.organization_id',
+      revision: 'q.revision',
+      stepNo: 'a.step_no',
+      baseGeneration: 'r.route_generation',
+    });
     const r = await c.query(
       `SELECT 1
          FROM local_service_request q
@@ -104,7 +113,7 @@ export class InboxController {
          JOIN local_request_approval a
            ON a.id=q.current_approval_id AND a.organization_id=q.organization_id
           AND a.request_id=q.id AND a.revision=q.revision
-          AND a.route_generation=r.route_generation
+          AND a.route_generation=${effectiveGeneration}
         WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending'
           AND a.approver_id=$2 AND q.requester_id<>$2
         LIMIT 1`,
@@ -225,10 +234,20 @@ export class InboxController {
     // 承認待ちはロールではなく「自分が現在の pending ステップの承認者である」で抽出する
     // (ADR-0023 §5 / WP-P4-APR-015 §6-5)。上長・部署長は approver ロールを持たない。
     if (!only || only.kind === 'request_approval') {
+      const effectiveGeneration = effectiveGenerationSql({
+        requestId: 'q.id',
+        organizationId: 'q.organization_id',
+        revision: 'q.revision',
+        stepNo: 'a.step_no',
+        baseGeneration: 'r.route_generation',
+      });
       const rows = (
         await c.query(
           `SELECT q.id,q.version,q.updated_at,q.snapshot->'item'->>'title' AS title,t.number,a.id AS approval_id,a.expires_at
-    FROM local_service_request q JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id AND a.request_id=q.id AND a.revision=q.revision AND a.snapshot_hash=q.snapshot_hash
+    FROM local_service_request q
+    JOIN local_request_revision r ON r.request_id=q.id AND r.organization_id=q.organization_id AND r.revision=q.revision
+    JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id AND a.request_id=q.id AND a.revision=q.revision AND a.snapshot_hash=q.snapshot_hash
+      AND a.route_generation=${effectiveGeneration}
     JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
     WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND a.approver_id=$2 AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)`,
           [org, user, only?.id ?? null],

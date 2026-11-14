@@ -531,6 +531,14 @@ async function bootstrap(): Promise<void> {
         await readJsonBody(req),
       ),
     )
+    // 承認者不在の申請の再割当 (WP-P4-APR-018 §6-4)。本文は理由だけ。
+    .post('/service-requests/:id/reassignments', async (req, _res, params) =>
+      catalog.reassign(
+        await auth.authenticate(req.headers),
+        params.id ?? '',
+        await readJsonBody(req),
+      ),
+    )
     .post('/service-requests/:id/simulate', async (req, _res, params) =>
       catalog.simulate(
         await auth.authenticate(req.headers),

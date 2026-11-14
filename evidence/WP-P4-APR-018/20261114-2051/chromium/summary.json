@@ -1,0 +1,231 @@
+{
+  "workPackage": "WP-P4-APR-018",
+  "stage": "B2",
+  "browser": "chromium",
+  "marker": "UI018-SYN-1794657937694-chromium",
+  "success": true,
+  "createdAt": "2026-11-14T12:05:37.696Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> SOLVI_UI_PHASE=wp018 node tools/ui_approval_routing_check.mjs",
+  "commitSha": "6490a16637b9b3efd79e978e0f77db3ed187014e",
+  "checks": [
+    {
+      "name": "再開: 再割当の成功が段と新しい承認者で表示される",
+      "passed": true
+    },
+    {
+      "name": "再開: 申請の詳細に再割当の記録が出て、申請者本人にも同じ記録が見える",
+      "passed": true
+    },
+    {
+      "name": "再開: 上長Aの役割を元に戻す",
+      "passed": true
+    },
+    {
+      "name": "再開: 上長Aは決定できない(承認待ち一覧・詳細・受信箱)",
+      "passed": true
+    },
+    {
+      "name": "再開: 完了した申請の承認の経過を確認する",
+      "passed": true
+    },
+    {
+      "name": "再開: 片付け(役割・ルール・部署・プロフィール・カタログ)",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "reassign-success-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "reassign-success-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-reassigned-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-reassigned-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-replaced-manager-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-replaced-manager-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-approved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-approved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "reassign-success-desktop-1440.png",
+    "reassign-success-mobile-375.png",
+    "request-detail-reassigned-desktop-1440.png",
+    "request-detail-reassigned-mobile-375.png",
+    "request-detail-replaced-manager-desktop-1440.png",
+    "request-detail-replaced-manager-mobile-375.png",
+    "request-detail-approved-desktop-1440.png",
+    "request-detail-approved-mobile-375.png"
+  ],
+  "writes": {
+    "rulesCreated": 0,
+    "revisions": 0,
+    "catalogCreated": 0,
+    "catalogUpdates": 0,
+    "catalogPublished": 0,
+    "catalogUnpublished": 0,
+    "routingEnabled": 0,
+    "routingDisabled": 0,
+    "ruleDeactivations": 0,
+    "departmentsCreated": 0,
+    "departmentHeadAssignments": 0,
+    "departmentDeactivations": 0,
+    "profileUpdates": 5,
+    "profilePeople": [
+      "00000000-0000-4000-9000-000000000105"
+    ],
+    "requestsCreated": 0,
+    "reassignments": 0,
+    "roleRevokes": 2,
+    "roleGrants": 2
+  },
+  "ids": {
+    "rule": "01a1d9e6-909c-7000-a629-47706e9058a3",
+    "catalogItem": "01a1d9e6-9747-7000-b37a-e3f9933f1a34",
+    "department": "01a1d9e6-8552-7000-ab58-e63c8ec4a775",
+    "request": "01a1d9e6-aeee-7000-ab55-7b36b732073f",
+    "requestNumber": "REQ-2026-000162",
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "managerAUser": "00000000-0000-4000-9000-000000000104",
+    "managerBUser": "00000000-0000-4000-9000-000000000102",
+    "fixedApproverUser": "00000000-0000-4000-9000-000000000103",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "adminUser": "00000000-0000-4000-9000-000000000101"
+  },
+  "applied": {
+    "department": true,
+    "profiles": true,
+    "rule": true,
+    "catalog": true,
+    "catalogRuleBound": true,
+    "catalogPublished": true,
+    "routingEnabledOnce": true,
+    "requestCreated": true,
+    "managerARoleRevoked": true,
+    "managerARoleRestored": true,
+    "reassigned": true,
+    "managerBApproved": true,
+    "fixedApproved": true,
+    "simulated": true
+  },
+  "roleChange": {
+    "targetEmail": "auditor@acme.example.test",
+    "roleCode": "auditor",
+    "hadExpiry": false,
+    "removedAt": "2026-11-14T11:58:08.848Z",
+    "restoredAt": "2026-11-14T11:58:40.309Z",
+    "removalNotice": "revoked",
+    "restoreNotice": "restored",
+    "restoreVia": "management-api",
+    "hiddenFromDirectory": true
+  },
+  "reassignAttempts": [],
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "上長Aの役割を元に戻す",
+        "passed": true
+      },
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "変更したプロフィール(主部署・上長)を未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成部署を無効化する",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目から承認ルールの結び付けを外す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目を非公開にする",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": null,
+  "blocked": [],
+  "previousEvidence": "/Users/jp.infra/Dev/SOLVI/evidence/WP-P4-APR-018/20261114-2051/chromium/summary.json",
+  "previousSuccess": false,
+  "browserVersion": "157.0.8103.51",
+  "reassignSuccess": "段1の承認者を「サンプル株式会社 agent」に再割当しました。",
+  "currentStep": "complete-wp018",
+  "requestStateAfterCleanup": "completed",
+  "finishedAt": "2026-11-14T12:05:41.890Z"
+}

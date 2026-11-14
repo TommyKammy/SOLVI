@@ -133,12 +133,15 @@ function database({ fixed = true } = {}) {
     route: null as unknown,
     routeHash: null as unknown,
     routeGeneration: 1 as unknown,
+    generations: [] as Array<Record<string, unknown>>,
     progress: null as null | object,
     omit: [] as string[],
   };
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (/^(BEGIN|COMMIT|ROLLBACK)/.test(sql) || sql.includes('set_config'))
       return { rows: [], rowCount: 0 };
+    if (sql.includes('SELECT clock_timestamp() AS now'))
+      return { rows: [{ now: new Date() }], rowCount: 1 };
     if (sql.includes('SELECT * FROM local_service_request'))
       return { rows: [request], rowCount: 1 };
     if (sql.includes('SELECT * FROM local_request_revision'))
@@ -153,32 +156,29 @@ function database({ fixed = true } = {}) {
             route: null,
             route_hash: null,
             route_generation: 1,
+            created_at: new Date('2026-01-01T00:00:00Z'),
           },
         ],
         rowCount: 1,
       };
-    if (
-      sql.includes(
-        'SELECT route,route_hash,route_generation,snapshot_hash FROM local_request_revision',
-      )
-    )
+    if (sql.includes('SELECT route, route_hash, route_generation FROM local_request_revision'))
       return {
         rows: [
           {
             route: state.route,
             route_hash: state.routeHash,
             route_generation: state.routeGeneration,
-            snapshot_hash: state.revisionHash,
           },
         ],
         rowCount: 1,
       };
+    if (sql.includes('FROM local_request_route_generation'))
+      return { rows: state.generations, rowCount: state.generations.length };
     if (sql.includes('FROM local_request_approval a JOIN local_request_revision'))
       return { rows: [], rowCount: 0 };
     if (sql.includes('FROM local_request_approval a')) {
       const rows = approvals
-        .filter((a) => a.revision === params[2] && a.route_generation === params[4])
-        .filter((a) => !sql.includes("a.state<>'invalidated'") || a.state !== 'invalidated')
+        .filter((a) => a.revision === params[2])
         .map((a) => ({ ...a, revision_hash_ok: state.revisionHash === params[3] }))
         .map((a) => {
           const copy: Record<string, unknown> = { ...a };
@@ -187,7 +187,10 @@ function database({ fixed = true } = {}) {
         });
       return { rows, rowCount: rows.length };
     }
-    if (sql.includes('SELECT * FROM local_request_approval') && sql.includes('ORDER BY step_no')) {
+    if (
+      sql.includes('SELECT * FROM local_request_approval') &&
+      sql.includes('ORDER BY route_generation')
+    ) {
       const rows = approvals.filter((a) => a.request_id === params[0] && a.revision === params[2]);
       return { rows, rowCount: rows.length };
     }
@@ -195,16 +198,15 @@ function database({ fixed = true } = {}) {
       const rows = approvals.filter((a) => a.id === params[0]);
       return { rows, rowCount: rows.length };
     }
-    if (sql.includes('FROM local_request_approval a JOIN local_request_revision')) {
-      return { rows: [], rowCount: 0 };
-    }
+    if (sql.includes('SELECT (ap.status')) return { rows: [{ available: true }], rowCount: 1 };
     if (sql.includes('FROM local_request_checklist_progress'))
       return {
         rows: state.progress ? [state.progress] : [],
         rowCount: state.progress ? 1 : 0,
       };
     if (sql.includes('FROM local_simulation_receipt')) return { rows: [], rowCount: 0 };
-    if (sql.includes('SELECT id,display_name FROM app_user')) return { rows: [], rowCount: 0 };
+    if (sql.includes('SELECT id,display_name FROM app_user'))
+      return { rows: [{ id: approver, display_name: '承認者' }], rowCount: 1 };
     if (
       sql.includes('SELECT display_name AS name FROM app_user') ||
       sql.includes('FROM assignment_group')
@@ -404,7 +406,7 @@ describe('多段(route 非NULL)の実行前検証(WP-P4-APR-014)', () => {
     [
       'route_generation が行と違う',
       (db: ReturnType<typeof database>) => (db.state.routeGeneration = 2),
-      'no_current_approval',
+      'route_generation_mismatch',
     ],
     [
       'route が不正(空の段)',

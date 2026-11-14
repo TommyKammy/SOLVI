@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Fragment } from 'react';
 import {
   api,
   requireSession,
@@ -12,6 +13,8 @@ import {
   approvalHref,
   approvalNoticeText,
   parseApprovalsQuery,
+  reassignmentRecords,
+  reassignmentSuccessText,
   resolverReasonText,
   resolvedFromLabel,
   stepLabel,
@@ -20,9 +23,11 @@ import {
 import {
   createApprovalRuleAction,
   deactivateApprovalRuleAction,
+  reassignApprovalAction,
   reviseApprovalRuleAction,
   updateApprovalRoutingAction,
 } from './actions';
+import { ReassignForm } from './ReassignForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,6 +140,18 @@ export default async function ApprovalRulesPage({
   }
 
   const unavailable = unavailableResult.ok ? unavailableResult.data.items : [];
+  // 再割当の成功は、一覧が最新になると行が消えるため、URLの申請IDから
+  // 詳細を読み直して同じ画面に表示する(WP-P4-APR-018 §6-6)。
+  // 表示するのは、現在の版に再割当の記録(世代2以上)が実際にあるときだけである。
+  // URLの値は申請の特定にだけ使い、文の内容には使わない。
+  const reassignedDetail = query.reassigned ? await api.requestDetail(query.reassigned) : null;
+  const reassignedRecords = reassignedDetail?.ok
+    ? reassignmentRecords(reassignedDetail.data.routeGenerations)
+    : [];
+  const reassignmentNotice =
+    reassignedRecords.length > 0
+      ? reassignmentSuccessText(reassignedRecords[reassignedRecords.length - 1]!)
+      : null;
   const actionLinkStyle = {
     display: 'inline-block',
     minHeight: '24px',
@@ -797,12 +814,15 @@ export default async function ApprovalRulesPage({
 
       <section aria-labelledby="approval-unavailable-title" id="approval-unavailable">
         <h2 id="approval-unavailable-title">承認者不在の申請</h2>
+        {reassignmentNotice && (
+          <p className="notice" role="status">
+            {reassignmentNotice}
+          </p>
+        )}
         <p className="hint">
           現在の承認の段の承認者が、有効な所属ではない（固定承認者は承認者ロールも無い）申請です。状態は変わりません。自動で承認者を差し替えることもありません。
-          <strong>
-            申請者が内容を変更すると、新しい版でその時点の組織データから承認経路が解決し直されます。
-          </strong>
-          再割当の操作はこの画面にはありません。
+          組織管理者は「再割当」で、今の組織の設定（上長・部署長）から承認者を決め直せます。再割当では承認者を手で選べません。
+          固定承認者の段は再割当では変わりません。固定承認者を変えるには、承認ルールを改訂してから、申請者が申請内容を変更する必要があります。
         </p>
         {!unavailableResult.ok ? (
           <p className="hint" role="alert">
@@ -821,6 +841,8 @@ export default async function ApprovalRulesPage({
             <div className="directory-table-wrap">
               <table className="directory-table">
                 <caption>承認者不在の申請</caption>
+                {/* 再割当の欄は操作の列に押し込まず、申請の行の直後に
+                    全列をまたぐ行として出す。列幅は汎用の配分のままでよい。 */}
                 <thead>
                   <tr>
                     <th scope="col">申請番号</th>
@@ -833,21 +855,41 @@ export default async function ApprovalRulesPage({
                 </thead>
                 <tbody>
                   {unavailable.map((request) => (
-                    <tr key={request.id}>
-                      <td data-label="申請番号">{request.number}</td>
-                      <td data-label="件名">{request.title}</td>
-                      <td data-label="申請者">{request.requesterName}</td>
-                      <td data-label="状態">{stateLabel(request.state)}</td>
-                      <td data-label="更新日時">{formatDateTime(request.updatedAt)}</td>
-                      <td data-label="操作">
-                        <Link
-                          href={`/requests/${encodeURIComponent(request.id)}`}
-                          style={actionLinkStyle}
-                        >
-                          詳細
-                        </Link>
-                      </td>
-                    </tr>
+                    <Fragment key={request.id}>
+                      <tr>
+                        <td data-label="申請番号">{request.number}</td>
+                        <td data-label="件名">{request.title}</td>
+                        <td data-label="申請者">{request.requesterName}</td>
+                        <td data-label="状態">{stateLabel(request.state)}</td>
+                        <td data-label="更新日時">{formatDateTime(request.updatedAt)}</td>
+                        <td data-label="操作">
+                          <Link
+                            href={`/requests/${encodeURIComponent(request.id)}`}
+                            style={actionLinkStyle}
+                          >
+                            詳細
+                          </Link>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={6} data-label="再割当" style={{ paddingTop: 0 }}>
+                          {request.own ? (
+                            <p
+                              className="hint"
+                              data-reassign-self="true"
+                              style={{ gridColumn: '1 / -1' }}
+                            >
+                              自分の申請は再割当できません。ほかの組織管理者に依頼するか、申請内容を変更してください。
+                            </p>
+                          ) : (
+                            <ReassignForm
+                              action={reassignApprovalAction.bind(null, scope, request.id)}
+                              requestNumber={request.number}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

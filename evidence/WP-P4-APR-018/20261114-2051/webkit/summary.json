@@ -1,0 +1,317 @@
+{
+  "workPackage": "WP-P4-APR-018",
+  "stage": "B2",
+  "browser": "webkit",
+  "marker": "UI018-SYN-1794658028709-webkit",
+  "success": true,
+  "createdAt": "2026-11-14T12:07:08.721Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> SOLVI_UI_PHASE=wp018 node tools/ui_approval_routing_check.mjs",
+  "commitSha": "6490a16637b9b3efd79e978e0f77db3ed187014e",
+  "checks": [
+    {
+      "name": "WP018: 事前確認(合成データの上限・ロール・プロフィール)",
+      "passed": true
+    },
+    {
+      "name": "WP018: 合成部署を作り、申請者の主部署と上長Aを設定する",
+      "passed": true
+    },
+    {
+      "name": "WP018: 合成カタログ項目を作成し、ルールを結び付けて公開し、組織で有効にする",
+      "passed": true
+    },
+    {
+      "name": "WP018: 申請者が2段の経路で申請する",
+      "passed": true
+    },
+    {
+      "name": "WP018: 上長Aの役割を管理画面から一時的に外し、承認者不在にする",
+      "passed": true
+    },
+    {
+      "name": "WP018: 承認者不在の一覧に申請が出て、案内と再割当の欄を表示する",
+      "passed": true
+    },
+    {
+      "name": "WP018: 上長Aのまま再割当すると拒否され、何も変わらない",
+      "passed": true
+    },
+    {
+      "name": "WP018: 申請者の上長を上長Bへ変える",
+      "passed": true
+    },
+    {
+      "name": "WP018: 理由なし・確認なしの送信は入力の検査で止まる",
+      "passed": true
+    },
+    {
+      "name": "WP018: 理由と確認を入れて再割当でき、段と新しい承認者が表示される",
+      "passed": true
+    },
+    {
+      "name": "WP018: 申請の詳細に再割当の記録が出て、申請者本人にも同じ記録が見える",
+      "passed": true
+    },
+    {
+      "name": "WP018: 上長Aの役割を元に戻す",
+      "passed": true
+    },
+    {
+      "name": "WP018: 上長Aは決定できない(承認待ち一覧・詳細・受信箱)",
+      "passed": true
+    },
+    {
+      "name": "WP018: 上長Bと固定承認者が承認し、担当者が模擬完了まで進める",
+      "passed": true
+    },
+    {
+      "name": "WP018: 片付け(役割・ルール・部署・プロフィール・カタログ)",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "approvals-unavailable-reassign-open-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-reassign-open-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "reassign-failure-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "reassign-failure-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "reassign-success-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "reassign-success-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-reassigned-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-reassigned-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-replaced-manager-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-replaced-manager-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "approvals-unavailable-reassign-open-desktop-1440.png",
+    "approvals-unavailable-reassign-open-mobile-375.png",
+    "reassign-failure-desktop-1440.png",
+    "reassign-failure-mobile-375.png",
+    "reassign-success-desktop-1440.png",
+    "reassign-success-mobile-375.png",
+    "request-detail-reassigned-desktop-1440.png",
+    "request-detail-reassigned-mobile-375.png",
+    "request-detail-replaced-manager-desktop-1440.png",
+    "request-detail-replaced-manager-mobile-375.png"
+  ],
+  "writes": {
+    "rulesCreated": 1,
+    "revisions": 0,
+    "catalogCreated": 1,
+    "catalogUpdates": 2,
+    "catalogPublished": 1,
+    "catalogUnpublished": 1,
+    "routingEnabled": 1,
+    "routingDisabled": 1,
+    "ruleDeactivations": 1,
+    "departmentsCreated": 1,
+    "departmentHeadAssignments": 0,
+    "departmentDeactivations": 1,
+    "profileUpdates": 3,
+    "profilePeople": [
+      "00000000-0000-4000-9000-000000000105"
+    ],
+    "requestsCreated": 1,
+    "reassignments": 1,
+    "roleRevokes": 1,
+    "roleGrants": 1
+  },
+  "ids": {
+    "rule": "01a1d9f4-656c-7000-9e3b-33294fe59f42",
+    "catalogItem": "01a1d9f4-6ce6-7000-9eba-df66e87bb604",
+    "department": "01a1d9f4-5c43-7000-a979-2851faebc76e",
+    "request": "01a1d9f4-84da-7000-988a-30f9035bc0ba",
+    "requestNumber": "REQ-2026-000163",
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "managerAUser": "00000000-0000-4000-9000-000000000104",
+    "managerBUser": "00000000-0000-4000-9000-000000000102",
+    "fixedApproverUser": "00000000-0000-4000-9000-000000000103",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "adminUser": "00000000-0000-4000-9000-000000000101"
+  },
+  "applied": {
+    "department": true,
+    "profiles": true,
+    "rule": true,
+    "catalog": true,
+    "catalogRuleBound": true,
+    "catalogPublished": true,
+    "routingEnabledOnce": true,
+    "requestCreated": true,
+    "managerARoleRevoked": true,
+    "managerARoleRestored": true,
+    "reassigned": true,
+    "managerBApproved": true,
+    "fixedApproved": true,
+    "simulated": true
+  },
+  "roleChange": {
+    "targetEmail": "auditor@acme.example.test",
+    "roleCode": "auditor",
+    "hadExpiry": false,
+    "removedAt": "2026-11-14T12:07:24.933Z",
+    "restoredAt": "2026-11-14T12:07:37.461Z",
+    "removalNotice": "revoked",
+    "restoreNotice": "restored",
+    "restoreVia": "management-api",
+    "hiddenFromDirectory": true
+  },
+  "reassignAttempts": [
+    {
+      "name": "same-manager",
+      "text": "保存・送信できませんでした\n\n段1: 上長が今は有効な所属ではないため、再割当できません。申請者の上長を確認してから、もう一度実行してください。\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。",
+      "at": "2026-11-14T12:07:28.357Z"
+    },
+    {
+      "name": "missing-reason",
+      "text": "保存・送信できませんでした\n\n入力が必要な項目・形式を確認してください。\n\n再割当の理由: この項目を入力してください。\n今の組織の設定（上長・部署長）から承認者を決め直すことを確認しました: 内容を確認してチェックしてください。\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。",
+      "at": "2026-11-14T12:07:31.746Z"
+    },
+    {
+      "name": "missing-confirm",
+      "text": "保存・送信できませんでした\n\n入力が必要な項目・形式を確認してください。\n\n今の組織の設定（上長・部署長）から承認者を決め直すことを確認しました: 内容を確認してチェックしてください。\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。",
+      "at": "2026-11-14T12:07:31.794Z"
+    }
+  ],
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "上長Aの役割を元に戻す",
+        "passed": true
+      },
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "変更したプロフィール(主部署・上長)を未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成部署を無効化する",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目から承認ルールの結び付けを外す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目を非公開にする",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "reassignSummary": {
+      "id": "",
+      "tag": "SUMMARY",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "boxShadow": "none"
+    },
+    "reassignReason": {
+      "id": "_R_muiklritpetulb_-reason",
+      "tag": "TEXTAREA",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "openedWith": "Enter"
+  },
+  "blocked": [],
+  "browserVersion": "26.5",
+  "currentStep": "complete-wp018",
+  "reassignSuccess": "段1の承認者を「サンプル株式会社 agent」に再割当しました。",
+  "requestStateAfterCleanup": "completed",
+  "finishedAt": "2026-11-14T12:07:58.669Z"
+}

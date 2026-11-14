@@ -207,7 +207,7 @@ describe('approval admin query and links', () => {
         previewRequesterId: requesterId,
       }),
     ).toEqual({
-      query: { rule: ruleId, confirm: 'deactivate', unresolved: true },
+      query: { rule: ruleId, confirm: 'deactivate', unresolved: true, reassigned: '' },
       preview: { kind: 'item', ruleId: '', itemId, requesterId },
     });
     expect(
@@ -218,7 +218,7 @@ describe('approval admin query and links', () => {
         previewKind: 'other',
       }),
     ).toEqual({
-      query: { rule: '', confirm: null, unresolved: false },
+      query: { rule: '', confirm: null, unresolved: false, reassigned: '' },
       preview: { kind: '', ruleId: '', itemId: '', requesterId: '' },
     });
   });
@@ -234,6 +234,17 @@ describe('approval admin query and links', () => {
     expect(approvalHref(query, { notice: 'not-a-notice' as never })).toBe(
       `/ops/approvals?rule=${ruleId}&confirm=deactivate`,
     );
+    // 再割当の成功は申請IDだけをURLへ残す(承認者の表示名は載せない)。
+    expect(
+      approvalHref(
+        { rule: '', confirm: null, unresolved: false },
+        { reassigned: '01900000-0000-4000-8000-000000000020' },
+      ),
+    ).toBe('/ops/approvals?reassigned=01900000-0000-4000-8000-000000000020');
+    expect(
+      parseApprovalsQuery({ reassigned: '01900000-0000-4000-8000-000000000020' }).query.reassigned,
+    ).toBe('01900000-0000-4000-8000-000000000020');
+    expect(parseApprovalsQuery({ reassigned: 'not-a-uuid' }).query.reassigned).toBe('');
   });
 
   it('uses fixed Japanese notices only', () => {

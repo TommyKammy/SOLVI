@@ -326,6 +326,12 @@ function database(
         ],
         rowCount: 1,
       };
+    if (sql.includes('SELECT route, route_hash, route_generation FROM local_request_revision'))
+      return {
+        rows: [{ route: null, route_hash: null, route_generation: 1 }],
+        rowCount: 1,
+      };
+    if (sql.includes('FROM local_request_route_generation')) return { rows: [], rowCount: 0 };
     if (
       sql.includes(
         'SELECT route,route_hash,route_generation,snapshot_hash FROM local_request_revision',

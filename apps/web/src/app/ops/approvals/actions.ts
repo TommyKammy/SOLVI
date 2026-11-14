@@ -8,9 +8,11 @@ import {
   approvalHref,
   isUuid,
   parseApprovalRuleSteps,
+  reassignmentFailureText,
   type ApprovalQuery,
   type StepDraftInput,
 } from '../../../lib/approval-route';
+import type { FormFeedback } from '../../../lib/form-state';
 
 type Scope = { userId: string; organizationId: string | null };
 
@@ -47,16 +49,25 @@ function back(query: ApprovalQuery, message: string, ruleId?: string): never {
  * 操作のたびに、アカウント・組織・権限を確認し直す。
  * 画面を出した時点の権限を信じない(AGENTS §1.4 と同じ考え方)。
  */
-async function requireApprovalAdmin(scope: Scope, query: ApprovalQuery): Promise<void> {
+async function approvalAdminError(
+  scope: Scope,
+  failureText: (problem: ProblemDetails) => string = problemMessage,
+): Promise<string | null> {
   const authentication = await api.me();
-  if (!authentication.ok) back(query, problemMessage(authentication.problem));
+  if (!authentication.ok) return failureText(authentication.problem);
   const session = authentication.data;
   if (session.userId !== scope.userId || session.organizationId !== scope.organizationId) {
-    back(query, '操作中のアカウントまたは組織が変わりました。画面を開き直してください。');
+    return '操作中のアカウントまたは組織が変わりました。画面を開き直してください。';
   }
   if (!isOrgAdmin(session)) {
-    back(query, 'この操作を行う権限がありません。組織の管理者へご連絡ください。');
+    return 'この操作を行う権限がありません。組織の管理者へご連絡ください。';
   }
+  return null;
+}
+
+async function requireApprovalAdmin(scope: Scope, query: ApprovalQuery): Promise<void> {
+  const error = await approvalAdminError(scope);
+  if (error) back(query, error);
 }
 
 function read(formData: FormData, name: string): string {
@@ -153,5 +164,41 @@ export async function updateApprovalRoutingAction(
       confirm: null,
       notice: enabled ? 'routing-enabled' : 'routing-disabled',
     }),
+  );
+}
+
+/**
+ * 承認者不在の申請の再割当 (WP-P4-APR-018 §6-6)。
+ *
+ * 入力は理由と確認だけである。承認者・段・経路は送らず、APIが現在の組織データから
+ * 決め直す。結果は同じ画面に表示する(遷移して一覧を失わせない)。
+ */
+export async function reassignApprovalAction(
+  scope: Scope,
+  requestId: string,
+  previous: FormFeedback,
+  formData: FormData,
+): Promise<FormFeedback> {
+  const attempt = (previous.attempt ?? 0) + 1;
+  if (!isUuid(requestId)) return { message: '対象の申請を一覧から選び直してください。', attempt };
+  const error = await approvalAdminError(scope, reassignmentFailureText);
+  if (error) return { message: error, attempt };
+  const reason = read(formData, 'reason').trim();
+  if (!reason) return { message: '再割当の理由を入力してください。', attempt };
+  if (reason.length > 2000)
+    return { message: '再割当の理由は2000文字以内で入力してください。', attempt };
+  if (read(formData, 'confirm') !== '1')
+    return { message: '再割当を実行するには、確認の欄にチェックを入れてください。', attempt };
+  const result = await api.reassignRequest(requestId, { reason });
+  if (!result.ok) return { message: reassignmentFailureText(result.problem), attempt };
+  // 成功すると一覧の行は最新の状態で消える(承認者が有効になったため)。
+  // 成功の文(段・新しい承認者・日時)は、申請IDをURLに残して同じ画面で詳細を
+  // 読み直して出す。再割当の記録が無い場合は出さない。表示名をURLへ載せない。
+  // 個人データを履歴・ログに残さないためである。
+  redirect(
+    approvalHref(
+      { rule: '', confirm: null, unresolved: false },
+      { reassigned: requestId },
+    ) + '#approval-unavailable',
   );
 }
