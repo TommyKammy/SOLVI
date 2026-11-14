@@ -11,7 +11,7 @@ updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "reassignment"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 5
 risk: "high"
 workstream: "APR"
@@ -792,3 +792,4 @@ npm run check:all                                 # exit 0
   - 既存の不具合(本WPの範囲外): 最後のロールを外した利用者が `/ops/users` の一覧から消え、画面から付け直せない。別のWPとして起こす。
   - 設計上の帰結: 固定承認者の段は、申請時に固定したルールの版で再解決するため、再割当では変わらない([[ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion]] §3)。対処は、ルールの改訂と申請者による申請内容の変更。画面で案内している。
   - 未確認: 申請者本人が組織管理者である場合の画面表示は、unit テストでの確認にとどまる。WebKit の既定の Tab 移動はOSの設定に依存し、チェック欄とボタンへの移動は補助キーでの確認にとどまる。
+- 2026-11-14(監督者による追記): 利用者(人間)がセキュリティレビューとして本WPを承認した。利用者の指示により、PRを作らず `main` へ直接取り込み、`origin/main` へ push する。`implementation_status` を `done` にした。
