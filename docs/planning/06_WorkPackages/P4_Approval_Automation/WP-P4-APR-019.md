@@ -60,7 +60,7 @@ FR-CAT-011 の残りを引き受ける。承認者と申請者と組織管理者
 - `services/api/src/modules/notification/`
 - `services/api/src/common/outbox/outbox.ts`(イベント型の追加だけ)
 - `services/api/src/common/audit/audit.ts`
-- `services/api/src/main.ts`(定期処理の開始と停止の登録だけ)
+- `services/api/src/main.ts`(定期処理の開始と停止の登録と、Outbox の処理へのイベント型の登録だけ)
 - `packages/shared/src/`(通知の時点などの定数だけ)
 - `apps/web/src/app/requests/`、`apps/web/src/app/ops/approvals/`、`apps/web/src/lib/`(状態 `expired` の行の表示への追従と、通知一覧の表示名が要る場合だけ)
 - `tests/security/approval-notice.test.ts`、`tests/unit/approval-notice.test.ts`(新規)
@@ -194,4 +194,4 @@ FR-CAT-011 の残りを引き受ける。承認者と申請者と組織管理者
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-15 | 監督者 | - | 着手前の訂正 | - | (1) §4 の `main.ts` に「Outbox の処理へのイベント型の登録」を加えた(登録しないと、積んだ通知が処理されない)。(2) §6.3 の「組織を1つずつ処理する」には組織の一覧が要るが、`organization` は RLS 配下で、組織の文脈が無い定期処理からは読めない([[02.18_Organization_Data_Model_and_RLS]] §3 の例外は登録制)。計画時の見落としである。段階Aでは組織1つ分の処理までを実装し、一覧の取得と定期処理の登録は、利用者の判断を待つ。 |
