@@ -125,7 +125,47 @@ export function parseApprovalRuleSteps(rows: readonly StepDraftInput[]): StepsPa
   return { ok: true, steps };
 }
 
-/** 経路プレビューが返す解決不能の理由。APIの日本語の文をそのまま使う。 */
+/**
+ * 申請前の画面に出す、解決不能の理由。
+ *
+ * 送信の拒否に使う API の文(「…申請を拒否しました」)は過去形で、まだ申請して
+ * いない画面には合わない。構造化された理由から、申請前向けの文を組み立てる。
+ * 未知のコードは内容を推測せず、一般的な文にする。
+ */
+/** `services/api/src/modules/catalog/approval-resolver.ts` の `ResolverFailureCode` と同じ語彙。 */
+export const PRE_SUBMIT_REASON_TEXT: Record<string, string> = {
+  requester_not_active_member: '申請者の所属が確認できないため、このままでは申請できません。',
+  rule_unavailable: '承認ルールが現在使えないため、このままでは申請できません。',
+  rule_invalid: '承認ルールの内容を確認できないため、このままでは申請できません。',
+  fixed_approver_invalid: '固定承認者が現在有効な承認者ではないため、このままでは申請できません。',
+  fixed_approver_self: '固定承認者が申請者本人のため、このままでは申請できません。',
+  manager_unset: '上長が設定されていないため、このままでは申請できません。',
+  manager_inactive: '上長が現在有効な所属ではないため、このままでは申請できません。',
+  manager_self: '上長が申請者本人のため、このままでは申請できません。',
+  department_head_missing: '部署長が設定されていないため、このままでは申請できません。',
+  duplicate_approver: '同じ承認者が複数の段に指定されているため、このままでは申請できません。',
+  requester_selected_missing: '承認者が選ばれていないため、このままでは申請できません。',
+  requester_selected_invalid: '承認者が現在有効な承認者ではないため、このままでは申請できません。',
+  requester_selected_self: '承認者が申請者本人のため、このままでは申請できません。',
+};
+
+const PRE_SUBMIT_GENERIC = '承認の経路を決められないため、このままでは申請できません。';
+
+export function resolverPreviewText(reason: unknown): string {
+  if (reason === null || typeof reason !== 'object') return PRE_SUBMIT_GENERIC;
+  const value = reason as { code?: unknown; stepNo?: unknown };
+  const code = typeof value.code === 'string' ? value.code : '';
+  const stepNo =
+    typeof value.stepNo === 'number' && Number.isInteger(value.stepNo) && value.stepNo > 0
+      ? value.stepNo
+      : null;
+  const text = Object.hasOwn(PRE_SUBMIT_REASON_TEXT, code)
+    ? PRE_SUBMIT_REASON_TEXT[code]!
+    : PRE_SUBMIT_GENERIC;
+  return `${stepNo === null ? '' : `段${stepNo}: `}${text}`;
+}
+
+/** 経路プレビュー(管理者向け)が返す解決不能の理由。APIの日本語の文をそのまま使う。 */
 export function resolverReasonText(reason: unknown): string {
   if (reason === null || typeof reason !== 'object') return '経路を解決できませんでした。';
   const value = reason as { message?: unknown; missing?: unknown; stepNo?: unknown };
@@ -446,7 +486,7 @@ export function requestRouteDecision(input: {
       usesRule: true,
       showSteps: false,
       blocked: true,
-      reason: resolverReasonText(route.reason),
+      reason: resolverPreviewText(route.reason),
     };
   return { usesRule: true, showSteps: true, blocked: false, reason: null };
 }
@@ -525,4 +565,67 @@ export function requestApprovalTimeline(input: {
     });
   }
   return (input.steps ?? []).map(fromCreated);
+}
+
+export interface RequestHistoryEntry {
+  id: string;
+  state: string;
+  revision: number;
+  approverName: string;
+  reason: string | null;
+  decidedAt: string | null;
+}
+
+export interface RequestHistoryVersion<T extends RequestHistoryEntry> {
+  revision: number;
+  /** 版の結果。段のうち最も進んだ結果を1つだけ返す。 */
+  state: string;
+  /** その版で最後に判断された日時。判断が無ければ null。 */
+  decidedAt: string | null;
+  /** 現在の申請内容の版か。段ごとの経過は「承認の経過」が担う。 */
+  current: boolean;
+  /** APIが返した順(版・経路世代・段の順)のまま。 */
+  rows: T[];
+}
+
+function versionResult(rows: readonly RequestHistoryEntry[]): string {
+  // 却下・期限切れはその版の最終結果であり、後続の段は作られない。
+  // 承認待ちは途中経過、無効は変更・取消で版全体が使われなくなった状態を表す。
+  for (const state of ['rejected', 'expired', 'pending', 'invalidated'])
+    if (rows.some((row) => row.state === state)) return state;
+  return rows.at(-1)?.state ?? 'unknown';
+}
+
+function latestDecidedAt(rows: readonly RequestHistoryEntry[]): string | null {
+  let latest: string | null = null;
+  for (const row of rows)
+    if (row.decidedAt && (!latest || row.decidedAt > latest)) latest = row.decidedAt;
+  return latest;
+}
+
+/**
+ * 承認行を申請内容の版ごとにまとめる。同じ版を承認行の数だけ繰り返さない。
+ * 段の番号は、APIが `revision, route_generation, step_no` の順で返すことを使って
+ * 版の中の位置から決める(履歴の応答に step_no は含まれない)。
+ */
+export function requestHistoryVersions<T extends RequestHistoryEntry>(
+  history: readonly T[],
+  currentRevision: number,
+): RequestHistoryVersion<T>[] {
+  const groups = new Map<number, T[]>();
+  for (const row of history) {
+    if (!Number.isInteger(row.revision) || row.revision < 1) continue;
+    const rows = groups.get(row.revision);
+    if (rows) rows.push(row);
+    else groups.set(row.revision, [row]);
+  }
+  return [...groups.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([revision, rows]) => ({
+      revision,
+      state: versionResult(rows),
+      decidedAt: latestDecidedAt(rows),
+      current: revision === currentRevision,
+      rows,
+    }));
 }

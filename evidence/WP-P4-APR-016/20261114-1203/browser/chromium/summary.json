@@ -1,0 +1,81 @@
+{
+  "workPackage": "WP-P4-APR-016",
+  "stage": "C",
+  "browser": "chromium",
+  "success": true,
+  "createdAt": "2026-11-14T03:13:15.393Z",
+  "base": "http://127.0.0.1:3000",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> node .local/tmp/wp016c_browser_check.mjs",
+  "commitSha": "ef63365d95084e2d3c2c64a3bff212dc3f4b5f6f",
+  "screenshots": [
+    "twoStep-desktop-1440.png",
+    "twoStep-mobile-375.png",
+    "oneStep-desktop-1440.png",
+    "oneStep-mobile-375.png",
+    "pastRevision-desktop-1440.png",
+    "pastRevision-mobile-375.png"
+  ],
+  "accessibility": [
+    {
+      "name": "twoStep-desktop-1440",
+      "violations": []
+    },
+    {
+      "name": "twoStep-mobile-375",
+      "violations": []
+    },
+    {
+      "name": "oneStep-desktop-1440",
+      "violations": []
+    },
+    {
+      "name": "oneStep-mobile-375",
+      "violations": []
+    },
+    {
+      "name": "pastRevision-desktop-1440",
+      "violations": []
+    },
+    {
+      "name": "pastRevision-mobile-375",
+      "violations": []
+    }
+  ],
+  "checks": [
+    {
+      "name": "two-step-record-collapsed-once",
+      "recordItems": 1,
+      "recordSummaries": [
+        "申請内容 1 · 承認済み · 2026年11月14日 09:28"
+      ],
+      "timelineItems": 2
+    },
+    {
+      "name": "one-step-information-kept",
+      "recordItems": 1,
+      "recordSummaries": [
+        "申請内容 1 · 承認済み · 2026年11月11日 00:09"
+      ],
+      "timelineItems": 1
+    },
+    {
+      "name": "past-revision-keeps-steps",
+      "recordItems": 2,
+      "recordSummaries": [
+        "申請内容 1 · 無効 · 2026年11月11日 07:20",
+        "申請内容 2 · 承認済み · 2026年11月11日 07:20"
+      ],
+      "hiddenStepHeadings": 1,
+      "timelineItems": 1
+    },
+    {
+      "name": "details-keyboard-open",
+      "open": true
+    }
+  ],
+  "blocked": [],
+  "writes": "none (GET only; login creates the normal session)",
+  "finishedAt": "2026-11-14T03:13:24.266Z"
+}

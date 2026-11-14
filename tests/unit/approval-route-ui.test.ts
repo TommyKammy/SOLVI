@@ -7,10 +7,13 @@ import {
   parseApprovalRuleSteps,
   parseApprovalsQuery,
   parseRelationshipHistoryQuery,
+  PRE_SUBMIT_REASON_TEXT,
   relationshipChangeLabel,
   relationshipHistoryHref,
   requestApprovalTimeline,
+  requestHistoryVersions,
   requestRouteDecision,
+  resolverPreviewText,
   resolverReasonText,
   stepLabel,
   stepStateLabel,
@@ -133,6 +136,62 @@ describe('resolver reason text', () => {
     expect(resolverReasonText(null)).toBe('経路を解決できませんでした。');
     expect(resolverReasonText({})).toBe('経路を解決できませんでした。');
     expect(resolverReasonText({ message: '  ' })).toBe('経路を解決できませんでした。');
+  });
+});
+
+describe('pre-submission resolver reason text', () => {
+  const expected: Record<string, string> = {
+    requester_not_active_member: '申請者の所属が確認できないため、このままでは申請できません。',
+    rule_unavailable: '承認ルールが現在使えないため、このままでは申請できません。',
+    rule_invalid: '承認ルールの内容を確認できないため、このままでは申請できません。',
+    fixed_approver_invalid:
+      '固定承認者が現在有効な承認者ではないため、このままでは申請できません。',
+    fixed_approver_self: '固定承認者が申請者本人のため、このままでは申請できません。',
+    manager_unset: '上長が設定されていないため、このままでは申請できません。',
+    manager_inactive: '上長が現在有効な所属ではないため、このままでは申請できません。',
+    manager_self: '上長が申請者本人のため、このままでは申請できません。',
+    department_head_missing: '部署長が設定されていないため、このままでは申請できません。',
+    duplicate_approver: '同じ承認者が複数の段に指定されているため、このままでは申請できません。',
+    requester_selected_missing: '承認者が選ばれていないため、このままでは申請できません。',
+    requester_selected_invalid:
+      '承認者が現在有効な承認者ではないため、このままでは申請できません。',
+    requester_selected_self: '承認者が申請者本人のため、このままでは申請できません。',
+  };
+
+  it('covers every resolver failure code without using the API rejection message', () => {
+    expect(Object.keys(PRE_SUBMIT_REASON_TEXT).sort()).toEqual(Object.keys(expected).sort());
+    for (const [code, text] of Object.entries(expected)) {
+      expect(resolverPreviewText({ code, missing: 'manager', message: 'PRIVATE_MESSAGE' })).toBe(
+        text,
+      );
+    }
+  });
+
+  it('adds the step number and never repeats the past-tense rejection wording', () => {
+    const text = resolverPreviewText({
+      code: 'manager_unset',
+      message: '申請者の上長が未設定です。承認ルールの設定により申請を拒否しました',
+      missing: 'manager',
+      stepNo: 1,
+    });
+    expect(text).toBe('段1: 上長が設定されていないため、このままでは申請できません。');
+    expect(text).not.toContain('拒否しました');
+    expect(text).not.toContain('PRIVATE_MESSAGE');
+  });
+
+  it('uses one general sentence for unknown or missing codes', () => {
+    expect(resolverPreviewText({ code: 'unexpected', stepNo: 2 })).toBe(
+      '段2: 承認の経路を決められないため、このままでは申請できません。',
+    );
+    expect(resolverPreviewText({})).toBe(
+      '承認の経路を決められないため、このままでは申請できません。',
+    );
+    expect(resolverPreviewText(null)).toBe(
+      '承認の経路を決められないため、このままでは申請できません。',
+    );
+    expect(resolverPreviewText({ code: 'manager_unset', stepNo: 0 })).toBe(
+      '上長が設定されていないため、このままでは申請できません。',
+    );
   });
 });
 
@@ -327,7 +386,7 @@ describe('requester route display and submit gating (stage B)', () => {
       },
     });
     expect(unresolved).toMatchObject({ usesRule: true, showSteps: false, blocked: true });
-    expect(unresolved.reason).toBe('段1: 申請者の上長が未設定です（足りない設定: 上長）');
+    expect(unresolved.reason).toBe('段1: 上長が設定されていないため、このままでは申請できません。');
   });
 
   it('blocks a rule item when the rule is unavailable even without rule info', () => {
@@ -445,5 +504,75 @@ describe('request approval timeline (stage B)', () => {
     expect(stepStateLabel('expired')).toBe('期限切れ');
     expect(stepStateLabel(null)).toBe('状態を確認できません');
     expect(stepStateLabel('unexpected')).toBe('状態を確認できません');
+  });
+});
+
+describe('request history versions (stage C)', () => {
+  const row = (
+    id: string,
+    revision: number,
+    state: string,
+    decidedAt: string | null,
+    approverName = '合成 承認者',
+  ) => ({
+    id,
+    revision,
+    state,
+    decidedAt,
+    approverName,
+    reason: null,
+    inputs: {},
+    item: { version: 1, definition: {} },
+  });
+
+  it('collapses two approval rows of the same revision into one version', () => {
+    const versions = requestHistoryVersions(
+      [
+        row('a', 1, 'approved', '2026-11-14T01:00:00Z', '合成 上長'),
+        row('b', 1, 'approved', '2026-11-14T02:00:00Z'),
+      ],
+      1,
+    );
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({
+      revision: 1,
+      state: 'approved',
+      decidedAt: '2026-11-14T02:00:00Z',
+      current: true,
+    });
+    expect(versions[0]!.rows.map((entry) => entry.id)).toEqual(['a', 'b']);
+  });
+
+  it('keeps a pending second step as the version result and marks past versions', () => {
+    const versions = requestHistoryVersions(
+      [
+        row('old', 1, 'invalidated', '2026-11-10T01:00:00Z'),
+        row('new1', 2, 'approved', '2026-11-11T01:00:00Z'),
+        row('new2', 2, 'pending', null),
+      ],
+      2,
+    );
+    expect(versions.map((version) => [version.revision, version.state, version.current])).toEqual([
+      [1, 'invalidated', false],
+      [2, 'pending', true],
+    ]);
+    expect(versions[1]!.decidedAt).toBe('2026-11-11T01:00:00Z');
+  });
+
+  it('keeps one-step and legacy history as a single version with its decision time', () => {
+    const versions = requestHistoryVersions(
+      [row('legacy', 1, 'rejected', '2026-11-14T01:00:00Z', '合成 承認者')],
+      1,
+    );
+    expect(versions).toEqual([
+      {
+        revision: 1,
+        state: 'rejected',
+        decidedAt: '2026-11-14T01:00:00Z',
+        current: true,
+        rows: [row('legacy', 1, 'rejected', '2026-11-14T01:00:00Z', '合成 承認者')],
+      },
+    ]);
+    expect(requestHistoryVersions([], 1)).toEqual([]);
   });
 });

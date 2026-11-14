@@ -1,0 +1,17 @@
+{
+  "database": "solvi (development)",
+  "capturedAt": "2026-11-14 before edits (approx. 02:55Z)",
+  "tables": {
+    "app_user": 15,
+    "role_binding": 21,
+    "local_catalog_item": 23,
+    "local_service_request": 14,
+    "local_request_approval": 21,
+    "department": 19,
+    "department_head": 7,
+    "approval_rule": 11,
+    "approval_rule_revision": 17,
+    "org_member_profile": 15
+  },
+  "orgApprovalSettingEnabled": 0
+}

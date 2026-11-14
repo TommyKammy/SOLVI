@@ -10,6 +10,7 @@ import { safeReturnTo } from '../../../lib/navigation';
 import {
   authorityLabel,
   requestApprovalTimeline,
+  requestHistoryVersions,
   stepStateLabel,
 } from '../../../lib/approval-route';
 const labels: Record<string, string> = {
@@ -18,6 +19,15 @@ const labels: Record<string, string> = {
   rejected: '却下',
   invalidated: '無効・再承認が必要',
   completed: '模擬実行完了',
+  cancelled: '取消',
+  expired: '期限切れ',
+};
+/** 承認行の状態。申請全体の状態(模擬実行待ちなど)とは混ぜない。 */
+const approvalStateLabels: Record<string, string> = {
+  pending: '承認待ち',
+  approved: '承認済み',
+  rejected: '却下',
+  invalidated: '無効',
   cancelled: '取消',
   expired: '期限切れ',
 };
@@ -105,6 +115,7 @@ export default async function RequestPage({
           ]
         : []),
   });
+  const versions = requestHistoryVersions(data.history, q.revision);
   return (
     <main id="main" className="shell">
       <ContextLink back href="/requests">
@@ -239,29 +250,53 @@ export default async function RequestPage({
       )}
       <h2>承認の記録</h2>
       <ul className="attachments">
-        {data.history.map((a) => (
-          <li key={a.id} className="attachment">
+        {versions.map((version) => (
+          <li key={`revision-${version.revision}`} className="attachment">
             <p>
-              申請内容 {a.revision} ·{' '}
-              {a.state === 'approved' ? '承認済み' : (labels[a.state] ?? a.state)}
-              {a.decidedAt && ` · ${formatDateTime(a.decidedAt)}`}
+              申請内容 {version.revision} ·{' '}
+              {approvalStateLabels[version.state] ?? '状態を確認できません'}
+              {version.decidedAt && ` · ${formatDateTime(version.decidedAt)}`}
             </p>
-            {a.reason && <p style={{ whiteSpace: 'pre-wrap' }}>{a.reason}</p>}
+            {version.current && version.rows.length === 1 && version.rows[0]!.reason && (
+              <p style={{ whiteSpace: 'pre-wrap' }}>{version.rows[0]!.reason}</p>
+            )}
             <details>
               <summary>この版の申請内容を見る</summary>
-              <p>
-                承認者: {a.approverName}
-                {a.inputs.durationDays !== undefined && ` · 利用日数: ${a.inputs.durationDays}日`}
-              </p>
-              {a.inputs.reason !== undefined && (
-                <p style={{ whiteSpace: 'pre-wrap' }}>{a.inputs.reason}</p>
+              {version.rows.length === 1 && (
+                <p>
+                  承認者: {version.rows[0]!.approverName}
+                  {version.rows[0]!.inputs.durationDays !== undefined &&
+                    ` · 利用日数: ${version.rows[0]!.inputs.durationDays}日`}
+                </p>
+              )}
+              {version.rows[0]!.inputs.reason !== undefined && (
+                <p style={{ whiteSpace: 'pre-wrap' }}>{version.rows[0]!.inputs.reason}</p>
               )}
               <CatalogValueSummary
-                fields={a.item.definition.fields ?? []}
-                sections={a.item.definition.sections}
-                values={a.inputs.values ?? {}}
+                fields={version.rows[0]!.item.definition.fields ?? []}
+                sections={version.rows[0]!.item.definition.sections}
+                values={version.rows[0]!.inputs.values ?? {}}
               />
             </details>
+            {!version.current && (
+              <>
+                <h3 className="visually-hidden">申請内容 {version.revision} の承認</h3>
+                <ul>
+                  {version.rows.map((row, index) => (
+                    <li key={row.id}>
+                      <p>
+                        <strong>段{index + 1}</strong>
+                        {' · '}
+                        {approvalStateLabels[row.state] ?? '状態を確認できません'}
+                        {row.decidedAt && ` · ${formatDateTime(row.decidedAt)}`}
+                      </p>
+                      <p>承認者: {row.approverName}</p>
+                      {row.reason && <p style={{ whiteSpace: 'pre-wrap' }}>理由: {row.reason}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </li>
         ))}
       </ul>

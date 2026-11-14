@@ -170,6 +170,7 @@ WP-P4-APR-015 のAPI契約 / apps/web の既存の申請・詳細・カタログ
 | 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階A 完了。段階B 未着手 | `evidence/WP-P4-APR-016/20261114-0822/` | 承認ルール管理・プレビュー・組織での有効化・カタログ項目への結び付け・承認者不在の一覧・変更履歴・導線・変更履歴APIの403先行。Chromium と WebKit で PASS |
 | 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階B 実装完了。監督者レビュー待ち | `evidence/WP-P4-APR-016/20261114-0914/` | 申請者自身の経路確認API、申請画面の経路表示と送信の無効化、詳細の承認の経過、承認待ち一覧・受信箱のロール非依存化。通しのブラウザ確認は Chromium 28 checks / WebKit 27 checks が PASS。解決不能フォームのブラウザ確認だけは未実施(下記「未解決事項」) |
 | 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階B2 完了。監督者レビュー待ち | `evidence/WP-P4-APR-016/20261114-0949/` | 手順8(解決不能フォーム)と他組織(beta)の404を Chromium/WebKit で確認。修正後の変更画面を1440px/375pxで撮り直し、axe serious/critical 0。合成ルールはエンジンごとに1件だけ追加し、すべて無効化 |
+| 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階C 文言・表示修正 完了 | `evidence/WP-P4-APR-016/20261114-1203/` | 申請前の理由をコードから組み立て、利用者向けの文から「API」を除去、「承認の記録」を版ごとに1件へ。API・スキーマ・サービスは未変更。Chromium/WebKit で2段・1段・過去版の詳細を確認し、axe serious/critical 0 |
 
 ### 2026-11-14 段階A 実装記録
 
@@ -426,3 +427,95 @@ SOLVI_UI_BROWSER=<engine> SOLVI_UI_PHASE=b2detail   # PASS 10 checks / 16(Chromi
 `evidence/WP-P4-APR-016/20261114-0949/`(README、`browser/chromium/`、`browser/webkit/`、各 `summary.json`、スクリーンショット、axe結果、`counts-before.json`、`counts-after.json`)。
 
 - 2026-11-14(監督者による追記): 利用者(人間)が本WP(段階A・B)を承認した。利用者の指示により、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。残る事項: (1)画面の文言3点 — 申請前の画面に出る解決できない理由の時制(「申請を拒否しました」)、利用者向けの文に出る「API」の語、2段の申請で従来の「承認の記録」が同じ行を重ねて表示する点。(2)承認待ち一覧のスクリーンショットは空の状態のみ(上長に自分宛てが出て承認できることは通しの確認で確かめた)。(3)既定の404ページの既存のaxe違反(本WPより前からある共通スタイル。axeの対象から外した)。(4)再割当の画面は [[WP-P4-APR-017]]。開発用DBに合成のデータ(無効な承認ルール11件、非公開のカタログ項目4件、完了済みの申請2件ほか)が残る。ルールの使用は全組織で無効。
+
+### 2026-11-14 段階C 文言・表示修正記録
+
+**範囲**: 監督者が段階Bの取り込み後に見つけた画面の文言・表示の3点だけを修正した。API・サービス・スキーマ・認可・検証は変更していない。
+
+1. 申請前の画面の「解決できない理由」を、APIの拒否用の文ではなく `reason.code` / `reason.stepNo` から組み立てるようにした(未知のコードは一般的な文)。
+2. 申請画面の注記から「API」の語を除き、利用者向けの文にした。対象画面の JSX テキスト・`aria-label`・案内文を確認し、他に該当は無かった(コードのコメントは対象外)。
+3. 申請詳細の「承認の記録」を申請内容の版ごとに1件へまとめた。現在の版の段は「承認の経過」が担い、過去の版は版の中に段・承認者・状態・日時・理由を一覧で残す。
+
+#### 変更ファイル
+
+- `apps/web/src/lib/approval-route.ts`(`resolverPreviewText` と理由コードの対応表、`requestHistoryVersions` を追加。管理者向けの `resolverReasonText` は変更なし)
+- `apps/web/src/components/RequestForms.tsx`(解決不能時の表示を申請前向けの文へ。注記を利用者向けの文へ)
+- `apps/web/src/app/requests/[id]/page.tsx`(「承認の記録」を版ごとに集約。過去の版の段一覧、現在の版の結果・日時・申請内容)
+- `tests/unit/approval-route-ui.test.ts`(理由コード13件の文、未知コード、版の集約の純関数)
+- `tests/unit/requests-ui.test.ts`(解決不能フォームの実レンダリングの文言、注記に「API」が無いこと)
+- `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-016.md`(本節)
+- `evidence/WP-P4-APR-016/20261114-1203/`(README、件数、ブラウザのsummary・スクリーンショット・axe結果、unitの失敗名照合)
+
+Migration: **なし**。スキーマ変更なし。ロールバックはコードとテストの巻き戻しのみ。APIの応答は変更していない。
+
+#### 変更前後の文言
+
+| 箇所 | 変更前 | 変更後 |
+|---|---|---|
+| 申請前の解決不能理由 | APIの文をそのまま表示(例: 「段1: 申請者の上長が未設定です。承認ルールの設定により申請を拒否しました」) | コードから組み立て(例: 「段1: 上長が設定されていないため、このままでは申請できません。」) |
+| 申請画面の注記 | 「表示は参考です。送信時にAPIが改めて経路を解決し、承認者を確認します。承認期限は各段72時間です。」 | 「表示は申請前の見込みです。申請を送信した時点の設定で、承認者が確定します。承認の期限は各段72時間です。」 |
+| 2段の申請の「承認の記録」 | 承認行ごとに「申請内容 1 · 承認済み · 日時」を2行 | 版ごとに1行(版の結果・最後の判断日時)。現在の段は「承認の経過」、過去の版は版の中の一覧 |
+
+#### 実行した検証コマンドと結果
+
+```text
+npm run typecheck                                  # exit 0
+npm run lint                                       # exit 0
+npm run check:all                                  # exit 0
+npx vitest run tests/unit/approval-route-ui.test.ts \
+  tests/unit/requests-ui.test.ts \
+  tests/unit/request-detail-recovery-ui.test.ts \
+  tests/unit/catalog-request-entry-recovery-ui.test.ts \
+  tests/unit/catalog-request-fields-ui.test.ts     # 201 passed / 0 failed
+npm run test:unit                                  # 34 failed / 4436 passed
+                                                   # 同一WPの基点(34 failed)と失敗名35行が完全一致。新規失敗0
+SOLVI_UI_BROWSER=chromium ... node .local/tmp/wp016c_browser_check.mjs  # PASS 4 checks / 6 axe scans
+SOLVI_UI_BROWSER=webkit   ... node .local/tmp/wp016c_browser_check.mjs  # PASS 4 checks / 6 axe scans
+```
+
+- `npm run test:unit` の失敗名は、`evidence/WP-P4-APR-016/20261114-0822/raw/03_unit_before_failures.txt` の34失敗(ファイル単位の行を含め35行)と `diff` して一致した。
+- ブラウザ検査は読み取りのみ(ログインのセッション・監査イベントを除く)。`blocked` は0件。スクリーンショットは1440px/375px、axe は serious/critical 0件。
+
+#### ブラウザで確認したこと・しなかったこと
+
+- 確認した: 完了済みの合成2段申請(`UI016B`、`01a1d774-2407-7000-b286-1430d9b49664`)で「承認の記録」が1件になり、2段は「承認の経過」に並ぶこと。完了済みの1段申請(`01a1c602-1925-7000-9194-9604ff967e24`)で記録が1件のまま、結果・日時・理由・承認者・申請内容が残ること。過去版を持つ申請(`01a1c78c-2a10-7000-8bb7-3134f4e326a4`、版1=無効・版2=承認済み)で、版ごとに1件・過去版の段一覧(段・承認者・状態・日時・理由)が出ること。`details` が Enter で開くこと。
+- 確認していない: 1(解決不能の申請前画面)と2(申請画面の注記)は、開発用DBへの書込みなしでは再現できないため、**ブラウザ未確認**。`tests/unit/requests-ui.test.ts` の実レンダリングで文言を固定した。
+
+#### 更新した既存テストの期待値
+
+- `tests/unit/approval-route-ui.test.ts`: `requestRouteDecision` の解決不能理由を `'段1: 申請者の上長が未設定です（足りない設定: 上長）'` から `'段1: 上長が設定されていないため、このままでは申請できません。'` へ更新。
+- `tests/unit/requests-ui.test.ts`: 解決不能フォームの実レンダリングで、APIの文 `'申請者の上長が未設定です'` の代わりに `'段1: 上長が設定されていないため、このままでは申請できません。'` を固定し、`'承認ルールの設定により申請を拒否しました'` を含まないことを追加。解決済み2段のテストに注記の新しい文と「API」を含まないことを追加。
+- 削除・skip・条件無効化はしていない。既存テストの期待値を緩めていない。
+
+#### 開発用DBの件数(前後)
+
+| テーブル | 前 | 後 | 差 |
+|---|---:|---:|---:|
+| app_user | 15 | 15 | 0 |
+| role_binding | 21 | 21 | 0 |
+| local_catalog_item | 23 | 23 | 0 |
+| local_service_request | 14 | 14 | 0 |
+| local_request_approval | 21 | 21 | 0 |
+| department | 19 | 19 | 0 |
+| department_head | 7 | 7 | 0 |
+| approval_rule | 11 | 11 | 0 |
+| approval_rule_revision | 17 | 17 | 0 |
+| org_member_profile | 15 | 15 | 0 |
+
+`org_approval_setting` の有効な組織は前後とも **0件**。書込みを伴う画面操作はしていない。ログインによる `session` / `audit_event` の増加のみ。
+
+#### セキュリティ影響
+
+- 表示の文言と集約だけで、認可・検証・状態遷移・監査・APIの応答を変更していない。新しい入力・送信項目・依存は0件。
+- 承認者名はAPIが返した範囲だけを使い、新しい個人データを画面・URL・ログ・Evidenceに出していない。
+- `reason.code` は既知の語彙だけを文へ変換し、未知のコードやAPIの例外文をそのまま表示しない。
+
+#### 未解決事項
+
+- `detail` の `history` は `stepNo` / `authorityType` / `route` を返さない。過去版の「段N」は、APIが `revision, route_generation, step_no` の順で返すことを使って版内の位置から決めている。APIの変更はしていない。`history` に `stepNo` を加えるかは別WPの判断とする。
+- 1・2の申請画面はブラウザ未確認(上記)。実レンダリングのunitテストで固定した。
+- Playwright 1.62 が期待する chromium-1234 が環境に無かったため、ダウンロードせず、既存の chromium-1248 と webkit-2336 を `executablePath` で使った。両エンジンとも検査は成功した。
+
+#### Evidence
+
+`evidence/WP-P4-APR-016/20261114-1203/`(README、件数、`browser/chromium/`、`browser/webkit/`、各 `summary.json`、スクリーンショット、axe結果、`raw/` のunit失敗名照合)。

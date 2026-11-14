@@ -186,7 +186,7 @@ export function RequestForm({
             </p>
           )}
           <p className="hint">
-            表示は参考です。送信時にAPIが改めて経路を解決し、承認者を確認します。承認期限は各段72時間です。
+            表示は申請前の見込みです。申請を送信した時点の設定で、承認者が確定します。承認の期限は各段72時間です。
           </p>
         </section>
       ) : fixedApprover ? (

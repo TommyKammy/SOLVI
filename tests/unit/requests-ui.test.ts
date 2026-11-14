@@ -146,13 +146,13 @@ describe('requester route display and submit gating (stage B)', () => {
       }),
     );
     expect(html).toContain('id="request-route-blocked"');
-    expect(html).toContain('申請者の上長が未設定です');
+    expect(html).toContain('段1: 上長が設定されていないため、このままでは申請できません。');
+    expect(html).not.toContain('承認ルールの設定により申請を拒否しました');
     expect(html).toContain('組織の管理者へ設定を依頼してください');
     expect(html).toContain('aria-describedby="request-route-blocked"');
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>/);
     expect(html).not.toContain('name="approverId"');
     expect(html).not.toContain('id="request-approver"');
-    expect(html).toContain('段1');
   });
 
   it('shows the resolved two steps and still sends no approverId', () => {
@@ -175,6 +175,10 @@ describe('requester route display and submit gating (stage B)', () => {
     expect(html).toContain('段1（上長）');
     expect(html).toContain('合成 上長');
     expect(html).toContain('段2（固定承認者）');
+    expect(html).toContain(
+      '表示は申請前の見込みです。申請を送信した時点の設定で、承認者が確定します。承認の期限は各段72時間です。',
+    );
+    expect(html).not.toContain('API');
     expect(html).not.toContain('name="approverId"');
     expect(html).not.toContain('id="request-approver"');
     expect(html).not.toContain('aria-describedby="request-route-blocked"');
