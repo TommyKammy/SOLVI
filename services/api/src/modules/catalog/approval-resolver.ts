@@ -692,6 +692,12 @@ export async function resolveRouteForRequest(
     definition: { approval?: DefinitionApproval | undefined };
     selectedApproverId: string | null;
     now: Date;
+    /**
+     * ルール行を `FOR SHARE` で固定するか。申請・変更の解決は既定(true)のまま、
+     * 読み取り専用トランザクション(申請前の経路確認)だけ false にする。
+     * READ ONLY トランザクションでは行ロックを取れないため。
+     */
+    lockRule?: boolean;
   },
 ): Promise<RouteResolution> {
   const setting = await client.query<{ rule_routing_enabled: boolean }>(
@@ -705,7 +711,7 @@ export async function resolveRouteForRequest(
   if (ruleRoutingEnabled && ruleId) {
     const loaded = await loadRule(client, input.organizationId, ruleId, {
       activeOnly: true,
-      lock: true,
+      lock: input.lockRule ?? true,
     });
     ruleState = loaded.state;
     if (loaded.state === 'ok') rule = loaded.rule;

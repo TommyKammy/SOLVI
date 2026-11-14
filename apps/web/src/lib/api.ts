@@ -819,6 +819,9 @@ export const api = {
       approvers: Array<{ id: string; name: string }>;
       canManage: boolean;
     }>('/catalog'),
+  /** ログイン中の本人を申請者とした、公開中カタログ項目の経路 (WP-P4-APR-016 §6.1)。 */
+  catalogApprovalRoute: (id: string) =>
+    call<RequestApprovalRoute>(`/catalog/${encodeURIComponent(id)}/approval-route`),
   catalogRequestOptions: async (): Promise<
     ApiResult<{
       items: CatalogItem[];
@@ -1987,6 +1990,33 @@ export interface ServiceRequestDetail {
     expires_at: string;
     reason: string | null;
   };
+  /** 現在の版・経路世代の、作成済みの承認ステップ (WP-P4-APR-014)。 */
+  steps?: Array<{
+    id: string;
+    stepNo: number;
+    state: string;
+    approverId: string;
+    approverName: string;
+    authorityType: string;
+    resolvedFrom: string | null;
+    reason: string | null;
+    decidedAt: string | null;
+    decidedBy: string | null;
+    expiresAt: string;
+  }>;
+  /** 版に固定した経路。未作成の後続段も含む。移行前の版は null。 */
+  route?: {
+    steps: Array<{
+      stepNo: number;
+      approverId: string;
+      approverName: string;
+      authorityType: string;
+      resolvedFrom: string | null;
+    }>;
+    ruleRef: { ruleId: string; revision: number } | null;
+  } | null;
+  /** 現在の pending ステップの承認者が、いま決定できない状態か。 */
+  approverUnavailable?: boolean;
   approvers: Array<{ id: string; name: string }>;
   history: Array<{
     id: string;
@@ -2083,6 +2113,28 @@ export interface ApprovalUnresolvedResult {
   rule: { id: string; code: string; revision: number; active: boolean };
   scanned: number;
   items: Array<{ userId: string; displayName: string; reason: ApprovalResolverReason }>;
+}
+
+/**
+ * 申請者自身の経路 (WP-P4-APR-016 §6.1)。
+ * 承認者は表示名だけ。役職・勤務地・社員番号・メールアドレス・承認者IDは含めない。
+ */
+export interface RequestApprovalRouteStep {
+  stepNo: number;
+  authorityType: string;
+  approverName: string;
+}
+
+export interface RequestApprovalRoute {
+  itemId: string;
+  itemVersion: number;
+  resolved: boolean;
+  mode: 'rule' | 'fixed' | 'requester_selected';
+  ruleRoutingEnabled: boolean;
+  rule: { id: string; code: string; revision: number } | null;
+  steps: RequestApprovalRouteStep[];
+  /** 解決できない理由。申請者が選ぶ方式では返らない。 */
+  reason?: ApprovalResolverReason;
 }
 
 export type RelationshipChangeType =

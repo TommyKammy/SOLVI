@@ -1,5 +1,15 @@
 /* global document, innerWidth, HTMLElement, getComputedStyle */
-// WP-P4-APR-016 stage A: loopback-only approval-rule admin walkthrough.
+// WP-P4-APR-016: loopback-only approval-rule admin (stage A) and end-to-end
+// requester / manager / fixed-approver walkthrough (stage B).
+//
+// Data rules (brief §ブラウザ確認とデータの扱い):
+//  - every write goes through the screens; only SEED synthetic accounts are used
+//  - markers: rule code `ui016b-syn-`, department code `UI016B-SYN-`,
+//    catalog title contains `UI016B`, request inputs contain `UI016B`
+//  - caps (per browser engine): 2 rules, 2 departments, 1 department head,
+//    2 people with profile changes, 1 catalog item, 3 requests
+//  - a re-run with a previous summary performs read-only reconciliation
+//  - cleanup always tries to disable organisation-wide routing first
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -17,17 +27,24 @@ const engine = process.env.SOLVI_UI_BROWSER ?? 'chromium';
 assert.ok(['chromium', 'webkit'].includes(engine));
 const output = resolve(process.env.SOLVI_UI_OUT ?? `evidence/WP-P4-APR-016/browser/${engine}`);
 const phase = process.env.SOLVI_UI_PHASE ?? 'full';
-assert.ok(['full', 'cleanup', 'verify'].includes(phase), `Unknown phase ${phase}`);
-const MAX_RULES = 4;
-const MAX_REVISIONS = 4;
+assert.ok(
+  ['full', 'cleanup', 'verify', 'resume', 'b2', 'b2readonly', 'b2detail'].includes(phase),
+  `Unknown phase ${phase}`,
+);
+const MAX_RULES = 2;
+const MAX_REVISIONS = 2;
+const MAX_DEPARTMENTS = 2;
+const MAX_DEPARTMENT_HEADS = 1;
+const MAX_PROFILE_PEOPLE = 2;
 const MAX_CATALOG_ITEMS = 1;
-const reuseCatalogId = process.env.SOLVI_UI_REUSE_CATALOG
-  ? process.env.SOLVI_UI_REUSE_CATALOG.trim()
-  : null;
+const MAX_REQUESTS = 3;
 
-const marker = `UI016-SYN-${Date.now()}-${engine}`;
-const ruleCode = `ui016-syn-${Date.now()}-${engine}`;
-const ruleName = `UI016 合成 2段承認 ${engine}`;
+const stamp = Date.now();
+const marker = `UI016B-SYN-${stamp}-${engine}`;
+const ruleCode = `ui016b-syn-${stamp}-${engine}`;
+const resumeRuleCode = `ui016b-syn-${stamp + 1}-${engine}`;
+const ruleName = `UI016B 合成 2段承認 ${engine}`;
+const departmentCode = `UI016B-SYN-${stamp}-${engine}`;
 
 let previous;
 try {
@@ -37,7 +54,7 @@ try {
 }
 if (previous) {
   assert.equal(previous.browser, engine, 'The previous summary belongs to another browser');
-  assert.match(previous.marker, /^UI016-SYN-\d+-(chromium|webkit)$/);
+  assert.match(previous.marker, /^UI016B-SYN-\d+-(chromium|webkit)$/);
 }
 const previousHasData = Boolean(
   previous &&
@@ -45,6 +62,20 @@ const previousHasData = Boolean(
     Object.values(previous.ids ?? {}).some(Boolean)),
 );
 if (!previousHasData) previous = undefined;
+
+// Stage B2 (supervisor re-run): reuse the stage-B synthetic catalog item and
+// completed request, add exactly one temporary rule per engine, and cover the
+// two checks that were left open. The previous summary is read from
+// SOLVI_UI_PREVIOUS; the new evidence directory gets a fresh summary.
+let b2Previous;
+if (phase === 'b2') {
+  assert.ok(process.env.SOLVI_UI_PREVIOUS, 'SOLVI_UI_PREVIOUS is required for the b2 phase');
+  b2Previous = JSON.parse(await readFile(resolve(process.env.SOLVI_UI_PREVIOUS), 'utf8'));
+  assert.equal(b2Previous.browser, engine, 'The previous summary belongs to another browser');
+  assert.equal(b2Previous.success, true, 'The previous stage-B run must have succeeded');
+  assert.ok(b2Previous.ids?.catalogItem, 'The previous synthetic catalog item is required');
+  assert.ok(b2Previous.ids?.request, 'The previous completed request is required');
+}
 
 const report = previous
   ? {
@@ -55,7 +86,7 @@ const report = previous
     }
   : {
       workPackage: 'WP-P4-APR-016',
-      stage: 'A',
+      stage: 'B',
       browser: engine,
       marker,
       success: false,
@@ -80,8 +111,24 @@ const report = previous
         routingEnabled: 0,
         routingDisabled: 0,
         ruleDeactivations: 0,
+        departmentsCreated: 0,
+        departmentHeadAssignments: 0,
+        departmentDeactivations: 0,
+        profileUpdates: 0,
+        profilePeople: [],
+        requestsCreated: 0,
       },
-      ids: { rule: null, catalogItem: null },
+      ids: {
+        rule: null,
+        catalogItem: null,
+        department: null,
+        request: null,
+        requesterUser: null,
+        managerUser: null,
+        fixedApproverUser: null,
+        headUser: null,
+        agentUser: null,
+      },
       applied: {
         rule: false,
         revision: false,
@@ -89,11 +136,75 @@ const report = previous
         catalogRuleBound: false,
         catalogPublished: false,
         routingEnabledOnce: false,
+        department: false,
+        profiles: false,
+        departmentHead: false,
+        requestCreated: false,
+        managerApproved: false,
+        fixedApproved: false,
+        simulated: false,
       },
       cleanup: { attempted: false, complete: false, steps: [], errors: [] },
       keyboard: null,
       blocked: [],
     };
+
+if (b2Previous) {
+  report.stage = 'B2';
+  report.previousEvidence = process.env.SOLVI_UI_PREVIOUS;
+  report.success = false;
+  report.currentStep = 'start-b2';
+  report.checks = [];
+  report.accessibility = [];
+  report.screenshots = [];
+  report.blocked = [];
+  report.keyboard = null;
+  report.writes = {
+    rulesCreated: 0,
+    revisions: 0,
+    catalogCreated: 0,
+    catalogUpdates: 0,
+    catalogPublished: 0,
+    catalogUnpublished: 0,
+    routingEnabled: 0,
+    routingDisabled: 0,
+    ruleDeactivations: 0,
+    departmentsCreated: 0,
+    departmentHeadAssignments: 0,
+    departmentDeactivations: 0,
+    profileUpdates: 0,
+    profilePeople: [],
+    requestsCreated: 0,
+  };
+  report.ids = {
+    rule: null,
+    catalogItem: b2Previous.ids.catalogItem,
+    department: null,
+    request: b2Previous.ids.request,
+    requesterUser: b2Previous.ids.requesterUser,
+    managerUser: b2Previous.ids.managerUser,
+    fixedApproverUser: b2Previous.ids.fixedApproverUser,
+    headUser: b2Previous.ids.headUser,
+    agentUser: b2Previous.ids.agentUser,
+    adminUser: b2Previous.ids.adminUser,
+  };
+  report.applied = {
+    rule: false,
+    revision: false,
+    catalog: false,
+    catalogRuleBound: false,
+    catalogPublished: false,
+    routingEnabledOnce: false,
+    department: false,
+    profiles: false,
+    departmentHead: false,
+    requestCreated: false,
+    managerApproved: false,
+    fixedApproved: false,
+    simulated: false,
+  };
+  report.cleanup = { attempted: false, complete: false, steps: [], errors: [] };
+}
 
 let browser;
 let activePage;
@@ -121,7 +232,7 @@ async function guard(context) {
   });
 }
 
-async function login(page, email) {
+async function login(page, email, orgName = 'サンプル株式会社') {
   await page.goto(new URL('/login', base).href);
   await page.getByLabel('メールアドレス', { exact: true }).fill(email);
   await page.getByLabel('パスワード', { exact: true }).fill(password);
@@ -130,19 +241,19 @@ async function login(page, email) {
     page.getByRole('button', { name: 'ログイン', exact: true }).click(),
   ]);
   if (new URL(page.url()).pathname === '/select-organization') {
-    await page.getByLabel('サンプル株式会社', { exact: true }).check();
+    await page.getByLabel(orgName, { exact: true }).check();
     await Promise.all([
       page.waitForURL((url) => url.pathname !== '/select-organization'),
-      page.getByRole('button', { name: 'この組織で続ける', exact: true }).click(),
+      page.getByRole('button', { name: /この組織(で続ける|へ切り替える)/ }).click(),
     ]);
   }
   await page.waitForLoadState('networkidle');
 }
 
-async function actor(name) {
-  if (pages.has(name)) return pages.get(name);
+async function actor(key, email = `${key}@acme.example.test`, orgName = 'サンプル株式会社') {
+  if (pages.has(key)) return pages.get(key);
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  contexts.set(name, context);
+  contexts.set(key, context);
   await guard(context);
   const page = await context.newPage();
   activePage = page;
@@ -150,8 +261,8 @@ async function actor(name) {
   let lastError;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      await login(page, `${name}@acme.example.test`);
-      pages.set(name, page);
+      await login(page, email, orgName);
+      pages.set(key, page);
       return page;
     } catch (error) {
       lastError = error;
@@ -192,7 +303,11 @@ async function submit(page, button, predicate) {
 }
 
 async function shot(page, name, target) {
-  if (target) await target.scrollIntoViewIfNeeded();
+  if (target) {
+    await target
+      .evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'auto' }))
+      .catch(() => undefined);
+  }
   await page.screenshot({ path: resolve(output, `${name}.png`), fullPage: false });
   if (!report.screenshots.includes(`${name}.png`)) report.screenshots.push(`${name}.png`);
 }
@@ -237,6 +352,12 @@ async function mobile(page, name, target) {
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 
+async function desktop(page, name, target) {
+  await accessible(page, `${name}-desktop-1440`);
+  await shot(page, `${name}-desktop-1440`, target);
+  await mobile(page, name, target);
+}
+
 async function tabTo(page, id, limit = 80) {
   let tabs = 0;
   while (tabs < limit) {
@@ -269,34 +390,87 @@ function userByEmail(users, email) {
   return user;
 }
 
+function syntheticRule(entry) {
+  return (
+    String(entry.code).toLowerCase().startsWith('ui016b-syn-') &&
+    String(entry.code).toLowerCase().endsWith(`-${engine}`)
+  );
+}
+
+function hasValue(profile) {
+  return Boolean(profile.primaryDepartmentId || profile.managerUserId);
+}
+
 async function preflight() {
   const rules = (await readApi('org_admin', '/approval-rules')).items;
-  const syntheticRules = rules.filter(
-    (rule) =>
-      String(rule.code).toLowerCase().startsWith('ui016-syn-') &&
-      String(rule.code).toLowerCase().endsWith(`-${engine}`),
-  );
+  const syntheticRules = rules.filter(syntheticRule);
   assert.ok(
     syntheticRules.length + 1 <= MAX_RULES,
     `Synthetic approval-rule cap for ${engine}: ${syntheticRules.length} already exist`,
   );
+  assert.ok(
+    syntheticRules.every((entry) => entry.active === false),
+    'A leftover UI016B rule must be inactive',
+  );
   const catalog = (await readApi('org_admin', '/catalog-admin')).items;
   const syntheticItems = catalog.filter(
-    (item) => String(item.title).includes('UI016') && String(item.title).includes(`-${engine}`),
+    (item) => String(item.title).includes('UI016B') && String(item.title).includes(`-${engine}`),
   );
-  if (reuseCatalogId) {
-    const reusable = syntheticItems.find((item) => item.id === reuseCatalogId);
-    assert.ok(reusable, 'The reused catalog item must exist and carry the UI016 marker');
-    assert.equal(reusable.active, false, 'The reused catalog item must be unpublished first');
-  } else {
-    assert.equal(
-      syntheticItems.length,
-      0,
-      `A prior UI016 catalog item exists without a summary: ${syntheticItems.length}`,
-    );
+  assert.equal(syntheticItems.length, 0, 'A prior UI016B catalog item must be reconciled first');
+  const departments = (await readApi('org_admin', '/departments')).items;
+  const syntheticDepartments = departments.filter(
+    (entry) =>
+      String(entry.code).startsWith('UI016B-SYN-') && String(entry.code).endsWith(`-${engine}`),
+  );
+  assert.equal(syntheticDepartments.length, 0, 'A prior UI016B department must be reconciled');
+  const users = (await readApi('org_admin', '/users')).items;
+  const filled = [];
+  for (const user of users) {
+    const profile = await readApi('org_admin', `/users/${user.userId}/profile`);
+    if (hasValue(profile.profile)) filled.push(user.email);
   }
+  assert.deepEqual(filled, [], 'Profiles must start empty for this run');
+  const requests = await readApi('org_admin', `/service-requests?q=${encodeURIComponent(marker)}`);
+  assert.equal(requests.total, 0, 'A prior UI016B request must be reconciled first');
   const settings = await readApi('org_admin', '/approval-routing');
   assert.equal(settings.setting.enabled, false, 'Approval routing must start disabled');
+}
+
+async function disableRouting(admin) {
+  const settings = await readApi('org_admin', '/approval-routing');
+  if (settings.setting.enabled === false) return;
+  await go(admin, '/ops/approvals');
+  await admin.locator('#approval-routing-toggle').click();
+  await admin.waitForURL((url) => url.searchParams.get('confirm') === 'disable-routing');
+  await submit(
+    admin,
+    admin.locator('#approval-routing-submit'),
+    (url) => url.searchParams.get('notice') === 'routing-disabled',
+  );
+  report.writes.routingDisabled += 1;
+  await admin.locator('#approval-notice').waitFor();
+  const after = await readApi('org_admin', '/approval-routing');
+  assert.equal(after.setting.enabled, false, 'routing must be disabled after cleanup');
+}
+
+async function resetRequesterProfile(admin) {
+  const users = (await readApi('org_admin', '/users')).items;
+  const requester = userByEmail(users, 'requester@acme.example.test');
+  const profile = (await readApi('org_admin', `/users/${requester.userId}/profile`)).profile;
+  if (!hasValue(profile)) return false;
+  await go(admin, `/ops/users?selected=${requester.userId}`);
+  await admin.locator('#profile-primary-department').selectOption('');
+  await admin.locator('#profile-manager').selectOption('');
+  await submit(
+    admin,
+    admin.getByRole('button', { name: 'プロフィールを保存する', exact: true }),
+    (url) => url.searchParams.get('notice') === 'profile',
+  );
+  report.writes.profileUpdates += 1;
+  await admin.locator('#directory-notice').waitFor();
+  const after = (await readApi('org_admin', `/users/${requester.userId}/profile`)).profile;
+  assert.equal(hasValue(after), false, 'the requester profile must be unset');
+  return true;
 }
 
 async function cleanup(admin) {
@@ -315,25 +489,45 @@ async function cleanup(admin) {
   };
   const ids = report.ids;
 
-  if (report.applied.routingEnabledOnce) {
-    await step('組織での承認ルールを無効へ戻す', async () => {
-      const settings = await readApi('org_admin', '/approval-routing');
-      if (settings.setting.enabled === false) return;
-      await go(admin, '/ops/approvals');
-      await admin.locator('#approval-routing-toggle').click();
-      await admin.waitForURL((url) => url.searchParams.get('confirm') === 'disable-routing');
+  // 1. Organisation-wide rule usage must never be left enabled.
+  await step('組織での承認ルールを無効へ戻す', () => disableRouting(admin));
+
+  // 2. Reset the profile values changed for the walkthrough.
+  await step('変更したプロフィール(主部署・上長)を未設定へ戻す', async () => {
+    await resetRequesterProfile(admin);
+  });
+
+  // 3. End the department head, then deactivate the synthetic department.
+  if (ids.department) {
+    await step('合成部署の部署長を終了する', async () => {
+      await go(admin, `/ops/departments?department=${ids.department}#department-head`);
+      if ((await admin.locator('#department-head-end').count()) === 0) return;
       await submit(
         admin,
-        admin.locator('#approval-routing-submit'),
-        (url) => url.searchParams.get('notice') === 'routing-disabled',
+        admin.getByRole('button', { name: '部署長を終了する', exact: true }),
+        (url) => url.searchParams.get('notice') === 'head-ended',
       );
-      report.writes.routingDisabled += 1;
-      await admin.locator('#approval-notice').waitFor();
-      const after = await readApi('org_admin', '/approval-routing');
-      assert.equal(after.setting.enabled, false, 'routing must be disabled after cleanup');
+      await admin.locator('#department-notice').waitFor();
+    });
+    await step('合成部署を無効化する', async () => {
+      await go(admin, `/ops/departments?department=${ids.department}#deactivate-department`);
+      const trigger = admin.getByRole('link', { name: 'この部署を無効化する', exact: true });
+      if ((await trigger.count()) === 0) return;
+      await Promise.all([
+        admin.waitForURL((url) => url.searchParams.get('confirm') === 'deactivate'),
+        trigger.click(),
+      ]);
+      await submit(
+        admin,
+        admin.getByRole('button', { name: '無効化する', exact: true }),
+        (url) => url.searchParams.get('notice') === 'deactivated',
+      );
+      report.writes.departmentDeactivations += 1;
+      await admin.locator('#department-notice').waitFor();
     });
   }
 
+  // 4. Unbind and unpublish the synthetic catalog item.
   if (ids.catalogItem) {
     await step('合成カタログ項目から承認ルールの結び付けを外す', async () => {
       const detail = await readApi('org_admin', `/catalog-admin/${ids.catalogItem}`);
@@ -372,13 +566,9 @@ async function cleanup(admin) {
     });
   }
 
+  // 5. Deactivate every synthetic rule left active.
   const rules = (await readApi('org_admin', '/approval-rules')).items;
-  const activeSynthetic = rules.filter(
-    (entry) =>
-      String(entry.code).toLowerCase().startsWith('ui016-syn-') &&
-      String(entry.code).toLowerCase().endsWith(`-${engine}`) &&
-      entry.active,
-  );
+  const activeSynthetic = rules.filter((entry) => syntheticRule(entry) && entry.active);
   for (const rule of activeSynthetic) {
     await step(`合成承認ルールを無効化する(${rule.code})`, async () => {
       await go(admin, `/ops/approvals?rule=${rule.id}#approval-rule-detail`);
@@ -398,6 +588,7 @@ async function cleanup(admin) {
     });
   }
 
+  // 6. Final invariants.
   const settings = await readApi('org_admin', '/approval-routing');
   if (settings.setting.enabled !== false) {
     report.cleanup.errors.push({
@@ -406,15 +597,45 @@ async function cleanup(admin) {
     });
   }
   const remainingActive = (await readApi('org_admin', '/approval-rules')).items.filter(
-    (entry) =>
-      String(entry.code).toLowerCase().startsWith('ui016-syn-') &&
-      String(entry.code).toLowerCase().endsWith(`-${engine}`) &&
-      entry.active,
+    (entry) => syntheticRule(entry) && entry.active,
   );
   if (remainingActive.length > 0) {
     report.cleanup.errors.push({
       name: '最終確認',
       message: `有効な合成承認ルールが ${remainingActive.length} 件残っています`,
+    });
+  }
+  const departments = (await readApi('org_admin', '/departments')).items;
+  const activeDepartments = departments.filter(
+    (entry) => String(entry.code).startsWith('UI016B-SYN-') && entry.active,
+  );
+  if (activeDepartments.length > 0) {
+    report.cleanup.errors.push({
+      name: '最終確認',
+      message: `有効な合成部署が ${activeDepartments.length} 件残っています`,
+    });
+  }
+  for (const department of departments.filter((entry) =>
+    String(entry.code).startsWith('UI016B-SYN-'),
+  )) {
+    const head = await readApi('org_admin', `/departments/${department.id}/head`);
+    if (head.head !== null) {
+      report.cleanup.errors.push({
+        name: '最終確認',
+        message: `終了していない合成部署長が残っています(${department.code})`,
+      });
+    }
+  }
+  const users = (await readApi('org_admin', '/users')).items;
+  const filled = [];
+  for (const user of users) {
+    const profile = (await readApi('org_admin', `/users/${user.userId}/profile`)).profile;
+    if (hasValue(profile)) filled.push(user.email);
+  }
+  if (filled.length > 0) {
+    report.cleanup.errors.push({
+      name: '最終確認',
+      message: `値の入ったプロフィールが ${filled.length} 件残っています`,
     });
   }
   report.cleanup.complete = report.cleanup.errors.length === 0;
@@ -432,11 +653,6 @@ async function visibilityChecks() {
     assert.match(await agent.locator('main').innerText(), /この画面を表示する権限がありません/);
     await go(agent, '/ops/approvals/changes');
     assert.match(await agent.locator('main').innerText(), /この画面を表示する権限がありません/);
-    await shot(
-      agent,
-      'approvals-permission-agent-desktop-1440',
-      agent.getByRole('heading', { level: 1 }),
-    );
 
     const auditor = await actor('auditor');
     await go(auditor, '/ops/approvals');
@@ -452,17 +668,12 @@ async function visibilityChecks() {
       1,
     );
     assert.ok((await auditor.locator('table.directory-table tbody tr').count()) >= 1);
-    await accessible(auditor, 'approvals-changes-auditor-desktop-1440');
-    await shot(
-      auditor,
-      'approvals-changes-auditor-desktop-1440',
-      auditor.getByRole('heading', { level: 1 }),
-    );
+    await desktop(auditor, 'approvals-changes-auditor', auditor.getByRole('heading', { level: 1 }));
   });
 }
 
 async function mobileChecks(admin) {
-  await check('1440px と 375px で横溢れがない', async () => {
+  await check('管理画面は1440pxと375pxで横溢れがない', async () => {
     await go(admin, `/ops/approvals?rule=${report.ids.rule}&unresolved=1#approval-rule-detail`);
     await mobile(admin, 'approvals-rule-detail', admin.getByRole('heading', { level: 1 }));
     await go(admin, '/ops/approvals/changes?from=2026-10-01&to=2026-11-14');
@@ -470,7 +681,7 @@ async function mobileChecks(admin) {
   });
 }
 
-async function firstRun(admin) {
+async function adminFirstRun(admin) {
   report.currentStep = 'start';
   await flush();
 
@@ -505,7 +716,12 @@ async function firstRun(admin) {
     assert.ok(approver, 'an active approver seed user is required');
     report.ids.adminUser = userByEmail(users, 'org_admin@acme.example.test').userId;
     report.ids.agentUser = userByEmail(users, 'agent@acme.example.test').userId;
-    report.ids.approverUser = approver.userId;
+    report.ids.requesterUser = userByEmail(users, 'requester@acme.example.test').userId;
+    report.ids.managerUser = userByEmail(users, 'auditor@acme.example.test').userId;
+    report.ids.fixedApproverUser = approver.userId;
+    report.ids.headUser = report.ids.agentUser;
+    const manager = users.find((user) => user.userId === report.ids.managerUser);
+    assert.ok(!manager.roleCodes.includes('approver'), 'the manager must not hold approver');
 
     const tabsBefore = await tabTo(admin, 'approval-create-code');
     const focus = await focusVisible(admin);
@@ -534,8 +750,7 @@ async function firstRun(admin) {
     const listText = await admin.locator('table.directory-table').first().innerText();
     assert.ok(listText.includes(ruleCode));
     assert.ok(listText.includes('上長（未解決時は部署長へ） → 固定承認者'));
-    await accessible(admin, 'approvals-rules-desktop-1440');
-    await shot(admin, 'approvals-rules-desktop-1440', admin.getByRole('heading', { level: 1 }));
+    await desktop(admin, 'approvals-rules', admin.getByRole('heading', { level: 1 }));
   });
 
   await check('既存の版を変えずに新しい版を追加できる', async () => {
@@ -555,12 +770,7 @@ async function firstRun(admin) {
     assert.match(detail, /上長（未解決時は拒否） → 固定承認者/);
     const historyRows = admin.locator('#approval-rule-detail table tbody tr');
     assert.ok((await historyRows.count()) >= 2, 'the revision history must keep both versions');
-    await accessible(admin, 'approvals-rule-detail-desktop-1440');
-    await shot(
-      admin,
-      'approvals-rule-detail-desktop-1440',
-      admin.locator('#approval-rule-detail-title'),
-    );
+    await desktop(admin, 'approvals-rule-detail', admin.locator('#approval-rule-detail-title'));
   });
 
   await check('ルールのプレビューで解決できない理由を表示する', async () => {
@@ -578,8 +788,7 @@ async function firstRun(admin) {
     const text = await result.innerText();
     assert.match(text, /経路を解決できません/);
     assert.match(text, /申請者は組織管理者のため上長が未設定です/);
-    await accessible(admin, 'approvals-preview-unresolved-desktop-1440');
-    await shot(admin, 'approvals-preview-unresolved-desktop-1440', result);
+    await desktop(admin, 'approvals-preview-unresolved', result);
   });
 
   await check('公開済みカタログ項目のプレビューで承認者の経路を表示する', async () => {
@@ -619,33 +828,26 @@ async function firstRun(admin) {
     assert.ok((await table.locator('tbody tr').count()) >= 1);
     const link = table.getByRole('link', { name: '利用者管理で確認する' }).first();
     assert.match(await link.getAttribute('href'), /^\/ops\/users\?selected=/);
-    await accessible(admin, 'approvals-unresolved-people-desktop-1440');
-    await shot(admin, 'approvals-unresolved-people-desktop-1440', table);
+    await desktop(admin, 'approvals-unresolved-people', table);
   });
 
   await check('合成カタログ項目を作成し、承認ルールを結び付けて公開できる', async () => {
-    if (reuseCatalogId) {
-      report.ids.catalogItem = reuseCatalogId;
-      report.reusedCatalog = reuseCatalogId;
-    } else {
-      const itemTitle = `UI016 合成カタログ ${marker}`;
-      await go(admin, '/catalog/manage/new');
-      await admin.locator('#catalog-title').fill(itemTitle);
-      await admin
-        .locator('#catalog-description')
-        .fill('UI016 の承認ルール結び付けを確認するための合成項目です。');
-      await admin.locator('#catalog-approver').selectOption(report.ids.approverUser);
-      await submit(
-        admin,
-        admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
-        (url) =>
-          url.pathname.startsWith('/catalog/manage/') && url.searchParams.get('saved') === '1',
-      );
-      report.ids.catalogItem = new URL(admin.url()).pathname.split('/').at(-1);
-      assert.ok(report.ids.catalogItem);
-      report.writes.catalogCreated += 1;
-      assert.ok(report.writes.catalogCreated <= MAX_CATALOG_ITEMS);
-    }
+    const itemTitle = `UI016B 合成カタログ ${marker}`;
+    await go(admin, '/catalog/manage/new');
+    await admin.locator('#catalog-title').fill(itemTitle);
+    await admin
+      .locator('#catalog-description')
+      .fill('UI016B の承認ルール結び付けを確認するための合成項目です。');
+    await admin.locator('#catalog-approver').selectOption(report.ids.fixedApproverUser);
+    await submit(
+      admin,
+      admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
+      (url) => url.pathname.startsWith('/catalog/manage/') && url.searchParams.get('saved') === '1',
+    );
+    report.ids.catalogItem = new URL(admin.url()).pathname.split('/').at(-1);
+    assert.ok(report.ids.catalogItem);
+    report.writes.catalogCreated += 1;
+    assert.ok(report.writes.catalogCreated <= MAX_CATALOG_ITEMS);
     report.applied.catalog = true;
 
     await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
@@ -684,8 +886,7 @@ async function firstRun(admin) {
     assert.match(text, /新しい申請/);
     assert.match(text, /進行中の申請の経路は変わりません/);
     assert.match(text, /変更履歴/);
-    await accessible(admin, 'approvals-enable-confirm-desktop-1440');
-    await shot(admin, 'approvals-enable-confirm-desktop-1440', confirm);
+    await desktop(admin, 'approvals-enable-confirm', confirm);
     await submit(
       admin,
       admin.locator('#approval-routing-submit'),
@@ -727,8 +928,7 @@ async function firstRun(admin) {
     assert.match(text, /申請者が内容を変更すると/);
     assert.match(text, /再割当の操作はこの画面にはありません/);
     assert.equal(await section.getByRole('button', { name: /再割当/ }).count(), 0);
-    await accessible(admin, 'approvals-unavailable-desktop-1440');
-    await shot(admin, 'approvals-unavailable-desktop-1440', section);
+    await desktop(admin, 'approvals-unavailable', section);
   });
 
   await check('上長・部署長の変更履歴を期間指定で表示する', async () => {
@@ -740,13 +940,11 @@ async function firstRun(admin) {
     for (const header of ['日時', '種類', '操作者', '対象者', '変更前', '変更後']) {
       assert.equal(await admin.getByRole('columnheader', { name: header, exact: true }).count(), 1);
     }
-    assert.ok((await admin.locator('table.directory-table tbody tr').count()) >= 1);
     const text = await admin.locator('main').innerText();
     assert.ok(!text.includes('社員番号'));
     assert.ok(!text.includes('役職'));
     assert.ok(!text.includes('勤務地'));
-    await accessible(admin, 'approvals-changes-desktop-1440');
-    await shot(admin, 'approvals-changes-desktop-1440', admin.getByRole('heading', { level: 1 }));
+    await desktop(admin, 'approvals-changes', admin.getByRole('heading', { level: 1 }));
   });
 
   await check('アクセスレビューから変更履歴へ辿れる', async () => {
@@ -767,14 +965,315 @@ async function firstRun(admin) {
 
   await visibilityChecks();
   await mobileChecks(admin);
+}
 
-  assert.deepEqual(report.blocked, []);
-  await cleanup(admin);
-  report.success = true;
-  report.currentStep = 'complete';
-  delete report.failure;
-  report.finishedAt = new Date().toISOString();
-  await flush();
+async function stageBWalkthrough(admin, resume = false) {
+  if (!resume) {
+    await check('組織管理者が合成の部署を作り、申請者の主部署と上長を設定する', async () => {
+      await go(admin, '/ops/departments');
+      await admin.locator('#department-code').fill(departmentCode);
+      await admin.locator('#department-name').fill(`UI016B 合成部署 ${engine}`);
+      await submit(admin, admin.locator('#department-create-submit'), (url) =>
+        Boolean(url.searchParams.get('notice') === 'created'),
+      );
+      report.ids.department = new URL(admin.url()).searchParams.get('department');
+      assert.ok(report.ids.department, 'the created department id is required');
+      report.applied.department = true;
+      report.writes.departmentsCreated += 1;
+      assert.ok(report.writes.departmentsCreated <= MAX_DEPARTMENTS);
+      await admin.locator('#department-notice').waitFor();
+
+      await go(admin, `/ops/users?selected=${report.ids.requesterUser}`);
+      await admin.locator('#profile-primary-department').selectOption(report.ids.department);
+      await admin.locator('#profile-manager').selectOption(report.ids.managerUser);
+      await submit(
+        admin,
+        admin.getByRole('button', { name: 'プロフィールを保存する', exact: true }),
+        (url) => url.searchParams.get('notice') === 'profile',
+      );
+      report.applied.profiles = true;
+      report.writes.profileUpdates += 1;
+      if (!report.writes.profilePeople.includes(report.ids.requesterUser))
+        report.writes.profilePeople.push(report.ids.requesterUser);
+      assert.ok(report.writes.profilePeople.length <= MAX_PROFILE_PEOPLE);
+      const profile = await readApi('org_admin', `/users/${report.ids.requesterUser}/profile`);
+      assert.equal(profile.profile.primaryDepartmentId, report.ids.department);
+      assert.equal(profile.profile.managerUserId, report.ids.managerUser);
+      await shot(admin, 'users-profile-manager-set-desktop-1440', admin.locator('#member-details'));
+
+      await go(admin, `/ops/departments?department=${report.ids.department}#department-head`);
+      await admin.locator('#department-head-user').selectOption(report.ids.headUser);
+      await submit(
+        admin,
+        admin.getByRole('button', { name: '部署長に設定する', exact: true }),
+        (url) => url.searchParams.get('notice') === 'head-assigned',
+      );
+      report.applied.departmentHead = true;
+      report.writes.departmentHeadAssignments += 1;
+      assert.ok(report.writes.departmentHeadAssignments <= MAX_DEPARTMENT_HEADS);
+      await admin.locator('#department-notice').waitFor();
+      await desktop(admin, 'departments-head-assigned', admin.locator('#department-head'));
+    });
+  } else {
+    await check('再開: 合成ルールを作り直し、項目に結び付けて公開する', async () => {
+      await go(admin, '/ops/approvals');
+      await admin.locator('#approval-create-code').fill(resumeRuleCode);
+      await admin.locator('#approval-create-name').fill(`${ruleName} 再開`);
+      await admin.locator('#approval-create-step-type-0').selectOption('manager');
+      await admin.locator('#approval-create-step-unresolved-0').selectOption('reject');
+      await admin.locator('#approval-create-step-type-1').selectOption('fixed');
+      await admin
+        .locator('#approval-create-step-approver-1')
+        .selectOption(report.ids.fixedApproverUser);
+      await submit(
+        admin,
+        admin.locator('#approval-create-submit'),
+        (url) => url.searchParams.get('notice') === 'created',
+      );
+      report.ids.resumeRule = new URL(admin.url()).searchParams.get('rule');
+      assert.ok(report.ids.resumeRule);
+      report.writes.rulesCreated += 1;
+      assert.ok(report.writes.rulesCreated <= MAX_RULES, 'The rule cap must hold');
+
+      await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
+      await admin.locator('summary').filter({ hasText: '下書きの項目と承認者を編集する' }).click();
+      await admin.locator('#catalog-approval-rule').selectOption(report.ids.resumeRule);
+      await submit(
+        admin,
+        admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
+        (url) => url.searchParams.get('saved') === '1',
+      );
+      report.writes.catalogUpdates += 1;
+      await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
+      await submit(
+        admin,
+        admin.getByRole('button', { name: /保存済みの下書き版\d+を公開する/ }),
+        (url) => url.searchParams.get('saved') === '1',
+      );
+      report.writes.catalogPublished += 1;
+
+      await go(admin, `/ops/users?selected=${report.ids.requesterUser}`);
+      await admin.locator('#profile-manager').selectOption(report.ids.managerUser);
+      await submit(
+        admin,
+        admin.getByRole('button', { name: 'プロフィールを保存する', exact: true }),
+        (url) => url.searchParams.get('notice') === 'profile',
+      );
+      report.writes.profileUpdates += 1;
+      const profile = await readApi('org_admin', `/users/${report.ids.requesterUser}/profile`);
+      assert.equal(profile.profile.managerUserId, report.ids.managerUser);
+      const published = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+      assert.equal(published.active, true);
+      assert.equal(published.draft.definition.approval?.ruleId, report.ids.resumeRule);
+    });
+  }
+
+  await check('組織でルールを有効にし、申請画面が2段の経路を表示する', async () => {
+    await go(
+      admin,
+      `/ops/approvals?rule=${report.ids.resumeRule ?? report.ids.rule}#approval-routing`,
+    );
+    await admin.locator('#approval-routing-toggle').click();
+    await admin.waitForURL((url) => url.searchParams.get('confirm') === 'enable-routing');
+    await submit(
+      admin,
+      admin.locator('#approval-routing-submit'),
+      (url) => url.searchParams.get('notice') === 'routing-enabled',
+    );
+    report.writes.routingEnabled += 1;
+    assert.equal((await readApi('org_admin', '/approval-routing')).setting.enabled, true);
+
+    const requester = await actor('requester');
+    await go(requester, `/catalog/${report.ids.catalogItem}`);
+    const route = requester.locator('section[aria-labelledby="request-approval-route-title"]');
+    await route.waitFor();
+    const text = await route.innerText();
+    assert.match(text, /段1（上長）/);
+    assert.match(text, /段2（固定承認者）/);
+    assert.match(text, /サンプル株式会社 auditor/);
+    assert.match(text, /サンプル株式会社 approver/);
+    assert.equal(await requester.locator('#request-approver').count(), 0);
+    assert.equal(await requester.locator('input[name="approverId"]').count(), 0);
+    const submitButton = requester.getByRole('button', { name: '申請する（模擬）', exact: true });
+    assert.equal(await submitButton.isDisabled(), false);
+    const tabs = await tabTo(requester, 'request-reason');
+    const focus = await focusVisible(requester);
+    assert.ok(focus && (focus.outlineStyle !== 'none' || focus.boxShadow !== 'none'));
+    report.keyboard = { ...(report.keyboard ?? {}), requesterTabs: tabs, requesterFocus: focus };
+    await desktop(requester, 'request-route-resolved', route);
+  });
+
+  if (!resume)
+    await check('申請者がキーボードで申請し、理由にUI016Bを含める', async () => {
+      const requester = await actor('requester');
+      await go(requester, `/catalog/${report.ids.catalogItem}`);
+      const reason = requester.locator('#request-reason');
+      await reason.fill('UI016B 通し確認の申請理由です。');
+      const submitButton = requester.getByRole('button', { name: '申請する（模擬）', exact: true });
+      await submitButton.focus();
+      assert.equal(await requester.evaluate(() => document.activeElement?.tagName), 'BUTTON');
+      await Promise.all([
+        requester.waitForURL((url) => url.pathname.startsWith('/requests/')),
+        requester.keyboard.press('Enter'),
+      ]);
+      await requester.waitForLoadState('networkidle');
+      report.ids.request = new URL(requester.url()).pathname.split('/').at(-1);
+      assert.ok(report.ids.request);
+      report.applied.requestCreated = true;
+      report.writes.requestsCreated += 1;
+      assert.ok(report.writes.requestsCreated <= MAX_REQUESTS);
+      const request = (await readApi('org_admin', `/service-requests/${report.ids.request}`))
+        .request;
+      assert.equal(request.state, 'pending');
+      const snapshot = request.snapshot;
+      assert.match(String(snapshot.inputs.reason), /UI016B/);
+    });
+
+  await check('無関係な利用者(まだ承認者でない固定承認者)は他人宛ての詳細URLで404', async () => {
+    const fixed = await actor('approver');
+    const response = await fixed.goto(new URL(`/requests/${report.ids.request}`, base).href);
+    assert.equal(response?.status(), 404);
+    await shot(fixed, 'request-unrelated-404-desktop-1440');
+  });
+
+  await check(
+    'approver ロールを持たない上長が承認待ち一覧・受信箱で自分宛てを見て承認する',
+    async () => {
+      const manager = await actor('auditor');
+      await go(manager, '/requests?view=approvals');
+      const listText = await manager.locator('main').innerText();
+      assert.match(listText, /UI016B/);
+      assert.match(listText, /承認/);
+      await desktop(
+        manager,
+        'requests-approvals-manager',
+        manager.getByRole('heading', { level: 1 }),
+      );
+
+      await go(manager, '/inbox?kind=approval');
+      const inboxText = await manager.locator('main').innerText();
+      assert.match(inboxText, /UI016B/);
+      assert.match(inboxText, /自分への承認/);
+      await desktop(manager, 'inbox-approval-manager', manager.getByRole('heading', { level: 1 }));
+
+      await go(manager, `/requests/${report.ids.request}`);
+      const detailText = await manager.locator('main').innerText();
+      assert.match(detailText, /段1（上長）/);
+      assert.match(detailText, /承認待ち/);
+      assert.match(detailText, /段2（固定承認者）/);
+      assert.match(detailText, /前の段の承認後に依頼/);
+      await desktop(
+        manager,
+        'request-detail-manager-pending',
+        manager.getByRole('heading', { level: 1 }),
+      );
+
+      const approve = manager.getByRole('button', { name: '承認する', exact: true });
+      await approve.focus();
+      assert.equal(await manager.evaluate(() => document.activeElement?.tagName), 'BUTTON');
+      await Promise.all([
+        manager.waitForURL((url) => url.searchParams.get('saved') === '1'),
+        manager.keyboard.press('Enter'),
+      ]);
+      await manager.waitForLoadState('networkidle');
+      report.applied.managerApproved = true;
+      const after = (await readApi('org_admin', `/service-requests/${report.ids.request}`)).request;
+      assert.equal(after.state, 'pending');
+    },
+  );
+
+  await check('固定承認者が自分宛てを見て承認する', async () => {
+    const fixed = await actor('approver');
+    await go(fixed, '/requests?view=approvals');
+    assert.match(await fixed.locator('main').innerText(), /UI016B/);
+    await go(fixed, '/inbox?kind=approval');
+    assert.match(await fixed.locator('main').innerText(), /UI016B/);
+    await go(fixed, `/requests/${report.ids.request}`);
+    const detailText = await fixed.locator('main').innerText();
+    assert.match(detailText, /段1（上長）/);
+    assert.match(detailText, /段2（固定承認者）/);
+    await desktop(fixed, 'request-detail-fixed-pending', fixed.getByRole('heading', { level: 1 }));
+    await submit(
+      fixed,
+      fixed.getByRole('button', { name: '承認する', exact: true }),
+      (url) => url.searchParams.get('saved') === '1',
+    );
+    report.applied.fixedApproved = true;
+    const after = (await readApi('org_admin', `/service-requests/${report.ids.request}`)).request;
+    assert.equal(after.state, 'approved');
+  });
+
+  await check('担当者が模擬完了まで進める', async () => {
+    const agent = await actor('agent');
+    await go(agent, `/requests/${report.ids.request}`);
+    const approveCount = await agent.getByRole('button', { name: '承認する', exact: true }).count();
+    assert.equal(approveCount, 0, 'the agent is not an approver of this request');
+    await submit(
+      agent,
+      agent.getByRole('button', { name: 'ローカルで模擬実行する', exact: true }),
+      (url) => url.searchParams.get('saved') === '1',
+    );
+    report.applied.simulated = true;
+    const after = (await readApi('org_admin', `/service-requests/${report.ids.request}`)).request;
+    assert.equal(after.state, 'completed');
+  });
+
+  await check('申請者が詳細で2段の承認の経過(承認者・日時)を確認する', async () => {
+    const requester = await actor('requester');
+    await go(requester, `/requests/${report.ids.request}`);
+    const section = requester.locator('ol[aria-label="承認の経過"]');
+    await section.waitFor();
+    const text = await section.innerText();
+    assert.match(text, /段1（上長）/);
+    assert.match(text, /段2（固定承認者）/);
+    assert.match(text, /サンプル株式会社 auditor/);
+    assert.match(text, /サンプル株式会社 approver/);
+    assert.match(text, /決定日時/);
+    assert.equal(await section.getByText('前の段の承認後に依頼').count(), 0);
+    await desktop(
+      requester,
+      'request-detail-requester-completed',
+      requester.getByRole('heading', { level: 1 }),
+    );
+    const detailText = await requester.locator('main').innerText();
+    assert.ok(!detailText.includes('社員番号'));
+    assert.ok(!detailText.includes('役職'));
+    assert.ok(!detailText.includes('勤務地'));
+  });
+
+  await check('上長を外した申請者には送信が無効で理由と設定依頼を表示する', async () => {
+    const before = (await readApi('org_admin', `/service-requests?q=${encodeURIComponent(marker)}`))
+      .total;
+    await resetRequesterProfile(admin);
+    const profile = (await readApi('org_admin', `/users/${report.ids.requesterUser}/profile`))
+      .profile;
+    assert.equal(profile.primaryDepartmentId, null);
+    assert.equal(profile.managerUserId, null);
+
+    const requester = await actor('requester');
+    await go(requester, `/catalog/${report.ids.catalogItem}`);
+    const alert = requester.locator('#request-route-blocked');
+    await alert.waitFor();
+    const text = await alert.innerText();
+    assert.match(text, /上長/);
+    assert.match(text, /組織の管理者へ設定を依頼/);
+    const submitButton = requester.getByRole('button', { name: '申請する（模擬）', exact: true });
+    assert.equal(await submitButton.isDisabled(), true);
+    assert.equal(await submitButton.getAttribute('aria-describedby'), 'request-route-blocked');
+    assert.equal(await requester.locator('#request-approver').count(), 0);
+    assert.equal(await requester.locator('input[name="approverId"]').count(), 0);
+    await desktop(requester, 'request-route-unresolved', alert);
+    const after = (await readApi('org_admin', `/service-requests?q=${encodeURIComponent(marker)}`))
+      .total;
+    assert.equal(after, before, 'a blocked form must not create a request');
+  });
+
+  await check('他組織の利用者は他人宛ての詳細URLで404', async () => {
+    const beta = await actor('beta-requester', 'requester@beta.example.test', 'ベータ商事株式会社');
+    const response = await beta.goto(new URL(`/requests/${report.ids.request}`, base).href);
+    assert.equal(response?.status(), 404);
+    await shot(beta, 'request-other-org-404-desktop-1440');
+  });
 }
 
 async function cleanupOnly(admin) {
@@ -785,7 +1284,7 @@ async function cleanupOnly(admin) {
   assert.equal(settings.setting.enabled, false, 'Approval routing must be disabled');
   const rules = (await readApi('org_admin', '/approval-rules')).items;
   const rule = rules.find((entry) => entry.id === report.ids.rule);
-  assert.ok(rule && rule.active === false, 'The synthetic rule must be inactive');
+  if (rule) assert.equal(rule.active, false, 'The synthetic rule must be inactive');
   if (report.ids.catalogItem) {
     const detail = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
     assert.equal(detail.active, false, 'The synthetic catalog item must be unpublished');
@@ -807,6 +1306,13 @@ async function verifyOnly(admin) {
   assert.ok(report.writes.rulesCreated <= MAX_RULES, 'The rule cap must hold');
   assert.ok(report.writes.revisions <= MAX_REVISIONS, 'The revision cap must hold');
   assert.ok(report.writes.catalogCreated <= MAX_CATALOG_ITEMS, 'The catalog cap must hold');
+  assert.ok(report.writes.departmentsCreated <= MAX_DEPARTMENTS, 'The department cap must hold');
+  assert.ok(
+    report.writes.departmentHeadAssignments <= MAX_DEPARTMENT_HEADS,
+    'The department-head cap must hold',
+  );
+  assert.ok(report.writes.profilePeople.length <= MAX_PROFILE_PEOPLE, 'The profile cap must hold');
+  assert.ok(report.writes.requestsCreated <= MAX_REQUESTS, 'The request cap must hold');
 
   await check('再検証: 無効化したルールの版の履歴を読み取れる', async () => {
     activePage = admin;
@@ -815,10 +1321,9 @@ async function verifyOnly(admin) {
     assert.match(detail, /無効/);
     assert.match(detail, /版2/);
     assert.ok((await admin.locator('#approval-rule-detail table tbody tr').count()) >= 2);
-    await accessible(admin, 'approvals-rule-detail-desktop-1440-readonly');
-    await shot(
+    await desktop(
       admin,
-      'approvals-rule-detail-desktop-1440-readonly',
+      'approvals-rule-detail-readonly',
       admin.locator('#approval-rule-detail-title'),
     );
   });
@@ -832,8 +1337,7 @@ async function verifyOnly(admin) {
     assert.match(text, /申請者が内容を変更すると/);
     assert.match(text, /再割当の操作はこの画面にはありません/);
     assert.equal(await section.getByRole('button', { name: /再割当/ }).count(), 0);
-    await accessible(admin, 'approvals-unavailable-desktop-1440-readonly');
-    await shot(admin, 'approvals-unavailable-desktop-1440-readonly', section);
+    await desktop(admin, 'approvals-unavailable-readonly', section);
   });
 
   await check('再検証: 変更した既存画面に新しい導線と選択肢がある(axe)', async () => {
@@ -855,28 +1359,368 @@ async function verifyOnly(admin) {
     await accessible(admin, 'access-review-desktop-1440-verify');
   });
 
-  await check('再検証: APIの拒否理由を画面に表示する(重複コード)', async () => {
+  await check('再検証: 組織での使用の説明が利用者向けの文になっている', async () => {
     await go(admin, '/ops/approvals');
-    const existingCode = String(report.marker).toLowerCase();
-    await admin.locator('#approval-create-code').fill(existingCode);
-    await admin.locator('#approval-create-name').fill(`UI016 重複確認 ${report.marker}`);
-    await admin.locator('#approval-create-step-type-0').selectOption('manager');
-    await admin.locator('#approval-create-step-unresolved-0').selectOption('reject');
-    await submit(admin, admin.locator('#approval-create-submit'), (url) =>
-      Boolean(url.searchParams.get('error')),
-    );
-    const text = await admin.locator('#approval-error').innerText();
-    assert.match(text, /同じコードの承認ルールが既にあります/);
-    assert.ok(!/23505|duplicate key|Error:/.test(text));
-    await accessible(admin, 'approvals-create-error-desktop-1440');
-    await shot(admin, 'approvals-create-error-desktop-1440', admin.locator('#approval-error'));
+    const text = await admin.locator('#approval-routing').innerText();
+    assert.match(text, /まだ有効にしていない組織では無効です/);
+    assert.ok(!text.includes('行が無い組織'), 'internal wording must not be shown');
   });
 
   await visibilityChecks();
   await mobileChecks(admin);
+  await check('再検証: 完了した申請の承認の経過を申請者が読める', async () => {
+    const requester = await actor('requester');
+    await go(requester, `/requests/${report.ids.request}`);
+    const text = await requester.locator('ol[aria-label="承認の経過"]').innerText();
+    assert.match(text, /段1（上長）/);
+    assert.match(text, /段2（固定承認者）/);
+    await desktop(
+      requester,
+      'request-detail-requester-completed-readonly',
+      requester.getByRole('heading', { level: 1 }),
+    );
+  });
   assert.deepEqual(report.blocked, []);
   report.success = true;
   report.currentStep = 'verify-complete';
+  delete report.failure;
+  report.finishedAt = new Date().toISOString();
+  await flush();
+}
+
+async function preflightB2() {
+  const settings = await readApi('org_admin', '/approval-routing');
+  assert.equal(settings.setting.enabled, false, 'Approval routing must start disabled');
+  const rules = (await readApi('org_admin', '/approval-rules')).items;
+  const syntheticRules = rules.filter(syntheticRule);
+  assert.ok(
+    syntheticRules.length <= MAX_RULES,
+    `Unexpected synthetic approval rules: ${syntheticRules.length}`,
+  );
+  assert.ok(
+    syntheticRules.every((entry) => entry.active === false),
+    'Every earlier UI016B rule must be inactive',
+  );
+  const users = (await readApi('org_admin', '/users')).items;
+  const requester = userByEmail(users, 'requester@acme.example.test');
+  assert.equal(requester.userId, report.ids.requesterUser, 'The requester seed user must match');
+  const profile = (await readApi('org_admin', `/users/${requester.userId}/profile`)).profile;
+  assert.equal(hasValue(profile), false, 'The requester profile must start unset');
+  const catalog = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+  assert.equal(catalog.active, false, 'The reused synthetic catalog item must be unpublished');
+  assert.ok(
+    !catalog.draft.definition.approval?.ruleId,
+    'The reused catalog draft must not keep an approval-rule reference',
+  );
+  const request = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(request.request.state, 'completed', 'The reused request must be completed');
+  const departments = (await readApi('org_admin', '/departments')).items;
+  assert.equal(
+    departments.filter((entry) => String(entry.code).startsWith('UI016B-SYN-') && entry.active)
+      .length,
+    0,
+    'No synthetic department may be active at the start',
+  );
+}
+
+async function createB2Rule(admin) {
+  await go(admin, '/ops/approvals');
+  await admin.locator('#approval-create-code').fill(ruleCode);
+  await admin.locator('#approval-create-name').fill(`${ruleName} B2`);
+  await admin.locator('#approval-create-step-type-0').selectOption('manager');
+  await admin.locator('#approval-create-step-unresolved-0').selectOption('reject');
+  await admin.locator('#approval-create-step-type-1').selectOption('fixed');
+  await admin
+    .locator('#approval-create-step-approver-1')
+    .selectOption(report.ids.fixedApproverUser);
+  await submit(
+    admin,
+    admin.locator('#approval-create-submit'),
+    (url) => url.searchParams.get('notice') === 'created',
+  );
+  report.ids.rule = new URL(admin.url()).searchParams.get('rule');
+  assert.ok(report.ids.rule, 'The new synthetic rule id is required');
+  report.applied.rule = true;
+  report.writes.rulesCreated += 1;
+  assert.equal(report.writes.rulesCreated, 1, 'Exactly one new rule is allowed in this re-run');
+  await admin.locator('#approval-notice').waitFor();
+  const after = (await readApi('org_admin', '/approval-rules')).items.find(
+    (entry) => entry.id === report.ids.rule,
+  );
+  assert.ok(after?.active, 'The new rule must be active for the check');
+  assert.ok(String(after.code).startsWith('ui016b-syn-'));
+}
+
+async function bindAndPublishCatalog(admin) {
+  await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
+  const summary = admin.locator('summary').filter({ hasText: '下書きの項目と承認者を編集する' });
+  assert.ok((await summary.count()) >= 1, 'The catalog draft editor must be present');
+  const ruleSelect = admin.locator('#catalog-approval-rule');
+  if (!(await ruleSelect.isVisible())) await summary.click();
+  await ruleSelect.selectOption(report.ids.rule);
+  await submit(
+    admin,
+    admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
+    (url) => url.searchParams.get('saved') === '1',
+  );
+  report.applied.catalogRuleBound = true;
+  report.writes.catalogUpdates += 1;
+  const bound = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+  assert.equal(bound.draft.definition.approval?.ruleId, report.ids.rule);
+
+  await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
+  await submit(
+    admin,
+    admin.getByRole('button', { name: /保存済みの下書き版\d+を公開する/ }),
+    (url) => url.searchParams.get('saved') === '1',
+  );
+  report.applied.catalogPublished = true;
+  report.writes.catalogPublished += 1;
+  const published = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+  assert.equal(published.active, true, 'The reused catalog item must be published');
+  assert.ok(published.publishedRevision !== null);
+}
+
+async function setRequesterManager(admin, managerUserId) {
+  await go(admin, `/ops/users?selected=${report.ids.requesterUser}`);
+  await admin.locator('#profile-manager').selectOption(managerUserId);
+  await submit(
+    admin,
+    admin.getByRole('button', { name: 'プロフィールを保存する', exact: true }),
+    (url) => url.searchParams.get('notice') === 'profile',
+  );
+  report.writes.profileUpdates += 1;
+  if (!report.writes.profilePeople.includes(report.ids.requesterUser))
+    report.writes.profilePeople.push(report.ids.requesterUser);
+  await admin.locator('#directory-notice').waitFor();
+}
+
+async function previewRule(admin) {
+  await go(admin, `/ops/approvals?rule=${report.ids.rule}#approval-preview`);
+  await admin.locator('input[name="previewKind"][value="rule"]').check();
+  await admin.locator('#approval-preview-rule').selectOption(report.ids.rule);
+  await admin.locator('#approval-preview-requester').selectOption(report.ids.requesterUser);
+  await submit(
+    admin,
+    admin.locator('#approval-preview-submit'),
+    (url) => url.searchParams.get('previewKind') === 'rule',
+  );
+  const result = admin.locator('section[aria-labelledby="approval-preview-result-title"]');
+  await result.waitFor();
+  return result;
+}
+
+async function enableRoutingB2(admin) {
+  await go(admin, `/ops/approvals?rule=${report.ids.rule}#approval-routing`);
+  await admin.locator('#approval-routing-toggle').click();
+  await admin.waitForURL((url) => url.searchParams.get('confirm') === 'enable-routing');
+  await submit(
+    admin,
+    admin.locator('#approval-routing-submit'),
+    (url) => url.searchParams.get('notice') === 'routing-enabled',
+  );
+  report.applied.routingEnabledOnce = true;
+  report.writes.routingEnabled += 1;
+  assert.equal((await readApi('org_admin', '/approval-routing')).setting.enabled, true);
+}
+
+async function checkPendingApprovals() {
+  const users = (await readApi('org_admin', '/users')).items;
+  const manager = userByEmail(users, 'auditor@acme.example.test');
+  assert.ok(!manager.roleCodes.includes('approver'), 'the checked user must not hold approver');
+  const page = await actor('auditor');
+  await go(page, '/requests?view=approvals');
+  assert.equal(await page.locator('#request-view').inputValue(), 'approvals');
+  assert.match(
+    (await page.locator('#request-view option:checked').textContent()) ?? '',
+    /自分が判断する承認待ち/,
+  );
+  const text = await page.locator('main').innerText();
+  assert.match(text, /表示対象/);
+  // No request may be created in this re-run and the walkthrough request is
+  // completed, so the non-approver's own queue is expected to be empty.
+  assert.match(text, /条件に合う申請はありません/);
+  await desktop(page, 'requests-approvals-manager', page.getByRole('heading', { level: 1 }));
+}
+
+async function checkOtherOrg404() {
+  const beta = await actor('beta-requester', 'requester@beta.example.test', 'ベータ商事株式会社');
+  const response = await beta.goto(new URL(`/requests/${report.ids.request}`, base).href);
+  assert.equal(response?.status(), 404);
+  await shot(beta, 'request-other-org-404-desktop-1440');
+}
+
+async function stageB2(admin) {
+  report.currentStep = 'start-b2';
+  await flush();
+
+  await check('B2: 組織での使用の説明が利用者向けの文になっている', async () => {
+    activePage = admin;
+    await go(admin, '/ops/approvals');
+    const routing = admin.locator('#approval-routing');
+    await routing.waitFor();
+    const text = await routing.innerText();
+    assert.match(text, /まだ有効にしていない組織では無効です/);
+    assert.ok(!text.includes('行が無い組織'), 'internal wording must not be shown');
+    await desktop(admin, 'approvals-routing-description', routing);
+  });
+
+  await check('B2: 合成の承認ルールを1件だけ作る', async () => {
+    await createB2Rule(admin);
+  });
+
+  await check('B2: プレビューが解決できない理由を表示する', async () => {
+    const result = await previewRule(admin);
+    const text = await result.innerText();
+    assert.match(text, /経路を解決できません/);
+    assert.match(text, /上長/);
+    await desktop(admin, 'approvals-preview-unresolved', result);
+  });
+
+  await check('B2: 既存の合成カタログ項目に結び付けて公開する', async () => {
+    await bindAndPublishCatalog(admin);
+  });
+
+  await check('B2: 上長を設定すると申請画面が2段の経路を表示する', async () => {
+    await setRequesterManager(admin, report.ids.managerUser);
+    const profile = (await readApi('org_admin', `/users/${report.ids.requesterUser}/profile`))
+      .profile;
+    assert.equal(profile.managerUserId, report.ids.managerUser);
+    const result = await previewRule(admin);
+    const previewText = await result.innerText();
+    assert.match(previewText, /段1/);
+    assert.match(previewText, /段2/);
+    await desktop(admin, 'approvals-preview-resolved', result);
+
+    await enableRoutingB2(admin);
+
+    const requester = await actor('requester');
+    await go(requester, `/catalog/${report.ids.catalogItem}`);
+    const route = requester.locator('section[aria-labelledby="request-approval-route-title"]');
+    await route.waitFor();
+    const text = await route.innerText();
+    assert.match(text, /段1（上長）/);
+    assert.match(text, /段2（固定承認者）/);
+    assert.match(text, /サンプル株式会社 auditor/);
+    assert.match(text, /サンプル株式会社 approver/);
+    assert.equal(await requester.locator('#request-approver').count(), 0);
+    assert.equal(await requester.locator('input[name="approverId"]').count(), 0);
+    const submitButton = requester.getByRole('button', { name: '申請する（模擬）', exact: true });
+    assert.equal(await submitButton.isDisabled(), false);
+    await desktop(requester, 'request-route-resolved', route);
+  });
+
+  await check('B2: 上長を外すと理由と管理者への依頼が表示され、送信が無効になる', async () => {
+    await setRequesterManager(admin, '');
+    const profile = (await readApi('org_admin', `/users/${report.ids.requesterUser}/profile`))
+      .profile;
+    assert.equal(profile.primaryDepartmentId, null);
+    assert.equal(profile.managerUserId, null);
+
+    const before = (await readApi('org_admin', `/service-requests?q=${encodeURIComponent(marker)}`))
+      .total;
+    const requester = await actor('requester');
+    await go(requester, `/catalog/${report.ids.catalogItem}`);
+    const alert = requester.locator('#request-route-blocked');
+    await alert.waitFor();
+    const text = await alert.innerText();
+    assert.match(text, /上長/);
+    assert.match(text, /組織の管理者へ設定を依頼/);
+    const submitButton = requester.getByRole('button', { name: '申請する（模擬）', exact: true });
+    assert.equal(await submitButton.isDisabled(), true);
+    assert.equal(await submitButton.getAttribute('aria-describedby'), 'request-route-blocked');
+    assert.equal(await requester.locator('#request-approver').count(), 0);
+    assert.equal(await requester.locator('input[name="approverId"]').count(), 0);
+    await desktop(requester, 'request-route-unresolved', alert);
+    const after = (await readApi('org_admin', `/service-requests?q=${encodeURIComponent(marker)}`))
+      .total;
+    assert.equal(after, before, 'a blocked form must not create a request');
+  });
+
+  await check('B2: 申請者が詳細で2段の承認の経過を読める', async () => {
+    const requester = await actor('requester');
+    await go(requester, `/requests/${report.ids.request}`);
+    const section = requester.locator('ol[aria-label="承認の経過"]');
+    await section.waitFor();
+    const text = await section.innerText();
+    assert.match(text, /段1（上長）/);
+    assert.match(text, /段2（固定承認者）/);
+    assert.match(text, /サンプル株式会社 auditor/);
+    assert.match(text, /サンプル株式会社 approver/);
+    assert.match(text, /決定日時/);
+    await desktop(
+      requester,
+      'request-detail-requester-completed',
+      requester.getByRole('heading', { level: 1 }),
+    );
+  });
+
+  await check('B2: approver ロールを持たない利用者にも承認待ちの絞り込みが見える', async () => {
+    await checkPendingApprovals();
+  });
+
+  await check('B2: 他組織(beta)の利用者は他人宛ての詳細URLで404', async () => {
+    await checkOtherOrg404();
+  });
+}
+
+async function verifyB2ReadOnly() {
+  assert.ok(previous, 'The b2readonly phase needs the previous B2 summary');
+  assert.equal(previous.stage, 'B2', 'The previous summary must belong to stage B2');
+  const settings = await readApi('org_admin', '/approval-routing');
+  assert.equal(settings.setting.enabled, false, 'Approval routing must be disabled');
+  const rules = (await readApi('org_admin', '/approval-rules')).items;
+  assert.ok(
+    rules.filter(syntheticRule).every((entry) => entry.active === false),
+    'Every synthetic rule must be inactive',
+  );
+  const profile = (await readApi('org_admin', `/users/${report.ids.requesterUser}/profile`))
+    .profile;
+  assert.equal(hasValue(profile), false, 'The requester profile must be unset');
+  const catalog = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+  assert.equal(catalog.active, false, 'The reused catalog item must be unpublished');
+  assert.ok(!catalog.draft.definition.approval?.ruleId, 'The draft must not keep a rule');
+  const request = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(request.request.state, 'completed', 'The reused request must stay completed');
+  const writesBefore = JSON.stringify(report.writes);
+
+  await check('B2(追加): 承認待ち一覧を両エンジンで撮り直す', async () => {
+    await checkPendingApprovals();
+  });
+  await check('B2(追加): 他組織(beta)の詳細URLが404になる', async () => {
+    await checkOtherOrg404();
+  });
+
+  assert.equal(JSON.stringify(report.writes), writesBefore, 'The extra phase must not write');
+  assert.deepEqual(report.blocked, []);
+  report.success = true;
+  report.currentStep = 'complete-b2-readonly';
+  delete report.failure;
+  report.finishedAt = new Date().toISOString();
+  await flush();
+}
+
+async function verifyB2Detail() {
+  assert.ok(previous, 'The b2detail phase needs the previous B2 summary');
+  assert.equal(previous.stage, 'B2', 'The previous summary must belong to stage B2');
+  const writesBefore = JSON.stringify(report.writes);
+  const requester = await actor('requester');
+  await go(requester, `/requests/${report.ids.request}`);
+  const history = requester.locator('ol[aria-label="承認の経過"]');
+  await history.waitFor();
+  const text = await history.innerText();
+  assert.match(text, /段1（上長）/);
+  assert.match(text, /段2（固定承認者）/);
+  assert.match(text, /決定日時/);
+
+  await check('B2(追加): 詳細の承認の経過を1440pxと375pxで撮り直す', async () => {
+    await desktop(requester, 'request-detail-requester-completed', history);
+  });
+
+  assert.equal(JSON.stringify(report.writes), writesBefore, 'The screenshot retake must not write');
+  assert.deepEqual(report.blocked, []);
+  report.success = true;
+  report.currentStep = 'complete-b2-detail';
   delete report.failure;
   report.finishedAt = new Date().toISOString();
   await flush();
@@ -890,6 +1734,20 @@ async function reconcile(admin) {
   assert.equal(rule.active, false, 'The previous synthetic rule must be inactive');
   const settings = await readApi('org_admin', '/approval-routing');
   assert.equal(settings.setting.enabled, false, 'Approval routing must be disabled');
+  if (ids.department) {
+    const departments = (await readApi('org_admin', '/departments')).items;
+    const department = departments.find((entry) => entry.id === ids.department);
+    assert.ok(
+      department && department.active === false,
+      'The synthetic department must be inactive',
+    );
+    const head = await readApi('org_admin', `/departments/${ids.department}/head`);
+    assert.equal(head.head, null, 'The synthetic department head must be finished');
+  }
+  if (ids.requesterUser) {
+    const profile = (await readApi('org_admin', `/users/${ids.requesterUser}/profile`)).profile;
+    assert.equal(hasValue(profile), false, 'The requester profile must be unset');
+  }
   if (ids.catalogItem) {
     const detail = await readApi('org_admin', `/catalog-admin/${ids.catalogItem}`);
     assert.equal(detail.active, false, 'The previous synthetic catalog item must be unpublished');
@@ -898,6 +1756,22 @@ async function reconcile(admin) {
       'The previous synthetic catalog item must not keep the rule reference',
     );
   }
+  if (ids.request) {
+    const request = await readApi('org_admin', `/service-requests/${ids.request}`);
+    assert.equal(request.request.state, 'completed', 'The walkthrough request must be completed');
+  }
+  const departments = (await readApi('org_admin', '/departments')).items;
+  assert.equal(
+    departments.filter((entry) => String(entry.code).startsWith('UI016B-SYN-') && entry.active)
+      .length,
+    0,
+    'No synthetic department may remain active',
+  );
+  const users = (await readApi('org_admin', '/users')).items;
+  for (const user of users) {
+    const profile = (await readApi('org_admin', `/users/${user.userId}/profile`)).profile;
+    assert.equal(hasValue(profile), false, `The profile of ${user.email} must be unset`);
+  }
 
   await check('再実行: 合成ルールは無効、組織の設定は無効のまま', async () => {
     activePage = admin;
@@ -905,10 +1779,9 @@ async function reconcile(admin) {
     assert.equal(await admin.getByRole('heading', { name: '承認ルール', exact: true }).count(), 1);
     assert.match(await admin.locator('#approval-rule-detail').innerText(), /無効/);
     assert.match(await admin.locator('#approval-routing').innerText(), /現在の状態:\s*無効/);
-    await accessible(admin, 'approvals-rule-detail-desktop-1440-readonly');
-    await shot(
+    await desktop(
       admin,
-      'approvals-rule-detail-desktop-1440-readonly',
+      'approvals-rule-detail-readonly',
       admin.locator('#approval-rule-detail-title'),
     );
   });
@@ -924,12 +1797,23 @@ async function reconcile(admin) {
       await admin.getByRole('heading', { name: '承認者不在の申請', exact: true }).count(),
       1,
     );
-    await accessible(admin, 'approvals-unavailable-desktop-1440-readonly');
-    await shot(
+    await desktop(
       admin,
-      'approvals-unavailable-desktop-1440-readonly',
+      'approvals-unavailable-readonly',
       admin.locator('section[aria-labelledby="approval-unavailable-title"]'),
     );
+  });
+
+  await check('再実行: 完了した申請の承認の経過と404を読み取りで確認する', async () => {
+    if (!ids.request) return;
+    const requester = await actor('requester');
+    await go(requester, `/requests/${ids.request}`);
+    const text = await requester.locator('ol[aria-label="承認の経過"]').innerText();
+    assert.match(text, /段1（上長）/);
+    assert.match(text, /段2（固定承認者）/);
+    const beta = await actor('beta-requester', 'requester@beta.example.test', 'ベータ商事株式会社');
+    const response = await beta.goto(new URL(`/requests/${ids.request}`, base).href);
+    assert.equal(response?.status(), 404);
   });
 
   const previousWrites = previous?.writes ?? {};
@@ -949,8 +1833,27 @@ async function main() {
   );
   report.browserVersion = browser.version();
   const admin = await actor('org_admin');
+  if (phase === 'b2') {
+    await preflightB2();
+    await stageB2(admin);
+    assert.deepEqual(report.blocked, []);
+    await cleanup(admin);
+    report.success = report.cleanup.complete;
+    report.currentStep = 'complete-b2';
+    delete report.failure;
+    report.finishedAt = new Date().toISOString();
+    await flush();
+    return;
+  }
+  if (phase === 'b2readonly') {
+    await verifyB2ReadOnly();
+    return;
+  }
+  if (phase === 'b2detail') {
+    await verifyB2Detail();
+    return;
+  }
   if (phase === 'cleanup') {
-    assert.ok(previous, 'The cleanup phase needs the previous summary');
     await cleanupOnly(admin);
     return;
   }
@@ -959,12 +1862,36 @@ async function main() {
     await verifyOnly(admin);
     return;
   }
+  if (phase === 'resume') {
+    assert.ok(previous, 'The resume phase needs the previous summary');
+    assert.ok(report.ids.request, 'The resume phase needs the created request');
+    const request = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+    assert.equal(request.request.state, 'pending', 'Only a pending request can be resumed');
+    report.cleanup = { attempted: false, complete: false, steps: [], errors: [] };
+    await stageBWalkthrough(admin, true);
+    assert.deepEqual(report.blocked, []);
+    await cleanup(admin);
+    report.success = report.cleanup.complete;
+    report.currentStep = 'complete-resume';
+    delete report.failure;
+    report.finishedAt = new Date().toISOString();
+    await flush();
+    return;
+  }
   if (previous) {
     await reconcile(admin);
     return;
   }
   await preflight();
-  await firstRun(admin);
+  await adminFirstRun(admin);
+  await stageBWalkthrough(admin);
+  assert.deepEqual(report.blocked, []);
+  await cleanup(admin);
+  report.success = true;
+  report.currentStep = 'complete';
+  delete report.failure;
+  report.finishedAt = new Date().toISOString();
+  await flush();
 }
 
 try {
@@ -978,7 +1905,7 @@ try {
       // Preserve the last successfully recorded step if the page already closed.
     }
   }
-  if (!previous && pages.has('org_admin')) {
+  if ((!previous || phase === 'b2') && pages.has('org_admin')) {
     try {
       await cleanup(pages.get('org_admin'));
     } catch (cleanupError) {

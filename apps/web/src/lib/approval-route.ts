@@ -376,3 +376,153 @@ export function relationshipHistoryHref(
   if (next.page !== 1) params.set('page', String(next.page));
   return `/ops/approvals/changes?${params.toString()}`;
 }
+
+/* ------------------------------------------------------------------ */
+/* 申請画面の経路表示 (WP-P4-APR-016 段階B)                             */
+/* ------------------------------------------------------------------ */
+
+/** 詳細の承認タイムラインで使う状態の語彙。APIの `state` と同じ。 */
+export const STEP_STATE_LABELS: Record<string, string> = {
+  pending: '承認待ち',
+  approved: '承認',
+  rejected: '却下',
+  invalidated: '無効',
+  expired: '期限切れ',
+  cancelled: '取消',
+};
+
+export function stepStateLabel(value: string | null | undefined): string {
+  return (value && STEP_STATE_LABELS[value]) || '状態を確認できません';
+}
+
+export interface RequestRouteDecision {
+  /** 承認ルールで経路が決まるか。true なら承認者選択を出さず approverId を送らない。 */
+  usesRule: boolean;
+  /** 解決された経路を段の順に表示できるか。 */
+  showSteps: boolean;
+  /** 解決できないため送信を無効にするか。 */
+  blocked: boolean;
+  /** 送信を無効にする理由(APIの日本語)。 */
+  reason: string | null;
+}
+
+/**
+ * 申請画面の表示と送信可否を決める純関数。
+ *
+ * - 経路確認APIが失敗した場合は、ルール項目だけ fail closed で送信を止める。
+ * - 組織でルールを使っていない場合は従来の表示(固定承認者・申請者が選ぶ)に戻す。
+ * - 表示は参考であり、送信時にAPIが改めて解決・検証する。
+ */
+export function requestRouteDecision(input: {
+  ruleId: string | null;
+  itemVersion: number;
+  route: {
+    itemVersion: number;
+    resolved: boolean;
+    mode: string;
+    ruleRoutingEnabled: boolean;
+    rule: { id: string } | null;
+    reason?: unknown;
+  } | null;
+}): RequestRouteDecision {
+  if (!input.ruleId) return { usesRule: false, showSteps: false, blocked: false, reason: null };
+  const route = input.route;
+  if (!route)
+    return {
+      usesRule: true,
+      showSteps: false,
+      blocked: true,
+      reason: '承認経路を確認できませんでした。時間をおいて画面を開き直してください。',
+    };
+  if (!route.ruleRoutingEnabled)
+    return { usesRule: false, showSteps: false, blocked: false, reason: null };
+  const matches =
+    route.mode === 'rule' &&
+    route.itemVersion === input.itemVersion &&
+    (route.rule === null || route.rule.id === input.ruleId);
+  if (!matches) return { usesRule: true, showSteps: false, blocked: false, reason: null };
+  if (!route.resolved)
+    return {
+      usesRule: true,
+      showSteps: false,
+      blocked: true,
+      reason: resolverReasonText(route.reason),
+    };
+  return { usesRule: true, showSteps: true, blocked: false, reason: null };
+}
+
+/* ------------------------------------------------------------------ */
+/* 申請詳細の承認の経過 (WP-P4-APR-016 段階B)                           */
+/* ------------------------------------------------------------------ */
+
+export interface RequestTimelineStep {
+  stepNo: number;
+  authorityType: string;
+  approverName: string | null;
+  /** 未作成の後続段は null。 */
+  state: string | null;
+  decidedAt: string | null;
+  reason: string | null;
+  expiresAt: string | null;
+  /** 前の段の承認後に依頼する段か。 */
+  pendingCreation: boolean;
+}
+
+type TimelineRouteStep = {
+  stepNo: number;
+  authorityType: string;
+  approverName: string;
+};
+
+type TimelineCreatedStep = {
+  stepNo: number;
+  state: string;
+  approverName: string;
+  authorityType: string;
+  reason: string | null;
+  decidedAt: string | null;
+  expiresAt: string;
+};
+
+/**
+ * 版に固定した経路(未作成の段を含む)と、作成済みの承認行を段の順にまとめる。
+ * 経路の無い移行前の申請は、作成済みの行だけをそのまま返す(情報を減らさない)。
+ */
+export function requestApprovalTimeline(input: {
+  route: { steps: TimelineRouteStep[] } | null | undefined;
+  steps: TimelineCreatedStep[] | null | undefined;
+}): RequestTimelineStep[] {
+  const created = new Map((input.steps ?? []).map((step) => [step.stepNo, step]));
+  const fromCreated = (step: TimelineCreatedStep): RequestTimelineStep => ({
+    stepNo: step.stepNo,
+    authorityType: step.authorityType,
+    approverName: step.approverName,
+    state: step.state,
+    decidedAt: step.decidedAt,
+    reason: step.reason,
+    expiresAt: step.expiresAt,
+    pendingCreation: false,
+  });
+  if (input.route && input.route.steps.length > 0) {
+    return input.route.steps.map((routeStep) => {
+      const step = created.get(routeStep.stepNo);
+      if (!step)
+        return {
+          stepNo: routeStep.stepNo,
+          authorityType: routeStep.authorityType,
+          approverName: routeStep.approverName,
+          state: null,
+          decidedAt: null,
+          reason: null,
+          expiresAt: null,
+          pendingCreation: true,
+        };
+      return {
+        ...fromCreated(step),
+        authorityType: step.authorityType || routeStep.authorityType,
+        approverName: step.approverName || routeStep.approverName,
+      };
+    });
+  }
+  return (input.steps ?? []).map(fromCreated);
+}

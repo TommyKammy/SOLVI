@@ -11,7 +11,7 @@ updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "ui", "accessibility"]
 source_of_truth: true
-implementation_status: "in-progress"
+implementation_status: "review"
 story_points: 8
 risk: "medium"
 workstream: "APR"
@@ -168,6 +168,8 @@ WP-P4-APR-015 のAPI契約 / apps/web の既存の申請・詳細・カタログ
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階A 完了。段階B 未着手 | `evidence/WP-P4-APR-016/20261114-0822/` | 承認ルール管理・プレビュー・組織での有効化・カタログ項目への結び付け・承認者不在の一覧・変更履歴・導線・変更履歴APIの403先行。Chromium と WebKit で PASS |
+| 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階B 実装完了。監督者レビュー待ち | `evidence/WP-P4-APR-016/20261114-0914/` | 申請者自身の経路確認API、申請画面の経路表示と送信の無効化、詳細の承認の経過、承認待ち一覧・受信箱のロール非依存化。通しのブラウザ確認は Chromium 28 checks / WebKit 27 checks が PASS。解決不能フォームのブラウザ確認だけは未実施(下記「未解決事項」) |
+| 2026-11-14 | 実装担当(Codex) | 作業ツリー(未コミット) | 段階B2 完了。監督者レビュー待ち | `evidence/WP-P4-APR-016/20261114-0949/` | 手順8(解決不能フォーム)と他組織(beta)の404を Chromium/WebKit で確認。修正後の変更画面を1440px/375pxで撮り直し、axe serious/critical 0。合成ルールはエンジンごとに1件だけ追加し、すべて無効化 |
 
 ### 2026-11-14 段階A 実装記録
 
@@ -248,3 +250,177 @@ SOLVI_UI_BROWSER=webkit   node tools/ui_approval_routing_check.mjs  # PASS 18 ch
 #### Evidence
 
 `evidence/WP-P4-APR-016/20261114-0822/`(README、`browser/chromium/`、`browser/webkit/`、`raw/`)。
+
+### 2026-11-14 段階B 実装記録
+
+**範囲**: 本WP §3 の段階B(申請者・承認者向け)。申請者自身の経路確認API、申請画面の経路表示と送信の無効化、詳細の承認の経過、承認待ち一覧・受信箱のロール非依存化、通しのブラウザ確認。
+
+#### 変更ファイル
+
+- `services/api/src/modules/catalog/catalog.routes.ts`(申請者自身の経路確認 `approvalRoute` を追加。読み取り専用トランザクション。詳細に `route` と `approverUnavailable` を加算)
+- `services/api/src/modules/catalog/approval-resolver.ts`(`resolveRouteForRequest` に `lockRule?: boolean` を加算。READ ONLY トランザクションでは行ロックを取らない)
+- `services/api/src/main.ts`(`GET /catalog/:id/approval-route` の登録)
+- `apps/web/src/lib/api.ts`(経路確認の型と読み取り、詳細の型の加算)
+- `apps/web/src/lib/approval-route.ts`(経路の表示・送信可否の判定と承認の経過の整形の純関数)
+- `apps/web/src/components/RequestForms.tsx`(ルール項目の経路表示、承認者選択の非表示、解決不能時の送信無効化)
+- `apps/web/src/app/catalog/[itemId]/page.tsx`(ルール項目だけ本人の経路を読む)
+- `apps/web/src/app/requests/[id]/page.tsx`(承認の経過、ロール非依存の自分宛て判定、変更フォームの経路、承認者不在の案内)
+- `apps/web/src/app/requests/page.tsx`(承認待ちの絞り込みをロールで隠さない)
+- `apps/web/src/app/requests/actions.ts`(未入力の `approverId` を送らない)
+- `apps/web/src/app/ops/approvals/page.tsx`(「組織での使用」の説明を利用者向けに修正。プレビューの選択欄の375px横溢れを修正)
+- `tests/unit/approval-route-ui.test.ts`(経路の表示・送信可否・承認の経過の純関数)
+- `tests/unit/requests-ui.test.ts`(承認待ちの絞り込みのロール非依存化、ルール項目のフォームの実レンダリング)
+- `tests/security/approval-routing.test.ts`(本人の経路、他人の経路を調べられない、他組織・非公開は404、個人データなし、書込みなし、解決不能の理由、無効ルール)
+- `tools/ui_approval_routing_check.mjs`(段階Bの通し確認。部署・プロフィール・上長・申請・承認・模擬完了・経過・解決不能の確認、再開・片付け)
+
+Migration: **なし**。スキーマ変更なし。ロールバックはコードの巻き戻しのみ。
+
+#### 追加したAPI
+
+`GET /catalog/{itemId}/approval-route`(ログイン中の全利用者。本人を申請者とする。公開中かつ同組織の項目だけ。404は非公開・他組織・不在)。応答は `itemId`、`itemVersion`、`resolved`、`mode`(`rule` / `fixed` / `requester_selected`)、`ruleRoutingEnabled`、`rule{id,code,revision}|null`、`steps[{stepNo,authorityType,approverName}]`、解決できない場合の `reason{code,message,missing,stepNo,authorityType}`。承認者ID・メールアドレス・役職・勤務地・社員番号は返さない。書込み・監査イベントなし。
+
+#### 実行した検証コマンドと結果
+
+```text
+npm run typecheck                                  # exit 0
+npm run lint                                       # exit 0
+npm run check:all                                  # exit 0
+npx vitest run tests/unit/approval-route-ui.test.ts \
+  tests/unit/requests-ui.test.ts \
+  tests/unit/request-detail-recovery-ui.test.ts \
+  tests/unit/catalog-request-entry-recovery-ui.test.ts \
+  tests/unit/catalog-authoring-ui.test.ts \
+  tests/unit/navigation-ui.test.ts                 # 235 passed / 0 failed
+npm run test:unit                                  # 34 failed / 4430 passed
+                                                   # 変更前 34 failed / 4418 passed。失敗名の差分なし(新規失敗0)
+# 使い捨てDB solvi_wp016_wp015_test(Migration 39件、seed 適用)で実行
+npx vitest run tests/security/approval-routing.test.ts \
+  tests/security/approval-steps.test.ts             # 67 passed / 0 failed
+SOLVI_UI_BROWSER=chromium node tools/ui_approval_routing_check.mjs  # PASS 28 checks / 40 axe scans
+SOLVI_UI_BROWSER=webkit   node tools/ui_approval_routing_check.mjs  # PASS 27 checks / 39 axe scans
+```
+
+開発用DB `solvi` の件数は、`app_user` 15、`role_binding` 21、`org_member_profile` 15 が前後で一致。増分は `ticket` +2、`local_catalog_item` +2、`local_service_request` +2、`local_request_revision` +2、`local_request_approval` +4、`department` +2、`department_head` +2、`approval_rule` +4、`approval_rule_revision` +7、`audit_event` +123、`session` +33、`local_simulation_receipt` +2。申請2件(各2段)とログイン・片付けの操作で説明できる。検査後、**有効な組織は0件、有効な合成の承認ルールは0件、有効な合成の部署は0件、終了していない合成の部署長は0件、値の入ったプロフィールは0件**。
+
+#### §7 受入基準の充足(段階B)
+
+- ✅ 申請画面で、ルールのある項目の経路が段の順に表示される。上長未設定の申請者では送信ボタンが無効で、理由と「組織の管理者へ設定を依頼」が表示される。APIの拒否は `tests/security/approval-routing.test.ts` で確認。画面のDOMと `aria-describedby` は `tests/unit/requests-ui.test.ts`(実レンダリング)で確認。
+- ✅ ルールのある項目で承認者選択が表示されず、`approverId` を送らない。ルールのない項目は固定承認者・申請者選択の現行表示を維持。`tests/unit/requests-ui.test.ts` とブラウザ検査。
+- ✅ `approver` ロールを持たない上長でログインしたとき、承認待ち一覧・受信箱に自分宛てが表示され、詳細で承認できる。他人宛ての詳細URLは404。ブラウザ検査(Chromium/WebKit)。
+- ✅ 詳細の承認の経過に、段の番号・種別・承認者・状態・決定日時・理由・期限を表示し、未作成の後続段は「前の段の承認後に依頼」と表示する。経路の無い申請は作成済みの行をそのまま表示する。ブラウザ検査と `tests/unit/approval-route-ui.test.ts`。
+- ✅ 承認者不在の申請は一覧と詳細で案内し、申請者に内容の変更を促す。再割当の操作は出さない。`tests/security/approval-routing.test.ts`、ブラウザ検査。
+- ✅ 申請者自身の経路確認APIは本人だけを申請者とし、他人を指定する入力を取らない。役職・勤務地・社員番号・メールアドレス・承認者IDを返さず、何も書き込まない。`tests/security/approval-routing.test.ts`。
+- ✅ 組織での有効化・無効化、カタログ項目への結び付け・公開は段階Aから維持。ブラウザ検査。
+- ✅ 上長・部署長の変更履歴、承認ルールのプレビュー・解決できない人一覧は段階Aから維持。ブラウザ検査。
+- ⚠️ 追加・変更した画面のキーボード操作・axe serious/critical 0・1440/375px の横溢れはブラウザ検査で確認。ただし**解決不能フォームのブラウザ確認(手順8)は、実装の不具合を検査中に見つけて修正した後に再実行できなかった**(ルール作成の上限2件/エンジンに達したため)。同じ画面は `tests/unit/requests-ui.test.ts` の実レンダリングと `tests/security/approval-routing.test.ts` で確認している。
+- ✅ `check:all`・型・lint・関連unitが通り、新規依存は0件。
+
+#### セキュリティ影響
+
+- 経路確認APIは読み取り専用トランザクションで、申請者IDを入力に持たない。他組織・非公開の項目は404。監査イベントを書かない。
+- 詳細の `route` は版に固定した経路の表示名だけを加算し、認可・検証・状態遷移は変更していない。`approverUnavailable` は申請者本人にだけ返す。
+- 画面の表示制御は認可ではない。承認・却下はAPIが `approver_id`・有効な所属・期限・経路世代を毎回検証する。
+- `approver` ロールを画面の表示条件に使わない。自分宛てはAPIが返す現在のステップの承認者で判定する。
+- 新規依存0件。`package.json`、lockfile、`next.config.*`、`.env`、Migration は未変更。
+
+#### 未解決事項
+
+- 解決不能フォーム(手順8)のブラウザ確認は、Chromium/WebKit のどちらでも最終的に実行できなかった。理由: 最初の実行で解決不能の理由を表示する条件に不具合が見つかり(`rule` を失敗応答で返していなかった)、修正後に再実行するには新しい承認ルールが必要だったが、エンジンごとの上限(2件)に達していた。修正は `tests/unit/requests-ui.test.ts` の実レンダリングと `tests/security/approval-routing.test.ts` で検証済み。次回の検査でブラウザ確認を追加すること。
+- ブラウザ検査の途中で、既定の404ページの axe `target-size`(serious)と、`/ops/approvals` のプレビュー選択欄の375px横溢れが見つかった。404ページは変更対象外のためaxeの対象から外し、プレビューは選択欄の `min-width: 0` と `overflow: hidden`(パディング付き)で修正した。
+- 承認者IDは詳細の既存の `steps` / `approvers` と同じ範囲で返している(表示名のみの経路確認APIとは別)。
+- カタログ項目の作成上限1件/エンジンのため、WebKit の最初の実行で作った合成ルール1件(無効)が残っている。Chromium/WebKit の合成ルールは各2件(すべて無効)。
+
+#### Evidence
+
+`evidence/WP-P4-APR-016/20261114-0914/`(`browser/chromium/`、`browser/webkit/`(最初の実行)、`browser/webkit-retry/`(再実行)、各 `summary.json`、スクリーンショット、axe結果)。
+
+### 2026-11-14 段階B2 追加確認記録
+
+**範囲**: 監督者の指示による再実行。段階Bで未完了だった次の2点を Chromium / WebKit で確認し、修正後の変更画面のスクリーンショットと axe を取り直した。**アプリケーションコードの変更はない**(ブラウザ検査ツール、本節、Evidenceのみ)。
+
+- 通し確認の手順8: 上長を外した申請者で、申請画面に理由と「組織の管理者へ設定を依頼してください」が表示され、送信が無効になること。
+- 他組織(beta)の利用者が、他人宛ての詳細URLで404になること。
+
+#### 変更ファイル
+
+- `tools/ui_approval_routing_check.mjs`(B2の再実行phase。既存の合成カタログ項目と完了済みの合成申請を再利用し、エンジンごとに1件だけ合成ルールを作る。解決不能フォーム、beta 404、変更画面の1440px/375px撮影とaxe、片付け。読み取り専用の完了phaseと詳細の撮り直しphaseを追加)
+- `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-016.md`(本節)
+- `evidence/WP-P4-APR-016/20261114-0949/`(README、両エンジンのsummary・スクリーンショット・axe結果、件数の前後)
+
+Migration: **なし**。スキーマ変更なし。ロールバックはツールとEvidenceの巻き戻しのみ。
+
+#### 実行した検証コマンドと結果
+
+```text
+npm run typecheck                                  # exit 0
+npm run lint                                       # exit 0
+npm run check:all                                  # exit 0
+npx vitest run tests/unit/approval-route-ui.test.ts \
+  tests/unit/requests-ui.test.ts \
+  tests/unit/request-detail-recovery-ui.test.ts \
+  tests/unit/catalog-request-entry-recovery-ui.test.ts \
+  tests/unit/catalog-authoring-ui.test.ts \
+  tests/unit/navigation-ui.test.ts                 # 235 passed / 0 failed
+SOLVI_UI_BROWSER=chromium SOLVI_UI_PHASE=b2 ...     # PASS 9 checks / 16 axe scans
+SOLVI_UI_BROWSER=webkit   SOLVI_UI_PHASE=b2 ...     # 初回はスクリプトのassertionで停止(アプリの不具合ではない)
+SOLVI_UI_BROWSER=webkit   SOLVI_UI_PHASE=b2readonly # PASS 9 checks / 14 axe scans(追加のルールは作らない)
+SOLVI_UI_BROWSER=<engine> SOLVI_UI_PHASE=b2detail   # PASS 10 checks / 16(Chromium)、14(WebKit)
+```
+
+- 合成ルールはエンジンごとに1件だけ追加した(Chromium `ui016b-syn-1794617467150-chromium`、WebKit `ui016b-syn-1794617512878-webkit`)。どちらも検査後に無効化した。
+- WebKit の最初の B2 実行は、承認待ち一覧の `<select>` の選択肢テキストを `innerText` で検査したスクリプト側のassertionで停止した。アプリの表示は正しく、書込みと片付けは完了していた。同じルールを使い、書込みのない読み取り専用phaseで残りを完了したため、**エンジンごとの追加1件の枠を超えていない**。
+
+#### 確認結果
+
+- **手順8**: 上長を未設定に戻した申請者(`requester@acme.example.test`)で `/catalog/{合成項目}` を開き、`#request-route-blocked` に理由(上長が未設定)と「組織の管理者へ設定を依頼してください」が表示され、送信ボタンが `disabled`、`aria-describedby="request-route-blocked"`、承認者選択と `approverId` がないことを両エンジンで確認した。送信を試みても申請は作られない(前後で0件)。
+- **beta 404**: `requester@beta.example.test`(ベータ商事株式会社)で、サンプル株式会社の完了済み申請の詳細URLを開き、両エンジンで404を確認した。
+- **画面の撮り直し**: 申請画面の経路表示、解決できない申請画面、詳細の承認の経過、承認待ち一覧、`/ops/approvals` の組織での使用の説明とプレビューを、1440px と 375px で撮り直した。各画面で axe を実行し、serious/critical は0件。横溢れも0件。
+- 承認待ち一覧は、新規申請を作らない制約と合成申請が完了済みのため0件(空表示)。`approver` ロールを持たない `auditor` でも「自分が判断する承認待ち」の絞り込みが表示され、選択値が `approvals` であることをDOMで確認した。
+- 1440px の申請画面は経路セクションが画面下部に写る。送信ボタンの無効状態は375pxの画像とDOMのassertionで確認している。
+
+#### 開発用DBの件数
+
+| テーブル | 前 | 後 | 差 |
+|---|---:|---:|---:|
+| app_user | 15 | 15 | 0 |
+| role_binding | 21 | 21 | 0 |
+| org_member_profile | 15 | 15 | 0 |
+| ticket | 25 | 25 | 0 |
+| local_catalog_item | 23 | 23 | 0 |
+| local_service_request | 14 | 14 | 0 |
+| local_request_revision | 19 | 19 | 0 |
+| local_request_approval | 21 | 21 | 0 |
+| department | 19 | 19 | 0 |
+| department_head | 7 | 7 | 0 |
+| approval_rule | 9 | 11 | +2 |
+| approval_rule_revision | 15 | 17 | +2 |
+| org_approval_setting | 1 | 1 | 0 |
+| audit_event | 1648 | 1687 | +39 |
+| session | 409 | 428 | +19 |
+| local_simulation_receipt | 6 | 6 | 0 |
+
+増分は、エンジンごとの合成ルール1件(作成・有効化・無効化)と、ルールの結び付け・公開・非公開、プロフィール設定/解除、ログイン、片付けの画面操作で説明できる。申請・チケット・カタログ項目・部署・部署長・プロフィール行は増えていない。
+
+#### 片付けの確認
+
+- `org_approval_setting.rule_routing_enabled` は **false**(有効な組織0件)。
+- 有効な `ui016b-syn-` ルールは **0件**。今回追加した2件はどちらも `active=false`。
+- 有効な `UI016B-SYN-` 部署は **0件**、終了していない合成部署長は **0件**。
+- 主部署または上長に値の入った `org_member_profile` は **0件**。
+- 合成カタログ項目2件は **非公開**、下書きに承認ルールの参照は残っていない。合成申請2件は `completed` のまま。
+- 片付けは、Chromium の完了時、WebKit の最初の実行が停止した時、読み取り専用の完了時のいずれも、最初に組織でのルールの使用を無効へ戻す手順から実行した。
+
+#### §7 への影響
+
+- 段階Bで ⚠️ としていた「解決不能フォーム(手順8)のブラウザ確認」は、両エンジンで解消した。
+- 「他組織の利用者による他人宛て詳細URLの404」も両エンジンで確認した。
+- §7 の受入基準はすべて充足。未解決のCritical/Highはない。
+
+#### 未解決事項
+
+- 1440px の申請画面2枚は、経路セクションが画面下部に写る構図で、無効な送信ボタンは375pxの画像で確認している(検査自体は両エンジン・両幅でDOMとaxeを実行済み)。
+- 承認待ち一覧は、新規申請を作らない制約により空表示である。`approver` ロールを持たない利用者に絞り込みが見えることはDOMで確認した。
+
+#### Evidence
+
+`evidence/WP-P4-APR-016/20261114-0949/`(README、`browser/chromium/`、`browser/webkit/`、各 `summary.json`、スクリーンショット、axe結果、`counts-before.json`、`counts-after.json`)。

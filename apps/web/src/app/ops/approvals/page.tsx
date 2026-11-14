@@ -188,7 +188,7 @@ export default async function ApprovalRulesPage({
                 : '（まだ切り替えていません）'}
             </p>
             <p className="hint">
-              行が無い組織では無効です。無効の間は、カタログ項目にルールを結び付けても、新しい申請では固定承認者の設定で経路を決めます。
+              まだ有効にしていない組織では無効です。無効の間は、カタログ項目にルールを結び付けても、新しい申請では固定承認者の設定で経路を決めます。
             </p>
             {query.confirm === 'enable-routing' ? (
               <div className="notice" aria-labelledby="approval-enable-title">
@@ -660,8 +660,11 @@ export default async function ApprovalRulesPage({
               公開済みのカタログ項目
             </label>
           </fieldset>
-          <div className="directory-form-grid">
-            <div className="field">
+          <div
+            className="directory-form-grid"
+            style={{ minWidth: 0, overflow: 'hidden', padding: 2 }}
+          >
+            <div className="field" style={{ minWidth: 0 }}>
               <label htmlFor="approval-preview-rule">承認ルール</label>
               <p className="hint" id="approval-preview-rule-hint">
                 「承認ルール」を選んだときに使います。無効なルールも経路の確認だけはできます。
@@ -671,6 +674,7 @@ export default async function ApprovalRulesPage({
                 name="previewRuleId"
                 defaultValue={preview.ruleId}
                 aria-describedby="approval-preview-rule-hint"
+                style={{ maxWidth: '100%' }}
               >
                 <option value="">選択してください</option>
                 {rules.map((rule) => (
@@ -681,7 +685,7 @@ export default async function ApprovalRulesPage({
                 ))}
               </select>
             </div>
-            <div className="field">
+            <div className="field" style={{ minWidth: 0 }}>
               <label htmlFor="approval-preview-item">公開済みのカタログ項目</label>
               <p className="hint" id="approval-preview-item-hint">
                 「公開済みのカタログ項目」を選んだときに使います。
@@ -692,6 +696,7 @@ export default async function ApprovalRulesPage({
                 name="previewItemId"
                 defaultValue={preview.itemId}
                 aria-describedby="approval-preview-item-hint"
+                style={{ maxWidth: '100%' }}
               >
                 <option value="">選択してください</option>
                 {publishedItems.map((item) => (
@@ -701,7 +706,7 @@ export default async function ApprovalRulesPage({
                 ))}
               </select>
             </div>
-            <div className="field">
+            <div className="field" style={{ minWidth: 0 }}>
               <label htmlFor="approval-preview-requester">申請者</label>
               <p className="hint" id="approval-preview-requester-hint">
                 現在の有効な所属から選びます。表示名だけを使い、社員番号・役職・勤務地は表示しません。
@@ -712,6 +717,7 @@ export default async function ApprovalRulesPage({
                 defaultValue={preview.requesterId}
                 aria-describedby="approval-preview-requester-hint"
                 required
+                style={{ maxWidth: '100%' }}
               >
                 <option value="">選択してください</option>
                 {activeMembers.map((member) => (

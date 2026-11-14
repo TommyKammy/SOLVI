@@ -9,8 +9,11 @@ import {
   parseRelationshipHistoryQuery,
   relationshipChangeLabel,
   relationshipHistoryHref,
+  requestApprovalTimeline,
+  requestRouteDecision,
   resolverReasonText,
   stepLabel,
+  stepStateLabel,
   summarizeApprovalSteps,
 } from '../../apps/web/src/lib/approval-route';
 import type { ApprovalRuleStep } from '@solvi/shared/catalog';
@@ -253,5 +256,194 @@ describe('relationship history query', () => {
     expect(relationshipHistoryHref(query, { page: 1 })).toBe(
       '/ops/approvals/changes?from=2026-01-01&to=2026-02-01',
     );
+  });
+});
+
+describe('requester route display and submit gating (stage B)', () => {
+  const ruleRoute = {
+    itemVersion: 3,
+    resolved: true,
+    mode: 'rule',
+    ruleRoutingEnabled: true,
+    rule: { id: ruleId },
+    steps: [
+      { stepNo: 1, authorityType: 'manager', approverName: '合成 上長' },
+      { stepNo: 2, authorityType: 'fixed', approverName: '合成 承認者' },
+    ],
+  };
+
+  it('keeps the current behaviour for items without a rule', () => {
+    expect(requestRouteDecision({ ruleId: null, itemVersion: 3, route: null })).toEqual({
+      usesRule: false,
+      showSteps: false,
+      blocked: false,
+      reason: null,
+    });
+    expect(
+      requestRouteDecision({
+        ruleId: null,
+        itemVersion: 3,
+        route: { ...ruleRoute, ruleRoutingEnabled: false, mode: 'fixed' },
+      }),
+    ).toEqual({ usesRule: false, showSteps: false, blocked: false, reason: null });
+  });
+
+  it('blocks a rule item when the route cannot be read (fail closed)', () => {
+    const decision = requestRouteDecision({ ruleId, itemVersion: 3, route: null });
+    expect(decision).toMatchObject({ usesRule: true, showSteps: false, blocked: true });
+    expect(decision.reason).toContain('承認経路を確認できませんでした');
+  });
+
+  it('uses the compatible display when the organisation has rules disabled', () => {
+    expect(
+      requestRouteDecision({
+        ruleId,
+        itemVersion: 3,
+        route: { ...ruleRoute, ruleRoutingEnabled: false, mode: 'fixed' },
+      }),
+    ).toEqual({ usesRule: false, showSteps: false, blocked: false, reason: null });
+  });
+
+  it('shows resolved steps and blocks unresolved rules with the API reason', () => {
+    expect(requestRouteDecision({ ruleId, itemVersion: 3, route: ruleRoute })).toEqual({
+      usesRule: true,
+      showSteps: true,
+      blocked: false,
+      reason: null,
+    });
+    const unresolved = requestRouteDecision({
+      ruleId,
+      itemVersion: 3,
+      route: {
+        ...ruleRoute,
+        resolved: false,
+        steps: [],
+        reason: {
+          code: 'manager_unset',
+          message: '申請者の上長が未設定です',
+          missing: 'manager',
+          stepNo: 1,
+        },
+      },
+    });
+    expect(unresolved).toMatchObject({ usesRule: true, showSteps: false, blocked: true });
+    expect(unresolved.reason).toBe('段1: 申請者の上長が未設定です（足りない設定: 上長）');
+  });
+
+  it('blocks a rule item when the rule is unavailable even without rule info', () => {
+    const decision = requestRouteDecision({
+      ruleId,
+      itemVersion: 3,
+      route: {
+        ...ruleRoute,
+        resolved: false,
+        rule: null,
+        steps: [],
+        reason: {
+          code: 'rule_unavailable',
+          message: '承認ルールが無効か、存在しません。承認ルールの設定を確認してください',
+          missing: 'rule',
+        },
+      },
+    });
+    expect(decision).toMatchObject({ usesRule: true, showSteps: false, blocked: true });
+    expect(decision.reason).toContain('承認ルール');
+  });
+
+  it('does not guess at a route for a different item version', () => {
+    expect(requestRouteDecision({ ruleId, itemVersion: 2, route: ruleRoute })).toEqual({
+      usesRule: true,
+      showSteps: false,
+      blocked: false,
+      reason: null,
+    });
+    expect(
+      requestRouteDecision({
+        ruleId,
+        itemVersion: 3,
+        route: { ...ruleRoute, rule: { id: approverA } },
+      }),
+    ).toEqual({ usesRule: true, showSteps: false, blocked: false, reason: null });
+  });
+});
+
+describe('request approval timeline (stage B)', () => {
+  it('lists created and not-yet-created steps in route order', () => {
+    const timeline = requestApprovalTimeline({
+      route: {
+        steps: [
+          { stepNo: 1, authorityType: 'manager', approverName: '合成 上長' },
+          { stepNo: 2, authorityType: 'fixed', approverName: '合成 承認者' },
+          { stepNo: 3, authorityType: 'department_head', approverName: '合成 部署長' },
+        ],
+      },
+      steps: [
+        {
+          stepNo: 1,
+          state: 'approved',
+          approverName: '合成 上長',
+          authorityType: 'manager',
+          reason: null,
+          decidedAt: '2026-11-14T01:00:00Z',
+          expiresAt: '2026-11-17T01:00:00Z',
+        },
+        {
+          stepNo: 2,
+          state: 'pending',
+          approverName: '合成 承認者',
+          authorityType: 'fixed',
+          reason: null,
+          decidedAt: null,
+          expiresAt: '2026-11-17T02:00:00Z',
+        },
+      ],
+    });
+    expect(timeline.map((step) => [step.stepNo, step.state, step.pendingCreation])).toEqual([
+      [1, 'approved', false],
+      [2, 'pending', false],
+      [3, null, true],
+    ]);
+    expect(timeline[2]!.approverName).toBe('合成 部署長');
+    expect(timeline[1]!.expiresAt).toBe('2026-11-17T02:00:00Z');
+  });
+
+  it('keeps legacy route-less requests as their created steps', () => {
+    const timeline = requestApprovalTimeline({
+      route: null,
+      steps: [
+        {
+          stepNo: 1,
+          state: 'rejected',
+          approverName: '合成 承認者',
+          authorityType: 'legacy',
+          reason: '合成の却下理由',
+          decidedAt: '2026-11-14T01:00:00Z',
+          expiresAt: '2026-11-17T01:00:00Z',
+        },
+      ],
+    });
+    expect(timeline).toEqual([
+      {
+        stepNo: 1,
+        authorityType: 'legacy',
+        approverName: '合成 承認者',
+        state: 'rejected',
+        decidedAt: '2026-11-14T01:00:00Z',
+        reason: '合成の却下理由',
+        expiresAt: '2026-11-17T01:00:00Z',
+        pendingCreation: false,
+      },
+    ]);
+    expect(requestApprovalTimeline({ route: null, steps: null })).toEqual([]);
+  });
+
+  it('labels every step state and never echoes unknown values', () => {
+    expect(stepStateLabel('pending')).toBe('承認待ち');
+    expect(stepStateLabel('approved')).toBe('承認');
+    expect(stepStateLabel('rejected')).toBe('却下');
+    expect(stepStateLabel('invalidated')).toBe('無効');
+    expect(stepStateLabel('expired')).toBe('期限切れ');
+    expect(stepStateLabel(null)).toBe('状態を確認できません');
+    expect(stepStateLabel('unexpected')).toBe('状態を確認できません');
   });
 });

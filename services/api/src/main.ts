@@ -425,6 +425,10 @@ async function bootstrap(): Promise<void> {
       ),
     )
     .get('/catalog', async (req) => catalog.catalog(await auth.authenticate(req.headers)))
+    // 申請者自身の経路の確認(読み取り専用。WP-P4-APR-016 §6.1)
+    .get('/catalog/:id/approval-route', async (req, _res, params) =>
+      catalog.approvalRoute(await auth.authenticate(req.headers), params.id ?? ''),
+    )
     // ---- 承認ルール・有効化設定・経路プレビュー (WP-P4-APR-015 段階A) ----
     .get('/approval-rules', async (req, res) => {
       const result = await approvalRules.list(await auth.authenticate(req.headers));

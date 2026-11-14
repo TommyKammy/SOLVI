@@ -34,6 +34,9 @@ vi.mock('next/link', () => ({
     createElement('a', { ...props, 'data-next-link': 'true' }),
 }));
 // Use the actual page and ContextLink; the web workspace checks TSX separately.
+const { RequestForm } = await vi.importActual<
+  typeof import('../../apps/web/src/components/RequestForms')
+>('../../apps/web/src/components/RequestForms');
 const { default: RequestsPage } = await vi.importActual<{
   default: (props: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -102,6 +105,81 @@ beforeEach(() => {
     vi.mocked(action).mockReset();
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe('requester route display and submit gating (stage B)', () => {
+  const routeItem = {
+    id: '06100000-0000-4000-8000-000000000010',
+    version: 1,
+    title: 'UI016B 合成ルール項目',
+    description: '',
+    definition: {
+      mode: 'local_simulation',
+      targetLabel: '合成対象',
+      allowedDurations: [1],
+      maxReasonLength: 100,
+      approval: { ruleId: '06100000-0000-4000-8000-000000000011' },
+    },
+  };
+  const unresolved = {
+    itemId: routeItem.id,
+    itemVersion: 1,
+    resolved: false,
+    mode: 'rule',
+    ruleRoutingEnabled: true,
+    rule: { id: '06100000-0000-4000-8000-000000000011', code: 'ui016b-syn-test', revision: 2 },
+    steps: [],
+    reason: {
+      code: 'manager_unset',
+      message: '申請者の上長が未設定です。承認ルールの設定により申請を拒否しました',
+      missing: 'manager',
+      stepNo: 1,
+      authorityType: 'manager',
+    },
+  };
+  it('blocks submission with the API reason and no approver field for a rule item', () => {
+    const html = renderToStaticMarkup(
+      createElement(RequestForm, {
+        item: routeItem as never,
+        approvers: [],
+        scope: 'org:user',
+        route: unresolved as never,
+      }),
+    );
+    expect(html).toContain('id="request-route-blocked"');
+    expect(html).toContain('申請者の上長が未設定です');
+    expect(html).toContain('組織の管理者へ設定を依頼してください');
+    expect(html).toContain('aria-describedby="request-route-blocked"');
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>/);
+    expect(html).not.toContain('name="approverId"');
+    expect(html).not.toContain('id="request-approver"');
+    expect(html).toContain('段1');
+  });
+
+  it('shows the resolved two steps and still sends no approverId', () => {
+    const html = renderToStaticMarkup(
+      createElement(RequestForm, {
+        item: routeItem as never,
+        approvers: [],
+        scope: 'org:user',
+        route: {
+          ...unresolved,
+          resolved: true,
+          steps: [
+            { stepNo: 1, authorityType: 'manager', approverName: '合成 上長' },
+            { stepNo: 2, authorityType: 'fixed', approverName: '合成 承認者' },
+          ],
+          reason: undefined,
+        } as never,
+      }),
+    );
+    expect(html).toContain('段1（上長）');
+    expect(html).toContain('合成 上長');
+    expect(html).toContain('段2（固定承認者）');
+    expect(html).not.toContain('name="approverId"');
+    expect(html).not.toContain('id="request-approver"');
+    expect(html).not.toContain('aria-describedby="request-route-blocked"');
+  });
+});
 
 describe('requests same-query GET and session boundary', () => {
   const selected = { q: 'VPN & 日本語', state: 'pending', view: 'mine', page: '3' };
@@ -261,17 +339,15 @@ describe('requests applied filters, empty states and existing display', () => {
     },
   );
 
-  it.each(['requester', 'approver', 'agent', 'org_admin'])(
-    'preserves the existing approver-only select option for %s',
+  it.each(['requester', 'approver', 'agent', 'org_admin', 'auditor'])(
+    'shows the approvals view for %s without relying on the approver role',
     async (roleCode) => {
       vi.mocked(requireSession).mockResolvedValue({
         ...session,
         roles: [{ roleCode, organizationId: org }],
       });
       const html = await render();
-      expect(html.includes('<option value="approvals">自分が判断する承認待ち</option>')).toBe(
-        roleCode === 'approver',
-      );
+      expect(html).toContain('<option value="approvals">自分が判断する承認待ち</option>');
       expect(html).toContain('<option value="mine">自分の申請</option>');
     },
   );

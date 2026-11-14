@@ -52,6 +52,10 @@ export default async function CatalogItemPage({
   }
   const item = result.data.items.find((i) => i.id === itemId);
   if (!item) notFound();
+  // 承認ルールで経路が決まる項目だけ、本人を申請者とした経路を読む(読み取り専用)。
+  const routeResult = item.definition.approval?.ruleId
+    ? await api.catalogApprovalRoute(item.id)
+    : null;
   return (
     <main id="main" className="shell">
       <ContextLink back href="/catalog">
@@ -66,7 +70,12 @@ export default async function CatalogItemPage({
         必要事項を入力 → 固定の承認者が確認 →
         IT担当者が模擬結果を記録。状況は「申請状況」で確認できます。希望日の入力による在庫予約や、実際の貸出は行いません。
       </p>
-      <RequestForm scope={formScope(session)} item={item} approvers={result.data.approvers} />
+      <RequestForm
+        scope={formScope(session)}
+        item={item}
+        approvers={result.data.approvers}
+        {...(routeResult ? { route: routeResult.ok ? routeResult.data : null } : {})}
+      />
     </main>
   );
 }

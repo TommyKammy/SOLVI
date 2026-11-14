@@ -15,7 +15,7 @@ export default async function RequestsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await requireSession();
+  await requireSession();
   const p = await searchParams;
   const query = new URLSearchParams();
   for (const key of ['q', 'state', 'view', 'page'])
@@ -75,9 +75,7 @@ export default async function RequestsPage({
           <select id="request-view" name="view" defaultValue={f.view}>
             <option value="all">閲覧できるすべて</option>
             <option value="mine">自分の申請</option>
-            {session.roles.some((role) => role.roleCode === 'approver') && (
-              <option value="approvals">自分が判断する承認待ち</option>
-            )}
+            <option value="approvals">自分が判断する承認待ち</option>
           </select>
         </div>
         <div className="field">

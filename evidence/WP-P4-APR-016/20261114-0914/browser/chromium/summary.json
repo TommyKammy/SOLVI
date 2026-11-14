@@ -1,0 +1,652 @@
+{
+  "workPackage": "WP-P4-APR-016",
+  "stage": "B",
+  "browser": "chromium",
+  "marker": "UI016B-SYN-1794615273775-chromium",
+  "success": true,
+  "createdAt": "2026-11-14T00:14:33.777Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> node tools/ui_approval_routing_check.mjs",
+  "commitSha": "b3b4f4e020e719a938d1c00a11ec3fae70310086",
+  "checks": [
+    {
+      "name": "管理ホームと左レールに承認ルールの導線がある",
+      "passed": true
+    },
+    {
+      "name": "キーボードだけで上長→固定承認者の2段ルールを作成できる",
+      "passed": true
+    },
+    {
+      "name": "既存の版を変えずに新しい版を追加できる",
+      "passed": true
+    },
+    {
+      "name": "ルールのプレビューで解決できない理由を表示する",
+      "passed": true
+    },
+    {
+      "name": "公開済みカタログ項目のプレビューで承認者の経路を表示する",
+      "passed": true
+    },
+    {
+      "name": "解決できない人の一覧を表示し、利用者管理へ辿れる",
+      "passed": true
+    },
+    {
+      "name": "合成カタログ項目を作成し、承認ルールを結び付けて公開できる",
+      "passed": true
+    },
+    {
+      "name": "有効化の確認画面に3点を表示し、有効化して状態を確認できる",
+      "passed": true
+    },
+    {
+      "name": "組織での承認ルールを確認画面を挟んで無効へ戻せる",
+      "passed": true
+    },
+    {
+      "name": "承認者不在の申請の節と案内を表示し、再割当を出さない",
+      "passed": true
+    },
+    {
+      "name": "上長・部署長の変更履歴を期間指定で表示する",
+      "passed": true
+    },
+    {
+      "name": "アクセスレビューから変更履歴へ辿れる",
+      "passed": true
+    },
+    {
+      "name": "組織管理者が合成の部署を作り、申請者の主部署と上長を設定する",
+      "passed": true
+    },
+    {
+      "name": "申請者がキーボードで申請し、理由にUI016Bを含める",
+      "passed": true
+    },
+    {
+      "name": "再開: 合成ルールを作り直し、項目に結び付けて公開する",
+      "passed": true
+    },
+    {
+      "name": "組織でルールを有効にし、申請画面が2段の経路を表示する",
+      "passed": true
+    },
+    {
+      "name": "無関係な利用者(まだ承認者でない固定承認者)は他人宛ての詳細URLで404",
+      "passed": true
+    },
+    {
+      "name": "approver ロールを持たない上長が承認待ち一覧・受信箱で自分宛てを見て承認する",
+      "passed": true
+    },
+    {
+      "name": "固定承認者が自分宛てを見て承認する",
+      "passed": true
+    },
+    {
+      "name": "担当者が模擬完了まで進める",
+      "passed": true
+    },
+    {
+      "name": "申請者が詳細で2段の承認の経過(承認者・日時)を確認する",
+      "passed": true
+    },
+    {
+      "name": "再検証: 無効化したルールの版の履歴を読み取れる",
+      "passed": true
+    },
+    {
+      "name": "再検証: 承認者不在の節が案内と再割当の不在を表示する",
+      "passed": true
+    },
+    {
+      "name": "再検証: 変更した既存画面に新しい導線と選択肢がある(axe)",
+      "passed": true
+    },
+    {
+      "name": "再検証: 組織での使用の説明が利用者向けの文になっている",
+      "passed": true
+    },
+    {
+      "name": "org_admin 以外には画面も導線も出ない(auditor は変更履歴だけ)",
+      "passed": true
+    },
+    {
+      "name": "管理画面は1440pxと375pxで横溢れがない",
+      "passed": true
+    },
+    {
+      "name": "再検証: 完了した申請の承認の経過を申請者が読める",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "approvals-rules-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rules-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-unresolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-unresolved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unresolved-people-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unresolved-people-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-enable-confirm-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-enable-confirm-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-head-assigned-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "departments-head-assigned-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-unrelated-404-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "targets": [
+            [
+              "a[href=\"/\"]"
+            ],
+            [
+              "a[href$=\"ops\"]"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "request-route-resolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-route-resolved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals-manager-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals-manager-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "inbox-approval-manager-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "inbox-approval-manager-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-manager-pending-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-manager-pending-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-fixed-pending-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-fixed-pending-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-requester-completed-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-requester-completed-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-readonly-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-readonly-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-readonly-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-unavailable-readonly-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "admin-home-desktop-1440-verify",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "catalog-new-desktop-1440-verify",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "access-review-desktop-1440-verify",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-auditor-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-auditor-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-changes-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-requester-completed-readonly-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-requester-completed-readonly-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "approvals-rules-desktop-1440.png",
+    "approvals-rules-mobile-375.png",
+    "approvals-rule-detail-desktop-1440.png",
+    "approvals-rule-detail-mobile-375.png",
+    "approvals-preview-unresolved-desktop-1440.png",
+    "approvals-preview-unresolved-mobile-375.png",
+    "approvals-preview-resolved-desktop-1440.png",
+    "approvals-unresolved-people-desktop-1440.png",
+    "approvals-unresolved-people-mobile-375.png",
+    "catalog-rule-bound-desktop-1440.png",
+    "approvals-enable-confirm-desktop-1440.png",
+    "approvals-enable-confirm-mobile-375.png",
+    "approvals-routing-enabled-desktop-1440.png",
+    "approvals-unavailable-desktop-1440.png",
+    "approvals-unavailable-mobile-375.png",
+    "approvals-changes-desktop-1440.png",
+    "approvals-changes-mobile-375.png",
+    "approvals-changes-auditor-desktop-1440.png",
+    "approvals-changes-auditor-mobile-375.png",
+    "users-profile-manager-set-desktop-1440.png",
+    "departments-head-assigned-desktop-1440.png",
+    "departments-head-assigned-mobile-375.png",
+    "request-route-resolved-desktop-1440.png",
+    "request-route-resolved-mobile-375.png",
+    "request-unrelated-404-desktop-1440.png",
+    "requests-approvals-manager-desktop-1440.png",
+    "requests-approvals-manager-mobile-375.png",
+    "inbox-approval-manager-desktop-1440.png",
+    "inbox-approval-manager-mobile-375.png",
+    "request-detail-manager-pending-desktop-1440.png",
+    "request-detail-manager-pending-mobile-375.png",
+    "request-detail-fixed-pending-desktop-1440.png",
+    "request-detail-fixed-pending-mobile-375.png",
+    "request-detail-requester-completed-desktop-1440.png",
+    "request-detail-requester-completed-mobile-375.png",
+    "approvals-rule-detail-readonly-desktop-1440.png",
+    "approvals-rule-detail-readonly-mobile-375.png",
+    "approvals-unavailable-readonly-desktop-1440.png",
+    "approvals-unavailable-readonly-mobile-375.png",
+    "request-detail-requester-completed-readonly-desktop-1440.png",
+    "request-detail-requester-completed-readonly-mobile-375.png"
+  ],
+  "writes": {
+    "rulesCreated": 2,
+    "revisions": 1,
+    "catalogCreated": 1,
+    "catalogUpdates": 4,
+    "catalogPublished": 2,
+    "catalogUnpublished": 2,
+    "routingEnabled": 3,
+    "routingDisabled": 3,
+    "ruleDeactivations": 2,
+    "departmentsCreated": 1,
+    "departmentHeadAssignments": 1,
+    "departmentDeactivations": 1,
+    "profileUpdates": 4,
+    "profilePeople": [
+      "00000000-0000-4000-9000-000000000105"
+    ],
+    "requestsCreated": 1
+  },
+  "ids": {
+    "rule": "01a1d768-0cdb-7000-8e14-4405dcb3394d",
+    "catalogItem": "01a1d768-3b6b-7000-a36f-cf07080d5d4a",
+    "department": "01a1d768-932c-7000-b0af-b818e4b87ef1",
+    "request": "01a1d768-b86e-7001-8890-75641b2e9da1",
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "managerUser": "00000000-0000-4000-9000-000000000104",
+    "fixedApproverUser": "00000000-0000-4000-9000-000000000103",
+    "headUser": "00000000-0000-4000-9000-000000000102",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "adminUser": "00000000-0000-4000-9000-000000000101",
+    "resumeRule": "01a1d76b-a1f8-7000-9d28-91adb7643842"
+  },
+  "applied": {
+    "rule": true,
+    "revision": true,
+    "catalog": true,
+    "catalogRuleBound": true,
+    "catalogPublished": true,
+    "routingEnabledOnce": true,
+    "department": true,
+    "profiles": true,
+    "departmentHead": true,
+    "requestCreated": true,
+    "managerApproved": true,
+    "fixedApproved": true,
+    "simulated": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "変更したプロフィール(主部署・上長)を未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成部署の部署長を終了する",
+        "passed": true
+      },
+      {
+        "name": "合成部署を無効化する",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目から承認ルールの結び付けを外す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目を非公開にする",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する(ui016b-syn-1794615515187-chromium)",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "tabsBefore": 30,
+    "submitTabs": 10,
+    "focus": {
+      "id": "approval-create-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter",
+    "requesterTabs": 8,
+    "requesterFocus": {
+      "id": "request-reason",
+      "tag": "TEXTAREA",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    }
+  },
+  "blocked": [],
+  "browserVersion": "157.0.8103.51",
+  "currentStep": "verify-complete",
+  "finishedAt": "2026-11-14T00:23:29.792Z"
+}

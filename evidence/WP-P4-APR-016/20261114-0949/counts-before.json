@@ -1,0 +1,28 @@
+{
+  "databaseIsWp016Test": false,
+  "counts": {
+    "app_user": 15,
+    "role_binding": 21,
+    "org_member_profile": 15,
+    "ticket": 25,
+    "local_catalog_item": 23,
+    "local_service_request": 14,
+    "local_request_revision": 19,
+    "local_request_approval": 21,
+    "department": 19,
+    "department_head": 7,
+    "approval_rule": 9,
+    "approval_rule_revision": 15,
+    "org_approval_setting": 1,
+    "audit_event": 1648,
+    "session": 409,
+    "local_simulation_receipt": 6
+  },
+  "invariants": {
+    "enabledOrgSettings": 0,
+    "activeSyntheticRules": 0,
+    "activeSyntheticDepartments": 0,
+    "openSyntheticHeads": 0,
+    "filledProfiles": 0
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "workPackage": "WP-P4-APR-016",
+  "stage": "B2",
+  "browser": "chromium",
+  "marker": "UI016B-SYN-1794617467150-chromium",
+  "success": true,
+  "createdAt": "2026-11-14T00:51:07.151Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> node tools/ui_approval_routing_check.mjs",
+  "commitSha": "b3b4f4e020e719a938d1c00a11ec3fae70310086",
+  "checks": [
+    {
+      "name": "B2: 組織での使用の説明が利用者向けの文になっている",
+      "passed": true
+    },
+    {
+      "name": "B2: 合成の承認ルールを1件だけ作る",
+      "passed": true
+    },
+    {
+      "name": "B2: プレビューが解決できない理由を表示する",
+      "passed": true
+    },
+    {
+      "name": "B2: 既存の合成カタログ項目に結び付けて公開する",
+      "passed": true
+    },
+    {
+      "name": "B2: 上長を設定すると申請画面が2段の経路を表示する",
+      "passed": true
+    },
+    {
+      "name": "B2: 上長を外すと理由と管理者への依頼が表示され、送信が無効になる",
+      "passed": true
+    },
+    {
+      "name": "B2: 申請者が詳細で2段の承認の経過を読める",
+      "passed": true
+    },
+    {
+      "name": "B2: approver ロールを持たない利用者にも承認待ちの絞り込みが見える",
+      "passed": true
+    },
+    {
+      "name": "B2: 他組織(beta)の利用者は他人宛ての詳細URLで404",
+      "passed": true
+    },
+    {
+      "name": "B2(追加): 詳細の承認の経過を1440pxと375pxで撮り直す",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "approvals-routing-description-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-routing-description-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-unresolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-unresolved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-resolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-resolved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-route-resolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-route-resolved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-route-unresolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-route-unresolved-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals-manager-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals-manager-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals-pending-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals-pending-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-requester-completed-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-requester-completed-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "approvals-routing-description-desktop-1440.png",
+    "approvals-routing-description-mobile-375.png",
+    "approvals-preview-unresolved-desktop-1440.png",
+    "approvals-preview-unresolved-mobile-375.png",
+    "approvals-preview-resolved-desktop-1440.png",
+    "approvals-preview-resolved-mobile-375.png",
+    "request-route-resolved-desktop-1440.png",
+    "request-route-resolved-mobile-375.png",
+    "request-route-unresolved-desktop-1440.png",
+    "request-route-unresolved-mobile-375.png",
+    "request-detail-requester-completed-desktop-1440.png",
+    "request-detail-requester-completed-mobile-375.png",
+    "requests-approvals-manager-desktop-1440.png",
+    "requests-approvals-manager-mobile-375.png",
+    "requests-approvals-pending-desktop-1440.png",
+    "requests-approvals-pending-mobile-375.png",
+    "request-other-org-404-desktop-1440.png"
+  ],
+  "writes": {
+    "rulesCreated": 1,
+    "revisions": 0,
+    "catalogCreated": 0,
+    "catalogUpdates": 2,
+    "catalogPublished": 1,
+    "catalogUnpublished": 1,
+    "routingEnabled": 1,
+    "routingDisabled": 1,
+    "ruleDeactivations": 1,
+    "departmentsCreated": 0,
+    "departmentHeadAssignments": 0,
+    "departmentDeactivations": 0,
+    "profileUpdates": 2,
+    "profilePeople": [
+      "00000000-0000-4000-9000-000000000105"
+    ],
+    "requestsCreated": 0
+  },
+  "ids": {
+    "rule": "01a1d789-724c-7000-9a49-62203e1bf93b",
+    "catalogItem": "01a1d768-3b6b-7000-a36f-cf07080d5d4a",
+    "department": null,
+    "request": "01a1d768-b86e-7001-8890-75641b2e9da1",
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "managerUser": "00000000-0000-4000-9000-000000000104",
+    "fixedApproverUser": "00000000-0000-4000-9000-000000000103",
+    "headUser": "00000000-0000-4000-9000-000000000102",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "adminUser": "00000000-0000-4000-9000-000000000101"
+  },
+  "applied": {
+    "rule": true,
+    "revision": false,
+    "catalog": false,
+    "catalogRuleBound": true,
+    "catalogPublished": true,
+    "routingEnabledOnce": true,
+    "department": false,
+    "profiles": false,
+    "departmentHead": false,
+    "requestCreated": false,
+    "managerApproved": false,
+    "fixedApproved": false,
+    "simulated": false
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "変更したプロフィール(主部署・上長)を未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目から承認ルールの結び付けを外す",
+        "passed": true
+      },
+      {
+        "name": "合成カタログ項目を非公開にする",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する(ui016b-syn-1794617467150-chromium)",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": null,
+  "blocked": [],
+  "previousEvidence": "evidence/WP-P4-APR-016/20261114-0914/browser/chromium/summary.json",
+  "currentStep": "complete-b2-detail",
+  "browserVersion": "157.0.8103.51",
+  "finishedAt": "2026-11-14T00:56:45.688Z"
+}

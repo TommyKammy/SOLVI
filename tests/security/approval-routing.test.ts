@@ -641,7 +641,10 @@ describe('ルールによる経路解決と保存 (WP §6-4)', () => {
       state: 'approved',
       stepState: 'approved',
     });
-    expect((await stepRows(created.id)).map((step) => step.state)).toEqual(['approved', 'approved']);
+    expect((await stepRows(created.id)).map((step) => step.state)).toEqual([
+      'approved',
+      'approved',
+    ]);
     expect((await requestRow(created.id)).state).toBe('approved');
   });
 });
@@ -1397,6 +1400,221 @@ describe('承認待ち一覧の可視性 (WP §6-5 / ADR-0023 §5)', () => {
     const otherInbox = await run(() => inbox.list(otherApprover.auth, { kind: 'approval' }));
     expect(otherInbox.items.map((item) => item.id)).not.toContain(created.id);
     // どのロールも持たず、承認者でもない利用者は受信箱を開けない。
-    await expectProblem(run(() => inbox.list(requester.auth, { kind: 'approval' })), 403);
+    await expectProblem(
+      run(() => inbox.list(requester.auth, { kind: 'approval' })),
+      403,
+    );
   }, 30_000);
+});
+
+describe('申請者自身の経路の確認 API (WP-P4-APR-016 §6.1)', () => {
+  const routeFor = (person: Person, itemId: string) =>
+    run(() => catalog.approvalRoute(person.auth, itemId));
+
+  it('**本人を申請者として、段の順に種別と表示名だけを返す**', async () => {
+    const ruleId = await createRule([managerStep(), fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const route = await routeFor(requester, itemId);
+    expect(route).toMatchObject({
+      itemId,
+      itemVersion: 1,
+      resolved: true,
+      mode: 'rule',
+      ruleRoutingEnabled: true,
+      rule: { id: ruleId, revision: 1 },
+      steps: [
+        { stepNo: 1, authorityType: 'manager', approverName: 'WP015 manager' },
+        { stepNo: 2, authorityType: 'fixed', approverName: 'WP015 fixed' },
+      ],
+    });
+    // 個人データ・内部IDを返さない。承認者は表示名だけ。
+    const json = JSON.stringify(route);
+    for (const key of ['approverId', 'requesterId', 'email', 'jobTitle', 'location', 'employeeId'])
+      expect(json).not.toContain(`"${key}"`);
+  });
+
+  it('**申請者IDを送っても本人の経路のまま(他人の経路を調べられない)**', async () => {
+    const ruleId = await createRule([managerStep(), fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const own = await routeFor(requester, itemId);
+    // 経路はリクエスト本文・クエリを受け取らない。余分な入力を渡しても同じ結果になる。
+    const extra = await run(() =>
+      (
+        catalog.approvalRoute as unknown as (
+          auth: AuthenticatedRequest,
+          id: string,
+          input?: unknown,
+        ) => Promise<Record<string, unknown>>
+      )(requester.auth, itemId, { requesterId: manager.id }),
+    );
+    expect(extra).toEqual(own);
+    // 上長本人を申請者にすると、上長は未設定なので別の結果になる。
+    const asManager = await routeFor(manager, itemId);
+    expect(asManager.resolved).toBe(false);
+    expect(asManager.reason).toMatchObject({ code: 'manager_unset', missing: 'manager' });
+  });
+
+  it('**公開条件外・他組織の項目は404**', async () => {
+    const ruleId = await createRule([fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    await q('UPDATE local_catalog_item SET active=false WHERE id=$1', [itemId]);
+    await expectProblem(routeFor(requester, itemId), 404);
+
+    const otherOrg = randomUUID();
+    const otherItem = randomUUID();
+    made.orgs.push(otherOrg);
+    try {
+      await q('INSERT INTO organization (id, code, name) VALUES ($1,$2,$3)', [
+        otherOrg,
+        `wp015-route-read-${SUFFIX}`,
+        'WP015 経路確認 (合成)',
+      ]);
+      await q(
+        `INSERT INTO local_catalog_item(id,organization_id,code,version,title,description,definition,active)
+         VALUES($1,$2,$3,1,'合成 他組織','合成',$4,true)`,
+        [otherItem, otherOrg, `wp015-route-read-${SUFFIX}`, definition({})],
+      );
+      await expectProblem(routeFor(requester, otherItem), 404);
+    } finally {
+      await q('DELETE FROM local_catalog_item WHERE organization_id=$1', [otherOrg]);
+      await cleanAuditData(admin, `organization_id = '${otherOrg}'`);
+      await q('DELETE FROM organization WHERE id=$1', [otherOrg]);
+      made.orgs = made.orgs.filter((id) => id !== otherOrg);
+    }
+  });
+
+  it('**何も書き込まず、監査イベントも書かない**', async () => {
+    const ruleId = await createRule([managerStep(), fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const tables = [
+      'local_catalog_item',
+      'local_catalog_revision',
+      'local_service_request',
+      'local_request_revision',
+      'local_request_approval',
+      'audit_event',
+    ] as const;
+    const count = async () =>
+      Object.fromEntries(
+        await Promise.all(
+          tables.map(async (table) => [
+            table,
+            (await q(`SELECT count(*)::int AS n FROM ${table} WHERE organization_id=$1`, [org]))
+              .rows[0].n as number,
+          ]),
+        ),
+      );
+    const before = await count();
+    await routeFor(requester, itemId);
+    await routeFor(manager, itemId);
+    await routeFor(agent, itemId);
+    expect(await count()).toEqual(before);
+  });
+
+  it('**解決できない理由(足りない設定の種別と利用者向けの文)を返す**', async () => {
+    const ruleId = await createRule([managerStep('reject')]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    await setManager(requester.id, null);
+    const route = await routeFor(requester, itemId);
+    expect(route).toMatchObject({
+      resolved: false,
+      mode: 'rule',
+      steps: [],
+      rule: { id: ruleId, revision: 1 },
+      reason: { code: 'manager_unset', missing: 'manager', stepNo: 1 },
+    });
+    expect(String(route.reason?.message)).toContain('上長');
+  });
+
+  it('**ルールを使わない項目は従来の方式を返し、候補を増やさない**', async () => {
+    const fixedItem = await publishItem({ approverId: fixed.id });
+    await expect(routeFor(requester, fixedItem)).resolves.toMatchObject({
+      resolved: true,
+      mode: 'fixed',
+      ruleRoutingEnabled: false,
+      rule: null,
+      steps: [{ stepNo: 1, authorityType: 'fixed', approverName: 'WP015 fixed' }],
+    });
+    const selectedItem = uuidv7();
+    const { approval: _approval, ...definitionWithoutApproval } = definition({});
+    await q(
+      `INSERT INTO local_catalog_item(id,organization_id,code,version,title,description,definition,active)
+       VALUES($1,$2,$3,1,'合成 直接投入','合成',$4,true)`,
+      [selectedItem, org, `wp015-route-direct-${SUFFIX}-${++sequence}`, definitionWithoutApproval],
+    );
+    await expect(routeFor(requester, selectedItem)).resolves.toMatchObject({
+      resolved: false,
+      mode: 'requester_selected',
+      rule: null,
+      steps: [],
+    });
+  });
+
+  it('**詳細は版に固定した全段(未作成を含む)を返す**', async () => {
+    const ruleId = await createRule([managerStep(), fixedStep(fixed.id)]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    const details = await detailFor(requester, created.id);
+    expect(details.route).toMatchObject({
+      ruleRef: { ruleId, revision: 1 },
+      steps: [
+        { stepNo: 1, authorityType: 'manager', approverName: 'WP015 manager' },
+        { stepNo: 2, authorityType: 'fixed', approverName: 'WP015 fixed' },
+      ],
+    });
+    expect(details.steps).toHaveLength(1);
+  });
+
+  it('**承認者不在の詳細は、申請者本人にだけ approverUnavailable を返す**', async () => {
+    const ruleId = await createRule([managerStep()]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    const created = await createRequest(requester, itemId);
+    await q("UPDATE app_user SET status='deactivated', deactivated_at=now() WHERE id=$1", [
+      manager.id,
+    ]);
+    const own = await detailFor(requester, created.id);
+    expect(own.approverUnavailable).toBe(true);
+    // 担当者(閲覧はできる)には、申請者向けの不在の案内を返さない。
+    const staff = await detailFor(agent, created.id);
+    expect(staff.approverUnavailable).toBe(false);
+    await q("UPDATE app_user SET status='active', deactivated_at=NULL WHERE id=$1", [manager.id]);
+  });
+
+  it('**組織でルールを使っていない間は、ルール付きの項目でも従来の方式を返す**', async () => {
+    const ruleId = await createRule([fixedStep(fixed.id), managerStep()]);
+    const itemId = await publishItem({ ruleId, approverId: fixed.id });
+    const route = await routeFor(requester, itemId);
+    expect(route).toMatchObject({
+      resolved: true,
+      mode: 'fixed',
+      ruleRoutingEnabled: false,
+      rule: null,
+      steps: [{ stepNo: 1, authorityType: 'fixed', approverName: 'WP015 fixed' }],
+    });
+  });
+});
+
+describe('申請者自身の経路の確認 API: 無効なルール (WP-P4-APR-016 §6.1)', () => {
+  it('**組織で有効でも、ルールを無効化した項目は解決できない理由を返す**', async () => {
+    const ruleId = await createRule([managerStep('reject')]);
+    const itemId = await publishItem({ ruleId });
+    await enableRouting();
+    await run(() => rules.deactivate(adminUser.auth, ruleId));
+    const route = await run(() => catalog.approvalRoute(requester.auth, itemId));
+    expect(route).toMatchObject({
+      resolved: false,
+      mode: 'rule',
+      ruleRoutingEnabled: true,
+      rule: null,
+      steps: [],
+      reason: { code: 'rule_unavailable', missing: 'rule' },
+    });
+  });
 });

@@ -13,10 +13,12 @@ export async function saveServiceRequest(
 ): Promise<FormFeedback> {
   const scopeError = await formScopeError(form);
   if (scopeError) return { message: scopeError, attempt: (previous.attempt ?? 0) + 1 };
+  const approverId = form.get('approverId');
   const values = {
     ...(form.has('reason') ? { reason: String(form.get('reason') ?? '') } : {}),
     ...(form.has('durationDays') ? { durationDays: String(form.get('durationDays') ?? '') } : {}),
-    approverId: String(form.get('approverId') ?? ''),
+    // ルールで経路が決まる項目では承認者を送らない(WP-P4-APR-016 §6.1)。
+    ...(typeof approverId === 'string' && approverId.length > 0 ? { approverId } : {}),
   };
   const customValues = readCatalogFormValues(form);
   const input = {

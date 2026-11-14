@@ -7,6 +7,11 @@ import { CatalogChecklistForm } from '../../../components/CatalogChecklistForm';
 import { formScope } from '../../../lib/form-scope';
 import { RequestForm, RequestActions } from '../../../components/RequestForms';
 import { safeReturnTo } from '../../../lib/navigation';
+import {
+  authorityLabel,
+  requestApprovalTimeline,
+  stepStateLabel,
+} from '../../../lib/approval-route';
 const labels: Record<string, string> = {
   pending: '承認待ち',
   approved: '承認済み・模擬実行待ち',
@@ -72,13 +77,34 @@ export default async function RequestPage({
       ['agent', 'org_admin', 'platform_admin'].includes(r.roleCode),
     ),
     admin = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
-  const assigned =
-      data.approval.approver_id === session.userId &&
-      !own &&
-      session.roles.some((r) => r.roleCode === 'approver'),
+  // 自分宛てかどうかはAPIが返す現在のステップの承認者で判定する(ロールでは判定しない)。
+  // 上長・部署長は approver ロールを持たない(ADR-0023 §2 / §5)。
+  const assigned = data.approval.approver_id === session.userId && !own,
     expired = new Date(data.approval.expires_at).getTime() <= Date.now();
   const item: CatalogItem = { ...s.item, description: '', definition: s.item.definition };
   const { saved } = await searchParams;
+  const editable = own && !['completed', 'cancelled'].includes(q.state);
+  // 変更フォームでも経路を表示する。ルールで決まる項目だけ、本人を申請者として読む。
+  const editRuleId = s.item.definition.approval?.ruleId ?? null;
+  const editRouteResult = editable && editRuleId ? await api.catalogApprovalRoute(s.item.id) : null;
+  const timeline = requestApprovalTimeline({
+    route: data.route ?? null,
+    steps:
+      data.steps ??
+      (data.approval
+        ? [
+            {
+              stepNo: 1,
+              state: data.approval.state,
+              approverName: data.approverName,
+              authorityType: 'legacy',
+              reason: data.approval.reason,
+              decidedAt: null,
+              expiresAt: data.approval.expires_at,
+            },
+          ]
+        : []),
+  });
   return (
     <main id="main" className="shell">
       <ContextLink back href="/requests">
@@ -92,6 +118,11 @@ export default async function RequestPage({
         </p>
       )}
       <h2>{labels[q.state] ?? q.state}</h2>
+      {own && q.state === 'pending' && data.approverUnavailable === true && (
+        <p role="status" className="notice">
+          承認者が不在です。下の「申請内容を変更して再承認を依頼する」から内容を変更して、再承認を依頼してください。
+        </p>
+      )}
       <dl>
         <dt>申請者</dt>
         <dd>{data.requesterName}</dd>
@@ -137,7 +168,7 @@ export default async function RequestPage({
           <a href={`/${staff ? 'ops' : 'tickets'}/${q.ticketId}`}>関連する依頼チケットを開く</a>
         </p>
       )}
-      {own && q.state !== 'completed' && q.state !== 'cancelled' && (
+      {editable && (
         <details>
           <summary>申請内容を変更して再承認を依頼する</summary>
           <RequestForm
@@ -146,6 +177,9 @@ export default async function RequestPage({
             item={item}
             approvers={data.approvers}
             request={data}
+            {...(editRouteResult
+              ? { route: editRouteResult.ok ? editRouteResult.data : null }
+              : {})}
           />
         </details>
       )}
@@ -169,6 +203,40 @@ export default async function RequestPage({
           !data.fulfillment?.checks.some((check) => check.required && !check.completed)
         }
       />
+      <h2>承認の経過</h2>
+      {timeline.length > 0 ? (
+        <ol className="attachments" aria-label="承認の経過">
+          {timeline.map((step) => (
+            <li key={`step-${step.stepNo}`} className="attachment">
+              <p>
+                <strong>
+                  段{step.stepNo}（{authorityLabel(step.authorityType)}）
+                </strong>
+                {' · '}
+                {step.pendingCreation ? '前の段の承認後に依頼' : stepStateLabel(step.state)}
+                {!step.pendingCreation && step.approverName && ` · 承認者: ${step.approverName}`}
+              </p>
+              {step.pendingCreation && <p className="hint">前の段の承認後に依頼します。</p>}
+              {!step.pendingCreation && step.decidedAt && (
+                <p>決定日時: {formatDateTime(step.decidedAt)}</p>
+              )}
+              {!step.pendingCreation && step.reason && (
+                <p style={{ whiteSpace: 'pre-wrap' }}>理由: {step.reason}</p>
+              )}
+              {!step.pendingCreation && step.expiresAt && (
+                <p className="hint">
+                  期限: {formatDateTime(step.expiresAt)}
+                  {step.state === 'pending' &&
+                    new Date(step.expiresAt).getTime() <= Date.now() &&
+                    '（期限切れ）'}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="hint">承認の経過はまだありません。</p>
+      )}
       <h2>承認の記録</h2>
       <ul className="attachments">
         {data.history.map((a) => (

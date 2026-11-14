@@ -5,21 +5,25 @@ import { FormDraftRecovery } from './FormDraftRecovery';
 import { draftKey, type DraftValues } from '../lib/form-draft';
 import { ContextLink } from './ContextLink';
 import { saveServiceRequest, processServiceRequest } from '../app/requests/actions';
-import type { CatalogItem, ServiceRequestDetail } from '../lib/api';
+import type { CatalogItem, RequestApprovalRoute, ServiceRequestDetail } from '../lib/api';
 import { CatalogFieldInputs } from './CatalogFieldInputs';
 import { catalogRequestFieldVisibility, type CatalogValues } from '@solvi/shared/catalog';
 import { catalogDraftValues, restoreCatalogDraftValues } from '../lib/catalog-form';
 import type { FormFeedback } from '../lib/form-state';
+import { authorityLabel, requestRouteDecision } from '../lib/approval-route';
 export function RequestForm({
   item,
   approvers,
   request,
   scope,
+  route,
 }: {
   item: CatalogItem;
   scope: string;
   approvers: Array<{ id: string; name: string }>;
   request?: ServiceRequestDetail;
+  /** 申請者自身の経路 (WP-P4-APR-016 §6.1)。ルール項目だけ渡す。 */
+  route?: RequestApprovalRoute | null;
 }) {
   const [feedback, action, pending] = useActionState(
     saveServiceRequest.bind(null, request?.request.id ?? null),
@@ -27,11 +31,26 @@ export function RequestForm({
   );
   const [key, setKey] = useState('');
   useEffect(() => setKey(crypto.randomUUID()), []);
-  const fixedApprover = item.definition.approval?.approverId;
+  const ruleId = item.definition.approval?.ruleId ?? null;
+  const routeDecision = requestRouteDecision({
+    ruleId,
+    itemVersion: item.version,
+    route: route ?? null,
+  });
+  const usingRule = routeDecision.usesRule;
+  const fixedApprover = usingRule ? undefined : item.definition.approval?.approverId;
   const [approverId, setApproverId] = useState(request?.approval.approver_id ?? '');
-  const available = fixedApprover
-    ? approvers.some((a) => a.id === fixedApprover)
-    : approvers.length > 0;
+  const available = usingRule
+    ? !routeDecision.blocked
+    : fixedApprover
+      ? approvers.some((a) => a.id === fixedApprover)
+      : approvers.length > 0;
+  const routeVersionMismatch = Boolean(
+    usingRule &&
+    route &&
+    route.ruleRoutingEnabled &&
+    (route.itemVersion !== item.version || route.mode !== 'rule' || route.rule?.id !== ruleId),
+  );
   const [customValues, setCustomValues] = useState<CatalogValues>(
     request?.request.snapshot.inputs.values ?? {},
   );
@@ -140,7 +159,37 @@ export function RequestForm({
         disabled={pending}
         idPrefix="request-field"
       />
-      {fixedApprover ? (
+      {usingRule ? (
+        <section className="field" aria-labelledby="request-approval-route-title">
+          <h2 id="request-approval-route-title">承認の経路</h2>
+          {routeDecision.showSteps && route ? (
+            <ol>
+              {route.steps.map((step) => (
+                <li key={step.stepNo}>
+                  <strong>
+                    段{step.stepNo}（{authorityLabel(step.authorityType)}）
+                  </strong>
+                  : {step.approverName}
+                </li>
+              ))}
+            </ol>
+          ) : routeDecision.blocked ? (
+            <div id="request-route-blocked" role="alert">
+              <p>{routeDecision.reason}</p>
+              <p>組織の管理者へ設定を依頼してください。</p>
+            </div>
+          ) : (
+            <p className="hint" id="request-route-note">
+              {routeVersionMismatch
+                ? 'この申請の定義版と現在公開中の版が異なるため、経路の表示は省略します。'
+                : '変更後の新しい版で、その時点の組織データから経路を解決し直します。'}
+            </p>
+          )}
+          <p className="hint">
+            表示は参考です。送信時にAPIが改めて経路を解決し、承認者を確認します。承認期限は各段72時間です。
+          </p>
+        </section>
+      ) : fixedApprover ? (
         <FormField className="field">
           <p>
             <strong>設定された承認者</strong>:{' '}
@@ -172,14 +221,24 @@ export function RequestForm({
           </p>
         </FormField>
       )}
-      {request && (
+      {request && usingRule && (
+        <p className="notice">
+          変更すると以前の承認が無効になり、新しい版でその時点の経路を解決し直します。
+        </p>
+      )}
+      {request && !usingRule && (
         <p className="notice">
           変更すると以前の承認が無効になります。新しい内容で再承認を依頼します。
         </p>
       )}
-      {!available && <p role="alert">現在選べる承認者がいません。管理者へご連絡ください。</p>}
+      {!usingRule && !available && (
+        <p role="alert">現在選べる承認者がいません。管理者へご連絡ください。</p>
+      )}
       <div className="form-actions">
-        <button disabled={pending || !key || !available}>
+        <button
+          disabled={pending || !key || !available || routeDecision.blocked}
+          aria-describedby={routeDecision.blocked ? 'request-route-blocked' : undefined}
+        >
           {pending ? '保存しています…' : request ? '変更して再承認を依頼する' : '申請する（模擬）'}
         </button>
         <ContextLink back href={request ? `/requests/${request.request.id}` : '/catalog'}>

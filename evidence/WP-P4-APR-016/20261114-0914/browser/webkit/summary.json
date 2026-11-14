@@ -1,0 +1,161 @@
+{
+  "workPackage": "WP-P4-APR-016",
+  "stage": "B",
+  "browser": "webkit",
+  "marker": "UI016B-SYN-1794615822989-webkit",
+  "success": false,
+  "createdAt": "2026-11-14T00:23:42.990Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_BROWSER=<engine> node tools/ui_approval_routing_check.mjs",
+  "commitSha": "b3b4f4e020e719a938d1c00a11ec3fae70310086",
+  "checks": [
+    {
+      "name": "管理ホームと左レールに承認ルールの導線がある",
+      "passed": true
+    },
+    {
+      "name": "キーボードだけで上長→固定承認者の2段ルールを作成できる",
+      "passed": true
+    },
+    {
+      "name": "既存の版を変えずに新しい版を追加できる",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "approvals-rules-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rules-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-rule-detail-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "approvals-preview-unresolved-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "approvals-rules-desktop-1440.png",
+    "approvals-rules-mobile-375.png",
+    "approvals-rule-detail-desktop-1440.png",
+    "approvals-rule-detail-mobile-375.png",
+    "approvals-preview-unresolved-desktop-1440.png"
+  ],
+  "writes": {
+    "rulesCreated": 1,
+    "revisions": 1,
+    "catalogCreated": 0,
+    "catalogUpdates": 0,
+    "catalogPublished": 0,
+    "catalogUnpublished": 0,
+    "routingEnabled": 0,
+    "routingDisabled": 0,
+    "ruleDeactivations": 1,
+    "departmentsCreated": 0,
+    "departmentHeadAssignments": 0,
+    "departmentDeactivations": 0,
+    "profileUpdates": 0,
+    "profilePeople": [],
+    "requestsCreated": 0
+  },
+  "ids": {
+    "rule": "01a1d770-60eb-7000-bac2-a43f726d390e",
+    "catalogItem": null,
+    "department": null,
+    "request": null,
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "managerUser": "00000000-0000-4000-9000-000000000104",
+    "fixedApproverUser": "00000000-0000-4000-9000-000000000103",
+    "headUser": "00000000-0000-4000-9000-000000000102",
+    "agentUser": "00000000-0000-4000-9000-000000000102",
+    "adminUser": "00000000-0000-4000-9000-000000000101"
+  },
+  "applied": {
+    "rule": true,
+    "revision": true,
+    "catalog": false,
+    "catalogRuleBound": false,
+    "catalogPublished": false,
+    "routingEnabledOnce": false,
+    "department": false,
+    "profiles": false,
+    "departmentHead": false,
+    "requestCreated": false,
+    "managerApproved": false,
+    "fixedApproved": false,
+    "simulated": false
+  },
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "組織での承認ルールを無効へ戻す",
+        "passed": true
+      },
+      {
+        "name": "変更したプロフィール(主部署・上長)を未設定へ戻す",
+        "passed": true
+      },
+      {
+        "name": "合成承認ルールを無効化する(ui016b-syn-1794615822989-webkit)",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": {
+    "tabsBefore": 34,
+    "submitTabs": 10,
+    "focus": {
+      "id": "approval-create-code",
+      "tag": "INPUT",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    },
+    "submittedWith": "Enter"
+  },
+  "blocked": [],
+  "browserVersion": "26.5",
+  "currentStep": "cleanup-complete",
+  "failure": "No horizontal overflow at approvals-preview-unresolved-mobile-375"
+}

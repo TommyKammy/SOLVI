@@ -19,6 +19,7 @@ import {
   checkRouteAgainstSteps,
   completeApprovalRequest,
   invalidateApprovalSteps,
+  parseApprovalRoute,
   routeHash,
   type ApprovalRoute,
   type ApprovalRouteStep,
@@ -141,6 +142,29 @@ export class CatalogController {
         await this.recordDenied(c, auth, e.target, e.reason);
         throw approvalResolutionProblem(e.reason);
       }
+      throw e;
+    } finally {
+      c.release();
+    }
+  }
+  /**
+   * 読み取り専用のトランザクション。申請前の経路確認だけが使う。
+   * 何も書き込まず、監査イベントも書かない(WP-P4-APR-016 §6.1)。
+   */
+  private async read<T>(
+    auth: AuthenticatedRequest,
+    fn: (c: pg.PoolClient) => Promise<T>,
+  ): Promise<T> {
+    if (!this.enabled) throw Problems.notFound('ローカル検証機能');
+    const c = await this.pool.connect();
+    try {
+      await c.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      await c.query("SELECT set_config('app.current_org',$1,true)", [auth.authz.organizationId]);
+      const result = await fn(c);
+      await c.query('COMMIT');
+      return result;
+    } catch (e) {
+      await c.query('ROLLBACK').catch(() => undefined);
       throw e;
     } finally {
       c.release();
@@ -343,6 +367,100 @@ export class CatalogController {
       canManage: hasRole(auth.authz, 'org_admin', 'platform_admin', 'catalog_editor'),
       simulation: true,
     }));
+  }
+  /**
+   * 申請者自身の経路の確認 (WP-P4-APR-016 §6.1)。
+   *
+   * 申請者は**ログイン中の本人**だけ。入力に申請者IDを持たず、他人の経路を調べる手段にしない。
+   * 公開中(active)の同組織の項目だけを対象にし、見えない項目は404。
+   * 何も書き込まず監査も書かない。承認者の表示名だけを返し、役職・勤務地・社員番号・
+   * メールアドレス・承認者IDは返さない。
+   */
+  async approvalRoute(auth: AuthenticatedRequest, itemId: string) {
+    parse(uuid, itemId);
+    return this.read(auth, async (c) => {
+      const item = (
+        await c.query<{ id: string; version: number; title: string; definition: unknown }>(
+          'SELECT id,version,title,definition FROM local_catalog_item WHERE id=$1 AND organization_id=$2 AND active',
+          [itemId, auth.authz.organizationId],
+        )
+      ).rows[0];
+      if (!item) throw Problems.notFound('カタログ');
+      const parsed = definitionSchema.safeParse(item.definition);
+      if (!parsed.success) throw Problems.conflict('カタログ定義を確認できません');
+      const definition = parsed.data;
+      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+      const resolution = await resolveRouteForRequest(c, {
+        organizationId: auth.authz.organizationId,
+        requesterId: auth.userId,
+        definition,
+        // 入力から承認者を受け取らない。申請者が選ぶ方式の候補は既存のカタログAPIが返す。
+        selectedApproverId: null,
+        now,
+        lockRule: false,
+      });
+      const ruleRoutingEnabled = resolution.ruleRoutingEnabled;
+      const usingRule = ruleRoutingEnabled && Boolean(definition.approval?.ruleId);
+      const mode = usingRule
+        ? 'rule'
+        : definition.approval?.approverId
+          ? 'fixed'
+          : 'requester_selected';
+      const base = {
+        itemId: item.id,
+        itemVersion: item.version,
+        mode,
+        ruleRoutingEnabled,
+      };
+      if (!resolution.ok) {
+        // 申請者が選ぶ方式は「解決できない」ではなく、従来どおり候補から選ぶ。
+        if (
+          mode === 'requester_selected' &&
+          resolution.reason.code === 'requester_selected_missing'
+        )
+          return { ...base, resolved: false, rule: null, steps: [] };
+        // 失敗時も、どのルールを使おうとしたかを返す(画面が現在の版の定義と照合できるように)。
+        // 無効・不在のルールでは rule は null になる。
+        return {
+          ...base,
+          resolved: false,
+          rule: resolution.rule
+            ? {
+                id: resolution.rule.ruleId,
+                code: resolution.rule.code,
+                revision: resolution.rule.revision,
+              }
+            : null,
+          steps: [],
+          reason: resolution.reason,
+        };
+      }
+      const approverIds = resolution.route.steps.map((step) => step.approverId);
+      const names = approverIds.length
+        ? (
+            await c.query<{ id: string; display_name: string }>(
+              'SELECT id,display_name FROM app_user WHERE id=ANY($1::uuid[])',
+              [approverIds],
+            )
+          ).rows
+        : [];
+      return {
+        ...base,
+        resolved: true,
+        rule: resolution.rule
+          ? {
+              id: resolution.rule.ruleId,
+              code: resolution.rule.code,
+              revision: resolution.rule.revision,
+            }
+          : null,
+        steps: resolution.route.steps.map((step) => ({
+          stepNo: step.stepNo,
+          authorityType: step.authorityType,
+          approverName: names.find((user) => user.id === step.approverId)?.display_name ?? '承認者',
+        })),
+      };
+    });
   }
   async list(auth: AuthenticatedRequest, query = new URLSearchParams()) {
     const filter = parse(
@@ -590,12 +708,36 @@ export class CatalogController {
         a = await this.approval(c, q);
       await this.visible(c, auth, q, revision);
       const steps = await this.steps(c, q, revision);
+      // 版に固定した経路。移行前の版は null(従来の1段として表示する)。
+      const route = parseApprovalRoute(revision.route);
+      const nameIds = [
+        ...new Set([
+          q.requester_id,
+          ...steps.map((step) => step.approver_id),
+          ...(route?.steps.map((step) => step.approverId) ?? []),
+        ]),
+      ];
       const names = (
         await c.query<{ id: string; display_name: string }>(
           'SELECT id,display_name FROM app_user WHERE id=ANY($1::uuid[])',
-          [[q.requester_id, ...steps.map((step) => step.approver_id)]],
+          [nameIds],
         )
       ).rows;
+      // 現在の pending ステップの承認者が、いま決定できる状態かを導出する
+      // (一覧の approverUnavailable と同じ定義)。申請者本人にだけ返す。
+      // 他の閲覧者(担当者・承認者)には、不要な所属の照会も行わない。
+      const routeStep = route?.steps[a.step_no - 1] ?? null;
+      const authorityType = routeStep?.authorityType ?? a.authority_type;
+      let approverUnavailable = false;
+      if (q.requester_id === auth.userId && a.state === 'pending') {
+        const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+        const facts = await loadUserFacts(c, q.organization_id, [a.approver_id], now);
+        const factsForApprover = facts.get(a.approver_id);
+        approverUnavailable =
+          !isActiveMember(factsForApprover) ||
+          (['fixed', 'legacy'].includes(authorityType) &&
+            factsForApprover?.hasApproverRole !== true);
+      }
       return {
         requesterName: names.find((u) => u.id === q.requester_id)?.display_name ?? '申請者',
         approverName: names.find((u) => u.id === a.approver_id)?.display_name ?? '承認者',
@@ -624,6 +766,21 @@ export class CatalogController {
           decidedBy: step.decided_by,
           expiresAt: step.expires_at,
         })),
+        // 未作成の後続段も含む経路(加算的な読み取り。認可・検証・状態遷移は変えない)。
+        // 表示名だけを返し、役職・勤務地・社員番号は返さない。
+        route: route
+          ? {
+              steps: route.steps.map((step) => ({
+                stepNo: step.stepNo,
+                approverId: step.approverId,
+                approverName: names.find((u) => u.id === step.approverId)?.display_name ?? '承認者',
+                authorityType: step.authorityType,
+                resolvedFrom: step.resolvedFrom,
+              })),
+              ruleRef: route.ruleRef,
+            }
+          : null,
+        approverUnavailable,
         history: (
           await c.query(
             `SELECT a.id,a.state,a.revision,a.approver_id AS "approverId",u.display_name AS "approverName",a.reason,a.decided_at AS "decidedAt",a.expires_at AS "expiresAt",r.snapshot->'inputs' AS inputs,r.snapshot->'item' AS item
