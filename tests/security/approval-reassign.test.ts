@@ -34,7 +34,7 @@ import { CatalogAdminController } from '../../services/api/src/modules/catalog/c
 import { CatalogController } from '../../services/api/src/modules/catalog/catalog.routes.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
 import type { RoleCode } from '../../services/api/src/common/authz/authz.js';
-import { cleanAuditData } from '../support/cleanup.js';
+import { cleanApprovalNoticeData, cleanAuditData } from '../support/cleanup.js';
 
 const ROOT = join(__dirname, '../..');
 const PAST = new Date('2026-01-01T00:00:00Z');
@@ -434,6 +434,8 @@ async function cleanRulesFor(organizationId: string): Promise<void> {
 }
 
 async function cleanOrgData(): Promise<void> {
+  // 承認の通知の記録は承認行より先に消す(WP-P4-APR-019 の複合外部キー)。
+  await cleanApprovalNoticeData(admin, 'organization_id = $1', [org]);
   await cleanAuditData(admin, `organization_id = '${org}'`);
   // 世代 → 承認行 → 版 → 申請の順。世代のトリガは検査のために一時的に外す。
   await admin.query(
@@ -751,10 +753,17 @@ describe('Migration 0040: 経路世代の表 (TL-04)', () => {
     const { requestId } = await reassignableRequest();
     await setManager(requester.id, manager2.id);
     await reassign(adminUser, requestId);
+    // 0041 が追加されたため、0040 の巻き戻しは `--to 0039` で確かめる
+    // (最後の Migration であることを仮定しない)。
+    // 先に 0041 の行を消しておき、0040 の拒否で止まった後に 0041 を戻す。
+    await cleanApprovalNoticeData(admin);
     const down = migrate('down', '--to', '0039');
     expect(down.ok).toBe(false);
     expect(down.output).toContain('0040 rollback refused');
+    const up = migrate('up');
+    expect(up.ok, up.output).toBe(true);
     expect((await q(`SELECT 1 FROM schema_migration WHERE version='0040'`)).rowCount).toBe(1);
+    expect((await q(`SELECT 1 FROM schema_migration WHERE version='0041'`)).rowCount).toBe(1);
     expect(await generationRows(requestId)).toHaveLength(1);
   }, 120_000);
 });

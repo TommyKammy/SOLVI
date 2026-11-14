@@ -10,6 +10,7 @@ export * from './ticket/sla.js';
 export * from './observability/tracing.js';
 export * from './observability/metrics.js';
 export * from './notification/webhook-signature.js';
+export * from './notification/approval-notice.js';
 export * from './auth/password.js';
 export * from './auth/session-token.js';
 export * from './auth/role-expiry.js';

@@ -28,6 +28,12 @@ export const OUTBOX_EVENT_TYPES = [
   'ticket.reassessed',
   'ticket.merged',
   'notification.manual_retry.requested',
+  // 承認の通知 (WP-P4-APR-019 §6.1)。種類ごとに1つのイベント型にする。
+  // **payload は識別子だけ**。件名・リンクは配送側で組み立て、宛先は配送時に解決する。
+  'approval.notice.requested',
+  'approval.notice.expiring',
+  'approval.notice.expired',
+  'approval.notice.approver_unavailable',
 ] as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[number];

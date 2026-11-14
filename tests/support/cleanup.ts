@@ -31,10 +31,45 @@ const APPEND_ONLY_TABLES = [
 ] as const;
 
 /**
+ * 承認の通知の記録(WP-P4-APR-019)を消す。
+ *
+ * `local_request_approval` への外部キーを持つため、**承認行より先に**消す必要がある。
+ * 追記専用トリガはテスト用途でのみ外す(本番でこの経路は存在しない)。
+ * Migration 0041 より前のDBでは表が無いため、その場合は何もしない。
+ *
+ * @param admin owner 権限の接続
+ */
+export async function cleanApprovalNoticeData(
+  admin: pg.Client,
+  whereClause?: string,
+  params: unknown[] = [],
+): Promise<void> {
+  const exists = await admin.query(
+    "SELECT to_regclass('public.local_request_approval_notice') AS table_name",
+  );
+  if (!exists.rows[0]?.table_name) return;
+  await admin.query(
+    'ALTER TABLE local_request_approval_notice DISABLE TRIGGER local_request_approval_notice_immutable',
+  );
+  try {
+    await admin.query(
+      `DELETE FROM local_request_approval_notice${whereClause ? ` WHERE ${whereClause}` : ''}`,
+      params,
+    );
+  } finally {
+    await admin.query(
+      'ALTER TABLE local_request_approval_notice ENABLE TRIGGER local_request_approval_notice_immutable',
+    );
+  }
+}
+
+/**
  * 業務データを削除する。seed で作った organization / app_user / role は残す。
  * @param admin owner 権限の接続(RLSとトリガを越える必要があるため)
  */
 export async function cleanBusinessData(admin: pg.Client): Promise<void> {
+  // 承認の通知の記録は承認行より先に消す(複合外部キー)。
+  await cleanApprovalNoticeData(admin);
   // 組織プロフィール(WP-P4-IDM-012)。`app_user` を消す後始末より前に、シード以外の利用者の行を消す。
   // `org_member_profile.user_id` は ON DELETE RESTRICT のため、残ると `DELETE FROM app_user` が失敗する。
   await cleanOrgProfiles(admin, { nonSeedUsers: true });

@@ -6,6 +6,11 @@ import {
   allowTicketEmailPreparation,
   OPTIONAL_TICKET_EMAIL_EVENTS,
 } from './notification-preference.service.js';
+import {
+  activeMemberRecipientSql,
+  activeOrgAdminRecipientSql,
+  isApprovalNoticeEventType,
+} from '../catalog/approval-notice.js';
 
 /**
  * 通知の組み立てと配送(FR-TKT-007)。
@@ -133,6 +138,11 @@ export class NotificationService {
       return this.deliverRoleExpiryNotice(record);
     }
 
+    // 承認の通知 (WP-P4-APR-019)。チケット番号を持たないため、チケットの経路より先に分ける。
+    if (isApprovalNoticeEventType(record.eventType)) {
+      return this.deliverApprovalNotice(record);
+    }
+
     const ticketId = String(record.payload.ticketId ?? '');
     const ticketNumber = String(record.payload.ticketNumber ?? '');
 
@@ -249,6 +259,119 @@ export class NotificationService {
     }
 
     return { sent, skipped };
+  }
+
+  /**
+   * 承認の通知を配送する (WP-P4-APR-019 §6.1)。
+   *
+   * **件名とリンクだけを送る。** 申請の入力値・理由・社員番号・役職・勤務地は
+   * 件名にもリンクにも載せない。件名には申請の番号だけを含めてよい。
+   *
+   * 宛先は**配送の時点**で決める。積んだ時点の宛先を信じない:
+   *   - 有効な所属でなくなった利用者へは送らない(ADR-0023 §1)
+   *   - 承認者不在の通知は、その組織の現在有効な組織管理者の全員
+   *
+   * 通知設定(`notification_preference`)は既存の `role.binding.expiring` と同じ扱いにする。
+   * この表は `ticket_email_enabled` だけを持ち、チケット以外の通知は止めない。
+   */
+  private async deliverApprovalNotice(
+    record: OutboxRecordLike,
+  ): Promise<{ sent: number; skipped: number }> {
+    const organizationId = record.organizationId;
+    const approvalId = String(record.payload.approvalId ?? '');
+    const requestId = String(record.payload.requestId ?? '');
+    if (!organizationId || !approvalId || !requestId) {
+      throw new Error('通知に必要な情報がペイロードにありません');
+    }
+
+    // 種別ごとに必要な宛先が違う。**文面の判断は件名の表だけに閉じる。**
+    const labels: Record<string, string> = {
+      requested: '承認の依頼があります',
+      expiring: '承認期限が近づいています',
+      expired: '承認期限が過ぎました。再申請を確認してください',
+      approver_unavailable: '承認者が不在です',
+    };
+    const kind = record.eventType.slice('approval.notice.'.length);
+    const label = labels[kind];
+    if (!label) throw new Error('承認の通知の種類を確認できません');
+
+    // 対象の申請と番号。RLS の組織文脈に加え、明示的に組織で絞る。
+    const target = (
+      await this.client.query<{ requester_id: string; number: string }>(
+        `SELECT q.requester_id, t.number
+           FROM local_service_request q
+           JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
+          WHERE q.id=$1 AND q.organization_id=$2`,
+        [requestId, organizationId],
+      )
+    ).rows[0];
+    const approval = (
+      await this.client.query<{ request_id: string; approver_id: string }>(
+        `SELECT request_id, approver_id FROM local_request_approval
+          WHERE id=$1 AND organization_id=$2`,
+        [approvalId, organizationId],
+      )
+    ).rows[0];
+    if (!target || !approval || approval.request_id !== requestId) {
+      // 対象が読めない通知は送らない。再試行の上限で止まり、運用が気付ける。
+      throw new Error('承認の通知の対象を確認できません');
+    }
+
+    const recipients =
+      kind === 'approver_unavailable'
+        ? await this.activeOrgAdmins(organizationId)
+        : await this.activeMembers(
+            organizationId,
+            kind === 'expired' ? target.requester_id : approval.approver_id,
+          );
+    if (recipients.length === 0) return { sent: 0, skipped: 1 };
+
+    // 件名には申請番号を含めてよい。**入力値・理由・個人データは含めない。**
+    const subject = `[${target.number}] ${label}`;
+    const linkPath = `/requests/${requestId}`;
+
+    let sent = 0;
+    let skipped = 0;
+    for (const recipient of recipients) {
+      const ready = await this.prepareNotification(organizationId, record.id, {
+        channel: 'email',
+        recipient,
+        subject,
+        linkPath,
+      });
+      if (!ready) {
+        skipped += 1;
+        continue;
+      }
+      await this.dispatch(ready, organizationId, recipient, subject, linkPath);
+      sent += 1;
+    }
+    return { sent, skipped };
+  }
+
+  /** 有効な所属の利用者だけを返す(判定は `approval-resolver` の共有述語)。 */
+  private async activeMembers(
+    organizationId: string,
+    userId: string,
+  ): Promise<NotificationRecipient[]> {
+    const { rows } = await this.client.query<{ user_id: string; email: string | null }>(
+      activeMemberRecipientSql({ organizationId: '$1', userId: '$2', at: 'now()' }),
+      [organizationId, userId],
+    );
+    return rows
+      .filter((row): row is { user_id: string; email: string } => Boolean(row.email))
+      .map((row) => ({ userId: row.user_id, address: row.email }));
+  }
+
+  /** その組織の現在有効な組織管理者の全員。 */
+  private async activeOrgAdmins(organizationId: string): Promise<NotificationRecipient[]> {
+    const { rows } = await this.client.query<{ user_id: string; email: string | null }>(
+      activeOrgAdminRecipientSql({ organizationId: '$1', at: 'now()' }),
+      [organizationId],
+    );
+    return rows
+      .filter((row): row is { user_id: string; email: string } => Boolean(row.email))
+      .map((row) => ({ userId: row.user_id, address: row.email }));
   }
 
   /** @returns 配送する通知ID。成功済み/任意新規通知OFFはnull。呼出側の取引を必要とする。 */

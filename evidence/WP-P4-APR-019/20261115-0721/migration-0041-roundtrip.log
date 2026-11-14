@@ -1,0 +1,27 @@
+$ node tools/migrate.mjs down --to 0040  (disposable DB)
+reverting 0041_local_request_approval_notice.sql ...
+  ok
+$ node tools/migrate.mjs up
+applying 0041_local_request_approval_notice.sql ...
+  ok
+
+1 件を適用しました。
+$ insert one synthetic notice row
+approval_row=found notices=1
+$ node tools/migrate.mjs down --to 0040  (with data; must be refused)
+reverting 0041_local_request_approval_notice.sql ...
+0041_local_request_approval_notice.sql の巻き戻しに失敗しました: 0041 rollback refused: retain approval notice records
+exit=1
+$ remove the synthetic row
+approval_row=found notices=1
+cleaned notices=0
+$ node tools/migrate.mjs down --to 0040
+reverting 0041_local_request_approval_notice.sql ...
+  ok
+$ node tools/migrate.mjs up
+applying 0041_local_request_approval_notice.sql ...
+  ok
+
+1 件を適用しました。
+$ status
+solvi_wp019_test: migrations=41 max=0041 notice_table=1 sweep_policy=1 organizations=2

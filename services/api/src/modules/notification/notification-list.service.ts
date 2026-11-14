@@ -13,6 +13,11 @@ export const NOTIFICATION_EVENT_TYPES = [
   'ticket.comment.added',
   'ticket.reassessed',
   'role.binding.expiring',
+  // 承認の通知 (WP-P4-APR-019)。管理画面の通知ログで種類を出す。
+  'approval.notice.requested',
+  'approval.notice.expiring',
+  'approval.notice.expired',
+  'approval.notice.approver_unavailable',
 ] as const;
 const statuses = ['all', 'pending', 'sent', 'failed'] as const;
 type StatusFilter = (typeof statuses)[number];

@@ -114,7 +114,7 @@ export class InboxController {
            ON a.id=q.current_approval_id AND a.organization_id=q.organization_id
           AND a.request_id=q.id AND a.revision=q.revision
           AND a.route_generation=${effectiveGeneration}
-        WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending'
+        WHERE q.organization_id=$1 AND q.state='pending' AND a.state IN ('pending','expired')
           AND a.approver_id=$2 AND q.requester_id<>$2
         LIMIT 1`,
       [auth.authz.organizationId, auth.userId],
@@ -249,8 +249,11 @@ export class InboxController {
     JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id AND a.request_id=q.id AND a.revision=q.revision AND a.snapshot_hash=q.snapshot_hash
       AND a.route_generation=${effectiveGeneration}
     JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
-    WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND a.approver_id=$2 AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)`,
-          [org, user, only?.id ?? null],
+    WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND a.approver_id=$2 AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)
+      -- 期限を過ぎたステップは承認待ちではない。行が pending のままでも expired でも出さない
+      -- (WP-P4-APR-019 §6.4)。
+      AND a.expires_at > $4::timestamptz`,
+          [org, user, only?.id ?? null, now],
         )
       ).rows;
       for (const r of rows) {

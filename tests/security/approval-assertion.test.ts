@@ -17,6 +17,7 @@ import { hash } from '../../services/api/src/modules/catalog/snapshot-hash.js';
 import { checkApprovalComplete } from '../../services/api/src/modules/catalog/approval-assertion.js';
 import { CatalogController } from '../../services/api/src/modules/catalog/catalog.routes.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
+import { cleanApprovalNoticeData } from '../support/cleanup.js';
 
 const ORG = '00000000-0000-4000-9000-000000000001';
 const PAST = new Date('2026-01-01T00:00:00Z');
@@ -185,6 +186,12 @@ afterAll(async () => {
       'DELETE FROM local_request_checklist_progress WHERE request_id=ANY($1::uuid[])',
       r,
     );
+    // 承認の通知の記録は承認行より先に消す(WP-P4-APR-019 の複合外部キー)。
+    await cleanApprovalNoticeData(
+      admin,
+      'approval_id IN (SELECT id FROM local_request_approval WHERE request_id=ANY($1::uuid[]))',
+      r,
+    ).catch(() => undefined);
     try {
       await admin.query('BEGIN');
       // request.current_approval_id の外部キーは DEFERRED。承認 → 版 → 申請の順に消す。

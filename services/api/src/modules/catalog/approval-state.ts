@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import { Problems } from '@solvi/shared';
 import { uuidv7 } from '../../common/audit/audit.js';
+import { insertPendingApprovalStep } from './approval-notice.js';
 import { hash } from './snapshot-hash.js';
 
 /**
@@ -240,6 +241,24 @@ export function transitionFor(
   );
 }
 
+/**
+ * 表示用のステップの状態(WP-P4-APR-019 §6.4)。
+ *
+ * 定期処理がまだ回っておらず行が `pending` のまま期限を過ぎた状態と、
+ * 定期処理が `expired` にした状態で、API・画面の見え方を同じにする。
+ * 期限が読めない・欠けている `pending` は期限切れの側に倒す(fail closed)。
+ * DBの行そのものは変えない。状態遷移・認可の判定にも使わない。
+ */
+export function stepStateForDisplay(input: {
+  state: string;
+  expiresAt: unknown;
+  now: Date;
+}): string {
+  if (input.state !== 'pending') return input.state;
+  if (!(input.expiresAt instanceof Date)) return 'expired';
+  return input.expiresAt.getTime() <= input.now.getTime() ? 'expired' : 'pending';
+}
+
 /** 経路・世代・ステップ行の整合性。fail closed で、少しでも欠ければ通さない。 */
 export type RouteCheckFailure =
   | 'route_invalid'
@@ -439,8 +458,15 @@ export async function applyApprovalDecision(
   if (!transition) throw conflict('この承認ステップでは、その決定を受け付けられません');
   if (transition.createNextStep && !input.nextStep)
     throw conflict('次の承認ステップを確認できません');
-  if (transition.createNextStep && input.nextRouteGeneration === null)
-    throw conflict('次の承認ステップの世代を確認できません');
+  // 次段を作る場合は、世代が**数値であること**を先に確かめる。
+  // 直前の null 検査だけでは `undefined` が型をすり抜ける(表明で黙らせない)。
+  let nextRouteGeneration: number | null = null;
+  if (transition.createNextStep) {
+    const candidate = input.nextRouteGeneration;
+    if (typeof candidate !== 'number' || !Number.isSafeInteger(candidate) || candidate < 1)
+      throw conflict('次の承認ステップの世代を確認できません');
+    nextRouteGeneration = candidate;
+  }
 
   const updated = await client.query<{ id: string }>(
     `UPDATE local_request_approval
@@ -465,27 +491,24 @@ export async function applyApprovalDecision(
 
   let nextStepId: string | null = null;
   if (transition.createNextStep) {
-    const next = input.nextStep!;
+    const next = input.nextStep;
+    const generation = nextRouteGeneration;
+    // 上の検査で必ず通るが、**表明を使わず**ここでも fail closed にする。
+    if (!next || generation === null) throw conflict('次の承認ステップを確認できません');
     nextStepId = uuidv7();
     try {
-      await client.query(
-        `INSERT INTO local_request_approval(
-           id, organization_id, request_id, revision, route_generation, step_no,
-           snapshot_hash, approver_id, authority_type, resolved_from, state, expires_at
-         ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',clock_timestamp()+interval '72 hours')`,
-        [
-          nextStepId,
-          input.step.organization_id,
-          input.request.id,
-          input.request.revision,
-          input.nextRouteGeneration,
-          next.stepNo,
-          input.step.snapshot_hash,
-          next.approverId,
-          next.authorityType,
-          next.resolvedFrom,
-        ],
-      );
+      await insertPendingApprovalStep(client, {
+        id: nextStepId,
+        organizationId: input.step.organization_id,
+        requestId: input.request.id,
+        revision: input.request.revision,
+        routeGeneration: generation,
+        stepNo: next.stepNo,
+        snapshotHash: input.step.snapshot_hash,
+        approverId: next.approverId,
+        authorityType: next.authorityType,
+        resolvedFrom: next.resolvedFrom,
+      });
     } catch (error) {
       // ロックの内側で直列化しているが、念のため一意制約違反を 500 にしない。
       if ((error as { code?: string }).code === '23505') throw conflict();
@@ -697,24 +720,18 @@ export async function applyReassignment(
 
   const newApprovalId = uuidv7();
   try {
-    await client.query(
-      `INSERT INTO local_request_approval(
-         id, organization_id, request_id, revision, route_generation, step_no,
-         snapshot_hash, approver_id, authority_type, resolved_from, state, expires_at
-       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',clock_timestamp()+interval '72 hours')`,
-      [
-        newApprovalId,
-        input.step.organization_id,
-        input.request.id,
-        input.request.revision,
-        input.nextRouteGeneration,
-        input.nextStep.stepNo,
-        input.step.snapshot_hash,
-        input.nextStep.approverId,
-        input.nextStep.authorityType,
-        input.nextStep.resolvedFrom,
-      ],
-    );
+    await insertPendingApprovalStep(client, {
+      id: newApprovalId,
+      organizationId: input.step.organization_id,
+      requestId: input.request.id,
+      revision: input.request.revision,
+      routeGeneration: input.nextRouteGeneration,
+      stepNo: input.nextStep.stepNo,
+      snapshotHash: input.step.snapshot_hash,
+      approverId: input.nextStep.approverId,
+      authorityType: input.nextStep.authorityType,
+      resolvedFrom: input.nextStep.resolvedFrom,
+    });
   } catch (error) {
     // ロックの内側で直列化しているが、主キー・一意制約違反を 500 にしない。
     if ((error as { code?: string }).code === '23505') throw conflict();

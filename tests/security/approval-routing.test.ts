@@ -32,7 +32,7 @@ import { CatalogController } from '../../services/api/src/modules/catalog/catalo
 import { InboxController } from '../../services/api/src/modules/inbox/inbox.routes.js';
 import type { AuthenticatedRequest } from '../../services/api/src/modules/auth/auth.routes.js';
 import type { RoleCode } from '../../services/api/src/common/authz/authz.js';
-import { cleanAuditData } from '../support/cleanup.js';
+import { cleanApprovalNoticeData, cleanAuditData } from '../support/cleanup.js';
 
 const PAST = new Date('2026-01-01T00:00:00Z');
 const SUFFIX = randomUUID().slice(0, 8);
@@ -361,6 +361,8 @@ async function cleanRulesFor(organizationId: string): Promise<void> {
 }
 
 async function cleanOrgData(): Promise<void> {
+  // 承認の通知の記録は承認行より先に消す(WP-P4-APR-019 の複合外部キー)。
+  await cleanApprovalNoticeData(admin, 'organization_id = $1', [org]);
   await cleanAuditData(admin, `organization_id = '${org}'`);
   // local_service_request.current_approval_id は DEFERRABLE なので、
   // 承認行→版→申請の削除を1トランザクションで行う(途中コミットで FK を見ない)。

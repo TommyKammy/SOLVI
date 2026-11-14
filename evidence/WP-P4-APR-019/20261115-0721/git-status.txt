@@ -1,0 +1,32 @@
+ M apps/web/src/app/requests/[id]/page.tsx
+ M apps/web/src/lib/approval-route.ts
+ M apps/web/src/lib/notification-list.ts
+ M docs/planning/02_Architecture/02.18_Organization_Data_Model_and_RLS.md
+ M docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-019.md
+ M docs/planning/99_Project_Files/99.4_Decision_Log.md
+ M packages/shared/src/index.ts
+ M services/api/src/common/audit/audit.ts
+ M services/api/src/common/outbox/outbox.ts
+ M services/api/src/main.ts
+ M services/api/src/modules/catalog/approval-assertion.ts
+ M services/api/src/modules/catalog/approval-resolver.ts
+ M services/api/src/modules/catalog/approval-state.ts
+ M services/api/src/modules/catalog/catalog.routes.ts
+ M services/api/src/modules/inbox/inbox.routes.ts
+ M services/api/src/modules/notification/notification-list.service.ts
+ M services/api/src/modules/notification/notification.service.ts
+ M tests/security/approval-assertion.test.ts
+ M tests/security/approval-reassign.test.ts
+ M tests/security/approval-routing.test.ts
+ M tests/security/approval-steps.test.ts
+ M tests/support/cleanup.ts
+ M tests/unit/approval-state.test.ts
+ M tests/unit/request-detail-recovery-ui.test.ts
+?? db/migrations/0041_local_request_approval_notice.sql
+?? evidence/WP-P4-APR-019/
+?? packages/shared/src/notification/approval-notice.ts
+?? services/api/src/modules/catalog/approval-notice-sweep.ts
+?? services/api/src/modules/catalog/approval-notice.ts
+?? services/api/src/modules/catalog/membership.ts
+?? tests/security/approval-notice.test.ts
+?? tests/unit/approval-notice.test.ts

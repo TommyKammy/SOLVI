@@ -1,0 +1,20 @@
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ✓ tests/security/approval-notice.test.ts (44 tests) 5515ms
+   ✓ Migration 0041: 通知の記録の表 (TL-04) > **行が無ければ down → up の往復ができる。0040 から増えるポリシーはちょうど2件**  339ms
+   ✓ 巡回: 組織を1つずつ処理し、失敗を隔離する (指摘2.2) > **2つの組織を1周で処理し、監査と送信の記録をそれぞれの組織に残す**  300ms
+(node:73742) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/security/approval-routing.test.ts (45 tests) 3740ms
+ ✓ tests/security/approval-reassign.test.ts (38 tests) 3955ms
+   ✓ Migration 0040: 経路世代の表 (TL-04) > 行が無ければ down → up の往復ができる(最後のMigrationであることを仮定しない)  340ms
+   ✓ Migration 0040: 経路世代の表 (TL-04) > 行が1件でもあれば down を拒否する(前進修復)  390ms
+ ✓ tests/security/approval-steps.test.ts (22 tests) 1247ms
+ ✓ tests/security/approval-assertion.test.ts (18 tests) 811ms
+
+ Test Files  5 passed (5)
+      Tests  167 passed (167)
+   Start at  07:22:10
+   Duration  17.00s (transform 227ms, setup 0ms, collect 815ms, tests 15.27s, environment 0ms, prepare 121ms)
+

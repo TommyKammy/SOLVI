@@ -444,6 +444,28 @@ export function stepStateLabel(value: string | null | undefined): string {
   return (value && STEP_STATE_LABELS[value]) || '状態を確認できません';
 }
 
+/**
+ * 表示用のステップ状態 (WP-P4-APR-019 §6.4)。
+ *
+ * APIは期限を過ぎた `pending` を `expired` として返すが、応答が届いてから
+ * 描画するまでの間に期限が過ぎることがある。画面でも同じ規則で導出し、
+ * 「行が pending のまま期限を過ぎた状態」と「expired になった状態」の
+ * 表示を一致させる。期限が読めない場合は API と同じく期限切れの側に倒す
+ * (`stepStateForDisplay` と同じ判定。片方だけ変えない)。
+ */
+export function displayStepState(
+  state: string | null | undefined,
+  expiresAt: string | null | undefined,
+  now: number,
+): string | null {
+  if (state === null || state === undefined) return null;
+  if (state !== 'pending') return state;
+  const at = typeof expiresAt === 'string' ? Date.parse(expiresAt) : Number.NaN;
+  // 不正な日時は期限切れの側に倒す(fail closed)。
+  if (!Number.isFinite(at) || at <= now) return 'expired';
+  return state;
+}
+
 export interface RequestRouteDecision {
   /** 承認ルールで経路が決まるか。true なら承認者選択を出さず approverId を送らない。 */
   usesRule: boolean;

@@ -7,6 +7,7 @@ import {
   type ApprovalRouteStep,
   type AuthorityType,
 } from './approval-state.js';
+import { activeMembershipSql } from './membership.js';
 
 /**
  * 承認者の解決 (WP-P4-APR-015 段階A / ADR-0023 §1・§9 / WP §6.1)。
@@ -112,20 +113,11 @@ export function isActiveMember(user: UserFacts | null | undefined): boolean {
 }
 
 /**
- * 有効な所属を判定する SQL 述語。`userExpr` は利用者IDを返す式、
- * `orgParam` / `atParam` は外側クエリのプレースホルダである。
- * 文字列は呼び出し側の固定リテラルだけを渡す(利用者入力を連結しない)。
+ * 有効な所属を判定する SQL 述語(ADR-0023 §1)。
+ * 実体は `membership.ts` に置き、モジュールの循環を避ける。
+ * 既存の呼び出し(承認の解決・経路の導出)向けにここから再輸出する。
  */
-export function activeMembershipSql(userExpr: string, orgParam: string, atParam: string): string {
-  return `EXISTS (
-    SELECT 1 FROM role_binding rb
-     WHERE rb.user_id = ${userExpr}
-       AND rb.role_scope = 'org'
-       AND rb.organization_id = ${orgParam}
-       AND rb.valid_from <= ${atParam}
-       AND (rb.valid_until IS NULL OR rb.valid_until > ${atParam})
-  )`;
-}
+export { activeMembershipSql } from './membership.js';
 
 type StepResolution =
   | {

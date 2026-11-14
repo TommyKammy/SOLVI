@@ -7,6 +7,7 @@ import {
   stopTracing,
   runWithContext,
   newContext,
+  APPROVAL_NOTICE_SWEEP_INTERVAL_MS,
   type ApiEnv,
 } from '@solvi/shared';
 import { Database } from './common/db/pool.js';
@@ -29,6 +30,10 @@ import { AssetsController } from './modules/assets/assets.routes.js';
 import { CatalogAdminController } from './modules/catalog/catalog-admin.routes.js';
 import { CatalogController } from './modules/catalog/catalog.routes.js';
 import { ApprovalRuleController } from './modules/catalog/approval-rule.routes.js';
+import {
+  ApprovalNoticeSweeper,
+  startApprovalNoticeLoop,
+} from './modules/catalog/approval-notice-sweep.js';
 import { AuditExportController } from './modules/audit/audit-export.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
@@ -1057,6 +1062,12 @@ async function bootstrap(): Promise<void> {
         // チケット以外 (WP-P1-IDM-017)。**登録し忘れると、
         // Outbox に積まれたまま誰も処理しない**(欠陥1と同じ形)。
         'role.binding.expiring',
+        // 承認の通知 (WP-P4-APR-019 §6.1)。同じく、登録し忘れると
+        // `local_request_approval_notice` だけが増えて通知が届かない。
+        'approval.notice.requested',
+        'approval.notice.expiring',
+        'approval.notice.expired',
+        'approval.notice.approver_unavailable',
       ].map((type) => [type, notificationHandler] as const),
       [
         'notification.manual_retry.requested',
@@ -1126,6 +1137,17 @@ async function bootstrap(): Promise<void> {
     60 * 60 * 1000,
   );
 
+  // 承認の通知と期限切れ (FR-CAT-011 / WP-P4-APR-019 §6.3)。
+  //
+  // 10分おき。**起動時に1周走る** — 落ちていた間に期限を過ぎた分を、
+  // 最初の画面を開く前に expired にする。組織の一覧は登録した
+  // 読み取り専用の例外(02.18 §3.6)で読み、組織ごとの処理はその文脈で行う。
+  const approvalNoticeTimer = startApprovalNoticeLoop(
+    new ApprovalNoticeSweeper(db.authPool(), logger),
+    logger,
+    APPROVAL_NOTICE_SWEEP_INTERVAL_MS,
+  );
+
   dispatchTick();
 
   const server = app.listen(env.API_PORT, env.API_HOST);
@@ -1138,6 +1160,7 @@ async function bootstrap(): Promise<void> {
     clearInterval(autoCloseTimer);
     clearInterval(sessionPurgeTimer);
     clearInterval(expiryTimer);
+    clearInterval(approvalNoticeTimer);
     server.close();
     await app.close();
     await db.close();

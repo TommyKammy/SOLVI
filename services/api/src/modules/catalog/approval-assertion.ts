@@ -186,6 +186,10 @@ export async function checkApprovalComplete(
   }
 
   // 4. 全ステップが approved で、current_approval_id が最終ステップを指す
+  // 期限切れの行は、行が pending のまま期限を過ぎている状態と同じ理由にする
+  // (WP-P4-APR-019 §6.4)。
+  if (effectiveRows.some((approval) => approval.state === 'expired'))
+    return fail('approval_expired');
   if (effectiveRows.some((approval) => approval.state !== 'approved'))
     return fail('approval_not_approved');
   if (

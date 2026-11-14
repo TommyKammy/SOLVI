@@ -11,6 +11,7 @@ import {
   REQUEST_STATES,
   STEP_STATES,
   checkRouteAgainstSteps,
+  applyApprovalDecision,
   invalidateApprovalSteps,
   parseApprovalRoute,
   routeHash,
@@ -567,4 +568,69 @@ describe('承認ステップの無効化は常に遷移表を通す (WP-P4-APR-0
     expect(client.calls[0]!.values?.[0]).toBe('current');
     expect(client.calls[1]!.sql).toContain('UPDATE local_service_request');
   });
+});
+
+describe('次段を作る決定の世代の検査 (WP-P4-APR-019 指摘1.2)', () => {
+  const request = {
+    id: '11111111-1111-4111-8111-111111111111',
+    organization_id: '22222222-2222-4222-8222-222222222222',
+    revision: 1,
+    version: 1,
+    state: 'pending' as const,
+    snapshot_hash: 'synthetic-hash',
+  };
+  const step = {
+    id: '11111111-1111-4111-8111-111111111111',
+    request_id: request.id,
+    organization_id: request.organization_id,
+    revision: 1,
+    route_generation: 1,
+    step_no: 1,
+    approver_id: approverA,
+    authority_type: 'manager',
+    state: 'pending',
+    snapshot_hash: 'synthetic-hash',
+    reason: null,
+    expires_at: new Date('2100-01-01T00:00:00Z'),
+    decided_at: null,
+    decided_by: null,
+    resolved_from: 'manager',
+  };
+  const nextStep = {
+    stepNo: 2,
+    approverId: approverB,
+    authorityType: 'fixed' as const,
+    resolvedFrom: null,
+  };
+  /** 更新の SQL を記録するだけの偽クライアント。 */
+  const fake = () => {
+    const calls: string[] = [];
+    return {
+      calls,
+      query: async (sql: string) => {
+        calls.push(sql);
+        return { rowCount: 1, rows: [{ id: 'updated', version: 2 }] };
+      },
+    };
+  };
+
+  it.each([undefined, null, 1.5, 0, -1, Number.NaN])(
+    '**世代が数値でない・不正(%s)なら409で止め、DBを触らない**',
+    async (value) => {
+      const client = fake();
+      await expect(
+        applyApprovalDecision(client as unknown as Parameters<typeof applyApprovalDecision>[0], {
+          request,
+          step,
+          decision: 'approve',
+          isFinalStep: false,
+          reason: null,
+          actorId: approverA,
+          nextStep,
+          nextRouteGeneration: value as number | null,
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(client.calls).toEqual([]);
+    },
+  );
 });

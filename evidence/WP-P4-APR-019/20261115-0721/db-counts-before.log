@@ -1,0 +1,13 @@
+database=solvi
+app_user=15
+role_binding=26
+local_service_request=17
+local_request_revision=22
+local_request_approval=29
+local_request_route_generation=2
+local_request_approval_notice=ERROR(42P01)
+outbox_event=440
+notification=82
+schema_migration=40 max=0040
+wp019_databases=solvi_wp019_test,solvi_wp019_wp018_wp015_test
+admin_user=solvi_owner super=true bypassrls=true

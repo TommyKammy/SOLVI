@@ -9,6 +9,7 @@ import { RequestForm, RequestActions } from '../../../components/RequestForms';
 import { safeReturnTo } from '../../../lib/navigation';
 import {
   authorityLabel,
+  displayStepState,
   reassignmentRecords,
   requestApprovalTimeline,
   requestHistoryVersions,
@@ -90,34 +91,42 @@ export default async function RequestPage({
     admin = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
   // 自分宛てかどうかはAPIが返す現在のステップの承認者で判定する(ロールでは判定しない)。
   // 上長・部署長は approver ロールを持たない(ADR-0023 §2 / §5)。
+  // 描画の間に期限を過ぎても、行が pending のまま期限を過ぎた場合と
+  // expired になった場合で表示が変わらないように、同じ規則で導出する。
+  const now = Date.now();
   const assigned = data.approval.approver_id === session.userId && !own,
-    expired = new Date(data.approval.expires_at).getTime() <= Date.now();
+    expired = new Date(data.approval.expires_at).getTime() <= now;
   const item: CatalogItem = { ...s.item, description: '', definition: s.item.definition };
   const { saved } = await searchParams;
   const editable = own && !['completed', 'cancelled'].includes(q.state);
   // 変更フォームでも経路を表示する。ルールで決まる項目だけ、本人を申請者として読む。
   const editRuleId = s.item.definition.approval?.ruleId ?? null;
   const editRouteResult = editable && editRuleId ? await api.catalogApprovalRoute(s.item.id) : null;
+  const timelineSteps = (
+    data.effectiveSteps ??
+    data.steps ??
+    (data.approval
+      ? [
+          {
+            stepNo: 1,
+            state: data.approval.state,
+            approverName: data.approverName,
+            authorityType: 'legacy',
+            reason: data.approval.reason,
+            decidedAt: null,
+            expiresAt: data.approval.expires_at,
+          },
+        ]
+      : [])
+  ).map((step) => ({
+    ...step,
+    state: displayStepState(step.state, step.expiresAt, now) ?? step.state,
+  }));
   const timeline = requestApprovalTimeline({
     route: data.route ?? null,
     // 段ごとの有効な世代のステップ。再割当で置き換えられた旧世代の行は
     // 現在の段として使わない(APIの effectiveSteps が無い場合は従来の steps)。
-    steps:
-      data.effectiveSteps ??
-      data.steps ??
-      (data.approval
-        ? [
-            {
-              stepNo: 1,
-              state: data.approval.state,
-              approverName: data.approverName,
-              authorityType: 'legacy',
-              reason: data.approval.reason,
-              decidedAt: null,
-              expiresAt: data.approval.expires_at,
-            },
-          ]
-        : []),
+    steps: timelineSteps,
   });
   const versions = requestHistoryVersions(data.history, q.revision);
   // 再割当の記録は世代の行だけから作り、時刻の順に出す(申請者にも見える)。
@@ -242,12 +251,7 @@ export default async function RequestPage({
                   <p style={{ whiteSpace: 'pre-wrap' }}>理由: {step.reason}</p>
                 )}
                 {!step.pendingCreation && step.expiresAt && (
-                  <p className="hint">
-                    期限: {formatDateTime(step.expiresAt)}
-                    {step.state === 'pending' &&
-                      new Date(step.expiresAt).getTime() <= Date.now() &&
-                      '（期限切れ）'}
-                  </p>
+                  <p className="hint">期限: {formatDateTime(step.expiresAt)}</p>
                 )}
               </li>
             ))}

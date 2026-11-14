@@ -310,6 +310,65 @@ describe('request detail page recovery and unchanged success', () => {
     expect(RequestForm).not.toHaveBeenCalled();
   });
 });
+
+describe('expired の行の表示と操作 (WP-P4-APR-019 §6.4)', () => {
+  const past = '2026-01-01T00:00:00Z';
+  const step = (state: string, expiresAt: string) => ({
+    id,
+    stepNo: 1,
+    state,
+    approverId: approver,
+    approverName: '合成承認者',
+    authorityType: 'fixed',
+    resolvedFrom: null,
+    reason: null,
+    decidedAt: null,
+    decidedBy: null,
+    expiresAt,
+  });
+  const fixture = (state: 'pending' | 'expired') => {
+    const data = structuredClone(detail);
+    data.approval = { ...data.approval, state, expires_at: past };
+    data.steps = [step(state, past)];
+    data.effectiveSteps = [step(state, past)];
+    return data;
+  };
+  const approverSession: SessionView = {
+    ...session,
+    userId: approver,
+    roles: [{ roleCode: 'approver', organizationId: org }],
+  };
+
+  it('**pending のまま期限を過ぎた場合と expired の場合で、表示が同じ**', async () => {
+    vi.mocked(requireSession).mockResolvedValue(approverSession);
+    vi.mocked(api.requestDetail).mockResolvedValue({ ok: true, data: fixture('pending') });
+    const pendingPast = await render();
+    vi.mocked(api.requestDetail).mockResolvedValue({ ok: true, data: fixture('expired') });
+    const expired = await render();
+
+    expect(pendingPast).toBe(expired);
+    expect(pendingPast).toContain('（期限切れ。変更・再承認が必要です）');
+    expect(pendingPast).toContain('期限切れ');
+    // 承認の操作は出ない(自分宛ての承認者でも、期限切れでは承認できない)。
+    expect(pendingPast).toContain('data-approve="false"');
+    expect(pendingPast).not.toContain('data-approve="true"');
+    // 再割当の操作は詳細画面に無く、期限切れは承認者不在の一覧にも出ない(APIが除外)。
+    expect(pendingPast).not.toContain('再割当する');
+  });
+
+  it('期限内の pending では、承認者が承認の操作を出せる', async () => {
+    vi.mocked(requireSession).mockResolvedValue(approverSession);
+    const data = structuredClone(detail);
+    data.approval = { ...data.approval, state: 'pending', expires_at: '2100-01-01T00:00:00Z' };
+    data.steps = [step('pending', '2100-01-01T00:00:00Z')];
+    data.effectiveSteps = data.steps;
+    vi.mocked(api.requestDetail).mockResolvedValue({ ok: true, data });
+    const html = await render();
+    expect(html).toContain('data-approve="true"');
+    expect(html).not.toContain('（期限切れ。変更・再承認が必要です）');
+  });
+});
+
 describe('request detail dedicated UUID GET transport', () => {
   it.each([
     '',

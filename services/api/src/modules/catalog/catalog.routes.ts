@@ -21,6 +21,7 @@ import {
   completeApprovalRequest,
   invalidateApprovalSteps,
   routeHash,
+  stepStateForDisplay,
   type ApprovalRoute,
   type ApprovalRouteStep,
   type ApprovalStepRow,
@@ -37,6 +38,7 @@ import {
   loadRouteState,
   type RouteState,
 } from './approval-route-state.js';
+import { insertPendingApprovalStep } from './approval-notice.js';
 import {
   approvalResolutionProblem,
   isActiveMember,
@@ -601,7 +603,10 @@ export class CatalogController {
         conditions.push(
           `a.approver_id=$3 AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`,
         );
-      if (filter.approverUnavailable === '1') conditions.push(`NOT ${approverAvailable}`);
+      if (filter.approverUnavailable === '1')
+        // 期限を過ぎたステップは滞留の対象ではない(WP-P4-APR-019 §6.4)。
+        // 行が `pending` のままでも `expired` でも、この一覧には出さない。
+        conditions.push(`NOT ${approverAvailable} AND NOT ${expired}`);
       if (filter.state === 'expired') conditions.push(expired);
       else if (filter.state !== 'all') {
         values.push(filter.state);
@@ -666,6 +671,12 @@ export class CatalogController {
                       : '内容を確認する';
         return {
           ...rest,
+          // 期限を過ぎた pending は `expired` として返す(定期処理の前後で同じ値)。
+          approvalState: stepStateForDisplay({
+            state: row.approvalState,
+            expiresAt: row.expiresAt,
+            now,
+          }),
           ...(showUnavailable ? { approverUnavailable: approverUnavailable === true } : {}),
           nextAction,
         };
@@ -871,6 +882,7 @@ export class CatalogController {
       // 現在の経路は、版の列(世代1)と世代の行から共有関数で導出する。
       const state = await this.routeState(c, q);
       const steps = await this.steps(c, q);
+      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
       const currentSteps = steps.filter(
         (step) => step.route_generation === state.currentGeneration,
       );
@@ -900,11 +912,16 @@ export class CatalogController {
       // 現在の pending ステップの承認者が、いま決定できる状態かを導出する
       // (一覧の approverUnavailable と同じ共有述語)。申請者本人にだけ返す。
       // 他の閲覧者(担当者・承認者)には、不要な所属の照会も行わない。
+      // 期限を過ぎたステップ(行が pending のままでも expired でも)は「不在」ではない。
       const routeStep = effectiveRouteStep(state, a.step_no);
       const authorityType = routeStep?.authorityType ?? a.authority_type;
       let approverUnavailable = false;
-      if (q.requester_id === auth.userId && a.state === 'pending') {
-        const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+      if (
+        q.requester_id === auth.userId &&
+        a.state === 'pending' &&
+        a.expires_at instanceof Date &&
+        a.expires_at.getTime() > now.getTime()
+      ) {
         approverUnavailable = await isApproverUnavailable(c, {
           organizationId: q.organization_id,
           approverId: a.approver_id,
@@ -915,7 +932,8 @@ export class CatalogController {
       const stepView = (step: ApprovalStepRow) => ({
         id: step.id,
         stepNo: step.step_no,
-        state: step.state,
+        // 期限を過ぎた pending は `expired` として返す(定期処理の前後で同じ値)。
+        state: stepStateForDisplay({ state: step.state, expiresAt: step.expires_at, now }),
         approverId: step.approver_id,
         approverName: names.find((u) => u.id === step.approver_id)?.display_name ?? '承認者',
         authorityType: step.authority_type,
@@ -970,7 +988,12 @@ export class CatalogController {
           requesterId: q.requester_id,
           ticketId: q.ticket_id,
         },
-        approval: a,
+        // 行の状態は、期限を過ぎた pending を `expired` として返す(§6.4)。
+        // DBの行そのものは変えない。画面の判定は expires_at と併せて行える。
+        approval: {
+          ...a,
+          state: stepStateForDisplay({ state: a.state, expiresAt: a.expires_at, now }),
+        },
         // 現在の版の現在の経路世代の全ステップ(加算的な追加。既存の approval/history の形は変えない)
         steps: currentSteps.map(stepView),
         // 段ごとの有効な世代のステップ(加算的)。承認の経過の表示に使う。
@@ -1037,7 +1060,11 @@ export class CatalogController {
           }),
         ],
         approverUnavailable,
-        history,
+        // 承認の記録も同じ表示規則にする(期限を過ぎた pending は expired)。
+        history: history.map((row) => ({
+          ...row,
+          state: stepStateForDisplay({ state: row.state, expiresAt: row.expiresAt, now }),
+        })),
         receipt:
           (
             await c.query(
@@ -1076,20 +1103,19 @@ export class CatalogController {
         routeHash(route),
       ],
     );
-    await c.query(
-      "INSERT INTO local_request_approval(id,organization_id,request_id,revision,route_generation,step_no,snapshot_hash,approver_id,authority_type,resolved_from,state,expires_at) VALUES($1,$2,$3,$4,1,$5,$6,$7,$8,$9,'pending',clock_timestamp()+interval '72 hours')",
-      [
-        approvalId,
-        q.organization_id,
-        q.id,
-        revision,
-        step.stepNo,
-        snapshotHash,
-        step.approverId,
-        step.authorityType,
-        step.resolvedFrom,
-      ],
-    );
+    // ステップの作成と依頼の通知の記録は同じ1か所で行う(WP-P4-APR-019 §6.2)。
+    await insertPendingApprovalStep(c, {
+      id: approvalId,
+      organizationId: q.organization_id,
+      requestId: q.id,
+      revision,
+      routeGeneration: 1,
+      stepNo: step.stepNo,
+      snapshotHash,
+      approverId: step.approverId,
+      authorityType: step.authorityType,
+      resolvedFrom: step.resolvedFrom,
+    });
   }
   async create(auth: AuthenticatedRequest, value: unknown) {
     const input = parse(createSchema, value);
@@ -1553,14 +1579,20 @@ export class CatalogController {
       const a = await this.approval(c, q);
       const state = await this.routeState(c, q);
       const route = state.currentRoute;
-      if (q.state !== 'pending' || a.state !== 'pending')
+      if (q.state !== 'pending')
+        throw reassignConflict('not_pending', '承認待ちの申請だけ再割当できます');
+      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+      // 期限切れは、行が `pending` のままでも `expired` でも同じ理由コードにする
+      // (WP-P4-APR-019 §6.4)。期限が読めない行は期限切れの側に倒す。
+      const expiredByClock =
+        !(a.expires_at instanceof Date) || a.expires_at.getTime() <= now.getTime();
+      if (a.state === 'expired' || (a.state === 'pending' && expiredByClock))
+        throw reassignConflict('expired', '承認期限が過ぎています。申請者による再申請が必要です');
+      if (a.state !== 'pending')
         throw reassignConflict('not_pending', '承認待ちの申請だけ再割当できます');
       // ルールを使わない経路(固定承認者・申請者選択)は再割当の対象外(WP §5)。
       if (revision.route === null || route === null || route.ruleRef === null)
         throw reassignConflict('legacy_route', '承認ルールを使わない経路は再割当できません');
-      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
-      if (!(a.expires_at instanceof Date) || a.expires_at.getTime() <= now.getTime())
-        throw reassignConflict('expired', '承認期限が過ぎています。申請者による再申請が必要です');
       const steps = await this.steps(c, q);
       // 現在のステップが有効な世代に属し、前の段が承認済みであること。
       const { stepCount } = this.currentStepPosition(state, steps, a);
