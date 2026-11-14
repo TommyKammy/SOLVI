@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 315 |
 | Markdown | 307 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,557,340 bytes |
+| 合計サイズ | 7,565,416 bytes |
 
 ## ファイル一覧
 
@@ -52,7 +52,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.4_Document_Governance.md` | 1008 | `2fbfc21bb99babdde34ee026cd415d5ed7926ce26fed090ad9d99f410d24da6f` |
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
 | `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
-| `00_Index/00.7_Open_Questions.md` | 5505 | `c3c3d33383f7f3cde90f48b765d47e66d5484468973c977bca900624622fd088` |
+| `00_Index/00.7_Open_Questions.md` | 5664 | `9e587b35c0f1c053f26a3d9555aaba001ea67ce155178b2e6c814fa53a00e839` |
 | `00_Index/00.8_Status_Dashboard.md` | 11623 | `83521c2275ac4675601df7816250891dcc98bdf488a616a092116c28c7bea832` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
 | `01_Product/01.1_Product_Vision.md` | 1887 | `d4655af6eb4aa4b9526fe08fce5415cc23e145fa75799adced322fe6d5d9e2ce` |
@@ -142,7 +142,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `05_Modules/05.7_Workflow_Orchestration.md` | 1630 | `dda2b5c4c78f8ab737dfb97dcfa58962e3f20a15a86450a188586e275a431404` |
 | `05_Modules/05.8_SOLVI_Run_Executor.md` | 1588 | `c9579abc2e14d7b44f5ac662b23daf7bff65f72d39c6011225c1db36cbd88875` |
 | `05_Modules/05.9_Okta_Connector.md` | 1560 | `d679519010367687d12c7b0c74b77c938c0e717799c7202ff0e15e18ab3ad703` |
-| `06_WorkPackages/06.0_WorkPackage_Register.md` | 20309 | `4b22a5c723f7b375a923ac813004387715275890df69b36edab2e0f9eed69b05` |
+| `06_WorkPackages/06.0_WorkPackage_Register.md` | 20319 | `b14354426bf20e1d5b466e139ce9be84a8bc85807085fa09f08c41d9e8df588b` |
 | `06_WorkPackages/06.1_Dependency_Map.md` | 6305 | `b598b47a828a9f8ccebbff693e1e42f0654ad13731e33174bc0d8e675a49216f` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
@@ -227,7 +227,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-016.md` | 49545 | `30479f88df310ea42fb8b2c9756d3a521175ae3f44aa837c194eb3b243f113cd` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-017.md` | 11123 | `837dcd26bf99a2105e687db03dd40f26f764383e6c50f5d5c6a82e9293822fda` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-018.md` | 56832 | `406261e2261ad02252699ad7fcaaad0b225878c120eff83483d887c4ee8cc9f3` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-019.md` | 5815 | `32ca0e545b096da9aaa854f0c56e9bbd469aa66b503f5d9d4b75e3513a5168cc` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-019.md` | 13722 | `7d7ad388878c06be7dd0bcec59f947b55f81b21555743f95a13f070e82cb02e2` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md` | 6269 | `28dc49355f72c7c19ac5b6304e7777253b1976c2f754fc57e7ca8ddeb4cd9d51` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md` | 7366 | `668d6e6cebc73beeab51d4f1089dd95b623e726cf46499825692253952982fb6` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
