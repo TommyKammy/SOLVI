@@ -11,7 +11,7 @@ updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "ui", "accessibility"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "medium"
 workstream: "APR"
@@ -424,3 +424,5 @@ SOLVI_UI_BROWSER=<engine> SOLVI_UI_PHASE=b2detail   # PASS 10 checks / 16(Chromi
 #### Evidence
 
 `evidence/WP-P4-APR-016/20261114-0949/`(README、`browser/chromium/`、`browser/webkit/`、各 `summary.json`、スクリーンショット、axe結果、`counts-before.json`、`counts-after.json`)。
+
+- 2026-11-14(監督者による追記): 利用者(人間)が本WP(段階A・B)を承認した。利用者の指示により、PRを作らず `main` へ直接取り込んだ。`implementation_status` を `done` にした。残る事項: (1)画面の文言3点 — 申請前の画面に出る解決できない理由の時制(「申請を拒否しました」)、利用者向けの文に出る「API」の語、2段の申請で従来の「承認の記録」が同じ行を重ねて表示する点。(2)承認待ち一覧のスクリーンショットは空の状態のみ(上長に自分宛てが出て承認できることは通しの確認で確かめた)。(3)既定の404ページの既存のaxe違反(本WPより前からある共通スタイル。axeの対象から外した)。(4)再割当の画面は [[WP-P4-APR-017]]。開発用DBに合成のデータ(無効な承認ルール11件、非公開のカタログ項目4件、完了済みの申請2件ほか)が残る。ルールの使用は全組織で無効。
