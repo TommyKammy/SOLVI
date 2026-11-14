@@ -4,10 +4,10 @@ doc_id: "WP-P4-APR-017"
 title: "代理承認・高リスク二重承認とSoD・並列/定足数/グループ承認・リマインドとエスカレーション"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "draft"
-version: "0.1.0"
+status: "superseded"
+version: "0.2.0"
 created: "2026-11-12"
-updated: "2026-11-12"
+updated: "2026-11-14"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "sod", "delegation"]
 source_of_truth: true
@@ -16,11 +16,23 @@ story_points: 13
 risk: "critical"
 workstream: "APR"
 phase: "P4"
-requirement_ids: ["FR-CAT-013", "FR-CAT-006", "FR-CAT-010", "FR-CAT-011"]
+requirement_ids: []
 depends_on: ["WP-P4-APR-015"]
 ---
 
 # WP-P4-APR-017: 代理承認・高リスク二重承認とSoD・並列/定足数/グループ承認・リマインドとエスカレーション
+
+> [!warning] このWPは `superseded` である(2026-11-14)。Issue化・実装の根拠にしない。
+> 「着手前に分割を検討する」としていた本WPを、次の後継WPへ分けて置き換えた(2026-11-14 利用者の決定)。要求IDの担当は各後継WPの `requirement_ids` と[[03.18_Requirements_Traceability_Matrix]]が正本であり、本WPのfrontmatterの `requirement_ids` は空にしてある。以下の本文(§1〜§13)は履歴として変更していない。
+>
+> | 後継WP | 内容 | 本WPの項目との対応 |
+> |---|---|---|
+> | [[WP-P4-APR-018]] | 承認者不在の申請の再割当(経路の世代の保存・API・画面) | §6 冒頭の「再割当」 |
+> | [[WP-P4-APR-019]] | 承認期限前の通知・期限切れの記録・承認者不在時のエスカレーション | §6-4 |
+> | [[WP-P4-APR-020]] | 代理承認 | §6-1 |
+> | [[WP-P4-APR-021]] | 高リスク申請の二重承認とSoD | §6-2 |
+>
+> §6-3(並列・定足数・グループ承認)は後継WPを置かない。これを求める要求IDが無いため、必要になった時点で要求と後継ADRから起こす。設計上の決定は[[ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion]]。本WPに依存していた[[WP-P4-GATE-007]]・[[WP-P7-APR-002]]の依存は後継WPへ付け替えた。
 
 | 項目 | 値 |
 |---|---|

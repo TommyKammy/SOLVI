@@ -16,7 +16,7 @@ phase: "P4"
 workstream: "GATE"
 risk: "critical"
 story_points: 8
-depends_on: ["WP-P4-OKTA-005", "WP-P4-ENTRA-006", "WP-P4-APR-017"]
+depends_on: ["WP-P4-OKTA-005", "WP-P4-ENTRA-006", "WP-P4-APR-020", "WP-P4-APR-021"]
 requirement_ids: ["BR-003", "BR-004", "FR-CAT-004", "FR-CAT-007", "FR-CAT-010", "NFR-SEC-001", "NFR-SEC-002", "NFR-SEC-004", "NFR-SEC-005"]
 aliases: ["WP-P4-GATE-007"]
 ---
@@ -44,7 +44,7 @@ Approval取消、Double submit、越権、Expired、Rate limit、Secret leakを�
 
 - [[WP-P4-OKTA-005]]
 - [[WP-P4-ENTRA-006]]
-- [[WP-P4-APR-017]](GB-3の承認統制: 二重承認・SoD・代理。WP-P4-APR-002の分割に伴い追加)
+- [[WP-P4-APR-020]]・[[WP-P4-APR-021]](GB-3の承認統制: 代理、二重承認・SoD。WP-P4-APR-002・WP-P4-APR-017の分割に伴い追加)
 
 ## 4. Scope / Allowed Paths
 

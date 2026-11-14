@@ -16,7 +16,7 @@ phase: "P7"
 workstream: "APR"
 risk: "high"
 story_points: 8
-depends_on: ["WP-P7-CHG-001", "WP-P4-APR-014", "WP-P4-APR-017"]
+depends_on: ["WP-P7-CHG-001", "WP-P4-APR-014", "WP-P4-APR-020", "WP-P4-APR-021"]
 requirement_ids: ["FR-CHG-003"]
 aliases: ["WP-P7-APR-002"]
 ---
@@ -39,7 +39,7 @@ Change Manager/CAB、Self approval、Returnを実装。
 
 - [[WP-P7-CHG-001]]
 - [[WP-P4-APR-014]](経路・ステップ・状態機械)
-- [[WP-P4-APR-017]](代理承認・二重承認・並列/定足数/グループ承認)
+- [[WP-P4-APR-020]]・[[WP-P4-APR-021]](代理承認、二重承認。並列・定足数・グループ承認は後継WPが無い。CABで必要な場合は本WPの実体化の際に要求とADRから起こす)
 
 ## 4. Scope / Allowed Paths
 
