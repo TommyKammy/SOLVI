@@ -4,8 +4,8 @@ doc_id: "ADR-0025"
 title: "代理承認(承認者本人による期間限定の委任)"
 category: "07_ADR"
 type: "adr"
-status: "draft"
-version: "0.1.0"
+status: "accepted"
+version: "1.0.0"
 created: "2026-11-15"
 updated: "2026-11-15"
 owner: "SOLVI Product Team"
@@ -18,7 +18,7 @@ implementation_status: "not-started"
 
 ## Status
 
-`draft`(2026-11-15 起票)。利用者(人間)の承認で `accepted` とする。それまで実装の根拠にしない。
+`accepted`(2026-11-15 起票、同日に利用者(人間)が承認)。
 
 [[ADR-0023_Relationship_Based_Approval_Authority]] の次の点を、後継として改める。ADR-0023 と [[ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion]] のほかの決定は変更しない。
 

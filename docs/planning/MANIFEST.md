@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 316 |
 | Markdown | 308 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,625,102 bytes |
+| 合計サイズ | 7,624,970 bytes |
 
 ## ファイル一覧
 
@@ -228,7 +228,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-017.md` | 11123 | `837dcd26bf99a2105e687db03dd40f26f764383e6c50f5d5c6a82e9293822fda` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-018.md` | 56832 | `406261e2261ad02252699ad7fcaaad0b225878c120eff83483d887c4ee8cc9f3` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-019.md` | 47654 | `9d8a17c2df5be82e424d8ef22664d08417cfda751eba77a3f3d353a473fc42c5` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md` | 15737 | `11567616529fb612072fdc1f1b07414e9a16f81f9d528f6ed3ff62ceb5bbf736` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md` | 15660 | `01aa4f3a650bb7ed4470b1a2dff835fe9c028ffab4e9cb82fe3116752c23fe5e` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md` | 7366 | `668d6e6cebc73beeab51d4f1089dd95b623e726cf46499825692253952982fb6` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-ENTRA-006.md` | 2752 | `fb847d4895c7df5378a298d34548dc6b3701cee7ff24f09b7cf881e2b2b0d8d1` |
@@ -264,7 +264,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P9_Migration/WP-P9-MIG-001.md` | 2851 | `31269f5e476a248f577fee1dbf76cce7fc248965bfe102e1c4f2b61b18174584` |
 | `06_WorkPackages/P9_Migration/WP-P9-OPS-003.md` | 2795 | `ba0d5f4cee187b712a86b1600101da9bd2ffc34856337658d1461501f6572d46` |
 | `06_WorkPackages/P9_Migration/WP-P9-PAR-002.md` | 2746 | `e770e305931119ce830c5f10f279122f0751b5102ddecf15217e0ba3ea0d89db` |
-| `07_ADR/07.0_ADR_Index.md` | 6248 | `3b11a76cf2b72f6f0f7642706d1ee64c029fb54656953d2a30cf8bf93bd5af43` |
+| `07_ADR/07.0_ADR_Index.md` | 6244 | `34aeba6c51cfa55ec33d6be233291022f3f98083a694f566331fadb295285359` |
 | `07_ADR/ADR-0001_Modular_Monolith_First.md` | 3381 | `fa08e6ec693de5fe82995b0e944504de53dfd88f380cb8c9d45c40ea88229259` |
 | `07_ADR/ADR-0002_TypeScript_Core_and_Python_AI.md` | 2443 | `e5cc4bbfd293d3b30cd0f87aba7607a7b07181f7db3df5f771f31ece70559f66` |
 | `07_ADR/ADR-0003_PostgreSQL_System_of_Record.md` | 3047 | `d9450004d8efc3cf8f341e12db3677e9f36043cb7b88a5c8ec41a5e6a84468cd` |
@@ -289,7 +289,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0022_Catalog_Optional_Request_Fields.md` | 2705 | `7279011634ed299ccdea3d77298d0272f96dbadfbcbe7322836e5d75269bb4b8` |
 | `07_ADR/ADR-0023_Relationship_Based_Approval_Authority.md` | 29346 | `23f249a64a999bc5297304ec60f7c8bc2d348baa0bb542b2ac3c842b8c3bacfe` |
 | `07_ADR/ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion.md` | 12796 | `6b88e029a7f4427acf60afbdf7ee2233428a5bcb3e344e5c3aa1dca8fc727d50` |
-| `07_ADR/ADR-0025_Approval_Delegation.md` | 12819 | `41a77ac0ab28e9ed630dabb8e5234b0c82e8f82e329d7df9a5cc93adbef51902` |
+| `07_ADR/ADR-0025_Approval_Delegation.md` | 12768 | `0bd71dfe25e57e49dc2b823fe0005f4c53a7f0701920edb9abcbd399108fef1a` |
 | `08_Runbooks/08.10_Audit_Export.md` | 1469 | `bb53a1a948cd80930b2c54fc35fa61cfde15402be7fe1343fe79b323fe93785a` |
 | `08_Runbooks/08.11_Data_Reconciliation.md` | 1469 | `66e555c4385a67399c03768b05450f30a69ae382b54ae23db9b4dfe526ef49ab` |
 | `08_Runbooks/08.12_Security_Incident.md` | 1502 | `073b4046e12371a776cfa1d45ce7f2f3cc9563e2755dfcabc1d8a1398b9743c6` |

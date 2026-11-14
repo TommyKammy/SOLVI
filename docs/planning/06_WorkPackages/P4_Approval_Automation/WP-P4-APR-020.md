@@ -4,8 +4,8 @@ doc_id: "WP-P4-APR-020"
 title: "代理承認(承認者本人による期間限定の委任と、委任者・代理者の記録)"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "draft"
-version: "0.2.0"
+status: "baseline"
+version: "1.0.0"
 created: "2026-11-14"
 updated: "2026-11-15"
 owner: "SOLVI Product Team"
@@ -22,7 +22,7 @@ depends_on: ["WP-P4-APR-018", "WP-P4-APR-019"]
 
 # WP-P4-APR-020: 代理承認(承認者本人による期間限定の委任と、委任者・代理者の記録)
 
-> [!warning] この文書は `draft` である(2026-11-15 に具体化)。[[ADR-0025_Approval_Delegation]] の `accepted` と、利用者(人間)の承認で `baseline` へ上げる。それまで実装の根拠にしない。
+> [!note] 2026-11-15 に、[[ADR-0025_Approval_Delegation]] の `accepted` とあわせて、利用者(人間)の承認で `baseline` とした。
 
 | 項目 | 値 |
 |---|---|
