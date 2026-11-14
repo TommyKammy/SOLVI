@@ -328,7 +328,9 @@ export class NotificationService {
 
     // 件名には申請番号を含めてよい。**入力値・理由・個人データは含めない。**
     const subject = `[${target.number}] ${label}`;
-    const linkPath = `/requests/${requestId}`;
+    // 承認者不在の通知だけは再割当の画面へ送る。再割当の操作は `/ops/approvals` にしかない
+    // (申請の詳細には無い)。リンクにクエリ・フラグメント・申請ID・個人データを付けない。
+    const linkPath = kind === 'approver_unavailable' ? '/ops/approvals' : `/requests/${requestId}`;
 
     let sent = 0;
     let skipped = 0;

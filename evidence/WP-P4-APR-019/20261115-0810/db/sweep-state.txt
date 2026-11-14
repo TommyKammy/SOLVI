@@ -1,0 +1,374 @@
+
+## now
+[
+  {
+    "now": "2026-11-14T23:07:00.817Z"
+  }
+]
+
+## stale pending (期限超過だが pending のまま)
+[
+  {
+    "n": 0
+  }
+]
+
+## pending 期限内
+[
+  {
+    "n": 0
+  }
+]
+
+## state 別
+[
+  {
+    "state": "approved",
+    "n": 15
+  },
+  {
+    "state": "expired",
+    "n": 7
+  },
+  {
+    "state": "invalidated",
+    "n": 7
+  }
+]
+
+## 監査 approval.expired(件数)
+[
+  {
+    "n": 7,
+    "first": "2026-11-14T22:54:15.397Z",
+    "last": "2026-11-14T22:54:15.429Z"
+  }
+]
+
+## 監査 approval.expired ステップ別
+[
+  {
+    "target_id": "01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.429Z"
+  },
+  {
+    "target_id": "01a1c78c-c897-7000-b61a-91bed1d4ce20",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.425Z"
+  },
+  {
+    "target_id": "01a1c78c-2acf-7001-8f2f-6500e8311939",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.421Z"
+  },
+  {
+    "target_id": "01a1c5d5-48fa-7000-9924-c284c4e68e8b",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.417Z"
+  },
+  {
+    "target_id": "01a1c5d1-82e7-7000-a1fe-5c678bcf4d8c",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.412Z"
+  },
+  {
+    "target_id": "01a1c5c8-7fe2-7001-896e-faae37c4c53b",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.406Z"
+  },
+  {
+    "target_id": "01a1c433-8a7c-7001-87d7-81eccbddd483",
+    "target_type": "service_request",
+    "actor_type": "system",
+    "actor_id": null,
+    "outcome": "success",
+    "n": 1,
+    "at": "2026-11-14T22:54:15.397Z"
+  }
+]
+
+## 監査 approval.expired after_state の形(個人データ無しの確認)
+[
+  {
+    "after_state": {
+      "stepNo": 1,
+      "revision": 2,
+      "expiresAt": "2026-11-13T22:22:17.524Z",
+      "stepState": "expired",
+      "requestState": "pending",
+      "routeGeneration": 1
+    }
+  },
+  {
+    "after_state": {
+      "stepNo": 1,
+      "revision": 2,
+      "expiresAt": "2026-11-13T22:20:56.722Z",
+      "stepState": "expired",
+      "requestState": "pending",
+      "routeGeneration": 1
+    }
+  }
+]
+
+## 送信の記録 kind 別
+[
+  {
+    "kind": "expired",
+    "n": 7,
+    "first": "2026-11-14T22:54:15.403Z",
+    "last": "2026-11-14T22:54:15.431Z"
+  }
+]
+
+## 送信の記録(直近)
+[
+  {
+    "kind": "expired",
+    "approval_id": "01a1c78e-0b93-7000-a912-64c192230205",
+    "created_at": "2026-11-14T22:54:15.431Z"
+  },
+  {
+    "kind": "expired",
+    "approval_id": "01a1c78c-cff1-7000-b875-4030fefea1c8",
+    "created_at": "2026-11-14T22:54:15.428Z"
+  },
+  {
+    "kind": "expired",
+    "approval_id": "01a1c78c-2adc-7000-969b-dec52341ad29",
+    "created_at": "2026-11-14T22:54:15.424Z"
+  },
+  {
+    "kind": "expired",
+    "approval_id": "01a1c5d5-48fa-7001-bcaf-3d21dcdbd1f7",
+    "created_at": "2026-11-14T22:54:15.420Z"
+  },
+  {
+    "kind": "expired",
+    "approval_id": "01a1c5d1-82e7-7001-9d47-538a8f65a29f",
+    "created_at": "2026-11-14T22:54:15.416Z"
+  },
+  {
+    "kind": "expired",
+    "approval_id": "01a1c5c8-7fe2-7002-9e71-1a617e086d29",
+    "created_at": "2026-11-14T22:54:15.410Z"
+  },
+  {
+    "kind": "expired",
+    "approval_id": "01a1c433-8a7c-7002-8ba9-4830399c2f55",
+    "created_at": "2026-11-14T22:54:15.403Z"
+  }
+]
+
+## Outbox 承認通知 状態別
+[
+  {
+    "event_type": "approval.notice.expired",
+    "status": "processed",
+    "n": 7
+  }
+]
+
+## Outbox 承認通知 直近
+[
+  {
+    "id": "01a1dc44-bf62-7000-9fab-892d87e9ea9b",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.394Z",
+    "created_at": "2026-11-14T22:54:15.429Z",
+    "processed_at": "2026-11-14T22:54:15.508Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  },
+  {
+    "id": "01a1dc44-bf5e-7000-9f4b-b655e54eb7a4",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.390Z",
+    "created_at": "2026-11-14T22:54:15.425Z",
+    "processed_at": "2026-11-14T22:54:15.503Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  },
+  {
+    "id": "01a1dc44-bf5a-7000-a537-0dc2eb4e72b0",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.386Z",
+    "created_at": "2026-11-14T22:54:15.421Z",
+    "processed_at": "2026-11-14T22:54:15.498Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  },
+  {
+    "id": "01a1dc44-bf56-7000-b94a-87279bc805c2",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.382Z",
+    "created_at": "2026-11-14T22:54:15.417Z",
+    "processed_at": "2026-11-14T22:54:15.494Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  },
+  {
+    "id": "01a1dc44-bf52-7000-8deb-39f68267f3c9",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.378Z",
+    "created_at": "2026-11-14T22:54:15.412Z",
+    "processed_at": "2026-11-14T22:54:15.489Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  },
+  {
+    "id": "01a1dc44-bf4d-7000-baca-f8fab4607d0d",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.373Z",
+    "created_at": "2026-11-14T22:54:15.406Z",
+    "processed_at": "2026-11-14T22:54:15.483Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  },
+  {
+    "id": "01a1dc44-bf46-7000-bd5f-a02485491ddc",
+    "event_type": "approval.notice.expired",
+    "attempts": 0,
+    "max_attempts": 5,
+    "available_at": "2026-11-14T22:54:15.366Z",
+    "created_at": "2026-11-14T22:54:15.397Z",
+    "processed_at": "2026-11-14T22:54:15.478Z",
+    "failed_at": null,
+    "locked_until": null,
+    "last_error": null
+  }
+]
+
+## 通知 状態別(承認通知のイベント)
+[
+  {
+    "status": "sent",
+    "n": 7
+  }
+]
+
+## 通知 subject / link_path(直近12)
+[
+  {
+    "subject": "[REQ-2026-000017] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.542Z"
+  },
+  {
+    "subject": "[REQ-2026-000016] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c78c-c897-7000-b61a-91bed1d4ce20",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.538Z"
+  },
+  {
+    "subject": "[REQ-2026-000015] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c78c-2acf-7001-8f2f-6500e8311939",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.533Z"
+  },
+  {
+    "subject": "[REQ-2026-000009] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c5d5-48fa-7000-9924-c284c4e68e8b",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.528Z"
+  },
+  {
+    "subject": "[REQ-2026-000008] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c5d1-82e7-7000-a1fe-5c678bcf4d8c",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.523Z"
+  },
+  {
+    "subject": "[REQ-2026-000007] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c5c8-7fe2-7001-896e-faae37c4c53b",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.518Z"
+  },
+  {
+    "subject": "[REQ-2026-000006] 承認期限が過ぎました。再申請を確認してください",
+    "link_path": "/requests/01a1c433-8a7c-7001-87d7-81eccbddd483",
+    "status": "sent",
+    "created_at": "2026-11-14T22:54:15.509Z"
+  }
+]
+
+## Outbox 全状態
+[
+  {
+    "status": "processed",
+    "n": 447
+  }
+]
+/Users/jp.infra/Dev/SOLVI/node_modules/pg/lib/client.js:652
+          Error.captureStackTrace(err)
+                ^
+
+error: column q.status does not exist
+    at /Users/jp.infra/Dev/SOLVI/node_modules/pg/lib/client.js:652:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async q (file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp019-sweep-state.mjs:7:20)
+    at async file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp019-sweep-state.mjs:86:1 {
+  length: 160,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "q.state".',
+  position: '24',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3729',
+  routine: 'errorMissingColumn'
+}
+
+Node.js v26.13.0

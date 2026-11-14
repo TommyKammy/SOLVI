@@ -1,0 +1,25 @@
+{
+  "label": "final",
+  "at": "2026-11-14T23:17:34.825Z",
+  "counts": {
+    "app_user": 15,
+    "role_binding": 26,
+    "local_catalog_item": 26,
+    "local_service_request": 18,
+    "local_request_revision": 23,
+    "local_request_approval": 30,
+    "local_request_route_generation": 2,
+    "local_request_approval_notice": 8,
+    "outbox_event": 454,
+    "notification": 95,
+    "department": 22,
+    "approval_rule": 14,
+    "org_member_profile": 15
+  },
+  "migrationCount": 41,
+  "migrationMax": "0041",
+  "migration0041": {
+    "version": "0041",
+    "applied_at": "2026-11-14T22:53:48.422Z"
+  }
+}

@@ -15,8 +15,8 @@ export const NOTIFICATION_EVENTS = {
   'role.binding.expiring': 'ロールの有効期限',
   // 承認の通知 (WP-P4-APR-019 §6.1)。内部のイベント型を画面に出さない。
   'approval.notice.requested': '承認の依頼',
-  'approval.notice.expiring': '承認期限の接近',
-  'approval.notice.expired': '承認期限の切れ',
+  'approval.notice.expiring': '承認期限の予告',
+  'approval.notice.expired': '承認期限切れ',
   'approval.notice.approver_unavailable': '承認者不在',
   other: 'その他',
 } as const;

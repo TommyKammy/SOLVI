@@ -1,0 +1,728 @@
+{
+  "phase": "read",
+  "startedAt": "2026-11-14T23:05:57.883Z",
+  "pages": [
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "01-expired-list",
+      "url": "http://127.0.0.1:3000/requests?state=expired",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "02-expired-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "03-approver-inbox",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "04-approver-pending-list",
+      "url": "http://127.0.0.1:3000/requests?view=approvals",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "05-approvals-unavailable",
+      "url": "http://127.0.0.1:3000/ops/approvals",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "05b-expired-detail-owner",
+      "url": "http://127.0.0.1:3000/requests/01a1c433-8a7c-7001-87d7-81eccbddd483",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "06-notifications-before",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "01-expired-list",
+      "url": "http://127.0.0.1:3000/requests?state=expired",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "02-expired-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "03-approver-inbox",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "04-approver-pending-list",
+      "url": "http://127.0.0.1:3000/requests?view=approvals",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "05-approvals-unavailable",
+      "url": "http://127.0.0.1:3000/ops/approvals",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "05b-expired-detail-owner",
+      "url": "http://127.0.0.1:3000/requests/01a1c433-8a7c-7001-87d7-81eccbddd483",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "06-notifications-before",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "01-expired-list",
+      "url": "http://127.0.0.1:3000/requests?state=expired",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "02-expired-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "03-approver-inbox",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "04-approver-pending-list",
+      "url": "http://127.0.0.1:3000/requests?view=approvals",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "05-approvals-unavailable",
+      "url": "http://127.0.0.1:3000/ops/approvals",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "05b-expired-detail-owner",
+      "url": "http://127.0.0.1:3000/requests/01a1c433-8a7c-7001-87d7-81eccbddd483",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "06-notifications-before",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "01-expired-list",
+      "url": "http://127.0.0.1:3000/requests?state=expired",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "02-expired-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "03-approver-inbox",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "04-approver-pending-list",
+      "url": "http://127.0.0.1:3000/requests?view=approvals",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "05-approvals-unavailable",
+      "url": "http://127.0.0.1:3000/ops/approvals",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "05b-expired-detail-owner",
+      "url": "http://127.0.0.1:3000/requests/01a1c433-8a7c-7001-87d7-81eccbddd483",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "06-notifications-before",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "chromium/1440/01-expired-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/01-expired-list: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/02-expired-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/02-expired-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/03-approver-inbox: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/03-approver-inbox: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/04-approver-pending-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/05-approvals-unavailable: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/05-approvals-unavailable: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/05b-expired-detail-owner: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/06-notifications-before: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/06-notifications-before: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/01-expired-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/01-expired-list: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/02-expired-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/02-expired-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/03-approver-inbox: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/03-approver-inbox: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/04-approver-pending-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/05-approvals-unavailable: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/05-approvals-unavailable: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/05b-expired-detail-owner: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/06-notifications-before: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/06-notifications-before: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/01-expired-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/01-expired-list: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/02-expired-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/02-expired-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/03-approver-inbox: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/03-approver-inbox: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/04-approver-pending-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/05-approvals-unavailable: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/05-approvals-unavailable: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/05b-expired-detail-owner: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/06-notifications-before: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/06-notifications-before: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/01-expired-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/01-expired-list: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/02-expired-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/02-expired-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/03-approver-inbox: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/03-approver-inbox: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/04-approver-pending-list: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/05-approvals-unavailable: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/05-approvals-unavailable: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/05b-expired-detail-owner: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/06-notifications-before: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/06-notifications-before: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "read: 期限切れの表示と宛先の除外、通知の一覧",
+      "passed": true
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "finishedAt": "2026-11-14T23:06:49.014Z",
+  "ok": true
+}

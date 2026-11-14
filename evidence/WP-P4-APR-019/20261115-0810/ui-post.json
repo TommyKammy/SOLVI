@@ -1,0 +1,322 @@
+{
+  "phase": "post",
+  "startedAt": "2026-11-14T23:09:16.638Z",
+  "pages": [
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "15-requester-list-completed",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "16-completed-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "17-approver-inbox-after",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "15-requester-list-completed",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "16-completed-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "17-approver-inbox-after",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "15-requester-list-completed",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "16-completed-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "17-approver-inbox-after",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "15-requester-list-completed",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "16-completed-detail",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "17-approver-inbox-after",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    }
+  ],
+  "checks": [
+    {
+      "name": "chromium/1440/15-requester-list-completed: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/15-requester-list-completed: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/16-completed-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/16-completed-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/17-approver-inbox-after: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/375/15-requester-list-completed: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/15-requester-list-completed: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/16-completed-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/16-completed-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/17-approver-inbox-after: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/1440/15-requester-list-completed: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/15-requester-list-completed: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/16-completed-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/16-completed-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/17-approver-inbox-after: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/375/15-requester-list-completed: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/15-requester-list-completed: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/16-completed-detail: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/16-completed-detail: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/17-approver-inbox-after: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "post: 完了後の表示",
+      "passed": true
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "created": {
+    "requestId": "01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+    "number": "REQ-2026-000165",
+    "approvalId": "01a1dc50-93cb-7001-88bf-cc639100a4af",
+    "expiresAt": "2026-11-17T23:07:10.709Z"
+  },
+  "finishedAt": "2026-11-14T23:09:39.460Z",
+  "ok": true
+}

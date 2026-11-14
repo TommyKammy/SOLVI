@@ -1,0 +1,462 @@
+{
+  "phase": "notice",
+  "startedAt": "2026-11-14T23:08:20.996Z",
+  "pages": [
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "09-notifications-requested",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "10-approver-inbox-requested",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "11-request-from-notice-link",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "name": "12-requester-list-requested",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "09-notifications-requested",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "10-approver-inbox-requested",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "11-request-from-notice-link",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "name": "12-requester-list-requested",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "09-notifications-requested",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "10-approver-inbox-requested",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "11-request-from-notice-link",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "name": "12-requester-list-requested",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440
+      },
+      "axe": null
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "09-notifications-requested",
+      "url": "http://127.0.0.1:3000/ops/notifications",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "10-approver-inbox-requested",
+      "url": "http://127.0.0.1:3000/inbox",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "11-request-from-notice-link",
+      "url": "http://127.0.0.1:3000/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": {
+        "violations": 0,
+        "seriousCritical": [],
+        "all": []
+      }
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "name": "12-requester-list-requested",
+      "url": "http://127.0.0.1:3000/requests",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyScrollWidth": 375
+      },
+      "axe": null
+    }
+  ],
+  "checks": [
+    {
+      "name": "notice: 宛先・件名・リンク(DBのSELECTのみ)",
+      "passed": true,
+      "requested": {
+        "subject": "[REQ-2026-000165] 承認の依頼があります",
+        "link": "/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410"
+      },
+      "expired": {
+        "subject": "[REQ-2026-000017] 承認期限が過ぎました。再申請を確認してください",
+        "link": "/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0"
+      }
+    },
+    {
+      "name": "chromium/1440/09-notifications-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/09-notifications-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/10-approver-inbox-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/10-approver-inbox-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/11-request-from-notice-link: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/1440/11-request-from-notice-link: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/1440/12-requester-list-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "chromium/375/09-notifications-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/09-notifications-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/10-approver-inbox-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/10-approver-inbox-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/11-request-from-notice-link: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "chromium/375/11-request-from-notice-link: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "chromium/375/12-requester-list-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/1440/09-notifications-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/09-notifications-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/10-approver-inbox-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/10-approver-inbox-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/11-request-from-notice-link: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/1440/11-request-from-notice-link: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/1440/12-requester-list-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "bodyScrollWidth": 1440
+    },
+    {
+      "name": "webkit/375/09-notifications-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/09-notifications-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/10-approver-inbox-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/10-approver-inbox-requested: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/11-request-from-notice-link: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "webkit/375/11-request-from-notice-link: axe serious/critical 0",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "name": "webkit/375/12-requester-list-requested: 横にはみ出さない",
+      "passed": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "bodyScrollWidth": 375
+    },
+    {
+      "name": "notice: 実画面の通知の一覧・受信箱・リンク先",
+      "passed": true
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "created": {
+    "requestId": "01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+    "number": "REQ-2026-000165",
+    "approvalId": "01a1dc50-93cb-7001-88bf-cc639100a4af",
+    "expiresAt": "2026-11-17T23:07:10.709Z"
+  },
+  "notices": {
+    "requested": {
+      "id": "01a1dc50-9d4a-7000-a649-3aa18f5a63f2",
+      "recipient_user_id": "00000000-0000-4000-9000-000000000103",
+      "subject": "[REQ-2026-000165] 承認の依頼があります",
+      "link_path": "/requests/01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+      "status": "sent",
+      "event_type": "approval.notice.requested"
+    },
+    "expired": {
+      "recipient_user_id": "00000000-0000-4000-9000-000000000105",
+      "subject": "[REQ-2026-000017] 承認期限が過ぎました。再申請を確認してください",
+      "link_path": "/requests/01a1c78e-0655-7000-a3a0-edc0ddb44ee0",
+      "status": "sent"
+    }
+  },
+  "finishedAt": "2026-11-14T23:08:54.181Z",
+  "ok": true
+}

@@ -1,0 +1,29 @@
+{
+  "phase": "approve",
+  "startedAt": "2026-11-14T23:09:05.447Z",
+  "pages": [],
+  "checks": [
+    {
+      "name": "approve: 通知のリンクから承認し、模擬実行で完了",
+      "passed": true
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "created": {
+    "requestId": "01a1dc50-93cb-7000-aa6b-5a40a7f4e410",
+    "number": "REQ-2026-000165",
+    "approvalId": "01a1dc50-93cb-7001-88bf-cc639100a4af",
+    "expiresAt": "2026-11-17T23:07:10.709Z"
+  },
+  "finished": [
+    {
+      "state": "completed",
+      "revision": 1,
+      "step_state": "approved",
+      "decided_at": "2026-11-14T23:09:07.794Z"
+    }
+  ],
+  "finishedAt": "2026-11-14T23:09:11.929Z",
+  "ok": true
+}

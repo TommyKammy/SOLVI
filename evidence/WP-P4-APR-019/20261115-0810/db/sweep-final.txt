@@ -1,0 +1,9 @@
+現在: 2026-11-14T23:17:34.858Z (2026-11-15 08:17 JST)
+expired のステップ: 7
+監査 approval.expired: 7 (2026-11-14T22:54:15.397Z .. 22:54:15.429Z)
+送信の記録 kind=expired: 7 (22:54:15.403Z .. 22:54:15.431Z)
+送信の記録 kind=requested: 1
+Outbox approval.notice.expired: 7 (processed 7 / failed 0)
+通知 approval.notice.expired: 7 (sent 7 / failed 0)
+pending のまま期限超過: 0
+2回目の確認(08:07 JST)と3回目(08:17 JST)で、期限切れ・監査・記録・Outbox・通知の件数は増えていない。

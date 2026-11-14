@@ -1,0 +1,13 @@
+[run-wp019] database=solvi_wp019_test command=npx vitest run tests/security/approval-notice.test.ts tests/unit/approval-notice.test.ts
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ✓ tests/security/approval-notice.test.ts (45 tests) 4434ms
+   ✓ Migration 0041: 通知の記録の表 (TL-04) > **行が無ければ down → up の往復ができる。0040 から増えるポリシーはちょうど2件**  324ms
+ ✓ tests/unit/approval-notice.test.ts (13 tests) 3ms
+
+ Test Files  2 passed (2)
+      Tests  58 passed (58)
+   Start at  08:13:42
+   Duration  5.25s (transform 178ms, setup 0ms, collect 457ms, tests 4.44s, environment 0ms, prepare 52ms)
+

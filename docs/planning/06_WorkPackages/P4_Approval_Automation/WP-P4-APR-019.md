@@ -197,6 +197,7 @@ FR-CAT-011 の残りを引き受ける。承認者と申請者と組織管理者
 | 2026-11-15 | 監督者 | - | 着手前の訂正 | - | (1) §4 の `main.ts` に「Outbox の処理へのイベント型の登録」を加えた(登録しないと、積んだ通知が処理されない)。(2) §6.3 の「組織を1つずつ処理する」には組織の一覧が要るが、`organization` は RLS 配下で、組織の文脈が無い定期処理からは読めない([[02.18_Organization_Data_Model_and_RLS]] §3 の例外は登録制)。計画時の見落としである。段階Aでは組織1つ分の処理までを実装し、一覧の取得と定期処理の登録は、利用者の判断を待つ。 |
 | 2026-11-15 | 実装担当(AI) | 作業ツリー(未コミット) | 段階A 完了(定期処理の登録は未実施) | `evidence/WP-P4-APR-019/20261115-0647/` | Migration 0041(通知の記録)・通知の4種類と配送・依頼時の通知(4契機)・組織1つ分の定期処理・期限切れの遷移と監査・`expired` の追従。**定期処理の開始・停止と組織の一覧の取得は、ブリーフの指示により実装していない**(`check:all` の未接続検査はこの理由で失敗する)。`apps/web/` は未変更(画面の変更は不要と判断。報告に根拠)。 |
 | 2026-11-15 | 実装担当(AI) | 作業ツリー(未コミット) | 段階B 完了(検査待ち) | `evidence/WP-P4-APR-019/20261115-0721/` | 検査の指摘1.1〜1.3 の修正、Migration 0041 への `organization` の読み取り例外(§3.6)、全組織の巡回と `main.ts` への開始・停止の登録、`expired` の画面確認と通知の表示名。`check:all`・`typecheck`・`check_rls` が通る。開発用DBは未変更(40件・最大 `0040`)。 |
+| 2026-11-15 | 実装担当(AI) | 作業ツリー(未コミット) | 段階C 完了(実画面の確認) | `evidence/WP-P4-APR-019/20261115-0810/` | 承認者不在の通知のリンクを `/ops/approvals` に変更。開発用DB(0041 適用済み)で、期限切れ7件の `expired`・監査・通知・Outbox、承認者・組織管理者の一覧、依頼と期限切れの通知、リンクからの承認と完了を確認。見つけた不具合1件(承認済みで期限を過ぎた申請の「期限切れ」表示)は直さずに報告。 |
 
 ### 2026-11-15 段階A 実装記録
 
@@ -434,3 +435,88 @@ RLS の例外を1件だけ追加した(`organization` の `FOR SELECT`、`app.ap
 #### Evidence
 
 `evidence/WP-P4-APR-019/20261115-0721/`
+
+### 2026-11-15 段階C 実装記録(実画面の確認)
+
+**範囲**: 承認者不在の通知のリンク先の修正、開発用DB(0041 適用済み)での実画面の確認。`implementation_status` は `review` のまま。
+
+#### リンク先の修正
+
+- `services/api/src/modules/notification/notification.service.ts`: 承認者不在の通知だけ、リンクを `/ops/approvals` にした。ほかの3種類(依頼・期限前・期限切れ)は `/requests/<申請ID>` のまま。リンクにクエリ・フラグメント・申請ID・個人データを付けない。
+- `tests/security/approval-notice.test.ts`: 承認者不在のリンクの期待値を `/ops/approvals` に更新。依頼・期限前が `/requests/<id>` のままであることを1件追加して固定。
+- 判断: 再割当の操作は `/ops/approvals` にしかなく、申請の詳細には無い。承認者不在の宛先は組織管理者なので、再割当の画面へ送るのが目的に合う(段階Bの未解決事項を解消)。
+
+#### 実画面での確認
+
+合成アカウント(`requester` / `approver` / `org_admin` / `agent` @acme)だけを使用。書き込みは画面から申請1件のみ。既存の申請は見るだけ。ロール・プロフィール・部署・ルール・カタログ・組織設定は変更していない。
+
+- **期限切れの表示**: 申請者の一覧(`/requests?state=expired`)に6件(REQ-6 は org_admin が申請者なので申請者には出ない)。詳細は「期限切れ。変更・再承認が必要です」と表示し、承認の操作が出ない。org_admin が申請者の REQ-6 も同じ。
+- **承認者**: `/inbox` の「自分への承認」0件、`/requests?view=approvals` 0件。期限切れは承認待ちに出ない。
+- **組織管理者**: `/ops/approvals` の「承認者不在の申請」は空。期限切れは出ない。
+- **依頼の通知**: 申請を1件作成(REQ-2026-000165、目印 `UI019`)。承認者の宛先へ「承認の依頼」が1件。件名は `[REQ-2026-000165] 承認の依頼があります`、リンクは `/requests/<ID>`。`UI019` は通知の一覧・件名・リンクに出ない。リンクから詳細を開き、そのまま承認できた。
+- **期限切れの通知**: 申請者宛ての「承認期限の切れ」が7件(ステップごとに1件)。リンクは `/requests/<ID>` で、詳細を開ける。
+- **通知の一覧**: 利用者向けの通知一覧は無いため、管理者向けの `/ops/notifications` で確認した。表示名は「承認の依頼」「承認期限の切れ」。内部のイベント型は画面に出ない。宛先・件名・リンクは管理者接続の `SELECT` で確認した。
+- **画面**: Chromium と WebKit、1440px と 375px。axe は40ページで violations 0(serious / critical 0)。375px の全ページで横にはみ出さない。
+- **完了**: 承認 → 模擬実行で `completed`。未完了の申請は残していない。
+
+#### 定期処理の結果(開発用DB・管理者接続の SELECT)
+
+- 期限を過ぎていた承認待ち7件が `expired` になった(2026-11-15 07:54:15 JST、Migration 0041 の適用後27秒)。`pending` のまま期限を過ぎた行は0件。
+- `audit_event` の `approval.expired` は7件(ステップごとに1件)。実行者は `system`。`after_state` は段・版・期限・状態・世代だけで、入力値や個人データを含まない。
+- 送信の記録 `local_request_approval_notice` は `expired` が7件(ステップごとに1件)。
+- Outbox は7件すべて `processed`、通知は7件すべて `sent`。失敗・滞留は0件。
+- 13分後の2回目の確認でも、期限切れ・監査・記録・Outbox・通知の件数は増えていない(再実行で重複しない)。
+- 新しい申請の依頼の通知は1件。Outbox は処理済み、通知は `sent`。
+
+#### 見つけた不具合(直していない)
+
+- **承認済みなのに「期限切れ」と表示される**: REQ-2026-000011 は期限内(2026-11-11 00:01)に承認済みで、申請の状態は「承認済み・模擬実行待ち」だが、一覧の「承認期限切れ」と詳細の「(期限切れ。変更・再承認が必要です)」に出る。API の `expired` が `q.state IN ('pending','approved') AND a.expires_at <= now()` で、ステップが `pending` であることを見ていないため。この状態では画面の「ローカルで模擬実行する」も出ない(`canSimulate` が `!expired`)。既存の表示規則の問題で、状態の意味と実行の可否に関わるため、段階Cでは直さずに報告する。証拠: `evidence/.../browser/chromium/1440/defect-approved-but-expired.png`。
+
+#### 開発用DBの件数(前後)
+
+| テーブル | 前(07:55) | 後(08:09) | 差 |
+|---|---|---|---|
+| app_user | 15 | 15 | 0 |
+| role_binding | 26 | 26 | 0 |
+| local_catalog_item | 26 | 26 | 0 |
+| local_service_request | 17 | 18 | +1(作成した申請) |
+| local_request_revision | 22 | 23 | +1 |
+| local_request_approval | 29 | 30 | +1 |
+| local_request_route_generation | 2 | 2 | 0 |
+| local_request_approval_notice | 7 | 8 | +1(依頼) |
+| outbox_event | 447 | 454 | +7(依頼1 + チケットの作成・割当・状態3・コメント1) |
+| notification | 89 | 95 | +6(依頼1 + チケット5) |
+| department | 22 | 22 | 0 |
+| approval_rule | 14 | 14 | 0 |
+| org_member_profile | 15 | 15 | 0 |
+
+Migration は41件・最大 `0041`。
+
+#### 実画面で確認できなかった項目
+
+- **承認者不在の通知のリンク**(`/ops/approvals`): 実画面では起こしていない(ロールの変更が要る)。テストで確認した。
+- **期限前の通知**: 実画面では起こしていない(時刻の操作が要る)。テストで確認した。
+- 上記2つはブリーフの指示どおり。開発環境のAPIは、`notification.service.ts` の保存で `tsx watch` が自動で再起動した(手動の停止・再起動はしていない)。そのため稼働中のAPIは修正後のコードで動いているが、承認者不在の通知は発生していないため、実画面でのリンクは未確認である。
+
+#### 検証
+
+```text
+node --env-file=.env .local/tmp/run-wp019.mjs solvi_wp019_test \
+  npx vitest run tests/security/approval-notice.test.ts tests/unit/approval-notice.test.ts
+# 2 files / 58 passed(security 45 / unit 13)
+npm run typecheck                                  # exit 0
+npm run check:all                                  # exit 0
+npx eslint . --max-warnings=0 --ignore-pattern '.claude/**'   # exit 0
+git status --short                                 # 変更は §4 の範囲(下記)
+```
+
+- 変更: `services/api/src/modules/notification/notification.service.ts`、`tests/security/approval-notice.test.ts`、`evidence/WP-P4-APR-019/20261115-0810/`。
+- 使い捨てDB `solvi_wp019_test`(Migration 41件)で検査。開発用DBへの書き込みは画面から作成した申請1件だけ。
+
+#### §7 受入基準への影響
+
+段階Cは表示とリンクの確認であり、§7 の判定を変えない。リンクの受入基準(「通知の件名・リンク・Outbox の内容に、申請の入力値・理由・社員番号・役職・勤務地が含まれない」)は維持している(承認者不在のリンクも申請IDを含まない)。
+
+#### Evidence
+
+`evidence/WP-P4-APR-019/20261115-0810/`(スクリーンショット61枚、axe 40ページ、DBの件数と定期処理の結果、検証ログ)。

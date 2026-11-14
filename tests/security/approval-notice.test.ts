@@ -896,6 +896,28 @@ describe('依頼の通知: 段が pending になる4つの契機 (WP §7)', () =
     ).toHaveLength(1);
   });
 
+  it('**リンクは申請の詳細**(依頼・期限前。承認者不在だけが再割当の画面)', async () => {
+    const itemId = await publishItem({ approverId: fixedA.id });
+    const created = await createRequest(requester, itemId, { approverId: fixedA.id });
+    const step = (await stepRows(created.id))[0]!;
+    const requested = (await outboxForRequest(created.id))[0]!;
+    const deliveredRequested = await deliver(requested);
+    expect(deliveredRequested.sender.sent.map((item) => item.linkPath)).toEqual([
+      `/requests/${created.id}`,
+    ]);
+
+    const now = new Date();
+    await setExpiry(step.id, new Date(now.getTime() + 23 * HOUR));
+    await sweep(org, now);
+    const expiring = (await outboxForRequest(created.id)).find(
+      (event) => event.event_type === 'approval.notice.expiring',
+    )!;
+    const deliveredExpiring = await deliver(expiring);
+    expect(deliveredExpiring.sender.sent.map((item) => item.linkPath)).toEqual([
+      `/requests/${created.id}`,
+    ]);
+  });
+
   it('**同じステップに2件目は積まれない**(主キーで止め、Outbox も増やさない)', async () => {
     const itemId = await publishItem({ approverId: fixedA.id });
     const created = await createRequest(requester, itemId, { approverId: fixedA.id });
@@ -1200,9 +1222,10 @@ describe('承認者不在 (WP §7)', () => {
     expect(delivered.sender.sent.map((item) => item.to).sort()).toEqual(
       [adminUser.email, secondAdmin.email].sort(),
     );
+    // 承認者不在だけは再割当の画面（組織管理者向け）を指す。申請の詳細には再割当の操作が無い。
     expect(delivered.sender.sent.map((item) => item.linkPath)).toEqual([
-      `/requests/${requestId}`,
-      `/requests/${requestId}`,
+      '/ops/approvals',
+      '/ops/approvals',
     ]);
     expect(delivered.sender.sent.some((item) => item.to === stoppedAdmin.email)).toBe(false);
     expect(delivered.sender.sent.some((item) => item.to === expiredAdmin.email)).toBe(false);
