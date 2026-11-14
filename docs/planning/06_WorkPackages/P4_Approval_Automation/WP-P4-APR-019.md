@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "notification", "escalation"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "high"
 workstream: "APR"
@@ -520,3 +520,12 @@ git status --short                                 # 変更は §4 の範囲(下
 #### Evidence
 
 `evidence/WP-P4-APR-019/20261115-0810/`(スクリーンショット61枚、axe 40ページ、DBの件数と定期処理の結果、検証ログ)。
+
+#### 監督者の検査と利用者の承認(2026-11-15)
+
+- 監督者が使い捨てDBで再実行した: `typecheck`、`check:all`、`eslint`(`.claude/**` を除く)、`tools/check_rls.mjs`、`vitest run tests/security`(853件通過。失敗は既知の読み込み不能6ファイルだけ)、承認・申請・通知の unit テスト。コミット `6cd5fc9`、`4fd0829`。
+- 利用者の指示で、開発用DBへ Migration 0041 を適用した(41件)。適用後の1周目で、期限を過ぎていた承認待ち7件が `expired` になり、`approval.expired` 7件・送信の記録7件・申請者宛ての通知7件が記録された。2周目以降は増えていない。
+- 監督者が、通知の種類の表示名を改めた(「承認期限切れ」「承認期限の予告」)。Evidence のスクリーンショットは、改める前の表示である。
+- **実画面で確認していないもの**: 承認者不在の通知と期限前の通知(ロールの変更・時刻の操作が要るため。テストで確認)。メールの実際の配送(開発環境は送信処理の記録だけ)。
+- **残る点**: (1) 承認済みのステップが期限(72時間)を過ぎた場合は、従来どおり実行前検証が失敗し再承認が要るが、本WPの通知の対象ではない。(2) 期限切れの申請の詳細の見出しは「承認待ち」のままで、期限の行の注記で示す。(3) 承認の通知は利用者ごとに止められない(`notification_preference` はチケットの通知だけ)。(4) [[02.18_Organization_Data_Model_and_RLS]] §3 の一覧に、既存の `app.expiry`(0020)と監査エクスポート(0023)の例外が載っていない(本WPの範囲外)。
+- **2026-11-15、利用者(人間)が承認した。** セキュリティ関連の変更(RLS の例外1件、監査への書込み、システムによる状態遷移)に対する人間のレビューを兼ねる。`done` とする。
