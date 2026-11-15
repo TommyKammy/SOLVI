@@ -1,0 +1,12 @@
+{
+  "approverUser": "00000000-0000-4000-9000-000000000103",
+  "secondApproverUser": "00000000-0000-4000-9000-000000000102",
+  "rule": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3",
+  "ruleCode": "ui021-syn-1794746790837",
+  "catalogItem": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb",
+  "request": "01a1df3f-7457-7001-ba08-c4029eafc1cc",
+  "requestNumber": "REQ-2026-000167",
+  "delegation": "01a1df3f-538c-7000-9501-9a8688382f2c",
+  "itemCode": "service-ca4515c0-a711-4efa-8631-673ac1848a6c",
+  "failure": "2段の経路\n\n1 !== 2\n"
+}

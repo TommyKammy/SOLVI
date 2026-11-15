@@ -1,0 +1,10 @@
+[
+  {
+    "name": "chromium hidden request found",
+    "request": null
+  },
+  {
+    "name": "webkit hidden request found",
+    "request": null
+  }
+]

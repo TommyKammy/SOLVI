@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ✓ tests/unit/approval-dual-control-ui.test.ts (17 tests) 34ms
+ ✓ tests/unit/approval-dual-control.test.ts (21 tests) 4ms
+
+ Test Files  2 passed (2)
+      Tests  38 passed (38)
+   Start at  21:53:55
+   Duration  789ms (transform 221ms, setup 0ms, collect 401ms, tests 38ms, environment 0ms, prepare 50ms)
+

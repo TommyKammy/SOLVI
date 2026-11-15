@@ -208,6 +208,7 @@ FR-CAT-010(高リスク二重承認とSoD)を実装する。高リスクかど�
 | 2026-11-15 | Codex(段階A) | 未コミット | 段階A(属性・共有の判定・API)を実装・検証済み。画面(§6.8)は段階B | `evidence/WP-P4-APR-021/20261115-1736/` | 下記 |
 | 2026-11-15 | Codex(段階B) | 未コミット | 段階B(画面)を実装・検証済み。実画面の確認は段階C | `evidence/WP-P4-APR-021/20261115-1815/` | 下記 |
 | 2026-11-15 | Codex(段階C) | 未コミット | 実画面の確認を1回実行。カタログ項目の公開の判定でハーネスの待ち合わせの不具合により停止し、片付けは完了。申請・委任・承認・ルールの拒否の実画面は**未確認** | `evidence/WP-P4-APR-021/20261115-2026/` | 下記 |
+| 2026-11-15 | Codex(段階C2) | 未コミット | 実画面の確認の2回目(最後)。公開の成功・公開中の高リスクの表示・委任の作成・申請画面の2段の注記まで確認。申請の作成後の判定でハーネスの誤った前提により停止し、片付けは完了。3回目は行わない | `evidence/WP-P4-APR-021/20261115-2145/` | 下記 |
 
 ### 段階A の実行記録(2026-11-15)
 
@@ -474,3 +475,138 @@ Migration・依存・`.env` の変更は無い。
 `evidence/WP-P4-APR-021/20261115-2026/`(スクリーンショット(Chromium / WebKit、1440px / 375px)、
 axe の結果、`summary.json`、実行ログ、開発用DBの件数の前後、片付け後の確認、監査の時刻、
 `git status`、片付け後の補足の撮影)。
+
+### 段階C2 の実行記録(2026-11-15)
+
+利用者の承認による2回目(最後)の実画面確認。組織での承認ルールの使用を有効にしてから
+片付けが終わるまでの間にコードを変えず、停止のあとは片付けを済ませて**3回目を行わずに停止した**。
+§7-10 は**一部未確認**である。
+
+#### 今回の差分(段階C2 のブリーフ)
+
+- WebKit からは、拒否される送信も含めて送信を一切行わない。ログインの送信だけを許し、
+  それ以外の送信は `guard` の read-only で拒否して記録する(`observerWrites` は空)。
+- 送信の待ち合わせは URL の変化ではなく、サーバーへの POST の応答と、送信の後の状態の
+  読み取り(`confirm`)で確かめる。公開のように同じ URL へ戻る送信でも判定が
+  送信の完了の前に走らない。
+- 1回目で残した合成データ(無効のルール `ui021-syn-1794742049248`、非公開の項目
+  `service-a89cb973-dbe0-404c-981c-4f2e47041d26`)は使わず・変えていない。
+- 公開の失敗の表示は Chromium だけで送信して撮った。同じ表示を開ける URL が無いため、
+  WebKit のその1枚は省略した(`skippedObserverScreenshots`)。
+
+#### 変更ファイル
+
+- `tools/ui_approval_routing_check.mjs`(WebKit の read-only の guard、POST の応答と API の
+  読み取りによる待ち合わせ、公開の失敗の表示の Chromium だけの撮影、申請の作成後の
+  段数の判定の修正)
+- 本WP(§13 だけ)、`evidence/WP-P4-APR-021/20261115-2145/`
+
+Migration・依存・`.env`・製品コードの変更は無い。
+
+#### 実行した範囲と停止した箇所
+
+- 成功: 事前確認、組織でのルールの使用の有効化、`agent` への `approver` の付与、
+  固定承認者2段のルールの作成、高リスクの項目の下書き保存(2回)、
+  ルール無しの公開の拒否の表示(Chromium)、ルールを選んだ公開、公開中の詳細の
+  高リスクの目印と一覧の公開中の表示、委任の作成、高リスクの申請画面の「2名の承認が必要」の注記と
+  2段の経路(Chromium / WebKit、1440px / 375px)の撮影、申請の作成。
+- **停止**: 申請の作成の後の判定で `effectiveSteps.length` を2と期待していた。
+  実際は1で、これは製品の不具合ではない。承認の行は決定のときに次の段を作る
+  (`services/api/src/modules/catalog/approval-state.ts` の `createNextStep`)ため、
+  作成の時点では1段目の `pending` だけが存在する。経路そのものは
+  `local_request_revision.route` に2段(固定承認者 `approver` → 固定承認者 `agent`)で
+  固定されており、申請画面の「承認の経路」にも2段が表示された。ハーネスの期待を
+  「経路は2段、作成時のステップは1段目だけ、1段目の承認後に2段目が作られる」に直した。
+  **直した後の実画面は未確認**(再実行しない)。
+- 未実行: 代理者から見えないこと(承認待ち・受信箱・詳細の404)、委任の取消(明示の手順)、
+  1人目・2人目の承認、模擬実行、ルールの無効化の拒否、組織での使用の停止の拒否、
+  申請の詳細の高リスクの注記、承認の監査、完了後の詳細。
+  委任の取消は片付けの手順で実行し、成功した。
+
+#### 片付け(この順で実行し、すべて成功)
+
+委任の取消 → 項目の新規受付の停止 → ルールの無効化 → 組織での使用の無効化 →
+`agent` の `approver` の取り外し。`summary.json` の `cleanup.errors` は空。
+
+- ルールの使用を有効にした時刻: 2026-11-15T12:46:38Z(21:46:38 JST)
+- 無効に戻した時刻: 2026-11-15T12:47:25Z(21:47:25 JST)
+- `approver` を付けた時刻: 2026-11-15T12:46:42Z(21:46:42 JST)
+- 取り外した時刻: 2026-11-15T12:47:26Z(21:47:26 JST)
+- 項目の公開: 2026-11-15T12:47:01Z / 非公開: 2026-11-15T12:47:22Z
+- 委任の作成: 2026-11-15T12:47:11Z / 取消: 2026-11-15T12:47:22Z
+- 申請の作成: 2026-11-15T12:47:20Z(REQ-2026-000167)
+
+#### 検証(読み取りだけ)
+
+- 片付け後(管理者接続の `SELECT`): ルールの使用が有効な組織0、有効な委任0、
+  すべての `UI021` のルールが**無効**、すべての `UI021` の項目が**非公開**、
+  `agent` の有効なロールは作業前と同じ(`agent`(acme)・`requester`(beta))。
+  **`UI021` の未完了の申請が1件残る**(`REQ-2026-000167`。停止のため承認・取消をしていない)。
+- 申請の不変の経路: `local_request_revision.route` は2段の固定承認者
+  (`approver` → `agent`)、`snapshot` の `approval.highRisk` は真。承認の行は1段目の
+  `pending` だけ(`delegation_id` は空)。
+- 監査: `catalog.high_risk_changed` が公開と同じ時刻に1件、前 `highRisk:false`(版なし)→
+  後 `highRisk:true`(版2)。`approval.route.resolved` が申請と同じ時刻に1件、`stepCount:2`、
+  `stepTypes: fixed,fixed`、`ruleRevision:1`。パスワードを含む監査は0件。
+- 通知: この申請の通知は `approver` 宛ての1件だけ。`agent` 宛ての1段目の依頼は無い。
+  件名・リンクに `UI021` は無い。ただし通知の処理が片付けの委任取消の後だったため、
+  これは高リスクの除外だけを示すものではない(unit / security テストで確認する範囲)。
+- 開発用DBの件数: `app_user` 15・`org_member_profile` 15・`department` 22 は不変。
+  `role_binding` +1(付与の行が `valid_until` で残る)、`approval_rule` +1・
+  `approval_rule_revision` +1、`local_catalog_item` +1・`local_catalog_revision` +2、
+  `local_service_request` +1・`local_request_revision` +1・`local_request_approval` +1、
+  `approval_delegation` +1(取消済み)、`local_request_approval_notice` +1、
+  `notification` +5、`outbox_event` +4、`audit_event` +28(ログイン6・業務22)。
+  Migration 42件。
+- `npm run typecheck`・`npm run check:all`・`npx eslint . --max-warnings=0 --ignore-pattern '.claude/**'`・
+  `node --check tools/ui_approval_routing_check.mjs`: すべて成功。
+- `npx vitest run tests/unit/approval-dual-control.test.ts tests/unit/approval-dual-control-ui.test.ts`: 38 passed。
+- `git status --short`: 変更は `tools/ui_approval_routing_check.mjs`・本節・Evidence だけ。
+
+#### §7 の充足(段階C2)
+
+- §7-10(画面): **一部**。今回新たに、ルールを選んだ公開の成功、公開中の詳細の
+  高リスクの目印と一覧の公開中の表示、委任の作成、申請画面の2名の承認の注記と2段の経路を、
+  Chromium と WebKit の 1440px / 375px で確認した(axe serious / critical 0、
+  横はみ出し0)。申請の詳細の注記、承認、模擬実行、代理者の非表示、ルールの拒否の
+  表示は実画面では未確認。
+- §7-1〜§7-9: 段階Aで充足済み。実画面での再確認は上記の範囲にとどまる。
+
+#### 見つけた不具合
+
+1. **ハーネス**: 申請の作成の後に `effectiveSteps.length` を2と期待していた。製品は
+   作成時に1段目だけを作り、1段目の承認で2段目を作る。期待を直した。**再実行しないため、
+   直した後の実画面は未確認。**
+2. 公開の拒否の文が「保存・送信できませんでした」の直下と「入力項目:」の2か所に出る
+   (1回目からの既知。文言のみ。今回は直さない)。
+3. 共通404画面の `target-size`(serious)は1回目からの既知。本WPの範囲外であり、
+   今回は直さない。今回の実行では404画面まで到達していない。
+4. WebKit の `focus` の計算値は `outlineStyle: none`(プログラムからのフォーカスのため)。
+   Space での切替は両エンジンで確認したが、実機のキーボードフォーカスの見え方は未確認。
+
+#### セキュリティ影響
+
+- 新しい権限・RLS・`SECURITY_DEFINER`・Migration・環境変数/フラグは無い。
+- 有効化から無効化までの間、開発用DBの変更は上記の合成データだけ。既存の項目・申請・
+  ルール・委任・ほかの利用者のロールは変えていない。
+- WebKit からの業務の送信は0件(`observerWrites` は空)。ログインの送信だけを許した。
+- Security Reviewer(人間)の sign-off は**未取得**(Gate B GB-3)。
+
+#### 未解決・確認事項
+
+1. **残した合成データ**: 未完了の申請 `REQ-2026-000167`(2段の固定承認者の経路、1段目が
+   `pending`)、非公開の項目 `service-ca4515c0-a711-4efa-8631-673ac1848a6c`(版2)、
+   無効のルール `ui021-syn-1794746790837`、`role_binding` の1行、取消済みの委任1件。
+   1回目の合成データはそのまま。
+2. 実画面での残りの確認(承認・模擬実行・代理者の非表示・ルールの拒否の表示)。
+   段階Aの unit / security テストで確認済みの範囲であり、実画面では未確認。
+3. ハーネスの修正後の実画面は未確認(3回目は行わない)。
+
+#### Evidence
+
+`evidence/WP-P4-APR-021/20261115-2145/`(スクリーンショット42枚(Chromium / WebKit、
+1440px / 375px。公開の拒否は Chromium のみ)、`browser/failure.png`、`browser/summary.json`、
+axe の結果、`run.log`、`dryrun-selectors-before-write.{json,log}`、`dryrun-404-before-write.log`、
+`db-before.json`・`db-after.json`・`db-precheck-before-write.txt`・`db-verify.txt`、
+`audit-timeline.jsonl`、`ids.json`、`typecheck.log`・`check-all.log`・`eslint.log`・
+`unit.log`・`node-check.log`、`git-status-before.txt`・`git-status-after.txt`)。

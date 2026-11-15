@@ -1,0 +1,26 @@
+{
+  "counts": {
+    "app_user": 15,
+    "role_binding": 29,
+    "org_member_profile": 15,
+    "org_approval_setting": 1,
+    "approval_rule": 15,
+    "approval_rule_revision": 21,
+    "local_catalog_item": 27,
+    "local_catalog_revision": 54,
+    "local_service_request": 19,
+    "local_request_revision": 24,
+    "local_request_approval": 31,
+    "local_request_route_generation": 2,
+    "approval_delegation": 2,
+    "local_request_approval_notice": 9,
+    "outbox_event": 465,
+    "notification": 110,
+    "department": 22,
+    "audit_event": 2184
+  },
+  "migrations": {
+    "n": 42,
+    "max": "0042"
+  }
+}

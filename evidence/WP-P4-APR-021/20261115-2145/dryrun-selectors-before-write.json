@@ -1,0 +1,758 @@
+[
+  {
+    "name": "routing",
+    "routing": {
+      "setting": {
+        "enabled": false,
+        "updatedAt": "2026-11-15T11:28:09.409Z",
+        "updatedBy": "00000000-0000-4000-9000-000000000101"
+      }
+    }
+  },
+  {
+    "name": "agent roles",
+    "roles": [
+      "agent"
+    ],
+    "displayName": "サンプル株式会社 agent"
+  },
+  {
+    "name": "chromium /ops/approvals",
+    "selectors": {
+      "routing": 1,
+      "routing-toggle": 1,
+      "routing-submit-on-page": 0,
+      "create": 1,
+      "create-code": 1,
+      "create-name": 1,
+      "step-type-0": 1,
+      "step-approver-0": 1,
+      "step-type-1": 1,
+      "step-approver-1": 1,
+      "create-submit": 1,
+      "error": 0
+    }
+  },
+  {
+    "name": "chromium /ops/approvals approver options",
+    "options": [
+      "選択してください",
+      "サンプル株式会社 approver"
+    ]
+  },
+  {
+    "name": "chromium /ops/approvals",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /ops/approvals 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /ops/approvals?confirm=disable-routing",
+    "selectors": {
+      "routing-submit": 1,
+      "routing-toggle": 0
+    }
+  },
+  {
+    "name": "chromium disable-routing confirm text",
+    "text": "組織での使用\n\n現在の状態: 無効（最後に切り替えた日時: 2026年11月15日 20:28）\n\nまだ有効にしていない組織では無効です。無効の間は、カタログ項目にルールを結び付けても、新しい申請では固定承認者の設定で経路を決めます。\n\n組織で承認ルールを使わない設定に戻しますか\n\n新しい申請ではルールを使わず、固定承認者の設定で経路を決めます。進行中の申請の経路は変わりません。\n\n無効にする\nやめる"
+  },
+  {
+    "name": "chromium /ops/approvals?error=",
+    "selectors": {
+      "error": 1
+    }
+  },
+  {
+    "name": "chromium approval error text",
+    "text": "操作できませんでした\n\n下書きの確認です。"
+  },
+  {
+    "name": "chromium /ops/approvals?error=",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /ops/users (agent)",
+    "selectors": {
+      "role-details": 1,
+      "grant-form": 1,
+      "revoke-form": 1,
+      "role-select": 2
+    }
+  },
+  {
+    "name": "chromium /ops/users grant form labels",
+    "grantingLabels": [
+      "与える役割",
+      "期限（任意）",
+      "付与の理由"
+    ],
+    "roleOptions": [
+      "組織管理者",
+      "承認者",
+      "監査",
+      "リクエスター",
+      "カタログ編集者"
+    ]
+  },
+  {
+    "name": "chromium /ops/users (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /catalog/manage/new",
+    "selectors": {
+      "title": 1,
+      "description": 1,
+      "approver": 1,
+      "rule": 1,
+      "high-risk": 1,
+      "save": 1
+    }
+  },
+  {
+    "name": "chromium /catalog/manage/new approvers",
+    "approverOptions": [
+      "同じ組織の承認者を選ぶ",
+      "サンプル株式会社 approver"
+    ],
+    "ruleOptions": [
+      "使わない（固定の承認者を使う）"
+    ],
+    "ruleDisabled": false,
+    "highRiskBox": {
+      "x": 317,
+      "y": 2436,
+      "width": 24,
+      "height": 24
+    }
+  },
+  {
+    "name": "chromium keyboard high-risk",
+    "count": 1,
+    "reached": "catalog-high-risk",
+    "before": false,
+    "afterSpace": true,
+    "afterSecond": false,
+    "focus": {
+      "id": "catalog-high-risk",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+    }
+  },
+  {
+    "name": "chromium /catalog/manage/new",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /catalog/manage/new 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "leftover UI021 item",
+    "item": {
+      "id": "01a1def6-cd45-7000-9a1b-5e1edc893d62",
+      "code": "service-a89cb973-dbe0-404c-981c-4f2e47041d26",
+      "editVersion": 4,
+      "draftRevision": 2,
+      "publishedRevision": 2,
+      "active": false,
+      "title": "UI021 合成 高リスク申請 UI021-SYN-1794742049248",
+      "description": "UI021 の高リスク二重承認を確認するための合成項目です。",
+      "updatedAt": "2026-11-15T11:28:06.185Z",
+      "ownerName": "サンプル株式会社 org_admin",
+      "readiness": {
+        "ready": false,
+        "issues": [
+          "現在有効な承認ルールを設定してください"
+        ],
+        "warnings": [
+          "処理グループが未設定です"
+        ]
+      },
+      "highRisk": true,
+      "publishedHighRisk": true
+    }
+  },
+  {
+    "name": "catalog editor details",
+    "count": 1,
+    "before": false,
+    "after": true
+  },
+  {
+    "name": "chromium /catalog/manage/<leftover>",
+    "selectors": {
+      "high-risk": 1,
+      "rule": 1,
+      "publish": 1,
+      "error-summary": 0
+    }
+  },
+  {
+    "name": "chromium publish button text",
+    "texts": [
+      "×",
+      "ログアウト",
+      "保存済みの下書き版2を公開する",
+      "質問セットを追加する",
+      "セクションを追加する",
+      "申請項目を追加する",
+      "作業項目を追加する",
+      "下書きを保存してプレビューする",
+      "入力を試す",
+      "試験入力をクリアする"
+    ]
+  },
+  {
+    "name": "chromium /catalog/manage/<leftover> (editor open)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /catalog/manage/<leftover> 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /catalog/manage?q=UI021",
+    "selectors": {
+      "UI021": 2
+    }
+  },
+  {
+    "name": "chromium catalog list UI021 text",
+    "text": "利用者のカタログへ戻る\nカタログ管理\n\n項目と承認者を下書きで整え、プレビューして新規受付へ公開します。\n\nサービスを作成する\n\n共有項目セット\n編集権限を委任する\nサービスを検索\n\n名前・説明・責任者・管理コードから検索します。\n\n公開状態\nすべて\n公開中\n非公開\n未公開の変更あり\n条件を適用する\n条件をクリアする\n\n全27件 · 条件に一致するサービス1件 · 1〜1件を表示\n\nUI021 合成 高リスク申請 UI021-SYN-1794742049248\n\n非公開 · 下書き版2\n\nUI021 の高リスク二重承認を確認するための合成項目です。\n\n高リスク（2名の承認が必要） · 下書きで指定されています（公開すると適用されます）\n\n担当責任者: サンプル株式会社 org_admin · 最終更新: 2026年11月15日 20:28\n\n公開前の確認: 設定の見直しが必要\n\n現在有効な承認ルールを設定してください\n処理グループが未設定です\nこのサービスを複製する\n\n管理コード: service-a89cb973-dbe0-404c-981c-4f2e47041d26\n\nページ1 / 1"
+  },
+  {
+    "name": "chromium /catalog/manage?q=UI021",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "catalog item for dry run",
+    "title": "業務アカウント発行申請"
+  },
+  {
+    "name": "chromium /catalog/<item> (requester)",
+    "selectors": {
+      "reason": 1,
+      "submit": 1,
+      "high-risk-note": 0
+    }
+  },
+  {
+    "name": "chromium request form",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /settings/delegations",
+    "selectors": {
+      "mine": 1,
+      "delegate": 0,
+      "start-label": 0,
+      "end-label": 0,
+      "create-button": 0,
+      "revoke-details": 0
+    }
+  },
+  {
+    "name": "chromium /settings/delegations",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /requests?view=approvals (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium /inbox?kind=approval (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "existing request",
+    "id": "01a1dd14-821a-7000-8916-1252eeda0377",
+    "number": "REQ-2026-000166"
+  },
+  {
+    "name": "chromium /requests/<existing>",
+    "selectors": {
+      "high-risk-note": 0,
+      "approve": 0,
+      "simulate": 0
+    }
+  },
+  {
+    "name": "chromium agent existing request detail status",
+    "status": 200
+  },
+  {
+    "name": "chromium request 404 (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "chromium auditor API detail status",
+    "status": 404
+  },
+  {
+    "name": "routing",
+    "routing": {
+      "setting": {
+        "enabled": false,
+        "updatedAt": "2026-11-15T11:28:09.409Z",
+        "updatedBy": "00000000-0000-4000-9000-000000000101"
+      }
+    }
+  },
+  {
+    "name": "agent roles",
+    "roles": [
+      "agent"
+    ],
+    "displayName": "サンプル株式会社 agent"
+  },
+  {
+    "name": "webkit /ops/approvals",
+    "selectors": {
+      "routing": 1,
+      "routing-toggle": 1,
+      "routing-submit-on-page": 0,
+      "create": 1,
+      "create-code": 1,
+      "create-name": 1,
+      "step-type-0": 1,
+      "step-approver-0": 1,
+      "step-type-1": 1,
+      "step-approver-1": 1,
+      "create-submit": 1,
+      "error": 0
+    }
+  },
+  {
+    "name": "webkit /ops/approvals approver options",
+    "options": [
+      "選択してください",
+      "サンプル株式会社 approver"
+    ]
+  },
+  {
+    "name": "webkit /ops/approvals",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /ops/approvals 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /ops/approvals?confirm=disable-routing",
+    "selectors": {
+      "routing-submit": 1,
+      "routing-toggle": 0
+    }
+  },
+  {
+    "name": "webkit disable-routing confirm text",
+    "text": "組織での使用\n\n現在の状態: 無効（最後に切り替えた日時: 2026年11月15日 20:28）\n\nまだ有効にしていない組織では無効です。無効の間は、カタログ項目にルールを結び付けても、新しい申請では固定承認者の設定で経路を決めます。\n\n組織で承認ルールを使わない設定に戻しますか\n\n新しい申請ではルールを使わず、固定承認者の設定で経路を決めます。進行中の申請の経路は変わりません。\n\n無効にする\nやめる"
+  },
+  {
+    "name": "webkit /ops/approvals?error=",
+    "selectors": {
+      "error": 1
+    }
+  },
+  {
+    "name": "webkit approval error text",
+    "text": "操作できませんでした\n\n下書きの確認です。"
+  },
+  {
+    "name": "webkit /ops/approvals?error=",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /ops/users (agent)",
+    "selectors": {
+      "role-details": 1,
+      "grant-form": 1,
+      "revoke-form": 1,
+      "role-select": 2
+    }
+  },
+  {
+    "name": "webkit /ops/users grant form labels",
+    "grantingLabels": [
+      "与える役割",
+      "期限（任意）",
+      "付与の理由"
+    ],
+    "roleOptions": [
+      "組織管理者",
+      "承認者",
+      "監査",
+      "リクエスター",
+      "カタログ編集者"
+    ]
+  },
+  {
+    "name": "webkit /ops/users (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /catalog/manage/new",
+    "selectors": {
+      "title": 1,
+      "description": 1,
+      "approver": 1,
+      "rule": 1,
+      "high-risk": 1,
+      "save": 1
+    }
+  },
+  {
+    "name": "webkit /catalog/manage/new approvers",
+    "approverOptions": [
+      "同じ組織の承認者を選ぶ",
+      "サンプル株式会社 approver"
+    ],
+    "ruleOptions": [
+      "使わない（固定の承認者を使う）"
+    ],
+    "ruleDisabled": false,
+    "highRiskBox": {
+      "x": 315,
+      "y": 2412,
+      "width": 24,
+      "height": 24
+    }
+  },
+  {
+    "name": "webkit keyboard high-risk",
+    "count": 1,
+    "reached": "catalog-high-risk",
+    "before": false,
+    "afterSpace": true,
+    "afterSecond": false,
+    "focus": {
+      "id": "catalog-high-risk",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "boxShadow": "none"
+    }
+  },
+  {
+    "name": "webkit /catalog/manage/new",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /catalog/manage/new 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "leftover UI021 item",
+    "item": {
+      "id": "01a1def6-cd45-7000-9a1b-5e1edc893d62",
+      "code": "service-a89cb973-dbe0-404c-981c-4f2e47041d26",
+      "editVersion": 4,
+      "draftRevision": 2,
+      "publishedRevision": 2,
+      "active": false,
+      "title": "UI021 合成 高リスク申請 UI021-SYN-1794742049248",
+      "description": "UI021 の高リスク二重承認を確認するための合成項目です。",
+      "updatedAt": "2026-11-15T11:28:06.185Z",
+      "ownerName": "サンプル株式会社 org_admin",
+      "readiness": {
+        "ready": false,
+        "issues": [
+          "現在有効な承認ルールを設定してください"
+        ],
+        "warnings": [
+          "処理グループが未設定です"
+        ]
+      },
+      "highRisk": true,
+      "publishedHighRisk": true
+    }
+  },
+  {
+    "name": "catalog editor details",
+    "count": 1,
+    "before": false,
+    "after": true
+  },
+  {
+    "name": "webkit /catalog/manage/<leftover>",
+    "selectors": {
+      "high-risk": 1,
+      "rule": 1,
+      "publish": 1,
+      "error-summary": 0
+    }
+  },
+  {
+    "name": "webkit publish button text",
+    "texts": [
+      "×",
+      "ログアウト",
+      "保存済みの下書き版2を公開する",
+      "質問セットを追加する",
+      "セクションを追加する",
+      "申請項目を追加する",
+      "作業項目を追加する",
+      "下書きを保存してプレビューする",
+      "入力を試す",
+      "試験入力をクリアする"
+    ]
+  },
+  {
+    "name": "webkit /catalog/manage/<leftover> (editor open)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /catalog/manage/<leftover> 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /catalog/manage?q=UI021",
+    "selectors": {
+      "UI021": 2
+    }
+  },
+  {
+    "name": "webkit catalog list UI021 text",
+    "text": "利用者のカタログへ戻る\nカタログ管理\n\n項目と承認者を下書きで整え、プレビューして新規受付へ公開します。\n\nサービスを作成する\n\n共有項目セット\n編集権限を委任する\nサービスを検索\n\n名前・説明・責任者・管理コードから検索します。\n\n公開状態\n条件を適用する\n条件をクリアする\n\n全27件 · 条件に一致するサービス1件 · 1〜1件を表示\n\nUI021 合成 高リスク申請 UI021-SYN-1794742049248\n\n非公開 · 下書き版2\n\nUI021 の高リスク二重承認を確認するための合成項目です。\n\n高リスク（2名の承認が必要） · 下書きで指定されています（公開すると適用されます）\n\n担当責任者: サンプル株式会社 org_admin · 最終更新: 2026年11月15日 20:28\n\n公開前の確認: 設定の見直しが必要\n\n現在有効な承認ルールを設定してください\n処理グループが未設定です\nこのサービスを複製する\n\n管理コード: service-a89cb973-dbe0-404c-981c-4f2e47041d26\n\nページ1 / 1"
+  },
+  {
+    "name": "webkit /catalog/manage?q=UI021",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "catalog item for dry run",
+    "title": "業務アカウント発行申請"
+  },
+  {
+    "name": "webkit /catalog/<item> (requester)",
+    "selectors": {
+      "reason": 1,
+      "submit": 1,
+      "high-risk-note": 0
+    }
+  },
+  {
+    "name": "webkit request form",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /settings/delegations",
+    "selectors": {
+      "mine": 1,
+      "delegate": 0,
+      "start-label": 0,
+      "end-label": 0,
+      "create-button": 0,
+      "revoke-details": 0
+    }
+  },
+  {
+    "name": "webkit /settings/delegations",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /requests?view=approvals (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit /inbox?kind=approval (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "existing request",
+    "id": "01a1dd14-821a-7000-8916-1252eeda0377",
+    "number": "REQ-2026-000166"
+  },
+  {
+    "name": "webkit /requests/<existing>",
+    "selectors": {
+      "high-risk-note": 0,
+      "approve": 0,
+      "simulate": 0
+    }
+  },
+  {
+    "name": "webkit agent existing request detail status",
+    "status": 200
+  },
+  {
+    "name": "webkit request 404 (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [],
+    "violationsAccepted": []
+  },
+  {
+    "name": "webkit auditor API detail status",
+    "status": 404
+  }
+]

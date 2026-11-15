@@ -1,0 +1,483 @@
+database: solvi
+at: 2026-11-15T12:51:13.086Z
+request: 01a1df3f-7457-7001-ba08-c4029eafc1cc item: 01a1df3f-17a6-7000-96f8-f6f77e59f8cb rule: 01a1df3e-f7a0-7000-923e-ca38f8fa34d3 delegation: 01a1df3f-538c-7000-9501-9a8688382f2c
+
+== 片付け後の状態 ==
+routing enabled orgs: [
+  {
+    "organization_id": "00000000-0000-4000-9000-000000000001",
+    "rule_routing_enabled": false,
+    "updated_at": "2026-11-15T12:47:25.099Z"
+  }
+]
+active delegations (any pair): []
+run delegation: [
+  {
+    "id": "01a1df3f-538c-7000-9501-9a8688382f2c",
+    "starts_at": "2026-11-15T12:47:00.000Z",
+    "ends_at": "2026-11-17T12:47:00.000Z",
+    "revoked_at": "2026-11-15T12:47:22.031Z",
+    "revoke_reason": "UI021 合成: 委任の取消: 確認後の片付け"
+  }
+]
+UI021 rules: [
+  {
+    "id": "01a1def6-a8b5-7000-8119-83426a5d12cc",
+    "code": "ui021-syn-1794742049248",
+    "active": false,
+    "current_revision": 1
+  },
+  {
+    "id": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3",
+    "code": "ui021-syn-1794746790837",
+    "active": false,
+    "current_revision": 1
+  }
+]
+UI021 items: [
+  {
+    "id": "01a1def6-cd45-7000-9a1b-5e1edc893d62",
+    "code": "service-a89cb973-dbe0-404c-981c-4f2e47041d26",
+    "title": "UI021 合成 高リスク申請 UI021-SYN-1794742049248",
+    "active": false,
+    "draft_revision": 2,
+    "published_revision": 2
+  },
+  {
+    "id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb",
+    "code": "service-ca4515c0-a711-4efa-8631-673ac1848a6c",
+    "title": "UI021 合成 高リスク申請 UI021-SYN-1794746790837",
+    "active": false,
+    "draft_revision": 2,
+    "published_revision": 2
+  }
+]
+agent active roles: [
+  {
+    "code": "agent",
+    "organization_id": "00000000-0000-4000-9000-000000000001",
+    "valid_from": "2026-11-10T02:56:26.853Z",
+    "valid_until": null
+  },
+  {
+    "code": "requester",
+    "organization_id": "00000000-0000-4000-9000-000000000002",
+    "valid_from": "2026-11-10T02:56:26.853Z",
+    "valid_until": "2027-02-08T02:56:26.853Z"
+  }
+]
+agent approver rows: [
+  {
+    "organization_id": "00000000-0000-4000-9000-000000000001",
+    "valid_from": "2026-11-15T01:50:56.134Z",
+    "valid_until": "2026-11-15T01:51:07.335Z"
+  },
+  {
+    "organization_id": "00000000-0000-4000-9000-000000000001",
+    "valid_from": "2026-11-15T02:40:54.508Z",
+    "valid_until": "2026-11-15T02:41:39.638Z"
+  },
+  {
+    "organization_id": "00000000-0000-4000-9000-000000000001",
+    "valid_from": "2026-11-15T11:27:43.923Z",
+    "valid_until": "2026-11-15T11:28:10.388Z"
+  },
+  {
+    "organization_id": "00000000-0000-4000-9000-000000000001",
+    "valid_from": "2026-11-15T12:46:42.633Z",
+    "valid_until": "2026-11-15T12:47:26.098Z"
+  }
+]
+
+== 申請の状態(未完了のため残る) ==
+[
+  {
+    "id": "01a1df3f-7457-7001-ba08-c4029eafc1cc",
+    "state": "pending",
+    "revision": 1,
+    "version": 1,
+    "current_approval_id": "01a1df3f-7457-7002-9d6b-2b32f6e014c7",
+    "created_at": "2026-11-15T12:47:20.187Z"
+  }
+]
+route (revision 1): [
+  {
+    "revision": 1,
+    "route": {
+      "steps": [
+        {
+          "stepNo": 1,
+          "approverId": "00000000-0000-4000-9000-000000000103",
+          "resolvedFrom": "fixed",
+          "authorityType": "fixed"
+        },
+        {
+          "stepNo": 2,
+          "approverId": "00000000-0000-4000-9000-000000000102",
+          "resolvedFrom": "fixed",
+          "authorityType": "fixed"
+        }
+      ],
+      "ruleRef": {
+        "ruleId": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3",
+        "revision": 1
+      }
+    },
+    "route_hash": "904e425cbf30e3d5c3e74fe93f4d7584a3f1bcaf69dd29818d3084033f1e5823",
+    "route_generation": 1
+  }
+]
+approval rows: [
+  {
+    "id": "01a1df3f-7457-7002-9d6b-2b32f6e014c7",
+    "step_no": 1,
+    "state": "pending",
+    "approver_id": "00000000-0000-4000-9000-000000000103",
+    "authority_type": "fixed",
+    "delegation_id": null,
+    "decided_by": null,
+    "decided_at": null,
+    "expires_at": "2026-11-18T12:47:20.197Z"
+  }
+]
+snapshot highRisk/rule: [
+  {
+    "approval": {
+      "mode": "fixed",
+      "ruleId": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3",
+      "highRisk": true,
+      "approverId": "00000000-0000-4000-9000-000000000103"
+    }
+  }
+]
+
+== 通知 ==
+approval notices: [
+  {
+    "approval_id": "01a1df3f-7457-7002-9d6b-2b32f6e014c7",
+    "kind": "requested",
+    "created_at": "2026-11-15T12:47:20.198Z"
+  }
+]
+notifications for the request (by link or subject): [
+  {
+    "id": "01a1df3f-8f61-7000-be98-c21f37ab9b84",
+    "recipient_user_id": "00000000-0000-4000-9000-000000000103",
+    "recipient_email": "approver@acme.example.test",
+    "channel": "email",
+    "subject": "[REQ-2026-000167] 承認の依頼があります",
+    "link_path": "/requests/01a1df3f-7457-7001-ba08-c4029eafc1cc",
+    "status": "sent",
+    "created_at": "2026-11-15T12:47:27.112Z"
+  }
+]
+notifications to agent around the run: [
+  {
+    "id": "01a1df3f-6851-7000-b750-d8f7fed5ea75",
+    "subject": "[SOLVI] 代理承認の委任を作成しました",
+    "link_path": "/settings/delegations",
+    "status": "sent",
+    "created_at": "2026-11-15T12:47:17.102Z"
+  },
+  {
+    "id": "01a1df3f-8f69-7000-aadb-b177b1ebfc52",
+    "subject": "[SOLVI] 代理承認の委任を取り消しました",
+    "link_path": "/settings/delegations",
+    "status": "sent",
+    "created_at": "2026-11-15T12:47:27.121Z"
+  }
+]
+outbox events for the approval (payload keys only): [
+  {
+    "id": "01a1df3f-745b-7000-880d-c2c5cf1af008",
+    "event_type": "approval.notice.requested",
+    "processed_at": "2026-11-15T12:47:27.076Z",
+    "failed_at": null,
+    "created_at": "2026-11-15T12:47:20.187Z",
+    "payload_title": null,
+    "payload_request_id": "01a1df3f-7457-7001-ba08-c4029eafc1cc",
+    "payload_approval_id": "01a1df3f-7457-7002-9d6b-2b32f6e014c7",
+    "payload_recipient": null
+  }
+]
+payload text contains UI021 (approval/notification events): []
+
+== 監査 ==
+catalog.high_risk_changed: [
+  {
+    "occurred_at": "2026-11-15T12:47:01.567Z",
+    "actor_id": "00000000-0000-4000-9000-000000000101",
+    "target_id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb",
+    "before_state": {
+      "code": "service-ca4515c0-a711-4efa-8631-673ac1848a6c",
+      "highRisk": false,
+      "revision": null
+    },
+    "after_state": {
+      "code": "service-ca4515c0-a711-4efa-8631-673ac1848a6c",
+      "highRisk": true,
+      "revision": 2
+    }
+  }
+]
+approval.route.resolved for the request: [
+  {
+    "occurred_at": "2026-11-15T12:47:20.187Z",
+    "actor_id": "00000000-0000-4000-9000-000000000105",
+    "after_state": {
+      "ruleId": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3",
+      "revision": 1,
+      "routeHash": "904e425cbf30e3d5c3e74fe93f4d7584a3f1bcaf69dd29818d3084033f1e5823",
+      "stepCount": 2,
+      "stepTypes": "fixed,fixed",
+      "approverIds": "00000000-0000-4000-9000-000000000103,00000000-0000-4000-9000-000000000102",
+      "resolvedFrom": "fixed,fixed",
+      "ruleRevision": 1,
+      "routeGeneration": 1,
+      "ruleRoutingEnabled": true
+    }
+  }
+]
+audit events around the run: [
+  {
+    "occurred_at": "2026-11-15T12:46:31.923Z",
+    "event_type": "auth.login.success",
+    "outcome": "success",
+    "target_type": "session",
+    "target_id": "01a1df3e-b7e7-7000-a8c0-d2b9bb359a7a"
+  },
+  {
+    "occurred_at": "2026-11-15T12:46:33.476Z",
+    "event_type": "auth.login.success",
+    "outcome": "success",
+    "target_type": "session",
+    "target_id": "01a1df3e-bdf6-7000-8bc2-3ccd4a6db883"
+  },
+  {
+    "occurred_at": "2026-11-15T12:46:38.483Z",
+    "event_type": "approval.routing.enabled",
+    "outcome": "success",
+    "target_type": "organization",
+    "target_id": "00000000-0000-4000-9000-000000000001"
+  },
+  {
+    "occurred_at": "2026-11-15T12:46:42.633Z",
+    "event_type": "role.binding.created",
+    "outcome": "success",
+    "target_type": "role_binding",
+    "target_id": "01a1df3e-e19f-7000-abf4-ff25a60b6b06"
+  },
+  {
+    "occurred_at": "2026-11-15T12:46:48.266Z",
+    "event_type": "approval.rule.created",
+    "outcome": "success",
+    "target_type": "approval_rule",
+    "target_id": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3"
+  },
+  {
+    "occurred_at": "2026-11-15T12:46:56.460Z",
+    "event_type": "catalog.saved",
+    "outcome": "success",
+    "target_type": "catalog_item",
+    "target_id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:01.409Z",
+    "event_type": "catalog.saved",
+    "outcome": "success",
+    "target_type": "catalog_item",
+    "target_id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:01.567Z",
+    "event_type": "catalog.published",
+    "outcome": "success",
+    "target_type": "catalog_item",
+    "target_id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:01.567Z",
+    "event_type": "catalog.high_risk_changed",
+    "outcome": "success",
+    "target_type": "catalog_item",
+    "target_id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:08.364Z",
+    "event_type": "auth.login.success",
+    "outcome": "success",
+    "target_type": "session",
+    "target_id": "01a1df3f-463d-7000-8636-4faab93c8e48"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:09.519Z",
+    "event_type": "auth.login.success",
+    "outcome": "success",
+    "target_type": "session",
+    "target_id": "01a1df3f-4ac1-7000-a2f9-60b3fbc5e910"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:11.795Z",
+    "event_type": "approval.delegated",
+    "outcome": "success",
+    "target_type": "approval_delegation",
+    "target_id": "01a1df3f-538c-7000-9501-9a8688382f2c"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:15.329Z",
+    "event_type": "auth.login.success",
+    "outcome": "success",
+    "target_type": "session",
+    "target_id": "01a1df3f-6172-7000-8586-fab1dc72bc77"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:16.494Z",
+    "event_type": "auth.login.success",
+    "outcome": "success",
+    "target_type": "session",
+    "target_id": "01a1df3f-6601-7000-9350-5e52495a0a13"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:17.102Z",
+    "event_type": "notification.sent",
+    "outcome": "success",
+    "target_type": "notification",
+    "target_id": "01a1df3f-6851-7000-b750-d8f7fed5ea75"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:17.102Z",
+    "event_type": "notification.sent",
+    "outcome": "success",
+    "target_type": "notification",
+    "target_id": "01a1df3f-684c-7000-9cd9-f09ff0cffb13"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:20.187Z",
+    "event_type": "approval.requested",
+    "outcome": "success",
+    "target_type": "service_request",
+    "target_id": "01a1df3f-7457-7001-ba08-c4029eafc1cc"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:20.187Z",
+    "event_type": "request.submitted",
+    "outcome": "success",
+    "target_type": "service_request",
+    "target_id": "01a1df3f-7457-7001-ba08-c4029eafc1cc"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:20.187Z",
+    "event_type": "approval.route.resolved",
+    "outcome": "success",
+    "target_type": "service_request",
+    "target_id": "01a1df3f-7457-7001-ba08-c4029eafc1cc"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:20.187Z",
+    "event_type": "ticket.created",
+    "outcome": "success",
+    "target_type": "ticket",
+    "target_id": "01a1df3f-7454-7000-abe2-2039aaf2eedd"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:22.030Z",
+    "event_type": "approval.delegation_revoked",
+    "outcome": "success",
+    "target_type": "approval_delegation",
+    "target_id": "01a1df3f-538c-7000-9501-9a8688382f2c"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:22.922Z",
+    "event_type": "catalog.unpublished",
+    "outcome": "success",
+    "target_type": "catalog_item",
+    "target_id": "01a1df3f-17a6-7000-96f8-f6f77e59f8cb"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:23.981Z",
+    "event_type": "approval.rule.deactivated",
+    "outcome": "success",
+    "target_type": "approval_rule",
+    "target_id": "01a1df3e-f7a0-7000-923e-ca38f8fa34d3"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:25.097Z",
+    "event_type": "approval.routing.disabled",
+    "outcome": "success",
+    "target_type": "organization",
+    "target_id": "00000000-0000-4000-9000-000000000001"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:26.098Z",
+    "event_type": "role.binding.deleted",
+    "outcome": "success",
+    "target_type": "role_binding",
+    "target_id": "01a1df3e-e19f-7000-abf4-ff25a60b6b06"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:27.112Z",
+    "event_type": "notification.sent",
+    "outcome": "success",
+    "target_type": "notification",
+    "target_id": "01a1df3f-8f61-7000-be98-c21f37ab9b84"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:27.121Z",
+    "event_type": "notification.sent",
+    "outcome": "success",
+    "target_type": "notification",
+    "target_id": "01a1df3f-8f69-7000-aadb-b177b1ebfc52"
+  },
+  {
+    "occurred_at": "2026-11-15T12:47:27.121Z",
+    "event_type": "notification.sent",
+    "outcome": "success",
+    "target_type": "notification",
+    "target_id": "01a1df3f-8f67-7000-8b72-402cb904ca9d"
+  }
+]
+audit payloads containing the seed password: [
+  {
+    "n": 0
+  }
+]
+audit payloads containing the request title/UI021: [
+  {
+    "event_type": "approval.delegation_revoked",
+    "n": 1
+  },
+  {
+    "event_type": "role.binding.created",
+    "n": 1
+  },
+  {
+    "event_type": "role.binding.deleted",
+    "n": 1
+  }
+]
+
+== 件数 ==
+{
+  "app_user": 15,
+  "role_binding": 30,
+  "org_member_profile": 15,
+  "org_approval_setting": 1,
+  "approval_rule": 16,
+  "approval_rule_revision": 22,
+  "local_catalog_item": 28,
+  "local_catalog_revision": 56,
+  "local_service_request": 20,
+  "local_request_revision": 25,
+  "local_request_approval": 32,
+  "local_request_route_generation": 2,
+  "approval_delegation": 3,
+  "local_request_approval_notice": 10,
+  "outbox_event": 469,
+  "notification": 115,
+  "department": 22,
+  "audit_event": 2212
+}
+schema_migration: {
+  "n": 42,
+  "max": "0042"
+}

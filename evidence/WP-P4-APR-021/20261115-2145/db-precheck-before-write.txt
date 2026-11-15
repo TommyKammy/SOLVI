@@ -1,0 +1,51 @@
+database: solvi
+at: 2026-11-15T12:45:12.395Z
+
+== 1. 組織でのルールの使用 ==
+[{"organization_id":"acme","rule_routing_enabled":false,"updated_at":"2026-11-15T11:28:09.409Z"}]
+
+== 2. 公開中のカタログ項目で承認ルールを使っているもの ==
+[]
+
+== 3. agent@acme.example.test ==
+user: {"id":"00000000-0000-4000-9000-000000000102","primary_email":"agent@acme.example.test","display_name":"サンプル株式会社 agent","status":"active"}
+active roles: [{"code":"agent","organization_id":"00000000-0000-4000-9000-000000000001","valid_from":"2026-11-10T02:56:26.853Z","valid_until":null},{"code":"requester","organization_id":"00000000-0000-4000-9000-000000000002","valid_from":"2026-11-10T02:56:26.853Z","valid_until":"2027-02-08T02:56:26.853Z"}]
+approver role rows (any time): [{"organization_id":"00000000-0000-4000-9000-000000000001","valid_from":"2026-11-15T01:50:56.134Z","valid_until":"2026-11-15T01:51:07.335Z"},{"organization_id":"00000000-0000-4000-9000-000000000001","valid_from":"2026-11-15T02:40:54.508Z","valid_until":"2026-11-15T02:41:39.638Z"},{"organization_id":"00000000-0000-4000-9000-000000000001","valid_from":"2026-11-15T11:27:43.923Z","valid_until":"2026-11-15T11:28:10.388Z"}]
+profile rows: [{"organization_id":"00000000-0000-4000-9000-000000000001","manager_user_id":null},{"organization_id":"00000000-0000-4000-9000-000000000002","manager_user_id":null}]
+
+== 4. UI021 の残り ==
+requests: []
+rules: [{"id":"01a1def6-a8b5-7000-8119-83426a5d12cc","code":"ui021-syn-1794742049248","name":"UI021 合成 高リスク2段","active":false,"current_revision":1}]
+items: [{"id":"01a1def6-cd45-7000-9a1b-5e1edc893d62","code":"service-a89cb973-dbe0-404c-981c-4f2e47041d26","title":"UI021 合成 高リスク申請 UI021-SYN-1794742049248","active":false,"draft_revision":2,"published_revision":2}]
+active delegations (any pair): []
+delegations approver -> agent (all): [{"id":"01a1dce6-9333-7000-a447-ad75a3790e7d","starts_at":"2026-11-15T01:51:00.000Z","ends_at":"2026-11-17T01:51:00.000Z","revoked_at":"2026-11-15T01:51:06.475Z"},{"id":"01a1dd14-5c10-7000-a5ef-f6bfc4f25062","starts_at":"2026-11-15T02:41:00.000Z","ends_at":"2026-11-17T02:41:00.000Z","revoked_at":"2026-11-15T02:41:38.708Z"}]
+
+== 5. カタログ編集者の合成アカウント(acme) ==
+[]
+
+== 6. 件数 ==
+{
+  "app_user": 15,
+  "role_binding": 29,
+  "org_member_profile": 15,
+  "org_approval_setting": 1,
+  "approval_rule": 15,
+  "approval_rule_revision": 21,
+  "local_catalog_item": 27,
+  "local_catalog_revision": 54,
+  "local_service_request": 19,
+  "local_request_revision": 24,
+  "local_request_approval": 31,
+  "local_request_route_generation": 2,
+  "approval_delegation": 2,
+  "local_request_approval_notice": 9,
+  "outbox_event": 465,
+  "notification": 110,
+  "department": 22,
+  "audit_event": 2184
+}
+schema_migration: {"n":42,"max":"0042"}
+
+== 7. 片付け後の確認に使う問い合わせ ==
+routing enabled orgs: []
+active UI021 requests: []

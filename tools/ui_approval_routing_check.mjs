@@ -18,6 +18,8 @@
 //  - 合成の印: 項目の題名・申請の理由・委任の理由に `UI021`、ルールのコード `ui021-syn-`。
 //  - 片付けの順序(ADR-0026 §2): 委任の取消 → 項目の新規受付の停止 → ルールの無効化 →
 //    組織での使用の無効化 → 承認者ロールの取り外し。各手順は失敗しても次へ進む。
+//  - 段階C2: WebKit はログイン以外の送信を一切しない(guard の readOnly で拒否する)。
+//    送信の待ち合わせは URL の変化ではなく、POST の応答と API の読み取りで確かめる。
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -499,6 +501,8 @@ if (wp021Phase) {
       simulated: false,
     },
     rejections: { publish: null, ruleDeactivation: null, routingDisable: null },
+    observerWrites: [],
+    skippedObserverScreenshots: [],
     delegationVisibility: null,
     cleanup: { attempted: false, complete: false, steps: [], errors: [] },
     keyboard: null,
@@ -528,11 +532,27 @@ async function check(name, run) {
   await flush();
 }
 
-async function guard(context) {
+/**
+ * ローカル以外への通信を止める。`readOnly` の文脈(段階C の WebKit)では、
+ * ログインの送信だけを許し、それ以外の送信を止めて記録する。
+ * 段階C2 のブリーフは、WebKit からは拒否される送信も含めて送信しないことを求める。
+ */
+async function guard(context, options = {}) {
+  const allowedPosts = options.readOnly ? new Set(['/login', '/select-organization']) : null;
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    if (url.origin === base.origin || url.origin === apiBase.origin) return route.continue();
+    if (url.origin === base.origin || url.origin === apiBase.origin) {
+      if (
+        allowedPosts &&
+        !['GET', 'HEAD', 'OPTIONS'].includes(request.method()) &&
+        !allowedPosts.has(url.pathname)
+      ) {
+        report.observerWrites.push({ method: request.method(), path: url.pathname });
+        return route.abort();
+      }
+      return route.continue();
+    }
     report.blocked.push({ method: request.method(), origin: url.origin, path: url.pathname });
     return route.abort();
   });
@@ -563,11 +583,12 @@ async function actorOn(
   key,
   email = `${key}@acme.example.test`,
   orgName = 'サンプル株式会社',
+  options = {},
 ) {
   if (pageMap.has(key)) return pageMap.get(key);
   const context = await instance.newContext({ viewport: { width: 1440, height: 900 } });
   contextMap.set(key, context);
-  await guard(context);
+  await guard(context, options);
   const page = await context.newPage();
   activePage = page;
   page.setDefaultTimeout(25000);
@@ -615,23 +636,6 @@ async function go(page, path) {
 
 async function submit(page, button, predicate) {
   await Promise.all([page.waitForURL(predicate, { timeout: 30000 }), button.click()]);
-  await page.waitForLoadState('load');
-  await page.waitForLoadState('networkidle');
-}
-
-/**
- * 送信して、URLが**変わる**のを待つ。
- *
- * `waitForURL` は現在のURLが条件に一致すると即座に返る。続けて別の送信をしたときに
- * 前の画面のURLで待ってしまい、保存・公開の完了前に次の判定をすることがある
- * (WP-P4-APR-021 段階C の初回で、下書きの保存の `?saved=1` のまま公開を待った)。
- */
-async function submitChange(page, button, predicate) {
-  const before = page.url();
-  await Promise.all([
-    page.waitForURL((url) => url.href !== before && predicate(url), { timeout: 30000 }),
-    button.click(),
-  ]);
   await page.waitForLoadState('load');
   await page.waitForLoadState('networkidle');
 }
@@ -3582,7 +3586,16 @@ function observerView() {
 }
 
 async function wp021Observer(key, email = `${key}@acme.example.test`) {
-  return actorOn(observerBrowser, observerContexts, observerPages, key, email);
+  // WebKit は同じ状態を見て撮るだけ。ログイン以外の送信は guard が拒否する。
+  return actorOn(
+    observerBrowser,
+    observerContexts,
+    observerPages,
+    key,
+    email,
+    'サンプル株式会社',
+    { readOnly: true },
+  );
 }
 
 /** 両エンジンで同じURLを開き直す(書込みの後は必ず開き直す)。 */
@@ -3612,6 +3625,50 @@ async function navigate(page, locator, predicate) {
   await Promise.all([page.waitForURL(predicate, { timeout: 30000 }), locator.click()]);
   await page.waitForLoadState('load');
   await page.waitForLoadState('networkidle');
+}
+
+const wp021Pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** 送信の後に読める状態を、上限つきで待つ(短い間隔で読み取る)。 */
+async function wp021WaitFor(read, label, { attempts = 40, interval = 250 } = {}) {
+  let last;
+  for (let index = 0; index < attempts; index += 1) {
+    last = await read();
+    if (last) return last;
+    await wp021Pause(interval);
+  }
+  throw new Error(`${label} を確認できませんでした(最後の読み取り: ${JSON.stringify(last)})`);
+}
+
+/**
+ * 送信して、サーバーへの POST の応答を待ち、その後の状態を確かめる。
+ *
+ * 段階C の初回は `waitForURL` が現在の URL に一致して即座に返り、公開の完了前に
+ * 判定した。ここでは URL の変化を条件にせず、POST の応答(サーバーが処理を終えた
+ * 合図)を受けてから、`confirm` の読み取りが真になるまで待つ。
+ */
+async function wp021Submit(page, button, options = {}) {
+  const { expectPath = null, confirm = null, label = '送信' } = options;
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && response.url().startsWith(base.origin),
+    { timeout: 30000 },
+  );
+  const [response] = await Promise.all([responsePromise, button.click()]);
+  assert.ok(response.status() < 500, `${label}: サーバーの応答 ${response.status()}`);
+  await page.waitForLoadState('load').catch(() => undefined);
+  if (expectPath) await page.waitForURL(expectPath, { timeout: 30000 });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  if (confirm) await wp021WaitFor(confirm, label);
+  return response;
+}
+
+/** 送信して、拒否の表示が出るまで待つ(拒否なので状態は変わらない)。 */
+async function wp021SubmitExpectError(page, button, selector, label) {
+  await wp021Submit(page, button, { label });
+  const error = page.locator(selector).first();
+  await error.waitFor({ state: 'visible', timeout: 20000 });
+  return error.innerText();
 }
 
 /**
@@ -3699,6 +3756,18 @@ async function wp021Preflight() {
     );
     assert.equal(detail.publishedHighRisk, false, `公開中の項目 ${item.code} は高リスクではない`);
   }
+  // 1回目の実行で残した合成データは、使わない・変えない。公開中のものが無いことだけ確かめる。
+  const syntheticItems = items.filter((entry) => String(entry.title ?? '').includes('UI021'));
+  assert.equal(
+    syntheticItems.filter((entry) => entry.active === true).length,
+    0,
+    '公開中の UI021 の合成の項目が残っていない',
+  );
+  assert.equal(
+    syntheticItems.filter((entry) => String(entry.title).includes(wp021Marker)).length,
+    0,
+    '今回の印の項目はまだ無い',
+  );
   const users = (await readApi('org_admin', '/users')).items;
   const first = userByEmail(users, wp021ApproverEmail);
   const second = userByEmail(users, wp021SecondApproverEmail);
@@ -3723,6 +3792,11 @@ async function wp021Preflight() {
     0,
     '有効な UI021 の合成ルールが残っていない',
   );
+  assert.equal(
+    rules.filter((entry) => entry.code === wp021RuleCode).length,
+    0,
+    '今回の印のルールはまだ無い',
+  );
 }
 
 async function wp021EnableRouting(admin) {
@@ -3739,11 +3813,11 @@ async function wp021EnableRouting(admin) {
   );
   assert.equal(await admin.locator('#approval-routing-submit').count(), 1);
   report.applied.routingEnabled = true;
-  await submitChange(
-    admin,
-    admin.locator('#approval-routing-submit'),
-    (url) => url.searchParams.get('notice') === 'routing-enabled',
-  );
+  await wp021Submit(admin, admin.locator('#approval-routing-submit'), {
+    expectPath: (url) => url.searchParams.get('notice') === 'routing-enabled',
+    confirm: async () => (await readApi('org_admin', '/approval-routing')).setting?.enabled === true,
+    label: '組織でのルールの使用の有効化',
+  });
   report.writes.routingEnabled += 1;
   const routing = await readApi('org_admin', '/approval-routing');
   assert.equal(routing.setting?.enabled, true, '組織での使用が有効になった');
@@ -3764,11 +3838,13 @@ async function wp021GrantSecondApprover(admin) {
   await form.getByLabel('与える役割', { exact: true }).selectOption('approver');
   await form.getByLabel('付与の理由', { exact: true }).fill(wp021RoleReason);
   report.applied.roleGranted = true;
-  await submitChange(
-    admin,
-    form.getByRole('button', { name: '役割を与える', exact: true }),
-    (url) => url.searchParams.get('notice') === 'granted',
-  );
+  await wp021Submit(admin, form.getByRole('button', { name: '役割を与える', exact: true }), {
+    expectPath: (url) => url.searchParams.get('notice') === 'granted',
+    confirm: async () =>
+      userByEmail((await readApi('org_admin', '/users')).items, wp021SecondApproverEmail)
+        .roleCodes.includes('approver'),
+    label: '承認者の役割の付与',
+  });
   report.writes.roleGrants += 1;
   const after = (await readApi('org_admin', '/users')).items;
   assert.ok(
@@ -3806,11 +3882,17 @@ async function wp021CreateRule(admin) {
     .locator('#approval-create-step-approver-1')
     .selectOption(report.ids.secondApproverUser);
   report.applied.ruleCreated = true;
-  await submitChange(
-    admin,
-    admin.getByRole('button', { name: '承認ルールを作成する', exact: true }),
-    (url) => url.searchParams.get('notice') === 'created',
-  );
+  await wp021Submit(admin, admin.getByRole('button', { name: '承認ルールを作成する', exact: true }), {
+    expectPath: (url) => url.searchParams.get('notice') === 'created',
+    confirm: async () => {
+      const id = new URL(admin.url()).searchParams.get('rule');
+      if (!id) return false;
+      return (await readApi('org_admin', '/approval-rules')).items.some(
+        (entry) => entry.id === id && entry.active === true,
+      );
+    },
+    label: '承認ルールの作成',
+  });
   report.writes.rulesCreated += 1;
   report.ids.rule = new URL(admin.url()).searchParams.get('rule');
   assert.ok(report.ids.rule, '作成した承認ルールのIDが要る');
@@ -3828,30 +3910,37 @@ async function wp021CreateRule(admin) {
 /**
  * 項目の詳細では、下書きの編集の欄が閉じている(公開の高リスクの拒否のときだけ開く)。
  * 高リスクの指定を撮るときは、利用者が開くのと同じ操作で開いてから撮る。
+ * この処理は段階C2 の下見で、セレクタが1つだけ一致し、実際に開くことを確かめる。
  */
 async function wp021OpenCatalogEditor(page) {
-  const summary = page
-    .locator('summary')
-    .filter({ hasText: '下書きの項目と承認者を編集する' })
-    .first();
-  if ((await summary.count()) === 0) return;
-  const open = await page.evaluate(() => {
-    const details = [...document.querySelectorAll('details')].find((element) =>
-      element.querySelector('summary')?.textContent?.includes('下書きの項目と承認者を編集する'),
-    );
-    return details?.open === true;
-  });
-  if (!open) await summary.click();
+  const summary = page.locator('summary').filter({ hasText: '下書きの項目と承認者を編集する' });
+  assert.equal(await summary.count(), 1, '編集の欄は1つ');
+  const isOpen = () =>
+    page.evaluate(() => {
+      const details = [...document.querySelectorAll('details')].find((element) =>
+        element.querySelector('summary')?.textContent?.includes('下書きの項目と承認者を編集する'),
+      );
+      return details?.open === true;
+    });
+  if (!(await isOpen())) await summary.first().click();
+  assert.equal(await isOpen(), true, '編集の欄を開けた');
 }
 
-/** 公開を試し、拒否の表示が出るまで待つ(成功したらそのまま公開される)。 */
-async function wp021AttemptPublish(page) {
+/** 公開のボタン(下書きの版の番号を含む名前)。 */
+async function wp021PublishButton(page) {
   const button = page.getByRole('button', { name: /保存済みの下書き版\d+を公開する/ });
   assert.equal(await button.count(), 1, '公開のボタンは1つ');
-  await button.click();
-  const summary = page.locator('.error-summary[role="alert"]').first();
-  await summary.waitFor({ state: 'visible', timeout: 20000 });
-  return summary.innerText();
+  return button;
+}
+
+/** 公開を試し、拒否の表示が出るまで待つ(拒否なので何も公開されない)。 */
+async function wp021AttemptRejectedPublish(page) {
+  return wp021SubmitExpectError(
+    page,
+    await wp021PublishButton(page),
+    '.error-summary[role="alert"]',
+    '公開の拒否',
+  );
 }
 
 async function wp021CreateCatalog(admin) {
@@ -3885,15 +3974,26 @@ async function wp021CreateCatalog(admin) {
   await admin.locator('#catalog-approver').selectOption(report.ids.approverUser);
   assert.equal(await admin.locator('#catalog-approval-rule').inputValue(), '', 'ルールを選ばない');
   await admin.locator('#catalog-high-risk').check();
-  await submitChange(
+  report.applied.catalogDraftSaved = true;
+  await wp021Submit(
     admin,
     admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
-    (url) =>
-      url.pathname.startsWith('/catalog/manage/') && url.searchParams.get('saved') === '1',
+    {
+      expectPath: (url) =>
+        url.pathname.startsWith('/catalog/manage/') &&
+        !url.pathname.endsWith('/new') &&
+        url.searchParams.get('saved') === '1',
+      confirm: async () => {
+        const id = new URL(admin.url()).pathname.split('/').at(-1);
+        if (!id || id === 'new') return false;
+        const detail = await readApi('org_admin', `/catalog-admin/${id}`);
+        return detail.draft?.revision === 1 && detail.highRisk === true;
+      },
+      label: '下書きの保存(1回目)',
+    },
   );
   report.ids.catalogItem = new URL(admin.url()).pathname.split('/').at(-1);
   assert.ok(report.ids.catalogItem, '作成したカタログ項目のIDが要る');
-  report.applied.catalogDraftSaved = true;
   report.writes.catalogCreated += 1;
   report.writes.catalogDraftSaves += 1;
   await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
@@ -3903,8 +4003,9 @@ async function wp021CreateCatalog(admin) {
   await wp021CaptureBoth(admin, observerPage, 'wp021-catalog-draft-high-risk', '#catalog-high-risk');
 
   // 公開を試す。ルールが無いため拒否される(何も公開されない)。
+  // 送信は Chromium だけで行い、WebKit は送信しない(C2 のブリーフ §3)。
   writerView();
-  const writerRejection = await wp021AttemptPublish(admin);
+  const writerRejection = await wp021AttemptRejectedPublish(admin);
   assert.match(
     writerRejection,
     /高リスクの項目には承認ルールを設定してください/,
@@ -3919,33 +4020,44 @@ async function wp021CreateCatalog(admin) {
   const stillDraft = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
   assert.equal(stillDraft.active, false, '拒否された公開で何も公開されない');
   assert.equal(stillDraft.publishedRevision, null, '拒否された公開で公開中の版が生まれない');
-  // 同じ拒否の表示を WebKit でも撮る(拒否なので何も変わらない)。
-  await go(observerPage, `/catalog/manage/${report.ids.catalogItem}`);
-  observerView();
-  const observerRejection = await wp021AttemptPublish(observerPage);
-  assert.match(observerRejection, /高リスクの項目には承認ルールを設定してください/);
-  assert.equal(
-    (await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`)).active,
-    false,
-    '2回目の拒否でも何も公開されない',
-  );
-  await wp021CaptureBoth(admin, observerPage, 'wp021-publish-rejected', '.error-summary');
+  // 公開の失敗の表示は送信の結果(useActionState の戻り値)で、URL を持たない。
+  // WebKit は送信しないため、この1枚は WebKit では撮らない(報告に記す)。
+  writerView();
+  await desktop(admin, 'wp021-publish-rejected', '.error-summary');
+  report.skippedObserverScreenshots.push({
+    name: 'wp021-publish-rejected',
+    reason: '公開の失敗の表示は送信の戻り値で、同じ表示を開けるURLが無いため',
+  });
 
   // 2回目の下書き: 作った承認ルールを選んで保存し、公開する。
+  const beforeSecondDraft = await readApi(
+    'org_admin',
+    `/catalog-admin/${report.ids.catalogItem}`,
+  );
   await admin.locator('#catalog-approval-rule').selectOption(report.ids.rule);
-  await submitChange(
+  await wp021Submit(
     admin,
     admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
-    (url) => url.searchParams.get('saved') === '1',
+    {
+      expectPath: (url) => url.searchParams.get('saved') === '1',
+      confirm: async () =>
+        (
+          await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`)
+        ).draft.revision > beforeSecondDraft.draft.revision,
+      label: '下書きの保存(2回目)',
+    },
   );
   report.writes.catalogDraftSaves += 1;
-  await submitChange(
-    admin,
-    admin.getByRole('button', { name: /保存済みの下書き版\d+を公開する/ }),
-    (url) => url.searchParams.get('saved') === '1',
-  );
-  report.writes.catalogPublished += 1;
   report.applied.catalogPublished = true;
+  await wp021Submit(admin, await wp021PublishButton(admin), {
+    // 公開の後は同じ URL(?saved=1)へ戻り得るため、URL の変化では待たない。
+    confirm: async () => {
+      const detail = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+      return detail.active === true && detail.publishedRevision === detail.draft.revision;
+    },
+    label: '公開',
+  });
+  report.writes.catalogPublished += 1;
   const published = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
   assert.equal(published.active, true, '公開された');
   assert.equal(published.highRisk, true, '下書きが高リスク');
@@ -3975,11 +4087,17 @@ async function wp021CreateDelegation() {
     .fill(jstInputValue(2 * 24 * 60 * 60 * 1000));
   await approver.getByLabel(/この人が自分宛ての承認を判断できることを確認しました/).check();
   report.applied.delegationCreated = true;
-  await submitChange(
-    approver,
-    approver.getByRole('button', { name: '委任を作成する', exact: true }),
-    (url) => url.searchParams.get('created') !== null,
-  );
+  await wp021Submit(approver, approver.getByRole('button', { name: '委任を作成する', exact: true }), {
+    expectPath: (url) => url.searchParams.get('created') !== null,
+    confirm: async () => {
+      const id = new URL(approver.url()).searchParams.get('created');
+      if (!id) return false;
+      return (await readApi('approver', '/approval-delegations')).items.some(
+        (entry) => entry.id === id && entry.state === 'active',
+      );
+    },
+    label: '委任の作成',
+  });
   report.writes.delegationsCreated += 1;
   report.ids.delegation = new URL(approver.url()).searchParams.get('created');
   assert.ok(report.ids.delegation, '作成した委任のIDが要る');
@@ -4004,11 +4122,16 @@ async function wp021CreateRequest() {
   await wp021CaptureBoth(requester, observerPage, 'wp021-request-form', note);
   await requester.locator('#request-reason').fill(wp021RequestReason);
   report.applied.requestCreated = true;
-  await submitChange(
-    requester,
-    requester.getByRole('button', { name: '申請する（模擬）', exact: true }),
-    (url) => url.pathname.startsWith('/requests/'),
-  );
+  await wp021Submit(requester, requester.getByRole('button', { name: '申請する（模擬）', exact: true }), {
+    expectPath: (url) => url.pathname.startsWith('/requests/'),
+    confirm: async () => {
+      const id = new URL(requester.url()).pathname.split('/').at(-1);
+      if (!id || !id.includes('-')) return false;
+      const detail = await readApi('org_admin', `/service-requests/${id}`);
+      return detail.request?.state === 'pending' && detail.highRisk === true;
+    },
+    label: '申請',
+  });
   report.writes.requestsCreated += 1;
   report.ids.request = new URL(requester.url()).pathname.split('/').at(-1);
   assert.ok(report.ids.request, '作成した申請のIDが要る');
@@ -4019,7 +4142,19 @@ async function wp021CreateRequest() {
   const detail = await readApi('org_admin', `/service-requests/${report.ids.request}`);
   assert.equal(detail.highRisk, true, '申請のsnapshotが高リスク');
   assert.equal(detail.request.state, 'pending');
-  assert.equal(detail.effectiveSteps.length, 2, '2段の経路');
+  // 経路そのものは2段(申請画面の「承認の経路」と同じ)。
+  assert.equal(detail.route?.steps?.length, 2, '2段の経路');
+  assert.deepEqual(
+    detail.route.steps.map((step) => step.stepNo),
+    [1, 2],
+    '1段目と2段目の経路',
+  );
+  // 承認の行は、決定のときに次の段が作られる(approval-state.ts の createNextStep)。
+  // 作成の時点では1段目の pending だけが存在する。
+  assert.equal(detail.effectiveSteps.length, 1, '作成の時点では1段目のステップだけがある');
+  assert.equal(detail.effectiveSteps[0].stepNo, 1);
+  assert.equal(detail.effectiveSteps[0].state, 'pending');
+  assert.equal(detail.effectiveSteps[0].approverId, report.ids.approverUser);
 }
 
 async function wp021DelegateHidden() {
@@ -4099,11 +4234,11 @@ async function wp021RevokeDelegation() {
   await form.getByLabel('取消の理由', { exact: true }).fill(wp021DelegationReason);
   await form.getByLabel(/この委任を取り消し/).check();
   report.applied.delegationRevoked = true;
-  await submitChange(
-    approver,
-    form.getByRole('button', { name: '取り消す', exact: true }),
-    (url) => url.searchParams.get('revoked') === report.ids.delegation,
-  );
+  await wp021Submit(approver, form.getByRole('button', { name: '取り消す', exact: true }), {
+    expectPath: (url) => url.searchParams.get('revoked') === report.ids.delegation,
+    confirm: async () => (await wp021ActiveDelegations()).length === 0,
+    label: '委任の取消',
+  });
   report.writes.delegationsRevoked += 1;
   assert.equal((await wp021ActiveDelegations()).length, 0, '委任が取り消された');
   await wp021CaptureBothAt(
@@ -4121,13 +4256,16 @@ async function wp021ApproveFirst() {
   const note = approver.locator('#request-detail-high-risk-note');
   assert.equal(await note.count(), 1, '詳細に高リスクの注記が1つ');
   await wp021CaptureBoth(approver, observerPage, 'wp021-request-detail-high-risk', note);
-  await submitChange(
-    approver,
-    approver.getByRole('button', { name: '承認する', exact: true }),
-    (url) => url.searchParams.get('saved') === '1',
-  );
+  await wp021Submit(approver, approver.getByRole('button', { name: '承認する', exact: true }), {
+    expectPath: (url) => url.searchParams.get('saved') === '1',
+    confirm: async () =>
+      (await readApi('org_admin', `/service-requests/${report.ids.request}`)).effectiveSteps[0]
+        .state === 'approved',
+    label: '1人目の承認',
+  });
   report.writes.approvals += 1;
   const detail = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(detail.effectiveSteps.length, 2, '1段目の承認で2段目のステップが作られる');
   assert.equal(detail.effectiveSteps[0].state, 'approved');
   assert.equal(detail.effectiveSteps[0].decidedBy, report.ids.approverUser);
   assert.equal(detail.effectiveSteps[0].delegationId ?? null, null);
@@ -4145,11 +4283,14 @@ async function wp021ApproveSecond() {
   const observerPage = await wp021Observer('agent');
   await go(second, `/requests/${report.ids.request}`);
   await go(observerPage, `/requests/${report.ids.request}`);
-  await submitChange(
-    second,
-    second.getByRole('button', { name: '承認する', exact: true }),
-    (url) => url.searchParams.get('saved') === '1',
-  );
+  await wp021Submit(second, second.getByRole('button', { name: '承認する', exact: true }), {
+    expectPath: (url) => url.searchParams.get('saved') === '1',
+    confirm: async () => {
+      const detail = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+      return detail.effectiveSteps[1]?.state === 'approved' && detail.request.state === 'approved';
+    },
+    label: '2人目の承認',
+  });
   report.writes.approvals += 1;
   const approved = await readApi('org_admin', `/service-requests/${report.ids.request}`);
   assert.equal(approved.effectiveSteps[0].state, 'approved');
@@ -4163,10 +4304,16 @@ async function wp021ApproveSecond() {
     `/requests/${report.ids.request}`,
     'wp021-request-approved',
   );
-  await submitChange(
+  await wp021Submit(
     second,
     second.getByRole('button', { name: 'ローカルで模擬実行する', exact: true }),
-    (url) => url.searchParams.get('saved') === '1',
+    {
+      // 完了の後も同じ URL(?saved=1)へ戻り得るため、URL の変化では待たない。
+      confirm: async () =>
+        (await readApi('org_admin', `/service-requests/${report.ids.request}`)).request.state ===
+        'completed',
+      label: '模擬実行',
+    },
   );
   report.writes.simulations += 1;
   const completed = await readApi('org_admin', `/service-requests/${report.ids.request}`);
@@ -4179,21 +4326,19 @@ async function wp021ApproveSecond() {
   );
 }
 
-/** ルールの無効化を試し、拒否の表示の文を返す(何も変えない)。 */
+/** ルールの無効化を試し、拒否の表示の文を返す(何も変えない)。送信は Chromium だけ。 */
 async function wp021AttemptRuleDeactivation(page, ruleId) {
   await go(page, `/ops/approvals?rule=${ruleId}`);
   const link = page.locator('#approval-deactivate-link');
   assert.equal(await link.count(), 1, '無効化の確認へ進むリンクは1つ');
   await navigate(page, link, (url) => url.searchParams.get('confirm') === 'deactivate');
   assert.equal(await page.locator('#approval-deactivate-submit').count(), 1);
-  await submitChange(
+  return wp021SubmitExpectError(
     page,
     page.locator('#approval-deactivate-submit'),
-    (url) => url.searchParams.get('error') !== null,
+    '#approval-error',
+    'ルールの無効化の拒否',
   );
-  const error = page.locator('#approval-error');
-  await error.waitFor();
-  return error.innerText();
 }
 
 async function wp021RuleDeactivationBlocked(admin) {
@@ -4207,18 +4352,17 @@ async function wp021RuleDeactivationBlocked(admin) {
   );
   assert.ok(writerText.includes(`${item.code}: ${item.title}`), '影響する項目が示される');
   assert.ok(!writerText.includes('high_risk_definition_blocked'), '理由コードを出さない');
-  observerView();
-  const observerText = await wp021AttemptRuleDeactivation(observerPage, report.ids.rule);
-  assert.match(
-    observerText,
-    /公開中の高リスクの項目が条件を満たさなくなるため、変更できません。/,
-  );
   report.rejections.ruleDeactivation = writerText;
   report.writes.ruleDeactivationRejections += 1;
   const rule = await wp021FindRule();
   assert.equal(rule?.active, true, '拒否された無効化でルールは有効のまま');
   const still = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
   assert.equal(still.active, true, '拒否された無効化で項目は公開中のまま');
+  // 拒否の表示は `?error=` の URL で開ける。WebKit は同じ URL を開くだけで、送信しない。
+  observerView();
+  await go(observerPage, admin.url());
+  const observerText = await observerPage.locator('#approval-error').innerText();
+  assert.equal(observerText, writerText, 'WebKit でも同じ拒否の表示');
   await wp021CaptureBoth(
     admin,
     observerPage,
@@ -4227,20 +4371,18 @@ async function wp021RuleDeactivationBlocked(admin) {
   );
 }
 
-/** 組織での使用の停止を試し、拒否の表示の文を返す(何も変えない)。 */
+/** 組織での使用の停止を試し、拒否の表示の文を返す(何も変えない)。送信は Chromium だけ。 */
 async function wp021AttemptRoutingDisable(page) {
   await go(page, '/ops/approvals');
   const toggle = page.locator('#approval-routing-toggle');
   assert.equal(await toggle.count(), 1);
   await navigate(page, toggle, (url) => url.searchParams.get('confirm') === 'disable-routing');
-  await submitChange(
+  return wp021SubmitExpectError(
     page,
     page.locator('#approval-routing-submit'),
-    (url) => url.searchParams.get('error') !== null,
+    '#approval-error',
+    '組織での使用の停止の拒否',
   );
-  const error = page.locator('#approval-error');
-  await error.waitFor();
-  return error.innerText();
 }
 
 async function wp021RoutingDisableBlocked(admin) {
@@ -4251,16 +4393,15 @@ async function wp021RoutingDisableBlocked(admin) {
     writerText,
     /公開中の高リスクの項目が条件を満たさなくなるため、変更できません。/,
   );
-  observerView();
-  const observerText = await wp021AttemptRoutingDisable(observerPage);
-  assert.match(
-    observerText,
-    /公開中の高リスクの項目が条件を満たさなくなるため、変更できません。/,
-  );
   report.rejections.routingDisable = writerText;
   report.writes.routingDisableRejections += 1;
   const routing = await readApi('org_admin', '/approval-routing');
   assert.equal(routing.setting?.enabled, true, '拒否された停止で有効のまま');
+  // 拒否の表示は `?error=` の URL で開ける。WebKit は同じ URL を開くだけで、送信しない。
+  observerView();
+  await go(observerPage, admin.url());
+  const observerText = await observerPage.locator('#approval-error').innerText();
+  assert.equal(observerText, writerText, 'WebKit でも同じ拒否の表示');
   await wp021CaptureBoth(
     admin,
     observerPage,
@@ -4303,11 +4444,11 @@ async function wp021Cleanup(admin) {
       .getByLabel('取消の理由', { exact: true })
       .fill(`${wp021DelegationReason}: 確認後の片付け`);
     await form.getByLabel(/この委任を取り消し/).check();
-    await submitChange(
-      approver,
-      form.getByRole('button', { name: '取り消す', exact: true }),
-      (url) => url.searchParams.get('revoked') !== null,
-    );
+    await wp021Submit(approver, form.getByRole('button', { name: '取り消す', exact: true }), {
+      expectPath: (url) => url.searchParams.get('revoked') !== null,
+      confirm: async () => (await wp021ActiveDelegations()).length === 0,
+      label: '片付け: 委任の取消',
+    });
     report.writes.delegationsRevoked += 1;
     report.applied.delegationRevoked = true;
     assert.equal((await wp021ActiveDelegations()).length, 0, '有効な委任が0件');
@@ -4322,7 +4463,10 @@ async function wp021Cleanup(admin) {
     await go(admin, `/catalog/manage/${itemId}`);
     const unpublish = admin.getByRole('button', { name: /新規受付を停止する/ });
     assert.equal(await unpublish.count(), 1);
-    await submitChange(admin, unpublish, (url) => url.searchParams.get('saved') === '1');
+    await wp021Submit(admin, unpublish, {
+      confirm: async () => (await readApi('org_admin', `/catalog-admin/${itemId}`)).active === false,
+      label: '片付け: 項目の新規受付の停止',
+    });
     report.writes.catalogUnpublished += 1;
     report.applied.catalogUnpublished = true;
     const after = await readApi('org_admin', `/catalog-admin/${itemId}`);
@@ -4341,11 +4485,11 @@ async function wp021Cleanup(admin) {
     const link = admin.locator('#approval-deactivate-link');
     assert.equal(await link.count(), 1);
     await navigate(admin, link, (url) => url.searchParams.get('confirm') === 'deactivate');
-    await submitChange(
-      admin,
-      admin.locator('#approval-deactivate-submit'),
-      (url) => url.searchParams.get('notice') === 'deactivated',
-    );
+    await wp021Submit(admin, admin.locator('#approval-deactivate-submit'), {
+      expectPath: (url) => url.searchParams.get('notice') === 'deactivated',
+      confirm: async () => (await wp021FindRule())?.active === false,
+      label: '片付け: ルールの無効化',
+    });
     report.writes.ruleDeactivations += 1;
     report.applied.ruleDeactivated = true;
     const after = await wp021FindRule();
@@ -4361,11 +4505,11 @@ async function wp021Cleanup(admin) {
     assert.equal(await toggle.count(), 1);
     await navigate(admin, toggle, (url) => url.searchParams.get('confirm') === 'disable-routing');
     report.applied.routingDisabled = true;
-    await submitChange(
-      admin,
-      admin.locator('#approval-routing-submit'),
-      (url) => url.searchParams.get('notice') === 'routing-disabled',
-    );
+    await wp021Submit(admin, admin.locator('#approval-routing-submit'), {
+      expectPath: (url) => url.searchParams.get('notice') === 'routing-disabled',
+      confirm: async () => (await readApi('org_admin', '/approval-routing')).setting?.enabled === false,
+      label: '片付け: 組織での使用の無効化',
+    });
     report.writes.routingDisabled += 1;
     const after = await readApi('org_admin', '/approval-routing');
     assert.equal(after.setting?.enabled, false, '組織での使用が無効');
@@ -4390,11 +4534,13 @@ async function wp021Cleanup(admin) {
     await form
       .getByLabel('取り消しの理由', { exact: true })
       .fill(`${wp021RoleReason}: 確認後に元へ戻す`);
-    await submitChange(
-      admin,
-      form.getByRole('button', { name: '役割を取り消す', exact: true }),
-      (url) => url.searchParams.get('notice') === 'revoked',
-    );
+    await wp021Submit(admin, form.getByRole('button', { name: '役割を取り消す', exact: true }), {
+      expectPath: (url) => url.searchParams.get('notice') === 'revoked',
+      confirm: async () =>
+        !userByEmail((await readApi('org_admin', '/users')).items, wp021SecondApproverEmail)
+          .roleCodes.includes('approver'),
+      label: '片付け: 承認者の役割の取り外し',
+    });
     report.writes.roleRevokes += 1;
     report.applied.roleRestored = true;
     const after = (await readApi('org_admin', '/users')).items;
@@ -4513,6 +4659,8 @@ async function main() {
     }
     await wp021Run(admin);
     assert.deepEqual(report.blocked, []);
+    // WebKit からは拒否される送信も含めて送信しない(C2 のブリーフ §3)。
+    assert.deepEqual(report.observerWrites, [], 'WebKit からの送信は0件');
     await wp021Cleanup(admin);
     report.success = report.cleanup.complete;
     report.currentStep = report.success ? 'complete-wp021' : 'wp021-cleanup-incomplete';

@@ -1,0 +1,5 @@
+Approval UI chromium+webkit: FAIL; 6 checks; 42 axe scans; {"routingEnabled":1,"routingDisabled":1,"routingDisableRejections":0,"roleGrants":1,"roleRevokes":1,"rulesCreated":1,"catalogCreated":1,"catalogDraftSaves":2,"catalogPublishRejections":1,"catalogPublished":1,"catalogUnpublished":1,"ruleDeactivationRejections":0,"ruleDeactivations":1,"requestsCreated":1,"delegationsCreated":1,"delegationsRevoked":1,"approvals":0,"simulations":0}
+2段の経路
+
+1 !== 2
+
