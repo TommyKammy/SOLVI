@@ -4,8 +4,8 @@ doc_id: "WP-P4-APR-021"
 title: "高リスク申請の二重承認とSoD(カタログ定義の属性による判定)"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "draft"
-version: "0.2.0"
+status: "baseline"
+version: "1.0.0"
 created: "2026-11-14"
 updated: "2026-11-15"
 owner: "SOLVI Product Team"
@@ -22,7 +22,7 @@ depends_on: ["WP-P4-APR-018", "WP-P4-APR-020"]
 
 # WP-P4-APR-021: 高リスク申請の二重承認とSoD(カタログ定義の属性による判定)
 
-> [!warning] baseline の候補(`status: draft`、2026-11-15)。[[ADR-0026_High_Risk_Approval_Constraints]] の `accepted` とあわせて、利用者(人間)の承認で `baseline` にする。それまで実装の根拠にしない。
+> [!note] 2026-11-15 に、[[ADR-0026_High_Risk_Approval_Constraints]] の `accepted` とあわせて、利用者(人間)の承認で `baseline` とした。
 
 | 項目 | 値 |
 |---|---|
@@ -45,7 +45,7 @@ FR-CAT-010(高リスク二重承認とSoD)を実装する。高リスクかど�
 ## 3. Dependencies
 
 - [[WP-P4-APR-018]](done)、[[WP-P4-APR-020]](done。独立性を決定者 `decided_by` で数える)。
-- [[ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion]](accepted)、[[ADR-0026_High_Risk_Approval_Constraints]](`accepted` が前提)。
+- [[ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion]](accepted)、[[ADR-0026_High_Risk_Approval_Constraints]](accepted)。
 
 ## 4. Scope / Allowed Paths
 

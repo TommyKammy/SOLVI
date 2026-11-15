@@ -4,8 +4,8 @@ doc_id: "ADR-0026"
 title: "高リスク申請の補足決定(代理の不可、条件を崩す変更の拒否、属性の変更の扱い)"
 category: "07_ADR"
 type: "adr"
-status: "proposed"
-version: "0.1.0"
+status: "accepted"
+version: "1.0.0"
 created: "2026-11-15"
 updated: "2026-11-15"
 owner: "SOLVI Product Team"
@@ -18,7 +18,7 @@ implementation_status: "not-started"
 
 ## Status
 
-`proposed`(2026-11-15 起票)。利用者(人間)の承認で `accepted` にする。
+`accepted`(2026-11-15 起票、同日に利用者(人間)が承認)。
 
 [[ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion]] §4・§5 と [[ADR-0025_Approval_Delegation]] を補う。両ADRの決定は書き換えない。ADR-0025 の Security Impact が [[WP-P4-APR-021]] に委ねた「高リスクの段で代理を認めるかどうか」(`要確認`)を、本ADRで決める。
 
