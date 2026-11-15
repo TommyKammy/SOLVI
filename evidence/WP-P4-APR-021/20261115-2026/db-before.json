@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-11-15T11:27:03.604Z",
+  "counts": {
+    "app_user": 15,
+    "role_binding": 28,
+    "org_member_profile": 15,
+    "org_approval_setting": 1,
+    "approval_rule": 14,
+    "approval_rule_revision": 20,
+    "local_catalog_item": 26,
+    "local_catalog_revision": 52,
+    "local_service_request": 19,
+    "local_request_revision": 24,
+    "local_request_approval": 31,
+    "local_request_route_generation": 2,
+    "approval_delegation": 2,
+    "local_request_approval_notice": 9,
+    "outbox_event": 465,
+    "notification": 110,
+    "department": 22,
+    "audit_event": 2146
+  },
+  "schema_migration": {
+    "n": 42,
+    "max": "0042"
+  },
+  "agentRoles": [
+    {
+      "code": "agent",
+      "org": "acme"
+    },
+    {
+      "code": "requester",
+      "org": "other"
+    }
+  ],
+  "routing": [
+    {
+      "org": "acme",
+      "enabled": false,
+      "updatedAt": "2026-11-14T13:28:45.444Z"
+    }
+  ]
+}

@@ -1,0 +1,482 @@
+[
+  {
+    "name": "routing",
+    "routing": {
+      "setting": {
+        "enabled": false,
+        "updatedAt": "2026-11-14T13:28:45.444Z",
+        "updatedBy": "00000000-0000-4000-9000-000000000101"
+      }
+    }
+  },
+  {
+    "name": "chromium /ops/approvals",
+    "selectors": {
+      "routing-section": 1,
+      "routing-toggle": 1,
+      "routing-submit": 0,
+      "create-section": 1,
+      "create-code": 1,
+      "create-name": 1,
+      "step-type-0": 1,
+      "step-approver-0": 1,
+      "step-type-1": 1,
+      "step-approver-1": 1,
+      "create-submit": 1
+    }
+  },
+  {
+    "name": "chromium /ops/approvals approver options",
+    "options": [
+      "選択してください",
+      "サンプル株式会社 approver"
+    ]
+  },
+  {
+    "name": "chromium /ops/approvals",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /ops/approvals 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /ops/users (agent)",
+    "selectors": {
+      "agent-role-details": 1,
+      "agent-grant-form": 1,
+      "agent-revoke-form": 1,
+      "role-select": 2
+    }
+  },
+  {
+    "name": "chromium /ops/users grant form labels",
+    "grantingLabels": [
+      "与える役割",
+      "期限（任意）",
+      "付与の理由"
+    ],
+    "roleOptions": [
+      "組織管理者",
+      "承認者",
+      "監査",
+      "リクエスター",
+      "カタログ編集者"
+    ]
+  },
+  {
+    "name": "chromium /ops/users details count",
+    "details": 1,
+    "summaries": [
+      "役割を変える",
+      "アクセスを止める"
+    ]
+  },
+  {
+    "name": "chromium /catalog/manage/new",
+    "selectors": {
+      "title": 1,
+      "description": 1,
+      "approver": 1,
+      "rule": 1,
+      "high-risk": 1,
+      "save": 1
+    }
+  },
+  {
+    "name": "chromium /catalog/manage/new approvers",
+    "approverOptions": [
+      "同じ組織の承認者を選ぶ",
+      "サンプル株式会社 approver"
+    ],
+    "ruleDisabled": false,
+    "highRiskBox": {
+      "x": 317,
+      "y": 2436,
+      "width": 24,
+      "height": 24
+    }
+  },
+  {
+    "name": "chromium keyboard high-risk",
+    "reached": "catalog-high-risk",
+    "before": false,
+    "afterSpace": true,
+    "afterSecond": false,
+    "focus": {
+      "outlineStyle": "none",
+      "outlineWidth": "3px"
+    }
+  },
+  {
+    "name": "chromium /catalog/manage/new",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /catalog/manage/new 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /catalog/manage",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "catalog item for dry run",
+    "title": "業務アカウント発行申請"
+  },
+  {
+    "name": "chromium /catalog/<item> (requester)",
+    "selectors": {
+      "reason": 1,
+      "submit": 1,
+      "high-risk-note": 0
+    }
+  },
+  {
+    "name": "chromium request form",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /settings/delegations",
+    "selectors": {
+      "mine": 1,
+      "delegate": 0,
+      "start-label": 0,
+      "end-label": 0,
+      "create-confirm": 0,
+      "create-button": 0,
+      "revoke-details": 0
+    }
+  },
+  {
+    "name": "chromium delegation delegate options",
+    "options": []
+  },
+  {
+    "name": "chromium /settings/delegations",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /requests?view=approvals (approver)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /inbox?kind=approval (agent)",
+    "selectors": {
+      "summary": 1,
+      "status": 1
+    }
+  },
+  {
+    "name": "chromium /inbox (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium auditor request detail",
+    "statusText": "本文へ移動\nS\nSOLVI\nサンプル株式会社\nお探しの画面は見つかりませんでした\n\nURLが変わったか、閲覧できる範囲の外にある可能性があります。\n\n問い合わせの一覧(依頼者)へ\n対応待ちの一覧(担当者)へ\n\nリンクをたどってこの画面に来た",
+    "url": "http://127.0.0.1:3000/requests/01a1dd14-821a-7000-8916-1252eeda0377"
+  },
+  {
+    "name": "chromium request 404 (auditor)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [
+      {
+        "id": "target-size",
+        "impact": "serious"
+      }
+    ]
+  },
+  {
+    "name": "chromium auditor API detail status",
+    "status": 404
+  },
+  {
+    "name": "routing",
+    "routing": {
+      "setting": {
+        "enabled": false,
+        "updatedAt": "2026-11-14T13:28:45.444Z",
+        "updatedBy": "00000000-0000-4000-9000-000000000101"
+      }
+    }
+  },
+  {
+    "name": "webkit /ops/approvals",
+    "selectors": {
+      "routing-section": 1,
+      "routing-toggle": 1,
+      "routing-submit": 0,
+      "create-section": 1,
+      "create-code": 1,
+      "create-name": 1,
+      "step-type-0": 1,
+      "step-approver-0": 1,
+      "step-type-1": 1,
+      "step-approver-1": 1,
+      "create-submit": 1
+    }
+  },
+  {
+    "name": "webkit /ops/approvals approver options",
+    "options": [
+      "選択してください",
+      "サンプル株式会社 approver"
+    ]
+  },
+  {
+    "name": "webkit /ops/approvals",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /ops/approvals 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /ops/users (agent)",
+    "selectors": {
+      "agent-role-details": 1,
+      "agent-grant-form": 1,
+      "agent-revoke-form": 1,
+      "role-select": 2
+    }
+  },
+  {
+    "name": "webkit /ops/users grant form labels",
+    "grantingLabels": [
+      "与える役割",
+      "期限（任意）",
+      "付与の理由"
+    ],
+    "roleOptions": [
+      "組織管理者",
+      "承認者",
+      "監査",
+      "リクエスター",
+      "カタログ編集者"
+    ]
+  },
+  {
+    "name": "webkit /ops/users details count",
+    "details": 1,
+    "summaries": [
+      "役割を変える",
+      "アクセスを止める"
+    ]
+  },
+  {
+    "name": "webkit /catalog/manage/new",
+    "selectors": {
+      "title": 1,
+      "description": 1,
+      "approver": 1,
+      "rule": 1,
+      "high-risk": 1,
+      "save": 1
+    }
+  },
+  {
+    "name": "webkit /catalog/manage/new approvers",
+    "approverOptions": [
+      "同じ組織の承認者を選ぶ",
+      "サンプル株式会社 approver"
+    ],
+    "ruleDisabled": false,
+    "highRiskBox": {
+      "x": 315,
+      "y": 2412,
+      "width": 24,
+      "height": 24
+    }
+  },
+  {
+    "name": "webkit keyboard high-risk",
+    "reached": "catalog-live-preview",
+    "before": false,
+    "afterSpace": false,
+    "afterSecond": false,
+    "focus": {
+      "outlineStyle": "solid",
+      "outlineWidth": "2px"
+    }
+  },
+  {
+    "name": "webkit /catalog/manage/new",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /catalog/manage/new 375",
+    "dims": {
+      "document": 375,
+      "viewport": 375
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /catalog/manage",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "catalog item for dry run",
+    "title": "業務アカウント発行申請"
+  },
+  {
+    "name": "webkit /catalog/<item> (requester)",
+    "selectors": {
+      "reason": 1,
+      "submit": 1,
+      "high-risk-note": 0
+    }
+  },
+  {
+    "name": "webkit request form",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /settings/delegations",
+    "selectors": {
+      "mine": 1,
+      "delegate": 0,
+      "start-label": 0,
+      "end-label": 0,
+      "create-confirm": 0,
+      "create-button": 0,
+      "revoke-details": 0
+    }
+  },
+  {
+    "name": "webkit delegation delegate options",
+    "options": []
+  },
+  {
+    "name": "webkit /settings/delegations",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /requests?view=approvals (approver)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /inbox?kind=approval (agent)",
+    "selectors": {
+      "summary": 1,
+      "status": 1
+    }
+  },
+  {
+    "name": "webkit /inbox (agent)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit auditor request detail",
+    "statusText": "本文へ移動\nS\nSOLVI\nサンプル株式会社\nお探しの画面は見つかりませんでした\n\nURLが変わったか、閲覧できる範囲の外にある可能性があります。\n\n問い合わせの一覧(依頼者)へ\n対応待ちの一覧(担当者)へ\n\nリンクをたどってこの画面に来た",
+    "url": "http://127.0.0.1:3000/requests/01a1dd14-821a-7000-8916-1252eeda0377"
+  },
+  {
+    "name": "webkit request 404 (auditor)",
+    "dims": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "overflow": false,
+    "violations": [
+      {
+        "id": "target-size",
+        "impact": "serious"
+      }
+    ]
+  },
+  {
+    "name": "webkit auditor API detail status",
+    "status": 404
+  }
+]

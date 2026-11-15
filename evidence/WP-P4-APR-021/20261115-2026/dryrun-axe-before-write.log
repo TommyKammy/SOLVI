@@ -1,0 +1,146 @@
+[
+  {
+    "name": "chromium /ops/users?selected",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /ops/users?selected 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /catalog/manage/[id]",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /catalog/manage/[id] 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /requests/[id]",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /requests/[id] 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /requests?view=approvals",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /requests?view=approvals 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /catalog/[itemId] 1440",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium /catalog/[itemId] 1440 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "chromium 404 detail",
+    "status": 404,
+    "violations": [
+      {
+        "id": "target-size",
+        "impact": "serious",
+        "targets": [
+          [
+            "li:nth-child(1) > a[href=\"/\"]"
+          ],
+          [
+            ".stack > li:nth-child(2) > a[href$=\"ops\"]"
+          ]
+        ],
+        "html": [
+          "<a href=\"/\">問い合わせの一覧(依頼者)へ</a>",
+          "<a href=\"/ops\">対応待ちの一覧(担当者)へ</a>"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "webkit /ops/users?selected",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /ops/users?selected 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /catalog/manage/[id]",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /catalog/manage/[id] 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /requests/[id]",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /requests/[id] 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /requests?view=approvals",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /requests?view=approvals 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /catalog/[itemId] 1440",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit /catalog/[itemId] 1440 375",
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "name": "webkit 404 detail",
+    "status": 404,
+    "violations": [
+      {
+        "id": "target-size",
+        "impact": "serious",
+        "targets": [
+          [
+            "li:nth-child(1) > a[href=\"/\"]"
+          ],
+          [
+            ".stack > li:nth-child(2) > a[href$=\"ops\"]"
+          ]
+        ],
+        "html": [
+          "<a href=\"/\">問い合わせの一覧(依頼者)へ</a>",
+          "<a href=\"/ops\">対応待ちの一覧(担当者)へ</a>"
+        ]
+      }
+    ]
+  }
+]

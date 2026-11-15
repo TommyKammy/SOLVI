@@ -1,0 +1,44 @@
+database: solvi
+
+== 1. 組織でのルールの使用 ==
+[{"organization_id":"acme","rule_routing_enabled":false,"updated_at":"2026-11-14T13:28:45.444Z"}]
+
+== 2. 公開中のカタログ項目で承認ルールを使っているもの ==
+[]
+active items: [{"code":"account-issue","title":"業務アカウント発行申請","active":true,"draft_revision":1,"published_revision":1},{"code":"c041-1794322341524","title":"UI041-SYN-1794322341355 サービス","active":false,"draft_revision":2,"published_revision":2},{"code":"c041-old-1794322345835","title":"UI041-SYN-1794322341355 旧形式","active":false,"draft_revision":1,"published_revision":1},{"code":"network-share","title":"ネットワーク共有フォルダー申請","active":true,"draft_revision":1,"published_revision":1},{"code":"pc-laptop","title":"PC利用申請 [ノートPC]","active":true,"draft_revision":1,"published_revision":1},{"code":"service-03733073-e5c5-4d1d-b364-6694d8bc1ba1","title":"UI041-SYN-1794322763155-webkit-target","active":false,"draft_revision":1,"published_revision":null},{"code":"service-08613fc8-3d88-455b-93f2-4d4fd7fde665","title":"UI042-SYN-1794349243314-chromium","active":true,"draft_revision":1,"published_revision":1},{"code":"service-10d94add-a14a-4c5c-9758-3d8a8096a642","title":"UI042-SYN-1794349325699-webkit","active":true,"draft_revision":1,"published_revision":1},{"code":"service-18a087e3-1935-41ce-af94-c670e356199c","title":"UI041-SYN-1794322763155-webkit-source","active":false,"draft_revision":1,"published_revision":null},{"code":"service-209116e6-76f5-4ab7-98f7-16f250927a80","title":"UI016 合成カタログ UI016-SYN-1794612220485-chromium","active":false,"draft_revision":5,"published_revision":4},{"code":"service-21eef0f8-8017-4933-8903-bf505ee5ae84","title":"UI039-SYN-1794316574218","active":false,"draft_revision":2,"published_revision":null},{"code":"service-2766a578-80e1-4f5a-805b-d3aaa62d90b2","title":"UI039-SYN-1794317082322","active":false,"draft_revision":1,"published_revision":null},{"code":"service-31547ff6-c41b-4d72-8bf7-9eb544fd5857","title":"UI041-SYN-1794322515009-chromium-source","active":false,"draft_revision":1,"published_revision":null},{"code":"service-46d48208-edc8-4b05-849c-1ab7e8624e16","title":"UI041-SYN-1794322515009-chromium-clone","active":true,"draft_revision":1,"published_revision":1},{"code":"service-4d173e9e-f032-4f79-8405-b4234b3ec5e9","title":"UI040-SYN-1794320218269-webkit","active":true,"draft_revision":1,"published_revision":1},{"code":"service-6d352123-7bc8-4fbc-8499-e31ac89ccc55","title":"UI018 合成カタログ UI018-SYN-1794657122040-chromium","active":false,"draft_revision":3,"published_revision":2},{"code":"service-8be12d1c-43e0-4fc8-887e-0cec115f64fc","title":"UI016B 合成カタログ UI016B-SYN-1794615273775-chromium","active":false,"draft_revision":7,"published_revision":6},{"code":"service-93b63798-36a6-4f84-9d91-93b08036eedd","title":"UI016B 合成カタログ UI016B-SYN-1794616023262-webkit","active":false,"draft_revision":5,"published_revision":4},{"code":"service-9b159503-ccef-4690-8edd-ba21caa6a798","title":"UI016 合成カタログ UI016-SYN-1794612524420-webkit","active":false,"draft_revision":3,"published_revision":2},{"code":"service-a50fd736-0b59-494a-86a4-10245f1b7337","title":"UI041-SYN-1794322515009-chromium-target","active":false,"draft_revision":1,"published_revision":null},{"code":"service-ab128d96-365a-4fad-881e-8161653396b7","title":"UI041-SYN-1794322763155-webkit-clone","active":true,"draft_revision":1,"published_revision":1},{"code":"service-aee093e1-1a9e-4682-98c9-e5610ce4dd38","title":"UI040-SYN-1794320194740-chromium","active":true,"draft_revision":1,"published_revision":1},{"code":"service-dbda6ca6-3dec-4a2a-9baa-b51916b3fec6","title":"UI018 合成カタログ B3 UI018-SYN-B3-b3","active":false,"draft_revision":3,"published_revision":2},{"code":"service-fd8a86ad-e776-46cd-9b25-718fcf0e01a9","title":"UI018 合成カタログ UI018-SYN-1794658028709-webkit","active":false,"draft_revision":3,"published_revision":2},{"code":"synth-fields-1794319613780","title":"UI040-API-SYN-1794319613780","active":false,"draft_revision":2,"published_revision":2},{"code":"ui042-1794349214159","title":"UI042-SYN-1794349214159 v2","active":false,"draft_revision":2,"published_revision":2}]
+
+== 3. agent@acme.example.test ==
+user: {"id":"00000000-0000-4000-9000-000000000102","primary_email":"agent@acme.example.test","display_name":"サンプル株式会社 agent","status":"active"}
+active roles: [{"code":"agent","organization_id":"00000000-0000-4000-9000-000000000001","valid_from":"2026-11-10T02:56:26.853Z","valid_until":null},{"code":"requester","organization_id":"00000000-0000-4000-9000-000000000002","valid_from":"2026-11-10T02:56:26.853Z","valid_until":"2027-02-08T02:56:26.853Z"}]
+profile rows: [{"organization_id":"00000000-0000-4000-9000-000000000002","manager_user_id":null},{"organization_id":"00000000-0000-4000-9000-000000000001","manager_user_id":null}]
+
+== 4. UI021 の残り(申請・委任・有効な合成ルール) ==
+requests: []
+delegations: [{"id":"01a1dce6-9333-7000-a447-ad75a3790e7d","starts_at":"2026-11-15T01:51:00.000Z","ends_at":"2026-11-17T01:51:00.000Z","revoked_at":"2026-11-15T01:51:06.475Z"},{"id":"01a1dd14-5c10-7000-a5ef-f6bfc4f25062","starts_at":"2026-11-15T02:41:00.000Z","ends_at":"2026-11-17T02:41:00.000Z","revoked_at":"2026-11-15T02:41:38.708Z"}]
+rules: [{"id":"01a1d739-630f-7000-9c48-235c2c481e6f","code":"ui016-syn-1794612220485-chromium","name":"UI016 合成 2段承認 chromium","active":false,"current_revision":2},{"id":"01a1d73d-14c0-7000-9f34-71dafce1132e","code":"ui016-syn-1794612462662-chromium","name":"UI016 合成 2段承認 chromium","active":false,"current_revision":2},{"id":"01a1d73e-0d6e-7000-8f07-960fa7393162","code":"ui016-syn-1794612524420-webkit","name":"UI016 合成 2段承認 webkit","active":false,"current_revision":2},{"id":"01a1d74a-c547-7000-95b4-82877021ded4","code":"ui016-syn-1794613356240-chromium","name":"UI016 重複確認 UI016-SYN-1794613356240-chromium","active":false,"current_revision":1},{"id":"01a1d74a-d0ab-7000-919e-0dce4dc4762a","code":"ui016-syn-1794613358244-webkit","name":"UI016 重複確認 UI016-SYN-1794613358244-webkit","active":false,"current_revision":1},{"id":"01a1d768-0cdb-7000-8e14-4405dcb3394d","code":"ui016b-syn-1794615273775-chromium","name":"UI016B 合成 2段承認 chromium","active":false,"current_revision":2},{"id":"01a1d76b-a1f8-7000-9d28-91adb7643842","code":"ui016b-syn-1794615515187-chromium","name":"UI016B 合成 2段承認 chromium 再開","active":false,"current_revision":1},{"id":"01a1d770-60eb-7000-bac2-a43f726d390e","code":"ui016b-syn-1794615822989-webkit","name":"UI016B 合成 2段承認 webkit","active":false,"current_revision":2},{"id":"01a1d773-6c42-7000-9832-29e39ed06170","code":"ui016b-syn-1794616023262-webkit","name":"UI016B 合成 2段承認 webkit","active":false,"current_revision":2},{"id":"01a1d789-724c-7000-9a49-62203e1bf93b","code":"ui016b-syn-1794617467150-chromium","name":"UI016B 合成 2段承認 chromium B2","active":false,"current_revision":1},{"id":"01a1d78a-26a1-7000-a6ba-34cf76c99f4e","code":"ui016b-syn-1794617512878-webkit","name":"UI016B 合成 2段承認 webkit B2","active":false,"current_revision":1},{"id":"01a1d9e6-909c-7000-a629-47706e9058a3","code":"ui018-syn-1794657122040-chromium","name":"UI018 合成 再割当確認 chromium","active":false,"current_revision":1},{"id":"01a1d9f4-656c-7000-9e3b-33294fe59f42","code":"ui018-syn-1794658028709-webkit","name":"UI018 合成 再割当確認 webkit","active":false,"current_revision":1},{"id":"01a1da33-f2a9-7000-a61c-317cc8b4a059","code":"ui018-syn-b3-b3","name":"UI018 合成 再割当確認 B3","active":false,"current_revision":1}]
+
+== 5. カタログ編集者の合成アカウント(acme) ==
+[]
+
+== 6. 件数 ==
+{
+  "app_user": 15,
+  "role_binding": 28,
+  "org_member_profile": 15,
+  "org_approval_setting": 1,
+  "approval_rule": 14,
+  "approval_rule_revision": 20,
+  "local_catalog_item": 26,
+  "local_catalog_revision": 52,
+  "local_service_request": 19,
+  "local_request_revision": 24,
+  "local_request_approval": 31,
+  "local_request_route_generation": 2,
+  "approval_delegation": 2,
+  "local_request_approval_notice": 9,
+  "outbox_event": 465,
+  "notification": 110,
+  "department": 22,
+  "audit_event": 2126
+}
+schema_migration: {"n":42,"max":"0042"}

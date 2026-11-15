@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-11-15T11:28:35.393Z",
+  "checks": {
+    "routingEnabledOrgs": 0,
+    "activeDelegations": 0,
+    "ui021Requests": [],
+    "ui021Rules": [
+      {
+        "code": "ui021-syn-1794742049248",
+        "active": false
+      }
+    ],
+    "ui021Items": [
+      {
+        "code": "service-a89cb973-dbe0-404c-981c-4f2e47041d26",
+        "title": "UI021 合成 高リスク申請 UI021-SYN-1794742049248",
+        "active": false
+      }
+    ],
+    "ui021ItemPublishedRevision": [
+      {
+        "code": "service-a89cb973-dbe0-404c-981c-4f2e47041d26",
+        "title": "UI021 合成 高リスク申請 UI021-SYN-1794742049248",
+        "published_revision": 2
+      }
+    ],
+    "agentRoles": [
+      {
+        "code": "agent",
+        "org": "acme"
+      },
+      {
+        "code": "requester",
+        "org": "other"
+      }
+    ],
+    "migrations": {
+      "n": 42,
+      "max": "0042"
+    }
+  }
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "name": "chromium-wp021-catalog-high-risk-open-1440",
+    "dimensions": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "violations": []
+  },
+  {
+    "name": "chromium-wp021-catalog-high-risk-open-375",
+    "dimensions": {
+      "document": 375,
+      "viewport": 375
+    },
+    "violations": []
+  },
+  {
+    "name": "chromium-wp021-catalog-list-1440",
+    "dimensions": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "violations": []
+  },
+  {
+    "name": "chromium-wp021-catalog-list-375",
+    "dimensions": {
+      "document": 375,
+      "viewport": 375
+    },
+    "violations": []
+  },
+  {
+    "name": "webkit-wp021-catalog-high-risk-open-1440",
+    "dimensions": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "violations": []
+  },
+  {
+    "name": "webkit-wp021-catalog-high-risk-open-375",
+    "dimensions": {
+      "document": 375,
+      "viewport": 375
+    },
+    "violations": []
+  },
+  {
+    "name": "webkit-wp021-catalog-list-1440",
+    "dimensions": {
+      "document": 1440,
+      "viewport": 1440
+    },
+    "violations": []
+  },
+  {
+    "name": "webkit-wp021-catalog-list-375",
+    "dimensions": {
+      "document": 375,
+      "viewport": 375
+    },
+    "violations": []
+  }
+]

@@ -1,0 +1,430 @@
+{
+  "workPackage": "WP-P4-APR-021",
+  "stage": "C",
+  "browser": "chromium+webkit",
+  "writer": "chromium",
+  "observer": "webkit",
+  "marker": "UI021-SYN-1794742049248",
+  "success": false,
+  "createdAt": "2026-11-15T11:27:29.258Z",
+  "base": "http://127.0.0.1:3000",
+  "apiBase": "http://127.0.0.1:3001",
+  "node": "v26.13.0",
+  "platform": "darwin",
+  "command": "SOLVI_SMOKE_PASSWORD=<redacted> SOLVI_UI_PHASE=wp021 node tools/ui_approval_routing_check.mjs",
+  "commitSha": "603da9f9712a7f90189c9dbe333fc05ffe07a240",
+  "checks": [
+    {
+      "name": "WP021 事前確認",
+      "passed": true
+    },
+    {
+      "name": "WP021 組織でのルールの使用を有効にする",
+      "passed": true
+    },
+    {
+      "name": "WP021 2人目の承認者に役割を与える",
+      "passed": true
+    },
+    {
+      "name": "WP021 固定承認者2段のルール",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "name": "chromium-wp021-routing-disabled-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-routing-disabled-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-routing-disabled-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-routing-disabled-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-routing-enabled-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-routing-enabled-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-routing-enabled-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-routing-enabled-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-role-granted-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-role-granted-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-role-granted-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-role-granted-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-rule-created-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-rule-created-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-rule-created-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-rule-created-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-catalog-new-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-catalog-new-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-catalog-new-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-catalog-new-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-catalog-draft-high-risk-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-catalog-draft-high-risk-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-catalog-draft-high-risk-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-catalog-draft-high-risk-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-publish-rejected-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "chromium-wp021-publish-rejected-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-publish-rejected-desktop-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "webkit-wp021-publish-rejected-mobile-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "chromium-wp021-routing-disabled-desktop-1440.png",
+    "chromium-wp021-routing-disabled-mobile-375.png",
+    "webkit-wp021-routing-disabled-desktop-1440.png",
+    "webkit-wp021-routing-disabled-mobile-375.png",
+    "chromium-wp021-routing-enabled-desktop-1440.png",
+    "chromium-wp021-routing-enabled-mobile-375.png",
+    "webkit-wp021-routing-enabled-desktop-1440.png",
+    "webkit-wp021-routing-enabled-mobile-375.png",
+    "chromium-wp021-role-granted-desktop-1440.png",
+    "chromium-wp021-role-granted-mobile-375.png",
+    "webkit-wp021-role-granted-desktop-1440.png",
+    "webkit-wp021-role-granted-mobile-375.png",
+    "chromium-wp021-rule-created-desktop-1440.png",
+    "chromium-wp021-rule-created-mobile-375.png",
+    "webkit-wp021-rule-created-desktop-1440.png",
+    "webkit-wp021-rule-created-mobile-375.png",
+    "chromium-wp021-catalog-new-desktop-1440.png",
+    "chromium-wp021-catalog-new-mobile-375.png",
+    "webkit-wp021-catalog-new-desktop-1440.png",
+    "webkit-wp021-catalog-new-mobile-375.png",
+    "chromium-wp021-catalog-draft-high-risk-desktop-1440.png",
+    "chromium-wp021-catalog-draft-high-risk-mobile-375.png",
+    "webkit-wp021-catalog-draft-high-risk-desktop-1440.png",
+    "webkit-wp021-catalog-draft-high-risk-mobile-375.png",
+    "chromium-wp021-publish-rejected-desktop-1440.png",
+    "chromium-wp021-publish-rejected-mobile-375.png",
+    "webkit-wp021-publish-rejected-desktop-1440.png",
+    "webkit-wp021-publish-rejected-mobile-375.png"
+  ],
+  "writes": {
+    "routingEnabled": 1,
+    "routingDisabled": 1,
+    "routingDisableRejections": 0,
+    "roleGrants": 1,
+    "roleRevokes": 1,
+    "rulesCreated": 1,
+    "catalogCreated": 1,
+    "catalogDraftSaves": 2,
+    "catalogPublishRejections": 1,
+    "catalogPublished": 1,
+    "catalogUnpublished": 1,
+    "ruleDeactivationRejections": 0,
+    "ruleDeactivations": 1,
+    "requestsCreated": 0,
+    "delegationsCreated": 0,
+    "delegationsRevoked": 0,
+    "approvals": 0,
+    "simulations": 0
+  },
+  "ids": {
+    "approverUser": "00000000-0000-4000-9000-000000000103",
+    "secondApproverUser": "00000000-0000-4000-9000-000000000102",
+    "secondApproverName": "サンプル株式会社 agent",
+    "rule": "01a1def6-a8b5-7000-8119-83426a5d12cc",
+    "ruleCode": "ui021-syn-1794742049248",
+    "catalogItem": "01a1def6-cd45-7000-9a1b-5e1edc893d62",
+    "request": null,
+    "requestNumber": null,
+    "delegation": null
+  },
+  "applied": {
+    "routingEnabled": true,
+    "routingDisabled": true,
+    "roleGranted": true,
+    "roleRestored": true,
+    "ruleCreated": true,
+    "ruleDeactivated": true,
+    "catalogDraftSaved": true,
+    "catalogPublished": true,
+    "catalogUnpublished": true,
+    "requestCreated": false,
+    "delegationCreated": false,
+    "delegationRevoked": true,
+    "firstApproved": false,
+    "secondApproved": false,
+    "simulated": false
+  },
+  "rejections": {
+    "publish": "保存・送信できませんでした\n\n高リスクの項目には承認ルールを設定してください\n\n入力項目: 高リスクの項目には承認ルールを設定してください\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。",
+    "ruleDeactivation": null,
+    "routingDisable": null
+  },
+  "delegationVisibility": null,
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "steps": [
+      {
+        "name": "委任の取消",
+        "ok": true
+      },
+      {
+        "name": "項目の新規受付の停止",
+        "ok": true
+      },
+      {
+        "name": "合成の承認ルールを無効化する",
+        "ok": true
+      },
+      {
+        "name": "組織でのルールの使用を無効に戻す",
+        "ok": true
+      },
+      {
+        "name": "承認者の役割の復元",
+        "ok": true
+      }
+    ],
+    "errors": []
+  },
+  "keyboard": [
+    {
+      "engine": "chromium",
+      "reached": "catalog-high-risk",
+      "before": false,
+      "afterSpace": true,
+      "afterSecond": false,
+      "focus": {
+        "id": "catalog-high-risk",
+        "outlineStyle": "none",
+        "outlineWidth": "3px"
+      }
+    },
+    {
+      "engine": "webkit",
+      "reached": "catalog-high-risk",
+      "before": false,
+      "afterSpace": true,
+      "afterSecond": false,
+      "focus": {
+        "id": "catalog-high-risk",
+        "outlineStyle": "none",
+        "outlineWidth": "3px"
+      }
+    }
+  ],
+  "blocked": [],
+  "browserVersion": "157.0.8103.51",
+  "observerBrowserVersion": "26.5",
+  "currentStep": "WP021 高リスクのカタログ項目の公開",
+  "failure": "公開された\n\nfalse !== true\n"
+}
