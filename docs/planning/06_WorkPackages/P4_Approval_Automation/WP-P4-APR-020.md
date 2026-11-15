@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "delegation"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "high"
 workstream: "APR"
@@ -561,3 +561,13 @@ FR-CAT-006(代理承認)を実装する。承認者が、期間を限って、�
 #### Evidence
 
 `evidence/WP-P4-APR-020/20261115-1140/`(スクリーンショット52枚、`flow.json`、`session.json`)と `post-cleanup/`(スクリーンショット44枚、`post.json`、`session.json`)。
+
+#### 監督者の検査と利用者の承認(2026-11-15)
+
+- 監督者が使い捨てDB(`solvi_wp020_wp019_wp018_wp015_test`)で再実行した: `typecheck`、`check:all`、`eslint`(`.claude/**` を除く)、`tools/check_rls.mjs`、`vitest run tests/security`(902件通過。失敗は既知の読み込み不能6ファイルだけ)、承認のセキュリティテスト250件、画面の unit テスト196件。コミット `23e89fe`、`b0750f8`、`b8c7aee`、`f03248a`。
+- 利用者の指示で、開発用DBへ Migration 0042 を適用した(42件)。実画面の確認のため、利用者の承認のもとで、合成アカウント1つ(`agent@acme.example.test`)への `approver` ロールの一時的な付与を2回(段階C・段階C2で各1回)行い、いずれも同じ実行のなかで取り外した。監督者が管理者接続の `SELECT` で、有効なロールが作業前と同じであること、有効な委任が0件であること(取消済みの合成の委任が2件残る。委任の行は削除できない設計)、未完了の合成の申請が無いことを確かめた。
+- 段階C2で、opencode が「書込みの無い下見」として実行したスクリプトが停止条件の誤りで本番の流れまで進んだ。書込みは承認の範囲(付与と取り外しは各1回、委任1件、申請1件)に収まった。
+- 段階C2で見つけた不具合(承認の記録の欄に「(代理: …)」が出ない)は、ロールを外したあとに監督者の指示で直し、実画面で表示を確かめた(`f03248a`)。
+- **実画面で確認していないもの**(テストで確認): 2件目の委任と代理者による辞退、取消・辞退フォームのキーボード操作、完了の後に委任を取り消す順序。
+- **残る点**: (1) 代理者が自分の決定を取り消す操作は API では許すが、画面には出していない。(2) 承認の画面の置き場所は WP §4 の `/approvals/delegations` ではなく `/settings/delegations` とした(監督者が承認した逸脱。段階Bの記録)。(3) 高リスクの段での代理の可否は [[WP-P4-APR-021]] で決める。(4) Executor 側の承認再検証での代理の扱いは [[WP-P4-EXEC-004]] で決める。
+- **2026-11-15、利用者(人間)が承認した。** セキュリティ関連の変更(承認の認可の拡張、新しいテーブルと RLS、監査、実行前検証)に対する人間のレビューを兼ねる。`done` とする。

@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 316 |
 | Markdown | 308 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,624,970 bytes |
+| 合計サイズ | 7,667,643 bytes |
 
 ## ファイル一覧
 
@@ -71,7 +71,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `02_Architecture/02.14_Threat_Model.md` | 9895 | `80125413b0412517fc0d417b3673ed1631236d21cde16c792caf56dec5fb0454` |
 | `02_Architecture/02.15_Backup_DR_and_Continuity.md` | 1603 | `5565e28769667b59f66de344a0f6343d7ad7f84c0efd42a2a5a04fa8bf61a000` |
 | `02_Architecture/02.16_Executor_Command_Contract.md` | 7323 | `01cdede8fe573c599ae9b3a521e1b02242a639d2ed7af2a697cc02232ea7255c` |
-| `02_Architecture/02.17_Audit_Event_Catalog.md` | 13124 | `9114d69c84a24ea2da207049f85428e347cc0a4ac5b8522aca5d2688d474ea50` |
+| `02_Architecture/02.17_Audit_Event_Catalog.md` | 13599 | `1abb74423be42c4e09c8a7a1280a50121120442d3130e2f889c366717de95e88` |
 | `02_Architecture/02.18_Organization_Data_Model_and_RLS.md` | 21752 | `9695923769ff17ee0356f72a972935ef4e51310ddcbea28ec378fd901bbec29b` |
 | `02_Architecture/02.1_Architecture_Overview.md` | 6829 | `9a657b74dcc84bdec5987c2fa81b279f4d19d602dfc2a6b216e1e6074cbf73ce` |
 | `02_Architecture/02.2_System_Context.md` | 1618 | `dee50b22a0410b93302a4cd272bdb41c7961c9bb648c9929c957179ecce363de` |
@@ -90,13 +90,13 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22209 | `733c88598283833e18fea20078a0636c1a5d9946c3dbad46c8a39c0361378fe3` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22239 | `de2d9f1eb2fac4e66c5e8248b1479d6c8ecff409da8d08ec34355b0c033a1d36` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
 | `03_Requirements/03.3_Ticket_Requirements.md` | 4430 | `f4d995c9c2bbac6360527a6e24e505bc22b6005c6bbae66855c8c4e822f4d06c` |
 | `03_Requirements/03.4_Knowledge_Requirements.md` | 1491 | `9f68149899ef431520a20b008cc8cd7f8290d3b1f1c01fbd23ce807dfbffd159` |
-| `03_Requirements/03.5_Catalog_and_Approval_Requirements.md` | 14798 | `914077f49dc5c213d9a294917c28283be92a5509668795fad0706e89ecb2cfc8` |
+| `03_Requirements/03.5_Catalog_and_Approval_Requirements.md` | 15170 | `6bc5327927023334ba20e6d6ef758f6a7cd1a5e530be8c967c5fede3e3131a51` |
 | `03_Requirements/03.6_Automation_Executor_Requirements.md` | 2255 | `c32de4903cc93841dc0c46111dbf9d3c00e668411a60176c1daa811ec2ecb1a2` |
 | `03_Requirements/03.7_Identity_OIDC_SCIM_Requirements.md` | 7572 | `0a7a62ae582257c5211951a620b2ada7462013d343420143ecaa7aa424ae15b0` |
 | `03_Requirements/03.8_Asset_CMDB_Requirements.md` | 1528 | `75d6ffc4f7325b36c333e730110fa600935839d7a889b03026b1e70e25aba791` |
@@ -228,7 +228,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-017.md` | 11123 | `837dcd26bf99a2105e687db03dd40f26f764383e6c50f5d5c6a82e9293822fda` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-018.md` | 56832 | `406261e2261ad02252699ad7fcaaad0b225878c120eff83483d887c4ee8cc9f3` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-019.md` | 47654 | `9d8a17c2df5be82e424d8ef22664d08417cfda751eba77a3f3d353a473fc42c5` |
-| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md` | 15660 | `01aa4f3a650bb7ed4470b1a2dff835fe9c028ffab4e9cb82fe3116752c23fe5e` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md` | 57456 | `8946ddc0944b5b7b2c314c6d47f5268053ebff1f4c61497a7d07dc21a9f90213` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md` | 7366 | `668d6e6cebc73beeab51d4f1089dd95b623e726cf46499825692253952982fb6` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-ENTRA-006.md` | 2752 | `fb847d4895c7df5378a298d34548dc6b3701cee7ff24f09b7cf881e2b2b0d8d1` |
