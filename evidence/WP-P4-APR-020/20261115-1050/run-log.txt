@@ -1,0 +1,17 @@
+[step] preflight
+[step] grant-approver-role
+[step] create-delegation-1
+[step] create-form-keyboard-and-too-long
+[failure] create-form-keyboard-and-too-long
+locator.isChecked: Error: strict mode violation: locator('#delegation-mine input[name="confirm"]') resolved to 2 elements:
+    1) <input value="1" required="" name="confirm" type="checkbox" id="_R_bl4lritperelb_-confirm"/> aka getByLabel('この委任を取り消し、以後は代理で承認できないことを確認しました')
+    2) <input value="1" required="" name="confirm" type="checkbox" id="_R_94lritperelb_-confirm"/> aka getByRole('checkbox', { name: '委任の期間中、この人が自分宛ての承認を判断できることを確認しました' })
+
+Call log:
+[2m  - waiting for locator('#delegation-mine input[name="confirm"]')[22m
+
+    at createFormKeyboard (/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:200:77)
+    at async file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:398:40
+    at async step (/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:104:3)
+    at async run (/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:395:3)
+    at async file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:907:3

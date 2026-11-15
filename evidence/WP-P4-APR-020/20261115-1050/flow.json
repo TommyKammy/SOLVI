@@ -1,0 +1,125 @@
+{
+  "workPackage": "WP-P4-APR-020",
+  "stage": "C",
+  "marker": "UI020",
+  "startedAt": "2026-11-15T01:50:38.897Z",
+  "commitSha": "b0750f82ca3bffa64f33e34a17256ef8c3ec2ab6",
+  "output": "evidence/WP-P4-APR-020/20261115-1050",
+  "itemId": "01a1c3ae-76f2-7000-b156-6f86a95615ba",
+  "ids": {
+    "delegatorUser": "00000000-0000-4000-9000-000000000103",
+    "delegateUser": "00000000-0000-4000-9000-000000000102",
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "adminUser": "00000000-0000-4000-9000-000000000101",
+    "request": null,
+    "requestNumber": null,
+    "delegation1": "01a1dce6-9333-7000-a447-ad75a3790e7d",
+    "delegation2": null
+  },
+  "applied": {
+    "roleGranted": true,
+    "delegation1Created": true,
+    "requestCreated": false,
+    "delegatedApproval": false,
+    "simulated": false,
+    "delegation1Revoked": false,
+    "delegation2Created": false,
+    "delegation2Declined": false,
+    "roleRevoked": false
+  },
+  "times": {
+    "roleGrantedAt": "2026-11-15T01:50:56.215Z",
+    "roleRevokedAt": null,
+    "delegation1CreatedAt": "2026-11-15T01:51:00.980Z"
+  },
+  "checks": [
+    {
+      "name": "preflight",
+      "passed": true
+    },
+    {
+      "name": "grant-approver-role",
+      "passed": true
+    },
+    {
+      "name": "create-delegation-1",
+      "passed": true
+    }
+  ],
+  "keyboard": {
+    "create": {}
+  },
+  "db": {
+    "profileRow": [
+      {
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "primary_department_id": null,
+        "manager_user_id": null
+      }
+    ],
+    "targetRolesBefore": [
+      {
+        "code": "agent",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_until": null
+      },
+      {
+        "code": "requester",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000002",
+        "valid_until": "2027-02-08T02:56:26.853Z"
+      }
+    ],
+    "delegationsBefore": 0,
+    "catalogApprover": "設定された承認者: サンプル株式会社 approver",
+    "roleBindingAfterGrant": [
+      {
+        "code": "agent",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_from": "2026-11-10T02:56:26.853Z",
+        "valid_until": null
+      },
+      {
+        "code": "approver",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_from": "2026-11-15T01:50:56.134Z",
+        "valid_until": null
+      },
+      {
+        "code": "requester",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000002",
+        "valid_from": "2026-11-10T02:56:26.853Z",
+        "valid_until": "2027-02-08T02:56:26.853Z"
+      }
+    ]
+  },
+  "failures": [],
+  "cleanup": {
+    "attempted": true,
+    "steps": [
+      {
+        "name": "revoke delegation 01a1dce6-9333-7000-a447-ad75a3790e7d",
+        "ok": true
+      },
+      {
+        "name": "remove the temporary approver role",
+        "ok": true
+      }
+    ],
+    "errors": [],
+    "remainingRoles": [
+      "agent"
+    ],
+    "openDelegations": 0,
+    "requestState": null
+  },
+  "currentStep": "create-form-keyboard-and-too-long",
+  "failure": {
+    "step": "create-form-keyboard-and-too-long",
+    "message": "locator.isChecked: Error: strict mode violation: locator('#delegation-mine input[name=\"confirm\"]') resolved to 2 elements:\n    1) <input value=\"1\" required=\"\" name=\"confirm\" type=\"checkbox\" id=\"_R_bl4lritperelb_-confirm\"/> aka getByLabel('この委任を取り消し、以後は代理で承認できないことを確認しました')\n    2) <input value=\"1\" required=\"\" name=\"confirm\" type=\"checkbox\" id=\"_R_94lritperelb_-confirm\"/> aka getByRole('checkbox', { name: '委任の期間中、この人が自分宛ての承認を判断できることを確認しました' })\n\nCall log:\n\u001b[2m  - waiting for locator('#delegation-mine input[name=\"confirm\"]')\u001b[22m\n\n    at createFormKeyboard (/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:200:77)\n    at async file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:398:40\n    at async step (/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:104:3)\n    at async run (/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:395:3)\n    at async file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/flow.mjs:907:3"
+  }
+}
