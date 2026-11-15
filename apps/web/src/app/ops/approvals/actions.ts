@@ -201,9 +201,7 @@ export async function reassignApprovalAction(
   // 読み直して出す。再割当の記録が無い場合は出さない。表示名をURLへ載せない。
   // 個人データを履歴・ログに残さないためである。
   redirect(
-    approvalHref(
-      { rule: '', confirm: null, unresolved: false },
-      { reassigned: requestId },
-    ) + '#approval-unavailable',
+    approvalHref({ rule: '', confirm: null, unresolved: false }, { reassigned: requestId }) +
+      '#approval-unavailable',
   );
 }

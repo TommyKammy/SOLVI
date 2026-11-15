@@ -100,9 +100,9 @@ describe('evaluateHighRiskDefinition: 定義とルールの段 (公開・ルー�
     expect(
       evaluate({ approval: { highRisk: true, ruleId: A }, ruleRoutingEnabled: false }),
     ).toEqual({ highRisk: true, ok: false, code: 'rule_routing_disabled' });
-    expect(evaluate({ approval: { highRisk: true, ruleId: A }, ruleRoutingEnabled: undefined })).toEqual(
-      { highRisk: true, ok: false, code: 'rule_routing_disabled' },
-    );
+    expect(
+      evaluate({ approval: { highRisk: true, ruleId: A }, ruleRoutingEnabled: undefined }),
+    ).toEqual({ highRisk: true, ok: false, code: 'rule_routing_disabled' });
   });
 
   it('ルールが無い・無効・内容不正なら rule_unavailable', () => {
@@ -130,7 +130,10 @@ describe('evaluateHighRiskDefinition: 定義とルールの段 (公開・ルー�
       ).toEqual({ highRisk: true, ok: false, code: 'fixed_approvers_insufficient' });
     // 1段だけのルールは、内容としては正しいが fixed が2段未満である。
     expect(
-      evaluate({ approval: { highRisk: true, ruleId: A }, rule: { active: true, steps: [fixed(A)] } }),
+      evaluate({
+        approval: { highRisk: true, ruleId: A },
+        rule: { active: true, steps: [fixed(A)] },
+      }),
     ).toEqual({ highRisk: true, ok: false, code: 'fixed_approvers_insufficient' });
   });
 
@@ -197,7 +200,10 @@ describe('checkHighRiskRoute: 解決した経路 (申請・申請内容の変更
         code: 'route_invalid',
       });
     expect(
-      checkHighRiskRoute({ route: route([{ approverId: A, authorityType: 'fixed' }]), requesterId: null }),
+      checkHighRiskRoute({
+        route: route([{ approverId: A, authorityType: 'fixed' }]),
+        requesterId: null,
+      }),
     ).toEqual({ ok: false, code: 'route_invalid' });
   });
 
@@ -282,7 +288,15 @@ describe('checkHighRiskApprovals: 承認済みのステップ (実行前検証)'
     checkHighRiskApprovals({ route: value, requesterId: REQUESTER, steps });
 
   it('経路・手順・決定者が読めない場合は unreadable(fail closed)', () => {
-    expect(check([{ stepNo: 1, ...approved(A) }, { stepNo: 2, ...approved(B) }], null)).toEqual({
+    expect(
+      check(
+        [
+          { stepNo: 1, ...approved(A) },
+          { stepNo: 2, ...approved(B) },
+        ],
+        null,
+      ),
+    ).toEqual({
       ok: false,
       code: 'unreadable',
     });
