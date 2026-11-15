@@ -1,0 +1,10 @@
+{
+  "name": "delegations-one-revoked-mine",
+  "engine": "chromium",
+  "width": 1440,
+  "dimensions": {
+    "document": 1440,
+    "viewport": 1440
+  },
+  "violations": []
+}

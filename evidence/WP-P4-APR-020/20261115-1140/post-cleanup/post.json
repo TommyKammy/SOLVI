@@ -1,0 +1,236 @@
+{
+  "startedAt": "2026-11-15T02:46:18.603Z",
+  "requestId": "01a1dd14-821a-7000-8916-1252eeda0377",
+  "completedAt": null,
+  "captures": [],
+  "db": {
+    "beforeCompletion": "completed",
+    "afterCleanup": {
+      "database": "solvi",
+      "openDelegations": 0,
+      "request": {
+        "state": "completed",
+        "revision": 1
+      },
+      "step": {
+        "approver_id": "00000000-0000-4000-9000-000000000103",
+        "decided_by": "00000000-0000-4000-9000-000000000102",
+        "delegation_id": "01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+        "state": "approved",
+        "decided_at": "2026-11-15T02:41:37.747Z"
+      },
+      "revisions": [
+        {
+          "revision": 1,
+          "route_hash": "127a0d49cf9aa15ebee3a35a8d204c8f28c6617b3975a62545c70df08423f011",
+          "route_generation": 1
+        }
+      ],
+      "generations": [
+        {
+          "n": 0
+        }
+      ],
+      "roles": [
+        {
+          "code": "agent",
+          "role_scope": "org",
+          "organization_id": "00000000-0000-4000-9000-000000000001",
+          "valid_until": null
+        },
+        {
+          "code": "approver",
+          "role_scope": "org",
+          "organization_id": "00000000-0000-4000-9000-000000000001",
+          "valid_until": "2026-11-15T01:51:07.335Z"
+        },
+        {
+          "code": "approver",
+          "role_scope": "org",
+          "organization_id": "00000000-0000-4000-9000-000000000001",
+          "valid_until": "2026-11-15T02:41:39.638Z"
+        },
+        {
+          "code": "requester",
+          "role_scope": "org",
+          "organization_id": "00000000-0000-4000-9000-000000000002",
+          "valid_until": "2027-02-08T02:56:26.853Z"
+        }
+      ],
+      "delegations": [
+        {
+          "id": "01a1dce6-9333-7000-a447-ad75a3790e7d",
+          "delegator_id": "00000000-0000-4000-9000-000000000103",
+          "delegate_id": "00000000-0000-4000-9000-000000000102",
+          "starts_at": "2026-11-15T01:51:00.000Z",
+          "ends_at": "2026-11-17T01:51:00.000Z",
+          "revoked_at": "2026-11-15T01:51:06.475Z",
+          "revoked_by": "00000000-0000-4000-9000-000000000103",
+          "revoke_reason": "UI020 片付け: 実画面確認を中止したため"
+        },
+        {
+          "id": "01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+          "delegator_id": "00000000-0000-4000-9000-000000000103",
+          "delegate_id": "00000000-0000-4000-9000-000000000102",
+          "starts_at": "2026-11-15T02:41:00.000Z",
+          "ends_at": "2026-11-17T02:41:00.000Z",
+          "revoked_at": "2026-11-15T02:41:38.708Z",
+          "revoked_by": "00000000-0000-4000-9000-000000000103",
+          "revoke_reason": "UI020 片付け: 実画面確認を中止したため"
+        }
+      ],
+      "notices": [
+        {
+          "event_type": "approval.delegation.created",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000103",
+          "subject": "[SOLVI] 代理承認の委任を作成しました",
+          "link_path": "/settings/delegations",
+          "status": "sent"
+        },
+        {
+          "event_type": "approval.delegation.created",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000102",
+          "subject": "[SOLVI] 代理承認の委任を作成しました",
+          "link_path": "/settings/delegations",
+          "status": "sent"
+        },
+        {
+          "event_type": "approval.notice.requested",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000103",
+          "subject": "[REQ-2026-000166] 承認の依頼があります",
+          "link_path": "/requests/01a1dd14-821a-7000-8916-1252eeda0377",
+          "status": "sent"
+        },
+        {
+          "event_type": "approval.notice.requested",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000102",
+          "subject": "[REQ-2026-000166] 承認の依頼があります",
+          "link_path": "/requests/01a1dd14-821a-7000-8916-1252eeda0377",
+          "status": "sent"
+        },
+        {
+          "event_type": "approval.delegation.revoked",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000103",
+          "subject": "[SOLVI] 代理承認の委任を取り消しました",
+          "link_path": "/settings/delegations",
+          "status": "sent"
+        },
+        {
+          "event_type": "approval.delegation.revoked",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000102",
+          "subject": "[SOLVI] 代理承認の委任を取り消しました",
+          "link_path": "/settings/delegations",
+          "status": "sent"
+        },
+        {
+          "event_type": "ticket.assigned",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000105",
+          "subject": "[REQ-2026-000166] 担当者が決まりました",
+          "link_path": "/tickets/01a1dd14-8217-7000-858b-f4f883085c1b",
+          "status": "sent"
+        },
+        {
+          "event_type": "ticket.transitioned",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000105",
+          "subject": "[REQ-2026-000166] 状況が更新されました",
+          "link_path": "/tickets/01a1dd14-8217-7000-858b-f4f883085c1b",
+          "status": "sent"
+        },
+        {
+          "event_type": "ticket.transitioned",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000105",
+          "subject": "[REQ-2026-000166] 状況が更新されました",
+          "link_path": "/tickets/01a1dd14-8217-7000-858b-f4f883085c1b",
+          "status": "sent"
+        },
+        {
+          "event_type": "ticket.transitioned",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000105",
+          "subject": "[REQ-2026-000166] 状況が更新されました",
+          "link_path": "/tickets/01a1dd14-8217-7000-858b-f4f883085c1b",
+          "status": "sent"
+        },
+        {
+          "event_type": "ticket.comment.added",
+          "recipient_user_id": "00000000-0000-4000-9000-000000000105",
+          "subject": "[REQ-2026-000166] 新しいコメントがあります",
+          "link_path": "/tickets/01a1dd14-8217-7000-858b-f4f883085c1b",
+          "status": "sent"
+        }
+      ],
+      "audit": [
+        {
+          "event_type": "approval.approved",
+          "n": 1
+        },
+        {
+          "event_type": "approval.delegated",
+          "n": 1
+        },
+        {
+          "event_type": "approval.delegation_revoked",
+          "n": 1
+        },
+        {
+          "event_type": "approval.requested",
+          "n": 1
+        },
+        {
+          "event_type": "approval.route.resolved",
+          "n": 1
+        },
+        {
+          "event_type": "auth.login.success",
+          "n": 18
+        },
+        {
+          "event_type": "notification.sent",
+          "n": 11
+        },
+        {
+          "event_type": "platform.org_context.switched",
+          "n": 4
+        },
+        {
+          "event_type": "request.simulated",
+          "n": 1
+        },
+        {
+          "event_type": "request.submitted",
+          "n": 1
+        },
+        {
+          "event_type": "role.binding.deleted",
+          "n": 1
+        },
+        {
+          "event_type": "ticket.assigned",
+          "n": 1
+        },
+        {
+          "event_type": "ticket.comment.added",
+          "n": 1
+        },
+        {
+          "event_type": "ticket.created",
+          "n": 1
+        },
+        {
+          "event_type": "ticket.transitioned",
+          "n": 3
+        }
+      ]
+    }
+  },
+  "checks": [
+    "request completed"
+  ],
+  "delegateNotice": {
+    "event_type": "approval.notice.requested",
+    "recipient_user_id": "00000000-0000-4000-9000-000000000102",
+    "subject": "[REQ-2026-000166] 承認の依頼があります",
+    "link_path": "/requests/01a1dd14-821a-7000-8916-1252eeda0377",
+    "status": "sent"
+  },
+  "finishedAt": "2026-11-15T02:49:18.914Z"
+}

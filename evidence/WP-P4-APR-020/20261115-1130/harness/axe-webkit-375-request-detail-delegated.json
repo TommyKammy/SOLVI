@@ -1,0 +1,10 @@
+{
+  "name": "request-detail-delegated",
+  "engine": "webkit",
+  "width": 375,
+  "dimensions": {
+    "document": 375,
+    "viewport": 375
+  },
+  "violations": []
+}

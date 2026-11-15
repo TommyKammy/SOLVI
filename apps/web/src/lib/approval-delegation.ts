@@ -43,6 +43,17 @@ export function delegationStateHint(state: unknown): string {
 }
 
 /**
+ * 一覧の状態の欄に添える補足。**「代理者が資格なし」の行にだけ**出す。
+ *
+ * この文は「今この委任では代理で承認できない」という**その行の状態**の説明であり、
+ * 委任が1件も無いときや、ほかの状態の委任しか無いときには当てはまらない。
+ * 常設の説明には置かず、状態名と結び付けて行の中に出す。
+ */
+export function delegationStateNote(state: unknown): string | null {
+  return state === 'delegate_ineligible' ? STATE_NOTES.delegate_ineligible! : null;
+}
+
+/**
  * 取消(代理者から見れば辞退)の操作を出せる状態か。
  * 取消済み・期間終了はAPIが 409 で拒否するため、入口を出さない。
  * ここは表示の制御だけであり、最終的な可否はAPIが決める。

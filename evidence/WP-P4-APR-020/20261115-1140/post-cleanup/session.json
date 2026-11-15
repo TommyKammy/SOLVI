@@ -1,0 +1,448 @@
+{
+  "screenshots": [
+    "pc-request-completed-chromium-1440.png",
+    "pc-request-completed-chromium-375.png",
+    "pc-request-completed-webkit-1440.png",
+    "pc-request-completed-webkit-375.png",
+    "pc-approval-history-chromium-1440.png",
+    "pc-approval-history-chromium-375.png",
+    "pc-approval-history-webkit-1440.png",
+    "pc-approval-history-webkit-375.png",
+    "pc-approval-record-chromium-1440.png",
+    "pc-approval-record-chromium-375.png",
+    "pc-approval-record-webkit-1440.png",
+    "pc-approval-record-webkit-375.png",
+    "pc-delegations-mine-chromium-1440.png",
+    "pc-delegations-mine-chromium-375.png",
+    "pc-delegations-mine-webkit-1440.png",
+    "pc-delegations-mine-webkit-375.png",
+    "pc-delegations-received-chromium-1440.png",
+    "pc-delegations-received-chromium-375.png",
+    "pc-delegations-received-webkit-1440.png",
+    "pc-delegations-received-webkit-375.png",
+    "pc-organization-delegations-chromium-1440.png",
+    "pc-organization-delegations-chromium-375.png",
+    "pc-organization-delegations-webkit-1440.png",
+    "pc-organization-delegations-webkit-375.png",
+    "pc-notifications-chromium-1440.png",
+    "pc-notifications-chromium-375.png",
+    "pc-notifications-webkit-1440.png",
+    "pc-notifications-webkit-375.png",
+    "pc-role-removed-chromium-1440.png",
+    "pc-role-removed-chromium-375.png",
+    "pc-role-removed-webkit-1440.png",
+    "pc-role-removed-webkit-375.png",
+    "pc-delegations-candidates-0-chromium-1440.png",
+    "pc-delegations-candidates-0-chromium-375.png",
+    "pc-delegations-candidates-0-webkit-1440.png",
+    "pc-delegations-candidates-0-webkit-375.png",
+    "pc-approvals-after-removal-chromium-1440.png",
+    "pc-approvals-after-removal-chromium-375.png",
+    "pc-approvals-after-removal-webkit-1440.png",
+    "pc-approvals-after-removal-webkit-375.png",
+    "pc-inbox-after-removal-chromium-1440.png",
+    "pc-inbox-after-removal-chromium-375.png",
+    "pc-inbox-after-removal-webkit-1440.png",
+    "pc-inbox-after-removal-webkit-375.png"
+  ],
+  "accessibility": [
+    {
+      "name": "pc-request-completed-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-request-completed-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-request-completed-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-request-completed-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-history-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-history-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-history-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-history-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-record-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-record-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-record-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approval-record-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-mine-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-mine-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-mine-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-mine-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-received-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-received-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-received-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-received-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-organization-delegations-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-organization-delegations-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-organization-delegations-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-organization-delegations-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-notifications-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-notifications-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-notifications-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-notifications-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-role-removed-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-role-removed-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-role-removed-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-role-removed-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-candidates-0-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-candidates-0-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-candidates-0-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-delegations-candidates-0-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approvals-after-removal-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approvals-after-removal-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approvals-after-removal-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-approvals-after-removal-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-inbox-after-removal-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-inbox-after-removal-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-inbox-after-removal-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "pc-inbox-after-removal-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "blocked": [],
+  "notes": []
+}

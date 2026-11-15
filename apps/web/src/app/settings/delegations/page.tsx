@@ -12,8 +12,8 @@ import {
   delegationCreatedText,
   delegationRevocable,
   delegationRevokedText,
-  delegationStateHint,
   delegationStateLabel,
+  delegationStateNote,
   findDelegation,
   jstDateTimeInput,
 } from '../../../lib/approval-delegation';
@@ -136,7 +136,6 @@ export default async function DelegationsPage({
           <li>代理者になれるのは同時に1人です。同じ期間に重なる委任は作成できません。</li>
           <li>代理者になれるのは、承認者の役割を持つ有効な所属の利用者だけです。</li>
         </ul>
-        <p className="hint">{delegationStateHint('delegate_ineligible')}</p>
         <p className="hint">
           状態は「{delegationStateLabel('scheduled')}」「{delegationStateLabel('active')}」 「
           {delegationStateLabel('ended')}」「{delegationStateLabel('revoked')}」 「
@@ -275,7 +274,7 @@ export default async function DelegationsPage({
                       <td data-label="代理者">{item.delegateName}</td>
                       <td data-label="開始">{formatDateTime(item.startsAt)}</td>
                       <td data-label="終了">{formatDateTime(item.endsAt)}</td>
-                      <td data-label="状態">{delegationStateLabel(item.state)}</td>
+                      <DelegationStateCell state={item.state} />
                       <td data-label="操作">
                         {item.relation === 'admin' && delegationRevocable(item.state)
                           ? '取消'
@@ -305,6 +304,24 @@ export default async function DelegationsPage({
 }
 
 /**
+ * 状態の欄。**「代理者が資格なし」のときだけ**、その理由を行の中に添える
+ * (常設の説明に出さない。WP-P4-APR-020 段階C の指摘)。
+ */
+function DelegationStateCell({ state }: { state: string }) {
+  const note = delegationStateNote(state);
+  return (
+    <td data-label="状態">
+      {delegationStateLabel(state)}
+      {note && (
+        <span className="hint" style={{ display: 'block' }}>
+          {note}
+        </span>
+      )}
+    </td>
+  );
+}
+
+/**
  * 委任の1行と、取り消し(辞退)の欄。狭い画面でもフォームをセルに押し込まないよう、
  * 申請の再割当と同じく行の直後に全列をまたぐ行として出す。
  */
@@ -328,7 +345,7 @@ function DelegationRows({
         <td data-label={label}>{who}</td>
         <td data-label="開始">{formatDateTime(item.startsAt)}</td>
         <td data-label="終了">{formatDateTime(item.endsAt)}</td>
-        <td data-label="状態">{delegationStateLabel(item.state)}</td>
+        <DelegationStateCell state={item.state} />
         <td data-label="操作">{revocable ? (kind === 'declined' ? '辞退' : '取消') : '—'}</td>
       </tr>
       {revocable && (

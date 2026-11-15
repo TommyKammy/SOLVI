@@ -22,6 +22,7 @@ import {
   delegationRevokedText,
   delegationRevokeFailure,
   delegationStateLabel,
+  delegationStateNote,
   jstDateTimeInput,
   jstInputToIso,
 } from '../../apps/web/src/lib/approval-delegation';
@@ -457,6 +458,52 @@ describe('委任の状態の表示 (6種類)', () => {
     expect(delegationRevocable('scheduled')).toBe(true);
     expect(delegationRevocable('delegate_ineligible')).toBe(true);
   });
+
+  it('「代理者が資格なし」の説明は、**その状態の行にだけ**出す(常設の説明に出さない)', () => {
+    const note = delegationStateNote('delegate_ineligible');
+    expect(note).toBe(
+      '代理者が今は承認者の役割を持たないか、有効な所属ではありません。この委任では代理で承認できません。',
+    );
+    // ほかの状態・未知の状態では、この文を出さない。
+    for (const state of ['scheduled', 'active', 'ended', 'revoked', 'unknown', undefined])
+      expect(delegationStateNote(state)).toBeNull();
+  });
+
+  it('委任が1件も無い/有効な委任だけの画面に、**「代理者が資格なし」の説明を出さない**', async () => {
+    const html = await renderDelegations();
+    expect(html).toContain('状態は「開始前」「有効」');
+    expect(html).not.toContain('代理者が今は承認者の役割を持たないか');
+  });
+
+  it('**「代理者が資格なし」の行**にだけ、その説明を状態と結び付けて出す', async () => {
+    vi.mocked(api.approvalDelegations).mockResolvedValue({
+      ok: true,
+      data: {
+        items: [
+          delegation(),
+          delegation({ id: revokedId, state: 'revoked' }),
+          delegation({
+            id: declinedId,
+            delegateId: otherId,
+            delegateName: '合成 資格なし代理者',
+            state: 'delegate_ineligible',
+          }),
+        ],
+        asOf: '2026-11-15T00:00:00Z',
+      },
+    } as never);
+    const html = await renderDelegations();
+    const mine = /<section[^>]*id="delegation-mine"[\s\S]*?<\/section>/.exec(html);
+    expect(mine, '自分の委任の節が無い').not.toBeNull();
+    const ineligibleRow = /<tr[^>]*data-delegation-id="08200000-0000-4000-8000-000000000007"[\s\S]*?<\/tr>/.exec(
+      mine![0],
+    );
+    expect(ineligibleRow, '資格なしの行が無い').not.toBeNull();
+    expect(ineligibleRow![0]).toContain('代理者が資格なし');
+    expect(ineligibleRow![0]).toContain('代理者が今は承認者の役割を持たないか');
+    // ほかの行(有効・取消済み)には説明を出さない。文は画面に1回だけ。
+    expect(html.match(/代理者が今は承認者の役割を持たないか/g)).toHaveLength(1);
+  });
 });
 
 describe('成功の表示は、記録のあるときだけ (WP-P4-APR-018 の教訓)', () => {
@@ -804,6 +851,44 @@ describe('代理の表示 (一覧・受信箱・詳細)', () => {
     );
     expect(html).toContain('承認の記録');
     expect(html).toContain('承認者: 合成 委任者（代理: 合成 代理者）');
+  });
+
+  it('**現在の版の承認の記録**でも「承認者: ◯◯（代理: △△）」を出す(段階C2の不具合)', async () => {
+    vi.mocked(api.requestDetail).mockResolvedValue({
+      ok: true,
+      data: detail({
+        request: { ...detail().request, revision: 1 },
+        history: [
+          {
+            id: '08200000-0000-4000-8000-00000000000e',
+            state: 'approved',
+            revision: 1,
+            stepNo: 1,
+            routeGeneration: 1,
+            invalidatedByReassign: false,
+            delegated: true,
+            decidedBy: otherId,
+            decidedByName: '合成 代理者',
+            approverId: meId,
+            approverName: '合成 委任者',
+            item: { version: 1, definition },
+            inputs: { reason: '合成理由', durationDays: 7 },
+            reason: null,
+            decidedAt: '2026-11-10T03:00:00Z',
+            expiresAt: '2100-01-01T00:00:00Z',
+          },
+        ],
+      }),
+    } as never);
+    const html = renderToStaticMarkup(
+      await RequestPage({
+        params: Promise.resolve({ id: requestId }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+    const record = /<ul class="attachments">([\s\S]*?)<\/ul>/.exec(html);
+    expect(record, '承認の記録が無い').not.toBeNull();
+    expect(record![1]).toContain('承認者: 合成 委任者（代理: 合成 代理者）');
   });
 
   it('**委任の無い申請では「（代理:」を出さない**', async () => {

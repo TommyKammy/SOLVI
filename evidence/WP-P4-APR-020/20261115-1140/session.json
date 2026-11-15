@@ -1,0 +1,528 @@
+{
+  "screenshots": [
+    "s02-delegations-candidates-0-chromium-1440.png",
+    "s02-delegations-candidates-0-chromium-375.png",
+    "s02-delegations-candidates-0-webkit-1440.png",
+    "s02-delegations-candidates-0-webkit-375.png",
+    "s03-catalog-request-approver-chromium-1440.png",
+    "s03-catalog-request-approver-chromium-375.png",
+    "s03-catalog-request-approver-webkit-1440.png",
+    "s03-catalog-request-approver-webkit-375.png",
+    "s04-role-granted-chromium-1440.png",
+    "s04-role-granted-chromium-375.png",
+    "s04-role-granted-webkit-1440.png",
+    "s04-role-granted-webkit-375.png",
+    "s05-delegation-created-notice-chromium-1440.png",
+    "s05-delegation-created-notice-chromium-375.png",
+    "s05-delegation-created-notice-webkit-1440.png",
+    "s05-delegation-created-notice-webkit-375.png",
+    "s05b-delegation-created-chromium-1440.png",
+    "s05b-delegation-created-chromium-375.png",
+    "s05b-delegation-created-webkit-1440.png",
+    "s05b-delegation-created-webkit-375.png",
+    "s05c-delegation-too-long-error-chromium-1440.png",
+    "s05c-delegation-too-long-error-chromium-375.png",
+    "s05c-delegation-too-long-error-webkit-1440.png",
+    "s05c-delegation-too-long-error-webkit-375.png",
+    "s06-request-created-chromium-1440.png",
+    "s06-request-created-chromium-375.png",
+    "s06-request-created-webkit-1440.png",
+    "s06-request-created-webkit-375.png",
+    "s07-delegations-received-chromium-1440.png",
+    "s07-delegations-received-chromium-375.png",
+    "s07-delegations-received-webkit-1440.png",
+    "s07-delegations-received-webkit-375.png",
+    "s07-approvals-delegated-chromium-1440.png",
+    "s07-approvals-delegated-chromium-375.png",
+    "s07-approvals-delegated-webkit-1440.png",
+    "s07-approvals-delegated-webkit-375.png",
+    "s07-inbox-delegated-chromium-1440.png",
+    "s07-inbox-delegated-chromium-375.png",
+    "s07-inbox-delegated-webkit-1440.png",
+    "s07-inbox-delegated-webkit-375.png",
+    "s07-request-delegated-chromium-1440.png",
+    "s07-request-delegated-chromium-375.png",
+    "s07-request-delegated-webkit-1440.png",
+    "s07-request-delegated-webkit-375.png",
+    "cleanup-delegations-candidates-0-chromium-1440.png",
+    "cleanup-delegations-candidates-0-chromium-375.png",
+    "cleanup-delegations-candidates-0-webkit-1440.png",
+    "cleanup-delegations-candidates-0-webkit-375.png",
+    "cleanup-approvals-chromium-1440.png",
+    "cleanup-approvals-chromium-375.png",
+    "cleanup-approvals-webkit-1440.png",
+    "cleanup-approvals-webkit-375.png"
+  ],
+  "accessibility": [
+    {
+      "name": "s02-delegations-candidates-0-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s02-delegations-candidates-0-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s02-delegations-candidates-0-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s02-delegations-candidates-0-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s03-catalog-request-approver-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s03-catalog-request-approver-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s03-catalog-request-approver-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s03-catalog-request-approver-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s04-role-granted-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s04-role-granted-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s04-role-granted-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s04-role-granted-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05-delegation-created-notice-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05-delegation-created-notice-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05-delegation-created-notice-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05-delegation-created-notice-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05b-delegation-created-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05b-delegation-created-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05b-delegation-created-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05b-delegation-created-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05c-delegation-too-long-error-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05c-delegation-too-long-error-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05c-delegation-too-long-error-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s05c-delegation-too-long-error-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s06-request-created-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s06-request-created-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s06-request-created-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s06-request-created-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-delegations-received-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-delegations-received-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-delegations-received-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-delegations-received-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-approvals-delegated-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-approvals-delegated-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-approvals-delegated-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-approvals-delegated-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-inbox-delegated-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-inbox-delegated-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-inbox-delegated-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-inbox-delegated-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-request-delegated-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-request-delegated-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-request-delegated-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "s07-request-delegated-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-delegations-candidates-0-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-delegations-candidates-0-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-delegations-candidates-0-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-delegations-candidates-0-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-approvals-chromium-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-approvals-chromium-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-approvals-webkit-1440",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": []
+    },
+    {
+      "name": "cleanup-approvals-webkit-375",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": []
+    }
+  ],
+  "blocked": [],
+  "notes": []
+}

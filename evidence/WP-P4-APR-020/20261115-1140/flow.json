@@ -1,0 +1,468 @@
+{
+  "workPackage": "WP-P4-APR-020",
+  "stage": "C2",
+  "marker": "UI020",
+  "startedAt": "2026-11-15T02:40:31.838Z",
+  "commitSha": "b8c7aee2390a2e012b2cca5b7954a731973a484b",
+  "output": "/Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/c2/preflight-evidence",
+  "itemId": "01a1c3ae-76f2-7000-b156-6f86a95615ba",
+  "ids": {
+    "adminUser": "00000000-0000-4000-9000-000000000101",
+    "delegatorUser": "00000000-0000-4000-9000-000000000103",
+    "delegateUser": "00000000-0000-4000-9000-000000000102",
+    "requesterUser": "00000000-0000-4000-9000-000000000105",
+    "request": "01a1dd14-821a-7000-8916-1252eeda0377",
+    "requestNumber": "REQ-2026-000166",
+    "delegation1": "01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+    "delegation2": null,
+    "approvalStep": "01a1dd14-821a-7001-bff4-4eec25006aa3"
+  },
+  "applied": {
+    "roleGranted": true,
+    "delegation1Created": true,
+    "requestCreated": true,
+    "delegatedApproval": true,
+    "simulated": false,
+    "delegation1Revoked": false,
+    "delegation2Created": false,
+    "delegation2Declined": false,
+    "roleRevoked": false
+  },
+  "times": {
+    "roleGrantedAt": "2026-11-15T02:40:56.660Z",
+    "delegation1CreatedAt": "2026-11-15T02:41:01.522Z",
+    "requestCreatedAt": "2026-11-15T02:41:15.270Z",
+    "approvedAt": "2026-11-15T02:41:37.756Z",
+    "completedAt": null,
+    "delegation1RevokedAt": null,
+    "delegation2CreatedAt": null,
+    "delegation2DeclinedAt": null,
+    "roleRevokedAt": null
+  },
+  "checks": [
+    {
+      "name": "preflight",
+      "passed": true
+    },
+    {
+      "name": "grant-approver-role",
+      "passed": true
+    },
+    {
+      "name": "create-delegation-1",
+      "passed": true
+    },
+    {
+      "name": "create-form-keyboard-and-too-long",
+      "passed": true
+    },
+    {
+      "name": "create-request",
+      "passed": true
+    },
+    {
+      "name": "delegate-visibility",
+      "passed": true
+    }
+  ],
+  "keyboard": {
+    "createDryRun": {
+      "chromium": {
+        "engine": "chromium",
+        "focusStyle": {
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+        },
+        "chosenDelegate": "",
+        "checked": true,
+        "order": [
+          {
+            "tag": "SELECT",
+            "name": "delegateId",
+            "type": null
+          },
+          {
+            "tag": "INPUT",
+            "name": "startsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "endsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "confirm",
+            "type": "checkbox"
+          },
+          {
+            "tag": "BUTTON",
+            "name": null,
+            "type": "submit"
+          }
+        ],
+        "stillOnPage": true
+      },
+      "webkit": {
+        "engine": "webkit",
+        "focusStyle": {
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "none"
+        },
+        "chosenDelegate": "",
+        "checked": true,
+        "order": [
+          {
+            "tag": "SELECT",
+            "name": "delegateId",
+            "type": null
+          },
+          {
+            "tag": "INPUT",
+            "name": "startsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "endsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "confirm",
+            "type": "checkbox"
+          },
+          {
+            "tag": "BUTTON",
+            "name": null,
+            "type": "submit"
+          }
+        ],
+        "stillOnPage": true
+      }
+    },
+    "create": {
+      "chromium": {
+        "engine": "chromium",
+        "focusStyle": {
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "rgba(39, 108, 240, 0.15) 0px 0px 0px 3px"
+        },
+        "chosenDelegate": "",
+        "checked": true,
+        "order": [
+          {
+            "tag": "SELECT",
+            "name": "delegateId",
+            "type": null
+          },
+          {
+            "tag": "INPUT",
+            "name": "startsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "endsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "confirm",
+            "type": "checkbox"
+          },
+          {
+            "tag": "BUTTON",
+            "name": null,
+            "type": "submit"
+          }
+        ],
+        "stillOnPage": true
+      },
+      "webkit": {
+        "engine": "webkit",
+        "focusStyle": {
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "none"
+        },
+        "chosenDelegate": "",
+        "checked": true,
+        "order": [
+          {
+            "tag": "SELECT",
+            "name": "delegateId",
+            "type": null
+          },
+          {
+            "tag": "INPUT",
+            "name": "startsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "endsAt",
+            "type": "datetime-local"
+          },
+          {
+            "tag": "INPUT",
+            "name": "confirm",
+            "type": "checkbox"
+          },
+          {
+            "tag": "BUTTON",
+            "name": null,
+            "type": "submit"
+          }
+        ],
+        "stillOnPage": true
+      }
+    }
+  },
+  "db": {
+    "countsBefore": {
+      "app_user": 15,
+      "role_binding": 27,
+      "org_member_profile": 15,
+      "local_service_request": 18,
+      "local_request_revision": 23,
+      "local_request_approval": 30,
+      "local_request_route_generation": 2,
+      "approval_delegation": 1,
+      "local_request_approval_notice": 8,
+      "outbox_event": 456,
+      "notification": 99,
+      "department": 22,
+      "approval_rule": 14,
+      "local_catalog_item": 26,
+      "audit_event": 2066,
+      "schema_migration": 42,
+      "migrationCount": 42,
+      "lastMigration": "0042"
+    },
+    "profileRow": [
+      {
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "primary_department_id": null,
+        "manager_user_id": null
+      }
+    ],
+    "targetRolesBefore": [
+      {
+        "code": "agent",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_until": null
+      },
+      {
+        "code": "approver",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_until": "2026-11-15T01:51:07.335Z"
+      },
+      {
+        "code": "requester",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000002",
+        "valid_until": "2027-02-08T02:56:26.853Z"
+      }
+    ],
+    "delegationsBefore": [
+      {
+        "id": "01a1dce6-9333-7000-a447-ad75a3790e7d",
+        "delegator_id": "00000000-0000-4000-9000-000000000103",
+        "delegate_id": "00000000-0000-4000-9000-000000000102",
+        "starts_at": "2026-11-15T01:51:00.000Z",
+        "ends_at": "2026-11-17T01:51:00.000Z",
+        "revoked_at": "2026-11-15T01:51:06.475Z",
+        "revoke_reason": "UI020 片付け: 実画面確認を中止したため"
+      }
+    ],
+    "catalogApprover": "設定された承認者: サンプル株式会社 approver",
+    "roleBindingAfterGrant": [
+      {
+        "code": "agent",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_from": "2026-11-10T02:56:26.853Z",
+        "valid_until": null
+      },
+      {
+        "code": "approver",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_from": "2026-11-15T01:50:56.134Z",
+        "valid_until": "2026-11-15T01:51:07.335Z"
+      },
+      {
+        "code": "approver",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000001",
+        "valid_from": "2026-11-15T02:40:54.508Z",
+        "valid_until": null
+      },
+      {
+        "code": "requester",
+        "role_scope": "org",
+        "organization_id": "00000000-0000-4000-9000-000000000002",
+        "valid_from": "2026-11-10T02:56:26.853Z",
+        "valid_until": "2027-02-08T02:56:26.853Z"
+      }
+    ],
+    "delegation1Row": {
+      "delegator_id": "00000000-0000-4000-9000-000000000103",
+      "delegate_id": "00000000-0000-4000-9000-000000000102",
+      "starts_at": "2026-11-15T02:41:00.000Z",
+      "ends_at": "2026-11-17T02:41:00.000Z",
+      "revoked_at": null,
+      "created_by": "00000000-0000-4000-9000-000000000103"
+    },
+    "tooLongRefusal": {
+      "errorText": "保存・送信できませんでした\n\n入力内容を確認してください。\n\n終了: 期間は30日以内にしてください\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。",
+      "totalRowsAfter": 2
+    },
+    "beforeApproval": {
+      "request": {
+        "state": "pending",
+        "revision": 1,
+        "current_approval_id": "01a1dd14-821a-7001-bff4-4eec25006aa3",
+        "snapshot_hash": "085e760edc8ab77f7604e20751cc4dc63298d080851f7862e4e76b734791cce3"
+      },
+      "revisions": [
+        {
+          "revision": 1,
+          "route": {
+            "steps": [
+              {
+                "stepNo": 1,
+                "approverId": "00000000-0000-4000-9000-000000000103",
+                "resolvedFrom": "fixed",
+                "authorityType": "fixed"
+              }
+            ],
+            "ruleRef": null
+          },
+          "route_hash": "127a0d49cf9aa15ebee3a35a8d204c8f28c6617b3975a62545c70df08423f011",
+          "route_generation": 1
+        }
+      ],
+      "steps": [
+        {
+          "id": "01a1dd14-821a-7001-bff4-4eec25006aa3",
+          "step_no": 1,
+          "route_generation": 1,
+          "authority_type": "fixed",
+          "approver_id": "00000000-0000-4000-9000-000000000103",
+          "decided_by": null,
+          "delegation_id": null,
+          "state": "pending",
+          "decided_at": null,
+          "expires_at": "2026-11-18T02:41:11.249Z"
+        }
+      ],
+      "generations": []
+    },
+    "afterApproval": {
+      "request": {
+        "state": "approved",
+        "revision": 1,
+        "current_approval_id": "01a1dd14-821a-7001-bff4-4eec25006aa3",
+        "snapshot_hash": "085e760edc8ab77f7604e20751cc4dc63298d080851f7862e4e76b734791cce3"
+      },
+      "revisions": [
+        {
+          "revision": 1,
+          "route": {
+            "steps": [
+              {
+                "stepNo": 1,
+                "approverId": "00000000-0000-4000-9000-000000000103",
+                "resolvedFrom": "fixed",
+                "authorityType": "fixed"
+              }
+            ],
+            "ruleRef": null
+          },
+          "route_hash": "127a0d49cf9aa15ebee3a35a8d204c8f28c6617b3975a62545c70df08423f011",
+          "route_generation": 1
+        }
+      ],
+      "steps": [
+        {
+          "id": "01a1dd14-821a-7001-bff4-4eec25006aa3",
+          "step_no": 1,
+          "route_generation": 1,
+          "authority_type": "fixed",
+          "approver_id": "00000000-0000-4000-9000-000000000103",
+          "decided_by": "00000000-0000-4000-9000-000000000102",
+          "delegation_id": "01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+          "state": "approved",
+          "decided_at": "2026-11-15T02:41:37.747Z",
+          "expires_at": "2026-11-18T02:41:11.249Z"
+        }
+      ],
+      "generations": []
+    },
+    "approvedStep": {
+      "id": "01a1dd14-821a-7001-bff4-4eec25006aa3",
+      "step_no": 1,
+      "route_generation": 1,
+      "authority_type": "fixed",
+      "approver_id": "00000000-0000-4000-9000-000000000103",
+      "decided_by": "00000000-0000-4000-9000-000000000102",
+      "delegation_id": "01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+      "state": "approved",
+      "decided_at": "2026-11-15T02:41:37.747Z",
+      "expires_at": "2026-11-18T02:41:11.249Z"
+    },
+    "approvalAudit": {
+      "eventType": "approval.approved",
+      "actorId": "00000000-0000-4000-9000-000000000102",
+      "afterState": {
+        "stepNo": 1,
+        "revision": 1,
+        "delegated": true,
+        "finalStep": true,
+        "stepCount": 1,
+        "delegateId": "00000000-0000-4000-9000-000000000102",
+        "delegatorId": "00000000-0000-4000-9000-000000000103",
+        "delegationId": "01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+        "requestState": "approved",
+        "authorityType": "fixed",
+        "routeGeneration": 1
+      },
+      "approvalRef": "01a1dd14-821a-7001-bff4-4eec25006aa3",
+      "occurredAt": "2026-11-15T02:41:37.741Z"
+    }
+  },
+  "failures": [],
+  "cleanup": {
+    "attempted": true,
+    "steps": [
+      {
+        "name": "revoke delegation 01a1dd14-5c10-7000-a5ef-f6bfc4f25062",
+        "ok": true
+      },
+      {
+        "name": "remove the temporary approver role",
+        "ok": true
+      }
+    ],
+    "errors": [],
+    "remainingRoles": [
+      "agent"
+    ],
+    "openDelegations": 0
+  },
+  "currentStep": "delegated-approval",
+  "stoppedAfter": "preflight",
+  "finishedAt": "2026-11-15T02:40:51.966Z",
+  "failure": {
+    "step": "delegated-approval",
+    "message": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '00000000-0000-4000-9000-000000000103'\n- '00000000-0000-4000-9000-000000000102'\n                                      ^\n\n    at file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/c2/flow.mjs:823:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async step (file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/c2/flow.mjs:155:3)\n    at async run (file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/c2/flow.mjs:751:3)\n    at async file:///Users/jp.infra/Dev/SOLVI/.local/tmp/wp020/c2/flow.mjs:1298:3"
+  }
+}

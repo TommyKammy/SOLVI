@@ -319,6 +319,9 @@ export default async function RequestPage({
               {version.rows.length === 1 && (
                 <p>
                   承認者: {version.rows[0]!.approverName}
+                  {version.rows[0]!.delegated && version.rows[0]!.decidedByName
+                    ? `（代理: ${version.rows[0]!.decidedByName}）`
+                    : ''}
                   {version.rows[0]!.inputs.durationDays !== undefined &&
                     ` · 利用日数: ${version.rows[0]!.inputs.durationDays}日`}
                 </p>
