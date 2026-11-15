@@ -10,6 +10,14 @@
 //    2 people with profile changes, 1 catalog item, 3 requests
 //  - a re-run with a previous summary performs read-only reconciliation
 //  - cleanup always tries to disable organisation-wide routing first
+//
+// WP-P4-APR-021 (phase `wp021`) の前提データ(開発用DB。利用者の承認を得てから用意する):
+//  1. 組織で承認ルールの使用が有効であること(`/ops/approvals` の「組織での使用」)。
+//  2. 別人の固定承認者を2段持つ有効な承認ルール(スクリプトが UI で作成する)。
+//  3. 2人目の固定承認者にする合成アカウントに `approver` ロール
+//     (スクリプトが `agent@acme.example.test` へ一時的に付与し、最後に取り消す)。
+//  これ以外の開発用データは変更しない。高リスクの項目・申請・委任は合成の印を付けて
+//  スクリプトが作成し、最後に片付ける。
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -39,15 +47,23 @@ assert.ok(
     'wp018resume',
     'wp018cleanup',
     'wp020',
+    'wp021',
   ].includes(phase),
   `Unknown phase ${phase}`,
 );
 const wp018Phase = phase.startsWith('wp018');
 const wp020Phase = phase === 'wp020';
+const wp021Phase = phase === 'wp021';
 const output = resolve(
   process.env.SOLVI_UI_OUT ??
     `evidence/${
-      wp020Phase ? 'WP-P4-APR-020' : wp018Phase ? 'WP-P4-APR-018' : 'WP-P4-APR-016'
+      wp021Phase
+        ? 'WP-P4-APR-021'
+        : wp020Phase
+          ? 'WP-P4-APR-020'
+          : wp018Phase
+            ? 'WP-P4-APR-018'
+            : 'WP-P4-APR-016'
     }/browser/${engine}`,
 );
 const MAX_RULES = 2;
@@ -90,7 +106,8 @@ try {
 }
 if (previous) {
   assert.equal(previous.browser, engine, 'The previous summary belongs to another browser');
-  if (wp020Phase) assert.match(previous.marker, /^UI020-SYN-\d+-(chromium|webkit)$/);
+  if (wp021Phase) assert.match(previous.marker, /^UI021-SYN-\d+-(chromium|webkit)$/);
+  else if (wp020Phase) assert.match(previous.marker, /^UI020-SYN-\d+-(chromium|webkit)$/);
   else if (wp018Phase) assert.match(previous.marker, /^UI018-SYN-\d+-(chromium|webkit)$/);
   else assert.match(previous.marker, /^UI016B-SYN-\d+-(chromium|webkit)$/);
 }
@@ -123,6 +140,19 @@ const wp020Marker = `UI020-SYN-${Date.now()}-${engine}`;
 const wp020RoleReason = `UI020 ブラウザ確認のため一時的に承認者の役割を与える（${engine}）`;
 const wp020DelegationReason = `UI020 合成: 委任の取消（${engine}）`;
 
+// WP-P4-APR-021 stage B (phase `wp021`): a high-risk item with a two-step fixed rule,
+// requester submits, both fixed approvers approve, staff records the simulation,
+// rule deactivation is rejected with the affected items, and the delegate cannot see
+// the high-risk request. Prerequisites are listed in the header comment.
+const wp021Marker = `UI021-SYN-${Date.now()}-${engine}`;
+const wp021RuleCode = `ui021-syn-${Date.now()}-${engine}`;
+const wp021RuleName = `UI021 合成 高リスク2段 ${engine}`;
+const wp021ItemTitle = `UI021 合成 高リスク申請 ${wp021Marker}`;
+const wp021RoleReason = `UI021 ブラウザ確認のため一時的に承認者の役割を与える（${engine}）`;
+const wp021DelegationReason = `UI021 合成: 委任の取消（${engine}）`;
+const wp021ApproverEmail = 'approver@acme.example.test';
+const wp021SecondApproverEmail = 'agent@acme.example.test';
+
 let report = previous
   ? {
       ...previous,
@@ -131,10 +161,10 @@ let report = previous
       blocked: [],
     }
   : {
-      workPackage: 'WP-P4-APR-016',
+      workPackage: wp021Phase ? 'WP-P4-APR-021' : 'WP-P4-APR-016',
       stage: 'B',
       browser: engine,
-      marker,
+      marker: wp021Phase ? wp021Marker : marker,
       success: false,
       createdAt: new Date().toISOString(),
       base: base.origin,
@@ -3407,6 +3437,354 @@ async function wp020Run(admin) {
   await check('WP020 組織のすべての委任', () => wp020OrganizationList(admin));
 }
 
+/* ------------------------------------------------------------------ */
+/* WP-P4-APR-021: 高リスク申請の二重承認(画面)                        */
+/* ------------------------------------------------------------------ */
+
+async function wp021Preflight() {
+  const routing = await readApi('org_admin', '/approval-routing');
+  assert.equal(
+    routing.setting?.enabled,
+    true,
+    'The organisation-wide approval-rule routing must be enabled before this phase',
+  );
+  const users = (await readApi('org_admin', '/users')).items;
+  const first = userByEmail(users, wp021ApproverEmail);
+  const second = userByEmail(users, wp021SecondApproverEmail);
+  assert.ok(first, 'The first fixed approver must exist in the seed');
+  assert.ok(second, 'The second synthetic account must exist in the seed');
+  assert.ok(first.roleCodes.includes('approver'), 'The first fixed approver must hold approver');
+  report.ids.approverUser = first.userId;
+  report.ids.secondApproverUser = second.userId;
+  const existing = (await readApi('org_admin', '/service-requests?view=all')).items.filter(
+    (entry) => String(entry.title ?? '').includes('UI021'),
+  );
+  assert.ok(existing.length === 0, `UI021 requests must not remain (${existing.length} found)`);
+}
+
+async function wp021GrantSecondApprover(admin) {
+  const users = (await readApi('org_admin', '/users')).items;
+  const second = userByEmail(users, wp021SecondApproverEmail);
+  if (second.roleCodes.includes('approver')) return;
+  await go(admin, `/ops/users?selected=${second.userId}`);
+  const details = admin.locator('details.user-action').filter({ hasText: '役割を変える' });
+  await details.locator('summary').click();
+  const form = admin.getByRole('form', { name: 'サンプル株式会社 approverの役割を与える' });
+  await form.getByLabel('与える役割', { exact: true }).selectOption('approver');
+  await form.getByLabel('付与の理由', { exact: true }).fill(wp021RoleReason);
+  report.applied.roleGranted = true;
+  await submit(
+    admin,
+    form.getByRole('button', { name: '役割を与える', exact: true }),
+    (url) => url.searchParams.get('notice') === 'granted',
+  );
+  report.writes.roleGrants += 1;
+  await admin.locator('#directory-notice').waitFor();
+  const after = (await readApi('org_admin', '/users')).items;
+  assert.ok(
+    userByEmail(after, wp021SecondApproverEmail).roleCodes.includes('approver'),
+    'The second synthetic account must hold approver',
+  );
+}
+
+async function wp021CreateRule(admin) {
+  await go(admin, '/ops/approvals');
+  await admin.locator('#approval-create').waitFor();
+  await admin.locator('#approval-create-code').fill(wp021RuleCode);
+  await admin.locator('#approval-create-name').fill(wp021RuleName);
+  await admin.locator('#approval-create-step-type-0').selectOption('fixed');
+  await admin.locator('#approval-create-step-approver-0').selectOption(report.ids.approverUser);
+  await admin.locator('#approval-create-step-type-1').selectOption('fixed');
+  await admin
+    .locator('#approval-create-step-approver-1')
+    .selectOption(report.ids.secondApproverUser);
+  await submit(
+    admin,
+    admin.getByRole('button', { name: '承認ルールを作成する', exact: true }),
+    (url) => url.searchParams.get('notice') === 'created',
+  );
+  report.ids.rule = new URL(admin.url()).searchParams.get('rule');
+  assert.ok(report.ids.rule, 'The created rule id is required');
+  report.ids.ruleCode = wp021RuleCode;
+  await desktop(admin, 'wp021-rule-created');
+}
+
+async function wp021CreateCatalog(admin) {
+  await go(admin, '/catalog/manage/new');
+  await admin.locator('#catalog-title').fill(wp021ItemTitle);
+  await admin
+    .locator('#catalog-description')
+    .fill('UI021 の高リスク二重承認を確認するための合成項目です。');
+  await admin.locator('#catalog-approver').selectOption(report.ids.approverUser);
+  await admin.locator('#catalog-approval-rule').selectOption(report.ids.rule);
+  await admin.locator('#catalog-high-risk').check();
+  await submit(
+    admin,
+    admin.getByRole('button', { name: '下書きを保存してプレビューする', exact: true }),
+    (url) => url.pathname.startsWith('/catalog/manage/') && url.searchParams.get('saved') === '1',
+  );
+  report.ids.catalogItem = new URL(admin.url()).pathname.split('/').at(-1);
+  assert.ok(report.ids.catalogItem, 'The catalog item id is required');
+  report.applied.catalogCreated = true;
+  report.writes.catalogCreated += 1;
+  await desktop(admin, 'wp021-catalog-high-risk');
+
+  await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
+  await submit(
+    admin,
+    admin.getByRole('button', { name: /保存済みの下書き版\d+を公開する/ }),
+    (url) => url.searchParams.get('saved') === '1',
+  );
+  report.applied.catalogPublished = true;
+  report.writes.catalogPublished += 1;
+  const published = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+  assert.equal(published.active, true, 'The UI021 item must be published');
+  assert.equal(published.highRisk, true, 'The draft must be high risk');
+  assert.equal(published.publishedHighRisk, true, 'The published revision must be high risk');
+  assert.equal(published.draft.definition.approval?.highRisk, true);
+}
+
+async function wp021CreateRequest() {
+  const requester = await actor('requester');
+  await go(requester, `/catalog/${report.ids.catalogItem}`);
+  await requester
+    .locator('[role="note"]')
+    .filter({ hasText: 'この申請は2名の承認が必要です' })
+    .waitFor();
+  await desktop(requester, 'wp021-request-form');
+  await requester.locator('#request-reason').fill('UI021 合成: 2名の承認を確認する申請です。');
+  await submit(
+    requester,
+    requester.getByRole('button', { name: '申請する（模擬）', exact: true }),
+    (url) => url.pathname.startsWith('/requests/'),
+  );
+  report.ids.request = new URL(requester.url()).pathname.split('/').at(-1);
+  assert.ok(report.ids.request, 'The request id is required');
+  report.applied.requestsCreated = true;
+  report.writes.requestsCreated += 1;
+  const list = await readApi('org_admin', '/service-requests?view=all');
+  const row = list.items.find((entry) => entry.id === report.ids.request);
+  assert.ok(row, 'The high-risk request must be listed');
+  report.ids.requestNumber = row.number;
+  const detail = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(detail.highRisk, true, 'The request snapshot must be high risk');
+  assert.equal(detail.request.state, 'pending');
+  assert.equal(detail.effectiveSteps.length, 2);
+}
+
+async function wp021DelegationHidden() {
+  const approver = await actor('approver');
+  await go(approver, '/settings/delegations');
+  await approver.locator('#delegation-mine').waitFor();
+  await approver.locator('select[name="delegateId"]').selectOption(report.ids.secondApproverUser);
+  await approver.getByLabel('開始（日本時間・JST）', { exact: true }).fill(jstInputValue(0));
+  await approver
+    .getByLabel('終了（日本時間・JST）', { exact: true })
+    .fill(jstInputValue(2 * 24 * 60 * 60 * 1000));
+  await approver.getByLabel(/この人が自分宛ての承認を判断できることを確認しました/).check();
+  await submit(
+    approver,
+    approver.getByRole('button', { name: '委任を作成する', exact: true }),
+    (url) => url.searchParams.get('created') !== null,
+  );
+  report.ids.delegation = new URL(approver.url()).searchParams.get('created');
+  assert.ok(report.ids.delegation, 'The delegation id is required');
+  report.applied.delegationCreated = true;
+  report.writes.delegationsCreated += 1;
+
+  const delegate = await actor('agent');
+  await go(delegate, '/requests?view=approvals');
+  const visible = await readApi('agent', '/service-requests?view=approvals');
+  assert.ok(
+    !visible.items.some((entry) => entry.id === report.ids.request),
+    'A high-risk request must not be visible through a delegation',
+  );
+  assert.equal(
+    await delegate.locator('li.attachment').filter({ hasText: report.ids.requestNumber }).count(),
+    0,
+    'The delegated approval list must not show the high-risk request',
+  );
+  const denied = await delegate
+    .context()
+    .request.get(new URL(`/service-requests/${report.ids.request}`, apiBase).href);
+  assert.equal(denied.status(), 404, 'The high-risk detail must be invisible to the delegate');
+
+  await go(approver, '/settings/delegations');
+  const details = approver.locator('details').filter({ hasText: '委任を取り消す' });
+  await details.locator('summary').click();
+  const form = details.locator('form');
+  await form.getByLabel('取消の理由', { exact: true }).fill(wp021DelegationReason);
+  await form.getByLabel(/この委任を取り消し/).check();
+  await submit(
+    approver,
+    form.getByRole('button', { name: '取り消す', exact: true }),
+    (url) => url.searchParams.get('revoked') === report.ids.delegation,
+  );
+  report.applied.delegationRevoked = true;
+  report.writes.delegationsRevoked += 1;
+}
+
+async function wp021ApproveFirst() {
+  const approver = await actor('approver');
+  await go(approver, `/requests/${report.ids.request}`);
+  await approver.locator('#request-detail-high-risk-note').waitFor();
+  await desktop(approver, 'wp021-request-detail-high-risk');
+  await submit(
+    approver,
+    approver.getByRole('button', { name: '承認する', exact: true }),
+    (url) => url.searchParams.get('saved') === '1',
+  );
+  const detail = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(detail.effectiveSteps[0].state, 'approved');
+  assert.equal(detail.effectiveSteps[0].decidedBy, report.ids.approverUser);
+  assert.equal(detail.effectiveSteps[1].state, 'pending');
+}
+
+async function wp021ApproveSecond() {
+  const second = await actor('agent');
+  await go(second, `/requests/${report.ids.request}`);
+  await submit(
+    second,
+    second.getByRole('button', { name: '承認する', exact: true }),
+    (url) => url.searchParams.get('saved') === '1',
+  );
+  const approved = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(approved.effectiveSteps[0].state, 'approved');
+  assert.equal(approved.effectiveSteps[1].state, 'approved');
+  assert.equal(approved.effectiveSteps[1].decidedBy, report.ids.secondApproverUser);
+  assert.equal(approved.request.state, 'approved');
+  await submit(
+    second,
+    second.getByRole('button', { name: 'ローカルで模擬実行する', exact: true }),
+    (url) => url.searchParams.get('saved') === '1',
+  );
+  const completed = await readApi('org_admin', `/service-requests/${report.ids.request}`);
+  assert.equal(completed.request.state, 'completed');
+  await desktop(second, 'wp021-request-completed');
+}
+
+async function wp021RuleDeactivationBlocked(admin) {
+  const item = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+  await go(admin, `/ops/approvals?rule=${report.ids.rule}`);
+  const deactivateLink = admin.locator('#approval-deactivate-link');
+  await deactivateLink.waitFor();
+  await deactivateLink.click();
+  await admin.locator('#approval-deactivate-submit').waitFor();
+  await submit(
+    admin,
+    admin.locator('#approval-deactivate-submit'),
+    (url) => url.searchParams.get('error') !== null,
+  );
+  const error = admin.locator('#approval-error');
+  await error.waitFor();
+  const text = await error.innerText();
+  assert.match(text, /公開中の高リスクの項目が条件を満たさなくなるため、変更できません。/);
+  assert.ok(text.includes(`${item.code}: ${item.title}`), 'The affected item must be listed');
+  assert.ok(!text.includes('high_risk_definition_blocked'), 'The code must not be shown');
+  await desktop(admin, 'wp021-rule-deactivation-blocked');
+}
+
+async function wp021Cleanup(admin) {
+  report.cleanup = { attempted: true, complete: false, steps: [], errors: [] };
+  const step = async (name, run) => {
+    try {
+      await run();
+      report.cleanup.steps.push({ name, ok: true });
+    } catch (error) {
+      report.cleanup.errors.push({
+        name,
+        message: String(error?.message ?? error).replaceAll(password, '<redacted>'),
+      });
+    }
+  };
+  if (report.applied.delegationCreated && !report.applied.delegationRevoked) {
+    await step('委任の取消', async () => {
+      const approver = await actor('approver');
+      await go(approver, '/settings/delegations');
+      const details = approver.locator('details').filter({ hasText: '委任を取り消す' });
+      if ((await details.count()) > 0) {
+        await details.locator('summary').click();
+        const form = details.locator('form');
+        await form
+          .getByLabel('取消の理由', { exact: true })
+          .fill(`${wp021DelegationReason}: 確認後の片付け`);
+        await form.getByLabel(/この委任を取り消し/).check();
+        await submit(
+          approver,
+          form.getByRole('button', { name: '取り消す', exact: true }),
+          (url) => url.searchParams.get('revoked') !== null,
+        );
+        report.writes.delegationsRevoked += 1;
+      }
+    });
+  }
+  if (report.ids.catalogItem && report.applied.catalogPublished) {
+    await step('合成カタログ項目を非公開にする', async () => {
+      const detail = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+      if (!detail.active) return;
+      await go(admin, `/catalog/manage/${report.ids.catalogItem}`);
+      const unpublish = admin.getByRole('button', { name: /新規受付を停止する/ });
+      if ((await unpublish.count()) === 0) return;
+      await submit(admin, unpublish, (url) => url.searchParams.get('saved') === '1');
+      report.writes.catalogUnpublished += 1;
+      report.applied.catalogUnpublished = true;
+    });
+  }
+  if (report.ids.rule) {
+    await step('合成の承認ルールを無効化する', async () => {
+      const rules = (await readApi('org_admin', '/approval-rules')).items;
+      const rule = rules.find((entry) => entry.id === report.ids.rule);
+      if (!rule?.active) return;
+      await go(admin, `/ops/approvals?rule=${report.ids.rule}`);
+      await admin.locator('#approval-deactivate-link').click();
+      await submit(
+        admin,
+        admin.locator('#approval-deactivate-submit'),
+        (url) => url.searchParams.get('notice') === 'deactivated',
+      );
+      report.writes.ruleDeactivations = (report.writes.ruleDeactivations ?? 0) + 1;
+    });
+  }
+  if (report.applied.roleGranted && !report.applied.roleRestored) {
+    await step('承認者の役割の復元', async () => {
+      const users = (await readApi('org_admin', '/users')).items;
+      const second = userByEmail(users, wp021SecondApproverEmail);
+      if (second.roleCodes.includes('approver')) {
+        await go(admin, `/ops/users?selected=${second.userId}`);
+        const details = admin.locator('details.user-action').filter({ hasText: '役割を変える' });
+        await details.locator('summary').click();
+        const form = admin.getByRole('form', {
+          name: 'サンプル株式会社 approverの役割を取り消す',
+        });
+        await form.getByLabel('取り消す役割', { exact: true }).selectOption('approver');
+        await form
+          .getByLabel('取り消しの理由', { exact: true })
+          .fill(`${wp021RoleReason}: 確認後に元へ戻す`);
+        await submit(
+          admin,
+          form.getByRole('button', { name: '役割を取り消す', exact: true }),
+          (url) => url.searchParams.get('notice') === 'revoked',
+        );
+        report.writes.roleRevokes += 1;
+      }
+      report.applied.roleRestored = true;
+    });
+  }
+  report.cleanup.complete = report.cleanup.errors.length === 0;
+}
+
+async function wp021Run(admin) {
+  await check('WP021 事前確認', () => wp021Preflight());
+  await check('WP021 2人目の承認者に役割を与える', () => wp021GrantSecondApprover(admin));
+  await check('WP021 固定承認者2段のルール', () => wp021CreateRule(admin));
+  await check('WP021 高リスクのカタログ項目の公開', () => wp021CreateCatalog(admin));
+  await check('WP021 申請', () => wp021CreateRequest());
+  await check('WP021 代理者に見えないこと', () => wp021DelegationHidden());
+  await check('WP021 1人目の承認', () => wp021ApproveFirst());
+  await check('WP021 2人目の承認と完了', () => wp021ApproveSecond());
+  await check('WP021 ルールの無効化の拒否', () => wp021RuleDeactivationBlocked(admin));
+}
+
 async function main() {
   await mkdir(output, { recursive: true });
   browser = await (engine === 'webkit' ? webkit : chromium).launch(
@@ -3445,6 +3823,43 @@ async function main() {
     await wp020Cleanup(admin);
     report.success = report.cleanup.complete;
     report.currentStep = report.success ? 'complete-wp020' : 'wp020-cleanup-incomplete';
+    if (report.success) {
+      delete report.failure;
+      report.finishedAt = new Date().toISOString();
+    }
+    await flush();
+    return;
+  }
+  if (phase === 'wp021') {
+    if (previous?.success === true) {
+      report.ids = { ...report.ids, ...(previous.ids ?? {}) };
+      report.applied = { ...report.applied, ...(previous.applied ?? {}) };
+      report.writes = { ...report.writes, ...(previous.writes ?? {}) };
+      report.checks = previous.checks ?? [];
+      report.accessibility = previous.accessibility ?? [];
+      report.screenshots = previous.screenshots ?? [];
+      const item = await readApi('org_admin', `/catalog-admin/${report.ids.catalogItem}`);
+      assert.equal(item.active, false, 'The previous UI021 item must be unpublished');
+      const rules = (await readApi('org_admin', '/approval-rules')).items;
+      const rule = rules.find((entry) => entry.id === report.ids.rule);
+      assert.equal(rule?.active, false, 'The previous UI021 rule must be deactivated');
+      const users = (await readApi('org_admin', '/users')).items;
+      assert.ok(
+        !userByEmail(users, wp021SecondApproverEmail).roleCodes.includes('approver'),
+        'The temporary approver role must not remain',
+      );
+      report.success = true;
+      report.currentStep = 'complete-wp021-reconciliation';
+      delete report.failure;
+      report.finishedAt = new Date().toISOString();
+      await flush();
+      return;
+    }
+    await wp021Run(admin);
+    assert.deepEqual(report.blocked, []);
+    await wp021Cleanup(admin);
+    report.success = report.cleanup.complete;
+    report.currentStep = report.success ? 'complete-wp021' : 'wp021-cleanup-incomplete';
     if (report.success) {
       delete report.failure;
       report.finishedAt = new Date().toISOString();
@@ -3592,6 +4007,15 @@ try {
   } else if (wp020Phase && pages.has('org_admin')) {
     try {
       await wp020Cleanup(pages.get('org_admin'));
+    } catch (cleanupError) {
+      report.cleanup.errors.push({
+        name: '失敗後の片付け',
+        message: String(cleanupError?.message ?? cleanupError),
+      });
+    }
+  } else if (wp021Phase && pages.has('org_admin')) {
+    try {
+      await wp021Cleanup(pages.get('org_admin'));
     } catch (cleanupError) {
       report.cleanup.errors.push({
         name: '失敗後の片付け',

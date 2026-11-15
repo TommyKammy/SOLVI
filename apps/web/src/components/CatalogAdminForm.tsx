@@ -32,6 +32,8 @@ type EditorValues = {
   approver: string;
   /** 組織の承認ルール (WP-P4-APR-016)。空文字は「使わない」。 */
   ruleId: string;
+  /** 高リスク(2名の承認が必要)の指定 (WP-P4-APR-021)。 */
+  highRisk: boolean;
   fields: CatalogField[];
   category: string;
   sections: CatalogSection[];
@@ -44,6 +46,7 @@ function editorValues(
   item?: CatalogAdminDetail,
   initialContent?: CatalogInitialContent,
   viewerId = '',
+  canManageHighRisk = false,
 ): EditorValues {
   const d =
     item?.draft ?? (initialContent ? cloneCatalogContent(initialContent, viewerId) : undefined);
@@ -57,6 +60,10 @@ function editorValues(
     requestFields: d?.definition.requestFields,
     approver: d?.definition.approval?.approverId ?? '',
     ruleId: d?.definition.approval?.ruleId ?? '',
+    // 委任された編集者は新規の項目で真を保存できない(API が 403)。委任された
+    // 編集者の新規の画面では指定なしから始める(既存の項目と管理者は現在の値を保つ)。
+    highRisk:
+      d?.definition.approval?.highRisk === true && (item !== undefined || canManageHighRisk),
     fields: d?.definition.fields ?? [],
     category: d?.definition.category ?? '',
     sections: d?.definition.sections ?? [],
@@ -78,6 +85,7 @@ function editProjection(values: EditorValues) {
       requestFields: catalogRequestFieldVisibility({ requestFields: values.requestFields }),
       approver: values.approver,
       ruleId: values.ruleId,
+      highRisk: values.highRisk,
       category: values.category,
       ownerId: values.ownerId,
       fulfillmentGroupId: values.fulfillmentGroupId,
@@ -136,7 +144,7 @@ function useEditor(
     { message: '' } as FormFeedback,
   );
   const [values, setState] = useState<EditorValues>(
-    editorValues(item, initialContent, options?.viewerId),
+    editorValues(item, initialContent, options?.viewerId, options?.canPublish === true),
   );
   const current = useRef(values);
   function update<K extends keyof EditorValues>(
@@ -183,6 +191,7 @@ function EditorForm({
   busy,
   options = {},
   isBusy = () => busy,
+  publishFeedback,
 }: {
   item?: CatalogAdminDetail;
   approvers: Array<{ id: string; name: string }>;
@@ -190,6 +199,8 @@ function EditorForm({
   busy: boolean;
   options?: CatalogAuthoringOptions;
   isBusy?: () => boolean;
+  /** 公開の失敗(400)を、高リスクの指定の項目にも結び付けて出す。 */
+  publishFeedback?: FormFeedback;
 }) {
   const { feedback, action, pending, values, update } = editor;
   const {
@@ -202,6 +213,7 @@ function EditorForm({
     requestFields,
     approver,
     ruleId,
+    highRisk,
     fields,
     category,
     sections,
@@ -226,6 +238,13 @@ function EditorForm({
     edit('requestFields', (old) => ({ ...old, [field]: visible }));
   const setApprover = (value: string) => edit('approver', value);
   const setRuleId = (value: string) => edit('ruleId', value);
+  const setHighRisk = (value: boolean) => edit('highRisk', value);
+  // 高リスクの指定を操作できるのは組織管理者だけ(ADR-0026 §3)。委任された
+  // 編集者には現在の値だけを見せ、送信値は直前の値のままにする。
+  const canManageHighRisk = options.canPublish === true;
+  const publishHighRiskError = publishFeedback?.errors?.find(
+    (error) => error.field === 'definition.approval.highRisk',
+  )?.message;
   const setFields = (value: CatalogField[] | ((old: CatalogField[]) => CatalogField[])) =>
     edit('fields', value);
   const setCategory = (value: string) => edit('category', value);
@@ -315,6 +334,7 @@ function EditorForm({
     setDescription('項目定義と独立承認を確認するための合成申請です。外部変更はありません。');
     setTarget('検証用アクセス');
     setApprover(approvers[0]?.id ?? '');
+    setHighRisk(false);
     edit('requestFields', undefined);
     setFields([
       { key: 'team', label: '利用部署', type: 'text', required: true, maxLength: 80 },
@@ -344,6 +364,7 @@ function EditorForm({
     setTarget(template.targetLabel);
     setDays(template.allowedDurations.join(', '));
     setMaxReason(2000);
+    setHighRisk(false);
     edit('requestFields', template.requestFields ? { ...template.requestFields } : undefined);
     setFields(structuredClone(template.fields));
     setCategory(template.category ?? '');
@@ -1136,6 +1157,42 @@ function EditorForm({
                   組織で承認ルールが有効なときだけ、このルールで承認の経路を決めます。無効な間は上の固定の承認者を使います。保存済みの版の経路は変わりません。
                 </p>
               </FormField>
+              <FormField name="highRisk">
+                {canManageHighRisk ? (
+                  <>
+                    <input type="hidden" name="highRiskEditable" value="1" />
+                    <label className={styles.visibilityToggle} htmlFor="catalog-high-risk">
+                      <input
+                        type="checkbox"
+                        id="catalog-high-risk"
+                        name="highRisk"
+                        value="true"
+                        checked={highRisk}
+                        style={{ width: '24px', height: '24px' }}
+                        onChange={(event) => setHighRisk(event.target.checked)}
+                      />
+                      高リスク（2名の承認が必要）
+                    </label>
+                    <p className="hint">
+                      高リスクの項目は、承認ルールが必要です。ルールには、別人の固定承認者を2段以上含めてください。代理による承認はできません。
+                    </p>
+                    {publishHighRiskError && (
+                      <p role="alert" className="field-error">
+                        {publishHighRiskError}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {highRisk && <input type="hidden" name="highRisk" value="true" />}
+                    <p>
+                      <strong>高リスク（2名の承認が必要）:</strong>{' '}
+                      {highRisk ? '指定されています' : '指定されていません'}
+                    </p>
+                    <p className="hint">高リスクの指定は組織管理者だけが変更できます。</p>
+                  </>
+                )}
+              </FormField>
               <h3>責任者と処理担当</h3>
               <FormField name="ownerId">
                 {options.canPublish === true ? (
@@ -1356,6 +1413,9 @@ export function CatalogPublicationForm({
     item.draft.definition.approval &&
     item.approvers.some((a) => a.id === item.draft.definition.approval?.approverId),
   );
+  const highRiskError = feedback.errors?.some(
+    (error) => error.field === 'definition.approval.highRisk',
+  );
   return (
     <FeedbackForm
       feedback={feedback}
@@ -1387,6 +1447,13 @@ export function CatalogPublicationForm({
         )}
       </div>
       {!valid && <p role="alert">公開する前に下書きへ有効な固定承認者を設定してください。</p>}
+      {highRiskError && (
+        <p className="hint">
+          <a href="#catalog-approval-settings">
+            「承認と検証設定」の高リスクの指定を確認してください。
+          </a>
+        </p>
+      )}
     </FeedbackForm>
   );
 }
@@ -1404,6 +1471,9 @@ export function CatalogManagement({ item }: { item: CatalogAdminDetail }) {
   const busy = editor.pending || pending;
   const isBusy = () => busy || busyLatch.current;
   const dirty = isDirty();
+  const publishHighRiskError = feedback.errors?.some(
+    (error) => error.field === 'definition.approval.highRisk',
+  );
   return (
     <section aria-label="カタログの編集と公開" className={styles.management}>
       <p role="status" className={`notice ${styles.status}`}>
@@ -1433,7 +1503,7 @@ export function CatalogManagement({ item }: { item: CatalogAdminDetail }) {
         />
       )}
       {item.canEdit === true ? (
-        <details>
+        <details open={publishHighRiskError ? true : undefined}>
           <summary>下書きの項目と承認者を編集する</summary>
           <EditorForm
             item={item}
@@ -1442,6 +1512,7 @@ export function CatalogManagement({ item }: { item: CatalogAdminDetail }) {
             busy={busy}
             isBusy={isBusy}
             options={item}
+            publishFeedback={feedback}
           />
         </details>
       ) : (

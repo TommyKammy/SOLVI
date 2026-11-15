@@ -77,6 +77,14 @@ export default async function CatalogEditPage({
           : '非公開: 新規申請を受け付けていません'}{' '}
         · 下書き版{i.draft.revision}
       </p>
+      {(i.highRisk === true || (i.active === true && i.publishedHighRisk === true)) && (
+        <p className="notice">
+          <strong>高リスク（2名の承認が必要）</strong>
+          {i.active === true && i.publishedHighRisk === true
+            ? ' · 公開中の版で指定されています'
+            : ' · 下書きで指定されています（公開すると適用されます）'}
+        </p>
+      )}
       {i.active && (
         <p>
           <ContextLink href={'/catalog/' + i.id}>現在の公開フォームを見る</ContextLink>

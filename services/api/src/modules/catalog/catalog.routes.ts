@@ -497,7 +497,12 @@ export class CatalogController {
           'SELECT id,version,title,description,definition FROM local_catalog_item WHERE organization_id=$1 AND active ORDER BY code',
           [auth.authz.organizationId],
         )
-      ).rows,
+      ).rows.map((row: { definition?: { approval?: unknown } }) => ({
+        ...row,
+        // 申請画面の「2名の承認が必要」の表示は API の値だけで決める(加算的)。
+        // 属性が存在して真偽値の `true` のときだけ真である。
+        highRisk: readHighRiskAttribute(row.definition?.approval) === 'true',
+      })),
       approvers: (await c.query(approverSql, [auth.authz.organizationId, auth.userId])).rows,
       canManage: hasRole(auth.authz, 'org_admin', 'platform_admin', 'catalog_editor'),
       simulation: true,
@@ -1118,6 +1123,9 @@ export class CatalogController {
       return {
         requesterName: names.find((u) => u.id === q.requester_id)?.display_name ?? '申請者',
         approverName: names.find((u) => u.id === a.approver_id)?.display_name ?? '承認者',
+        // 申請画面の「2名の承認が必要」の表示(加算的)。snapshot の属性が
+        // 存在して真偽値の `true` のときだけ真である。画面はこの値だけを使う。
+        highRisk: detailHighRisk === 'true',
         request: {
           id: q.id,
           state: q.state,

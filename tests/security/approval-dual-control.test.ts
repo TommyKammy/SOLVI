@@ -1412,3 +1412,41 @@ describe('公開とルール・設定の変更の同時実行 (WP §6.3-3 / §7-
     await expectInvariant(itemId);
   });
 });
+
+describe('画面のための応答の加算 (WP-P4-APR-021 段階B)', () => {
+  it('高リスクの一覧・詳細・申請の詳細が、API の値で真を返す', async () => {
+    const { itemId } = await highRiskFixture();
+    const list = await run(() => catalogAdmin.list(adminUser.auth));
+    const summary = list.items.find((entry) => entry.id === itemId);
+    expect(summary?.highRisk).toBe(true);
+    expect(summary?.publishedHighRisk).toBe(true);
+
+    const edit = await run(() => catalogAdmin.detail(adminUser.auth, itemId));
+    expect(edit.highRisk).toBe(true);
+    expect(edit.publishedHighRisk).toBe(true);
+
+    const publicItems = await run(() => catalog.catalog(requester.auth));
+    expect(publicItems.items.find((entry) => entry.id === itemId)?.highRisk).toBe(true);
+
+    const created = await createRequest(requester, itemId);
+    const view = await detailFor(requester, created.id);
+    expect(view.highRisk).toBe(true);
+  });
+
+  it('高リスクでない項目と申請は偽を返し、既存の表示を変えない', async () => {
+    const itemId = await createDraft(adminUser, { approverId: fixedA.id });
+    await publish(adminUser, itemId, 1);
+    const list = await run(() => catalogAdmin.list(adminUser.auth));
+    const summary = list.items.find((entry) => entry.id === itemId);
+    expect(summary?.highRisk).toBe(false);
+    expect(summary?.publishedHighRisk).toBe(false);
+
+    const edit = await run(() => catalogAdmin.detail(adminUser.auth, itemId));
+    expect(edit.highRisk).toBe(false);
+    expect(edit.publishedHighRisk).toBe(false);
+
+    const created = await createRequest(requester, itemId, { approverId: fixedA.id });
+    const view = await detailFor(requester, created.id);
+    expect(view.highRisk).toBe(false);
+  });
+});

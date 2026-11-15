@@ -1,0 +1,23 @@
+{
+  "app_user": 15,
+  "role_binding": 28,
+  "local_catalog_item": 26,
+  "local_catalog_revision": 52,
+  "local_service_request": 19,
+  "local_request_revision": 24,
+  "local_request_approval": 31,
+  "local_request_route_generation": 2,
+  "local_request_approval_notice": 9,
+  "approval_delegation": 2,
+  "approval_rule": 14,
+  "approval_rule_revision": 20,
+  "org_approval_setting": 1,
+  "department": 22,
+  "department_head": 7,
+  "org_member_profile": 15,
+  "audit_event": 2126,
+  "notification": 110,
+  "outbox_event": 465,
+  "schema_migration": 42,
+  "schema_migration_max": "0042"
+}

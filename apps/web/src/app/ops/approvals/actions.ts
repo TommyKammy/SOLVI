@@ -6,6 +6,7 @@ import { api, type ProblemDetails } from '../../../lib/api';
 import { isOrgAdmin } from '../../../lib/navigation';
 import {
   approvalHref,
+  highRiskConstraintErrorText,
   isUuid,
   parseApprovalRuleSteps,
   reassignmentFailureText,
@@ -18,6 +19,10 @@ type Scope = { userId: string; organizationId: string | null };
 
 /** APIの日本語の理由だけを画面へ返す。内部の例外文・スタックは使わない。 */
 function problemMessage(problem: ProblemDetails): string {
+  // 高リスクの条件を崩す変更の 409 は、理由コードではなく、影響する項目の一覧を
+  // 利用者向けの文にする(WP-P4-APR-021 §6.3)。
+  const constraint = highRiskConstraintErrorText(problem);
+  if (constraint) return constraint;
   if (problem.status === 401) {
     return 'ログインの有効期限が切れました。別のタブでログインしてから再度お試しください。';
   }

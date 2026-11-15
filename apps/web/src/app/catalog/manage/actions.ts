@@ -20,6 +20,11 @@ export async function saveCatalog(
   } catch {
     return { message: '項目の形式を確認してください' };
   }
+  const highRiskRaw = form.get('highRisk');
+  const highRiskEditable = form.get('highRiskEditable') === '1';
+  // 管理者はチェックの有無をそのまま送る(外したときは明示的な偽)。
+  // 委任された編集者は値を変えられないため、真のときだけ現在値をそのまま送る。
+  const highRisk = highRiskEditable || highRiskRaw === 'true' ? highRiskRaw === 'true' : undefined;
   const content = {
     title: String(form.get('title') ?? ''),
     description: String(form.get('description') ?? ''),
@@ -38,6 +43,7 @@ export async function saveCatalog(
         ...(String(form.get('ruleId') ?? '').trim()
           ? { ruleId: String(form.get('ruleId')).trim() }
           : {}),
+        ...(highRisk !== undefined ? { highRisk } : {}),
       },
       fields,
       ...(String(form.get('category') ?? '').trim()
@@ -62,7 +68,21 @@ export async function saveCatalog(
           creationKey: String(form.get('creationKey') ?? ''),
         }),
   });
-  if (!r.ok)
+  if (!r.ok) {
+    const highRiskForbidden =
+      r.problem.status === 403 &&
+      (r.problem.detail ?? '').includes('高リスクの指定を変更できるのは組織管理者だけです');
+    if (highRiskForbidden)
+      return {
+        message: '高リスクの指定を変更できるのは組織管理者だけです。',
+        errors: [
+          {
+            field: 'definition.approval.highRisk',
+            message: '高リスクの指定を変更できるのは組織管理者だけです。',
+          },
+        ],
+        attempt: (previous.attempt ?? 0) + 1,
+      };
     return {
       message: r.problem.errors?.[0]?.message ?? r.problem.detail ?? r.problem.title,
       errors:
@@ -85,6 +105,7 @@ export async function saveCatalog(
           : undefined),
       attempt: (previous.attempt ?? 0) + 1,
     };
+  }
   revalidatePath('/catalog/manage');
   redirect(withReturnTo(`/catalog/manage/${r.data.id}?saved=1#preview`, form.get('returnTo')));
 }

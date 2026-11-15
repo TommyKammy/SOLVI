@@ -1,0 +1,346 @@
+{
+  "harness": true,
+  "note": "静的HTMLハーネス。実画面ではない。globals.css と freshservice.css を読み込む。",
+  "scans": 28,
+  "seriousOrCritical": 0,
+  "horizontalOverflow": 0,
+  "failures": [],
+  "results": [
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "catalog-admin-highrisk-unchecked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "catalog-admin-highrisk-checked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "catalog-admin-highrisk-delegated",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "catalog-publish-highrisk-blocked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "request-new-highrisk",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "request-detail-highrisk",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "state": "approvals-rule-highrisk-blocked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "catalog-admin-highrisk-unchecked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "catalog-admin-highrisk-checked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "catalog-admin-highrisk-delegated",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "catalog-publish-highrisk-blocked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "request-new-highrisk",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "request-detail-highrisk",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "state": "approvals-rule-highrisk-blocked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "catalog-admin-highrisk-unchecked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "catalog-admin-highrisk-checked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "catalog-admin-highrisk-delegated",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "catalog-publish-highrisk-blocked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "request-new-highrisk",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "request-detail-highrisk",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "state": "approvals-rule-highrisk-blocked",
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "catalog-admin-highrisk-unchecked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "catalog-admin-highrisk-checked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "catalog-admin-highrisk-delegated",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "catalog-publish-highrisk-blocked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "request-new-highrisk",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "request-detail-highrisk",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "state": "approvals-rule-highrisk-blocked",
+      "dimensions": {
+        "document": 375,
+        "viewport": 375,
+        "duplicateIds": []
+      },
+      "violations": [],
+      "seriousOrCritical": 0
+    }
+  ]
+}

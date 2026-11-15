@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "sod", "high-risk"]
 source_of_truth: true
-implementation_status: "in-progress"
+implementation_status: "review"
 story_points: 8
 risk: "critical"
 workstream: "APR"
@@ -206,7 +206,7 @@ FR-CAT-010(高リスク二重承認とSoD)を実装する。高リスクかど�
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-11-15 | Codex(段階A) | 未コミット | 段階A(属性・共有の判定・API)を実装・検証済み。画面(§6.8)は段階B | `evidence/WP-P4-APR-021/20261115-1736/` | 下記 |
-| - | - | - | 段階B(画面)は未着手 | - | - |
+| 2026-11-15 | Codex(段階B) | 未コミット | 段階B(画面)を実装・検証済み。実画面の確認は段階C | `evidence/WP-P4-APR-021/20261115-1815/` | 下記 |
 
 ### 段階A の実行記録(2026-11-15)
 
@@ -285,3 +285,90 @@ FR-CAT-010(高リスク二重承認とSoD)を実装する。高リスクかど�
 - **実行前検証の修正**: 代理による決定の検出が `fixed` の段だけを見ていた。ADR-0026 §1 のとおり、段の種別によらず検出するよう直し、関係ベースの段の代理の決定を拒否する unit テストを足した。
 - 監督者が使い捨てDB(`solvi_wp021_wp020_wp019_wp018_wp015_test`)で再実行した: `typecheck`、`check:all`、`eslint`(`.claude/**` を除く)、`tools/check_rls.mjs`、`vitest run tests/security`(939件通過。失敗は既知の読み込み不能6ファイルだけ)、承認・カタログ・申請の unit テスト990件。開発用DBの件数は作業前と同じ(Migration 42件)。
 - 段階Aの確認事項への回答: (2) 公開中の高リスクの項目を壊す場合に限り、固定承認者の重複を 409 にする順序の入れ替えは許容する。(3)(4)(5)(6)(7) は報告のとおりでよい。(8) は段階Bで扱う。
+
+### 段階B の実行記録(2026-11-15)
+
+#### 変更ファイル
+
+- `apps/web/src/components/CatalogAdminForm.tsx`(`approval.highRisk` の指定。`org_admin` だけに操作、委任された編集者には表示だけ。公開の 400 を項目へ結び付け、保存の 403 を分かりやすく表示)
+- `apps/web/src/app/catalog/manage/actions.ts`(高リスクの指定の送信。管理者は明示的な真偽、委任された編集者は現在値の保持)
+- `apps/web/src/app/catalog/manage/page.tsx`、`apps/web/src/app/catalog/manage/[id]/page.tsx`(一覧・詳細のテキストの目印)
+- `apps/web/src/app/catalog/[itemId]/page.tsx`(申請画面の「2名の承認が必要」)
+- `apps/web/src/app/requests/[id]/page.tsx`(申請の詳細の「2名の承認が必要」)
+- `apps/web/src/app/requests/actions.ts`(高リスクの 409 は `detail` の文だけを出し、コードを出さない)
+- `apps/web/src/app/ops/approvals/actions.ts`、`apps/web/src/app/ops/approvals/page.tsx`(条件を崩す変更の 409 を、影響する項目の一覧つきで表示)
+- `apps/web/src/lib/approval-route.ts`(高リスクの文言・409 の組み立て・`high_risk_route_invalid` の再割当の理由)
+- `apps/web/src/lib/api.ts`(応答の加算の型)
+- `services/api/src/modules/catalog/catalog-admin.routes.ts`(一覧・詳細の `highRisk` / `publishedHighRisk`)
+- `services/api/src/modules/catalog/catalog.routes.ts`(カタログ項目の `highRisk`、申請の詳細の `highRisk`)
+- `tests/unit/approval-dual-control-ui.test.ts`(新規17件)、`tests/security/approval-dual-control.test.ts`(段階Bの応答の加算2件を追加)
+- `tools/ui_approval_routing_check.mjs`(`wp021` 段階を追加。**今回は実行していない**)
+- 本WP(§13 と `implementation_status` だけ)、`evidence/WP-P4-APR-021/20261115-1815/`
+
+Migration・依存・`.env` の変更は無い。
+
+#### API の加算(認可・検証は変えない)
+
+- `GET /catalog-admin` の各行に `highRisk`(下書きの版)と `publishedHighRisk`(公開中の版)。
+- `GET /catalog-admin/:id` に同じ2つ。
+- `GET /catalog` の各項目に `highRisk`。
+- `GET /service-requests/:id` に `highRisk`。
+- 判定はすべて `readHighRiskAttribute(...) === 'true'`。存在して真偽値でない値を真にはしない(段階Aの拒否はそのまま)。
+
+#### 画面の内容
+
+- 管理画面: 「高リスク（2名の承認が必要）」のチェック(24px・ラベルと同じ行)と説明。`org_admin` 以外にはチェックを出さず、現在値の表示と「高リスクの指定は組織管理者だけが変更できます。」を出す。送信値は管理者が明示的な真偽、委任された編集者は直前の値のまま。
+- 公開の 400 は、公開の失敗の表示と、高リスクの指定の項目の直近の両方に出す。保存の 403 は「高リスクの指定を変更できるのは組織管理者だけです。」として項目に結び付ける。
+- 申請画面と詳細: 「この申請は2名の承認が必要です。代理による承認はできません。」を API の `highRisk` が真のときだけ出す。
+- 申請の 409(`approval-high-risk-unresolved`)は `detail` の文を既存の失敗の表示に出す。`high_risk_route_invalid` は出さない。
+- ルール画面の 409(`high-risk-approval-constraint`)は「公開中の高リスクの項目が条件を満たさなくなるため、変更できません。」と影響する項目(`code: title`)の一覧を出す。`high_risk_definition_blocked` は出さない。
+
+#### 検証(使い捨てDB `solvi_wp021_wp020_wp019_wp018_wp015_test`・42 Migration・seed 済み)
+
+- `npx vitest run tests/security/approval-`: 289 passed。
+- `npx vitest run tests/security`(`.env` を読み込む): 941 passed / 10 skipped。失敗は既知の読み込み不能6ファイルだけ。
+- `npx vitest run tests/unit/approval- tests/unit/catalog- tests/unit/requests-ui.test.ts`: 1008 passed(28ファイル)。
+- `npm run test:unit`: 34 failed / 4637 passed。失敗名の集合は基点(WP-P4-APR-020 の Evidence)と一致(新規失敗0)。
+- `node tools/check_rls.mjs`: 問題0件。`npm run check:all`: OK。`npm run typecheck`: エラー0。`npx eslint . --max-warnings=0 --ignore-pattern '.claude/**'`: 0件。
+- 見た目は**ハーネス**(実画面ではない)。実際の `globals.css` / `freshservice.css` を読み込んだ静的HTMLを Chromium と WebKit の 1440px / 375px で撮り、axe を実行した。28スキャン、serious / critical 0、横はみ出し0。`evidence/WP-P4-APR-021/20261115-1815/harness/`。
+- 開発用DB `solvi` の件数は前後で不変(Migration 42・最大0042)。書込みは行っていない。
+- `tools/ui_approval_routing_check.mjs` は `node --check` と eslint だけ。`wp021` 段階は**未実行**(実画面の操作は利用者の承認後)。
+
+#### §7 の充足(段階B)
+
+- §7-1〜§7-9: 段階Aで充足済み。段階Bは表示と、その表示に使う応答の加算を追加した。
+- §7-10(画面): **段階C**。今回の Evidence はハーネスであり、実画面ではない。
+- §7-11: 充足(上記の各検査)。
+
+#### 段階C に必要な開発用データ(最小)
+
+1. 組織で承認ルールの使用を有効にする(`/ops/approvals`)。
+2. 別人の固定承認者を2段持つ承認ルール(1件)。
+3. 2人目の固定承認者にする合成アカウントへ `approver` ロールを一時付与(`agent@acme.example.test` を想定)。
+
+`tools/ui_approval_routing_check.mjs` の `wp021` 段階は、この3つを前提に、合成の高リスク項目・申請・委任を作成し、最後に片付ける。
+
+#### セキュリティ影響
+
+- 画面は高リスクの可否を API の `highRisk` だけで決め、定義の JSON や経路から推測しない。
+- 委任された編集者には指定の操作を出さず、送信値も変えない。API の 403 は段階Aのまま。
+- 影響する項目の一覧と拒否の文だけを表示し、理由コード・内部の識別子を出さない。
+- 新しい権限・RLS・`SECURITY_DEFINER`・Migration・環境変数/フラグは無い。
+- Security Reviewer(人間)の sign-off は**未取得**(Gate B GB-3)。
+
+#### 確認事項
+
+1. 実画面の確認(§7-10)は段階C。ハーネスのスクリーンショットは実画面の代わりではない。
+2. 一覧・詳細の目印は下書きと公開中の版を分けて出す。公開中が高リスクで下書きが外れている場合は「公開中の版で指定されています」と出す。
+3. `ui_approval_routing_check.mjs` の `wp021` 段階は未実行のため、初回実行時に開発用データの前提と画面のセレクタを確認する必要がある。
+
+#### Evidence
+
+`evidence/WP-P4-APR-021/20261115-1815/`(検証ログ・ハーネスの HTML / PNG / axe・開発用DBの件数・`git status`)。
+
+#### 監督者の検査(段階B、2026-11-15)
+
+- 監督者が再実行した: `typecheck`、`check:all`、`eslint`、承認・カタログ・申請の unit テスト1008件。
+- 段階Bの確認事項への回答: (1) 応答への加算は WP §4 の範囲とする。(2)(3)(5)(6) は報告のとおりでよい。(4) ルール画面の失敗の表示の500文字の上限で、影響する項目が多い場合に一覧が切れ得る点は、残る点として記録し、本WPでは変えない。
+- 開発用DBの確認(管理者接続の `SELECT`): 公開中の有効な9項目は、どれも承認ルールを使っていない。組織でルールの使用を有効にしても、既存の項目の経路は変わらない。
+- 確認スクリプトの `wp021` 段階は、組織でのルールの使用の有効化を前提とし、片付けで元に戻さない。段階Cの前に、有効化と片付けでの無効化をスクリプトに含める。

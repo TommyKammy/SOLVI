@@ -1,0 +1,1875 @@
+
+> solvi@0.1.0 test:unit
+> vitest run tests/unit
+
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ❯ tests/unit/performance-runtime.test.ts (195 tests | 24 failed) 537ms
+   ✓ performance runtime target isolation > permits only the fixed WP041 default and WP042/043/044/045/046/047/048/049/050/051 ownership labels 2ms
+   ✓ performance runtime target isolation > accepts only the generated database, port, host and intended login role 0ms
+   ✓ performance runtime target isolation > claims a new WP051 output without permitting another package or an existing leaf 1ms
+   ✓ performance runtime target isolation > refuses unsafe database target postgresql://solvi_app:synthetic@example.test:45001/solvi_perf041_123_abcdef123456 without exposing credentials 0ms
+   ✓ performance runtime target isolation > refuses unsafe database target postgresql://solvi_app:synthetic@127.0.0.1:45002/solvi_perf041_123_abcdef123456 without exposing credentials 0ms
+   ✓ performance runtime target isolation > refuses unsafe database target postgresql://solvi_app:synthetic@127.0.0.1:45001/solvi without exposing credentials 0ms
+   ✓ performance runtime target isolation > refuses unsafe database target postgresql://solvi_owner:synthetic@127.0.0.1:45001/solvi_perf041_123_abcdef123456 without exposing credentials 0ms
+   ✓ performance runtime target isolation > refuses unsafe database target postgresql://solvi_app:synthetic@127.0.0.1:45001/solvi_perf041_123_abcdef123456?host=example.test without exposing credentials 0ms
+   ✓ performance runtime target isolation > refuses a protected development port even if the URL otherwise agrees 0ms
+   ✓ performance runtime target isolation > requires all independent ownership proofs before use or removal 0ms
+   ✓ performance runtime target isolation > rejects persistent volumes and non-loopback publication 0ms
+   ✓ performance runtime target isolation > accepts a stopped owned container for cleanup while refusing it for connections 0ms
+   ✓ performance runtime target isolation > does not inherit DB credentials, Node hooks, proxy settings or export destinations 0ms
+   × WP045 private directory adapters and fixed security report > compiles only the immutable UserAdmin service next to its copied relative dependencies 22ms
+     → Command failed: git show 035288fcb2caf0a77b74282cc56fd14c73ca79bc:services/api/src/modules/auth/user-admin.service.ts
+fatal: path 'services/api/src/modules/auth/user-admin.service.ts' exists on disk, but not in '035288fcb2caf0a77b74282cc56fd14c73ca79bc'
+
+   ✓ WP045 private directory adapters and fixed security report > rejects substituted baseline bytes and foreign ownership without writing 2ms
+   × WP045 private directory adapters and fixed security report > rejects symlinked ancestors and existing legacy modules 14ms
+     → expected [Function] to throw error including 'LEGACY_USER_ADMIN_ALREADY_EXISTS' but got 'Command failed: git show 035288fcb2ca…'
+   ✓ WP045 private directory adapters and fixed security report > captures private SQL only on the same active owned facade and rejects arbitrary variants or writes 1ms
+   ✓ WP045 private directory adapters and fixed security report > returns only fixed file/test counts and index diagnostics, never titles or exceptions 1ms
+   ✓ WP045 private directory adapters and fixed security report > never treats a skipped test, nonzero exit or unexpected test path as success 0ms
+   ✓ owned directory security fixture preparation > removes exactly the fixed dependency in one transaction, preserving catalog/audit/triggers 0ms
+   ✓ owned directory security fixture preparation > rejects non-owned database names without any query 0ms
+   ✓ owned directory security fixture preparation > rejects connected identity {"database":"solvi"} before BEGIN 0ms
+   ✓ owned directory security fixture preparation > rejects connected identity {"role":"solvi_app"} before BEGIN 0ms
+   ✓ owned directory security fixture preparation > rolls back an unexpected fixed fixture without DELETE 0ms
+   ✓ owned directory security fixture preparation > rolls back an unexpected fixed fixture without DELETE 0ms
+   ✓ owned directory security fixture preparation > rolls back an unexpected fixed fixture without DELETE 0ms
+   ✓ owned directory security fixture preparation > rolls back an unexpected fixed fixture without DELETE 0ms
+   ✓ owned directory security fixture preparation > rolls back an unexpected fixed fixture without DELETE 0ms
+   ✓ owned directory security fixture preparation > fails closed and rolls back partial preparation: 'DIRECTORY_SECURITY_PREPARATION_COUNTS…' 0ms
+   ✓ owned directory security fixture preparation > fails closed and rolls back partial preparation: 'DIRECTORY_SECURITY_PREPARATION_FAILED' 0ms
+   ✓ owned directory security fixture preparation > fails closed and rolls back partial preparation: 'DIRECTORY_SECURITY_PREPARATION_ROLLBA…' 0ms
+   ✓ owned directory security fixture preparation > rolls back interruption after a dependency was removed 0ms
+   × fixed legacy ticket query compilation > compiles the pinned source only inside the owned API dist and preserves relative ESM imports 11ms
+     → Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'
+
+   ✓ fixed legacy ticket query compilation > rejects any source other than the fixed commit bytes before writing 1ms
+   ✓ fixed legacy ticket query compilation > refuses a foreign owner marker before obtaining baseline source 1ms
+   × fixed legacy ticket query compilation > refuses a symlinked dist ancestor without writing outside the owned directory 11ms
+     → expected [Function] to throw error including 'LEGACY_TICKET_QUERY_PATH_UNSAFE' but got 'Command failed: git show 08a0904145a3…'
+   × fixed legacy ticket query compilation > never overwrites an existing comparison module 13ms
+     → expected [Function] to throw error including 'LEGACY_TICKET_QUERY_ALREADY_EXISTS' but got 'Command failed: git show 08a0904145a3…'
+   × fixed legacy ticket query compilation > rechecks interruption after awaiting source and before compilation or writes 12ms
+     → expected [Function] to throw error including 'RUNTIME_INTERRUPTED' but got 'Command failed: git show 08a0904145a3…'
+   × WP046 immutable search comparison source > pins WP045 ticket SQL separately from WP044 and compiles only in the owned copy 12ms
+     → Command failed: git show d66537ca01a6c127d3bc55a66bb75eb8a3ade8ea:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'd66537ca01a6c127d3bc55a66bb75eb8a3ade8ea'
+
+   × WP046 immutable search comparison source > rejects the deadline legacy source and a changed owner marker before writing 11ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_QUERY_SOURCE_MISMATCH' but got 'Command failed: git show 08a0904145a3…'
+   × WP046 immutable search comparison source > rejects ancestor symlinks and rechecks cancellation before search artifact creation 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_QUERY_PATH_UNSAFE' but got 'Command failed: git show d66537ca01a6…'
+   × WP047 immutable projected-search workload source > pins the WP046 result separately and permits only one owned destination 11ms
+     → Command failed: git show 15016d7326c91503a200be815e128f35b5107f13:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '15016d7326c91503a200be815e128f35b5107f13'
+
+   × WP047 immutable projected-search workload source > rejects a different fixed baseline, a changed marker, and interruption before writing 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_WORKLOAD_SOURCE_MISMATCH' but got 'Command failed: git show 08a0904145a3…'
+   × WP047 immutable projected-search workload source > refuses a symlinked compilation ancestor 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_WORKLOAD_PATH_UNSAFE' but got 'Command failed: git show 15016d7326c9…'
+   × WP048 immutable held-WP047 comparison source > keeps the fixed held combined-SQL source and the adopted two-statement source distinct 12ms
+     → Command failed: git show 15016d7326c91503a200be815e128f35b5107f13:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '15016d7326c91503a200be815e128f35b5107f13'
+
+   × WP048 immutable held-WP047 comparison source > rejects adopted-source substitution and a replaced marker before compilation 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_PREFIX_SOURCE_MISMATCH' but got 'Command failed: git show 15016d7326c9…'
+   × WP048 immutable held-WP047 comparison source > rejects symlinked ancestors and interruption before creating the fixed artifact 13ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_PREFIX_PATH_UNSAFE' but got 'Command failed: git show 1d5e0ec89427…'
+   × WP049 immutable held-WP048 comparison source > pins the prefix source separately from both earlier controls 13ms
+     → Command failed: git show 1e491c998bbf71189139fa6003af2930eda14eef:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '1e491c998bbf71189139fa6003af2930eda14eef'
+
+   × WP049 immutable held-WP048 comparison source > rejects a previous control and replaced ownership marker without writing 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_048_SOURCE_MISMATCH' but got 'Command failed: git show 08a0904145a3…'
+   × WP049 immutable held-WP048 comparison source > rejects a symlinked destination ancestor and aborts before compilation output 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_048_PATH_UNSAFE' but got 'Command failed: git show 1e491c998bbf…'
+   × WP050/051 immutable product and WP050 fixed WP049 control > WP-P2-PERF-050 rechecks exact product bytes and suppresses private reader errors 11ms
+     → Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'
+
+   × WP050/051 immutable product and WP050 fixed WP049 control > WP-P2-PERF-051 rechecks exact product bytes and suppresses private reader errors 11ms
+     → Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'
+
+   ✓ WP050/051 immutable product and WP050 fixed WP049 control > keeps earlier packages unpinned while rejecting unknown packages and reader types 0ms
+   × WP050/051 immutable product and WP050 fixed WP049 control > rejects changed WP051 source before constructing a read-only app connection 10ms
+     → expected [Function] to throw error including 'SEARCH_REPRO_PRODUCT_SOURCE_MISMATCH' but got 'SEARCH_REPRO_PRODUCT_SOURCE_UNAVAILAB…'
+   × WP050/051 immutable product and WP050 fixed WP049 control > pins the current product to exact WP049 bytes and preserves a distinct compiled control 10ms
+     → Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'
+
+   × WP050/051 immutable product and WP050 fixed WP049 control > rejects altered fixed source or replaced owner before writing 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_049_SOURCE_MISMATCH' but got 'Command failed: git show a49ecbdf4504…'
+   × WP050/051 immutable product and WP050 fixed WP049 control > refuses redirected compilation and cancellation before output 12ms
+     → expected [Function] to throw error including 'LEGACY_SEARCH_049_PATH_UNSAFE' but got 'Command failed: git show a49ecbdf4504…'
+   ✓ WP050 cgroup-v2 resource parser > aggregates numeric devices and retains absent optional CPU values as null 0ms
+   ✓ WP050 cgroup-v2 resource parser > accepts known extra CPU and discard counters without publishing them or device IDs 0ms
+   ✓ WP050 cgroup-v2 resource parser > validates the optional Linux core scheduling counter without changing the public DTO 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects invalid optional core scheduling counter -1 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects invalid optional core scheduling counter 1.5 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects invalid optional core scheduling counter 9007199254740992 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects invalid optional core scheduling counter NaN 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects duplicate or unknown core scheduling fields 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects  (missing CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 10
+user_usec 8
+ (missing required system) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+usage_usec 1
+ (duplicate CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec -1
+user_usec 10
+system_usec 5
+ (negative CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 1.5
+user_usec 10
+system_usec 5
+ (fractional CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 9007199254740992
+user_usec 10
+system_usec 5
+ (unsafe CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 1e2
+user_usec 10
+system_usec 5
+ (exponential CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+PRIVATE_SECRET 1
+ (unknown CPU) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=100 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+8:0 rbytes=100 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (duplicate device) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=100 rbytes=2 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (duplicate IO) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 private=100 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (unknown IO) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=100 wbytes=200 wios=4 dbytes=0 dios=0
+ (missing IO) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=-1 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (negative IO) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=9007199254740992 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (unsafe IO) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=9007199254740991 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+8:1 rbytes=1 wbytes=0 rios=0 wios=0
+ (unsafe aggregate) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+8:0 rbytes=100 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+nr_periods 1
+ (CPU after IO) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+08:0 rbytes=100 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (ambiguous device) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+9007199254740992:0 rbytes=100 wbytes=200 rios=3 wios=4 dbytes=0 dios=0
+ (unsafe device) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+0:0 rbytes=0 wbytes=0 rios=0 wios=0
+1:0 rbytes=0 wbytes=0 rios=0 wios=0
+2:0 rbytes=0 wbytes=0 rios=0 wios=0
+3:0 rbytes=0 wbytes=0 rios=0 wios=0
+4:0 rbytes=0 wbytes=0 rios=0 wios=0
+5:0 rbytes=0 wbytes=0 rios=0 wios=0
+6:0 rbytes=0 wbytes=0 rios=0 wios=0
+7:0 rbytes=0 wbytes=0 rios=0 wios=0
+8:0 rbytes=0 wbytes=0 rios=0 wios=0
+9:0 rbytes=0 wbytes=0 rios=0 wios=0
+10:0 rbytes=0 wbytes=0 rios=0 wios=0
+11:0 rbytes=0 wbytes=0 rios=0 wios=0
+12:0 rbytes=0 wbytes=0 rios=0 wios=0
+13:0 rbytes=0 wbytes=0 rios=0 wios=0
+14:0 rbytes=0 wbytes=0 rios=0 wios=0
+15:0 rbytes=0 wbytes=0 rios=0 wios=0
+16:0 rbytes=0 wbytes=0 rios=0 wios=0
+17:0 rbytes=0 wbytes=0 rios=0 wios=0
+18:0 rbytes=0 wbytes=0 rios=0 wios=0
+19:0 rbytes=0 wbytes=0 rios=0 wios=0
+20:0 rbytes=0 wbytes=0 rios=0 wios=0
+21:0 rbytes=0 wbytes=0 rios=0 wios=0
+22:0 rbytes=0 wbytes=0 rios=0 wios=0
+23:0 rbytes=0 wbytes=0 rios=0 wios=0
+24:0 rbytes=0 wbytes=0 rios=0 wios=0
+25:0 rbytes=0 wbytes=0 rios=0 wios=0
+26:0 rbytes=0 wbytes=0 rios=0 wios=0
+27:0 rbytes=0 wbytes=0 rios=0 wios=0
+28:0 rbytes=0 wbytes=0 rios=0 wios=0
+29:0 rbytes=0 wbytes=0 rios=0 wios=0
+30:0 rbytes=0 wbytes=0 rios=0 wios=0
+31:0 rbytes=0 wbytes=0 rios=0 wios=0
+32:0 rbytes=0 wbytes=0 rios=0 wios=0
+33:0 rbytes=0 wbytes=0 rios=0 wios=0
+34:0 rbytes=0 wbytes=0 rios=0 wios=0
+35:0 rbytes=0 wbytes=0 rios=0 wios=0
+36:0 rbytes=0 wbytes=0 rios=0 wios=0
+37:0 rbytes=0 wbytes=0 rios=0 wios=0
+38:0 rbytes=0 wbytes=0 rios=0 wios=0
+39:0 rbytes=0 wbytes=0 rios=0 wios=0
+40:0 rbytes=0 wbytes=0 rios=0 wios=0
+41:0 rbytes=0 wbytes=0 rios=0 wios=0
+42:0 rbytes=0 wbytes=0 rios=0 wios=0
+43:0 rbytes=0 wbytes=0 rios=0 wios=0
+44:0 rbytes=0 wbytes=0 rios=0 wios=0
+45:0 rbytes=0 wbytes=0 rios=0 wios=0
+46:0 rbytes=0 wbytes=0 rios=0 wios=0
+47:0 rbytes=0 wbytes=0 rios=0 wios=0
+48:0 rbytes=0 wbytes=0 rios=0 wios=0
+49:0 rbytes=0 wbytes=0 rios=0 wios=0
+50:0 rbytes=0 wbytes=0 rios=0 wios=0
+51:0 rbytes=0 wbytes=0 rios=0 wios=0
+52:0 rbytes=0 wbytes=0 rios=0 wios=0
+53:0 rbytes=0 wbytes=0 rios=0 wios=0
+54:0 rbytes=0 wbytes=0 rios=0 wios=0
+55:0 rbytes=0 wbytes=0 rios=0 wios=0
+56:0 rbytes=0 wbytes=0 rios=0 wios=0
+57:0 rbytes=0 wbytes=0 rios=0 wios=0
+58:0 rbytes=0 wbytes=0 rios=0 wios=0
+59:0 rbytes=0 wbytes=0 rios=0 wios=0
+60:0 rbytes=0 wbytes=0 rios=0 wios=0
+61:0 rbytes=0 wbytes=0 rios=0 wios=0
+62:0 rbytes=0 wbytes=0 rios=0 wios=0
+63:0 rbytes=0 wbytes=0 rios=0 wios=0
+64:0 rbytes=0 wbytes=0 rios=0 wios=0
+65:0 rbytes=0 wbytes=0 rios=0 wios=0
+66:0 rbytes=0 wbytes=0 rios=0 wios=0
+67:0 rbytes=0 wbytes=0 rios=0 wios=0
+68:0 rbytes=0 wbytes=0 rios=0 wios=0
+69:0 rbytes=0 wbytes=0 rios=0 wios=0
+70:0 rbytes=0 wbytes=0 rios=0 wios=0
+71:0 rbytes=0 wbytes=0 rios=0 wios=0
+72:0 rbytes=0 wbytes=0 rios=0 wios=0
+73:0 rbytes=0 wbytes=0 rios=0 wios=0
+74:0 rbytes=0 wbytes=0 rios=0 wios=0
+75:0 rbytes=0 wbytes=0 rios=0 wios=0
+76:0 rbytes=0 wbytes=0 rios=0 wios=0
+77:0 rbytes=0 wbytes=0 rios=0 wios=0
+78:0 rbytes=0 wbytes=0 rios=0 wios=0
+79:0 rbytes=0 wbytes=0 rios=0 wios=0
+80:0 rbytes=0 wbytes=0 rios=0 wios=0
+81:0 rbytes=0 wbytes=0 rios=0 wios=0
+82:0 rbytes=0 wbytes=0 rios=0 wios=0
+83:0 rbytes=0 wbytes=0 rios=0 wios=0
+84:0 rbytes=0 wbytes=0 rios=0 wios=0
+85:0 rbytes=0 wbytes=0 rios=0 wios=0
+86:0 rbytes=0 wbytes=0 rios=0 wios=0
+87:0 rbytes=0 wbytes=0 rios=0 wios=0
+88:0 rbytes=0 wbytes=0 rios=0 wios=0
+89:0 rbytes=0 wbytes=0 rios=0 wios=0
+90:0 rbytes=0 wbytes=0 rios=0 wios=0
+91:0 rbytes=0 wbytes=0 rios=0 wios=0
+92:0 rbytes=0 wbytes=0 rios=0 wios=0
+93:0 rbytes=0 wbytes=0 rios=0 wios=0
+94:0 rbytes=0 wbytes=0 rios=0 wios=0
+95:0 rbytes=0 wbytes=0 rios=0 wios=0
+96:0 rbytes=0 wbytes=0 rios=0 wios=0
+97:0 rbytes=0 wbytes=0 rios=0 wios=0
+98:0 rbytes=0 wbytes=0 rios=0 wios=0
+99:0 rbytes=0 wbytes=0 rios=0 wios=0
+100:0 rbytes=0 wbytes=0 rios=0 wios=0
+101:0 rbytes=0 wbytes=0 rios=0 wios=0
+102:0 rbytes=0 wbytes=0 rios=0 wios=0
+103:0 rbytes=0 wbytes=0 rios=0 wios=0
+104:0 rbytes=0 wbytes=0 rios=0 wios=0
+105:0 rbytes=0 wbytes=0 rios=0 wios=0
+106:0 rbytes=0 wbytes=0 rios=0 wios=0
+107:0 rbytes=0 wbytes=0 rios=0 wios=0
+108:0 rbytes=0 wbytes=0 rios=0 wios=0
+109:0 rbytes=0 wbytes=0 rios=0 wios=0
+110:0 rbytes=0 wbytes=0 rios=0 wios=0
+111:0 rbytes=0 wbytes=0 rios=0 wios=0
+112:0 rbytes=0 wbytes=0 rios=0 wios=0
+113:0 rbytes=0 wbytes=0 rios=0 wios=0
+114:0 rbytes=0 wbytes=0 rios=0 wios=0
+115:0 rbytes=0 wbytes=0 rios=0 wios=0
+116:0 rbytes=0 wbytes=0 rios=0 wios=0
+117:0 rbytes=0 wbytes=0 rios=0 wios=0
+118:0 rbytes=0 wbytes=0 rios=0 wios=0
+119:0 rbytes=0 wbytes=0 rios=0 wios=0
+120:0 rbytes=0 wbytes=0 rios=0 wios=0
+121:0 rbytes=0 wbytes=0 rios=0 wios=0
+122:0 rbytes=0 wbytes=0 rios=0 wios=0
+123:0 rbytes=0 wbytes=0 rios=0 wios=0
+124:0 rbytes=0 wbytes=0 rios=0 wios=0
+125:0 rbytes=0 wbytes=0 rios=0 wios=0
+126:0 rbytes=0 wbytes=0 rios=0 wios=0
+127:0 rbytes=0 wbytes=0 rios=0 wios=0
+128:0 rbytes=0 wbytes=0 rios=0 wios=0
+129:0 rbytes=0 wbytes=0 rios=0 wios=0
+130:0 rbytes=0 wbytes=0 rios=0 wios=0
+131:0 rbytes=0 wbytes=0 rios=0 wios=0
+132:0 rbytes=0 wbytes=0 rios=0 wios=0
+133:0 rbytes=0 wbytes=0 rios=0 wios=0
+134:0 rbytes=0 wbytes=0 rios=0 wios=0
+135:0 rbytes=0 wbytes=0 rios=0 wios=0
+136:0 rbytes=0 wbytes=0 rios=0 wios=0
+137:0 rbytes=0 wbytes=0 rios=0 wios=0
+138:0 rbytes=0 wbytes=0 rios=0 wios=0
+139:0 rbytes=0 wbytes=0 rios=0 wios=0
+140:0 rbytes=0 wbytes=0 rios=0 wios=0
+141:0 rbytes=0 wbytes=0 rios=0 wios=0
+142:0 rbytes=0 wbytes=0 rios=0 wios=0
+143:0 rbytes=0 wbytes=0 rios=0 wios=0
+144:0 rbytes=0 wbytes=0 rios=0 wios=0
+145:0 rbytes=0 wbytes=0 rios=0 wios=0
+146:0 rbytes=0 wbytes=0 rios=0 wios=0
+147:0 rbytes=0 wbytes=0 rios=0 wios=0
+148:0 rbytes=0 wbytes=0 rios=0 wios=0
+149:0 rbytes=0 wbytes=0 rios=0 wios=0
+150:0 rbytes=0 wbytes=0 rios=0 wios=0
+151:0 rbytes=0 wbytes=0 rios=0 wios=0
+152:0 rbytes=0 wbytes=0 rios=0 wios=0
+153:0 rbytes=0 wbytes=0 rios=0 wios=0
+154:0 rbytes=0 wbytes=0 rios=0 wios=0
+155:0 rbytes=0 wbytes=0 rios=0 wios=0
+156:0 rbytes=0 wbytes=0 rios=0 wios=0
+157:0 rbytes=0 wbytes=0 rios=0 wios=0
+158:0 rbytes=0 wbytes=0 rios=0 wios=0
+159:0 rbytes=0 wbytes=0 rios=0 wios=0
+160:0 rbytes=0 wbytes=0 rios=0 wios=0
+161:0 rbytes=0 wbytes=0 rios=0 wios=0
+162:0 rbytes=0 wbytes=0 rios=0 wios=0
+163:0 rbytes=0 wbytes=0 rios=0 wios=0
+164:0 rbytes=0 wbytes=0 rios=0 wios=0
+165:0 rbytes=0 wbytes=0 rios=0 wios=0
+166:0 rbytes=0 wbytes=0 rios=0 wios=0
+167:0 rbytes=0 wbytes=0 rios=0 wios=0
+168:0 rbytes=0 wbytes=0 rios=0 wios=0
+169:0 rbytes=0 wbytes=0 rios=0 wios=0
+170:0 rbytes=0 wbytes=0 rios=0 wios=0
+171:0 rbytes=0 wbytes=0 rios=0 wios=0
+172:0 rbytes=0 wbytes=0 rios=0 wios=0
+173:0 rbytes=0 wbytes=0 rios=0 wios=0
+174:0 rbytes=0 wbytes=0 rios=0 wios=0
+175:0 rbytes=0 wbytes=0 rios=0 wios=0
+176:0 rbytes=0 wbytes=0 rios=0 wios=0
+177:0 rbytes=0 wbytes=0 rios=0 wios=0
+178:0 rbytes=0 wbytes=0 rios=0 wios=0
+179:0 rbytes=0 wbytes=0 rios=0 wios=0
+180:0 rbytes=0 wbytes=0 rios=0 wios=0
+181:0 rbytes=0 wbytes=0 rios=0 wios=0
+182:0 rbytes=0 wbytes=0 rios=0 wios=0
+183:0 rbytes=0 wbytes=0 rios=0 wios=0
+184:0 rbytes=0 wbytes=0 rios=0 wios=0
+185:0 rbytes=0 wbytes=0 rios=0 wios=0
+186:0 rbytes=0 wbytes=0 rios=0 wios=0
+187:0 rbytes=0 wbytes=0 rios=0 wios=0
+188:0 rbytes=0 wbytes=0 rios=0 wios=0
+189:0 rbytes=0 wbytes=0 rios=0 wios=0
+190:0 rbytes=0 wbytes=0 rios=0 wios=0
+191:0 rbytes=0 wbytes=0 rios=0 wios=0
+192:0 rbytes=0 wbytes=0 rios=0 wios=0
+193:0 rbytes=0 wbytes=0 rios=0 wios=0
+194:0 rbytes=0 wbytes=0 rios=0 wios=0
+195:0 rbytes=0 wbytes=0 rios=0 wios=0
+196:0 rbytes=0 wbytes=0 rios=0 wios=0
+197:0 rbytes=0 wbytes=0 rios=0 wios=0
+198:0 rbytes=0 wbytes=0 rios=0 wios=0
+199:0 rbytes=0 wbytes=0 rios=0 wios=0
+200:0 rbytes=0 wbytes=0 rios=0 wios=0
+201:0 rbytes=0 wbytes=0 rios=0 wios=0
+202:0 rbytes=0 wbytes=0 rios=0 wios=0
+203:0 rbytes=0 wbytes=0 rios=0 wios=0
+204:0 rbytes=0 wbytes=0 rios=0 wios=0
+205:0 rbytes=0 wbytes=0 rios=0 wios=0
+206:0 rbytes=0 wbytes=0 rios=0 wios=0
+207:0 rbytes=0 wbytes=0 rios=0 wios=0
+208:0 rbytes=0 wbytes=0 rios=0 wios=0
+209:0 rbytes=0 wbytes=0 rios=0 wios=0
+210:0 rbytes=0 wbytes=0 rios=0 wios=0
+211:0 rbytes=0 wbytes=0 rios=0 wios=0
+212:0 rbytes=0 wbytes=0 rios=0 wios=0
+213:0 rbytes=0 wbytes=0 rios=0 wios=0
+214:0 rbytes=0 wbytes=0 rios=0 wios=0
+215:0 rbytes=0 wbytes=0 rios=0 wios=0
+216:0 rbytes=0 wbytes=0 rios=0 wios=0
+217:0 rbytes=0 wbytes=0 rios=0 wios=0
+218:0 rbytes=0 wbytes=0 rios=0 wios=0
+219:0 rbytes=0 wbytes=0 rios=0 wios=0
+220:0 rbytes=0 wbytes=0 rios=0 wios=0
+221:0 rbytes=0 wbytes=0 rios=0 wios=0
+222:0 rbytes=0 wbytes=0 rios=0 wios=0
+223:0 rbytes=0 wbytes=0 rios=0 wios=0
+224:0 rbytes=0 wbytes=0 rios=0 wios=0
+225:0 rbytes=0 wbytes=0 rios=0 wios=0
+226:0 rbytes=0 wbytes=0 rios=0 wios=0
+227:0 rbytes=0 wbytes=0 rios=0 wios=0
+228:0 rbytes=0 wbytes=0 rios=0 wios=0
+229:0 rbytes=0 wbytes=0 rios=0 wios=0
+230:0 rbytes=0 wbytes=0 rios=0 wios=0
+231:0 rbytes=0 wbytes=0 rios=0 wios=0
+232:0 rbytes=0 wbytes=0 rios=0 wios=0
+233:0 rbytes=0 wbytes=0 rios=0 wios=0
+234:0 rbytes=0 wbytes=0 rios=0 wios=0
+235:0 rbytes=0 wbytes=0 rios=0 wios=0
+236:0 rbytes=0 wbytes=0 rios=0 wios=0
+237:0 rbytes=0 wbytes=0 rios=0 wios=0
+238:0 rbytes=0 wbytes=0 rios=0 wios=0
+239:0 rbytes=0 wbytes=0 rios=0 wios=0
+240:0 rbytes=0 wbytes=0 rios=0 wios=0
+241:0 rbytes=0 wbytes=0 rios=0 wios=0
+242:0 rbytes=0 wbytes=0 rios=0 wios=0
+243:0 rbytes=0 wbytes=0 rios=0 wios=0
+244:0 rbytes=0 wbytes=0 rios=0 wios=0
+245:0 rbytes=0 wbytes=0 rios=0 wios=0
+246:0 rbytes=0 wbytes=0 rios=0 wios=0
+247:0 rbytes=0 wbytes=0 rios=0 wios=0
+248:0 rbytes=0 wbytes=0 rios=0 wios=0
+249:0 rbytes=0 wbytes=0 rios=0 wios=0
+250:0 rbytes=0 wbytes=0 rios=0 wios=0
+251:0 rbytes=0 wbytes=0 rios=0 wios=0
+252:0 rbytes=0 wbytes=0 rios=0 wios=0
+253:0 rbytes=0 wbytes=0 rios=0 wios=0
+254:0 rbytes=0 wbytes=0 rios=0 wios=0
+255:0 rbytes=0 wbytes=0 rios=0 wios=0
+256:0 rbytes=0 wbytes=0 rios=0 wios=0
+ (device bound) with a bounded error 1ms
+   ✓ WP050 cgroup-v2 resource parser > rejects usage_usec 15
+user_usec 10
+system_usec 5
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+bad
+ (line bound) with a bounded error 0ms
+   ✓ WP050 cgroup-v2 resource parser > bounds input bytes before parsing 0ms
+   ✓ WP050 owned resource reader > uses one fixed unprivileged cat argv between ownership/source checks 0ms
+   ✓ WP050 owned resource reader > preserves an unavailable observation without publishing child output 0ms
+   ✓ WP050 owned resource reader > preserves an unavailable observation without publishing child output 0ms
+   ✓ WP050 owned resource reader > preserves an unavailable observation without publishing child output 0ms
+   ✓ WP050 owned resource reader > preserves an unavailable observation without publishing child output 0ms
+   ✓ WP050 owned resource reader > preserves an unavailable observation without publishing child output 0ms
+   ✓ WP050 owned resource reader > masks an unknown reader exception but rechecks safety 0ms
+   ✓ WP050 owned resource reader > fails closed before reading on CONTAINER_TOKEN_MISMATCH 0ms
+   ✓ WP050 owned resource reader > fails closed before reading on SEARCH_REPRO_PRODUCT_SOURCE_MISMATCH 0ms
+   ✓ WP050 owned resource reader > refuses invalid or changed ownership IDs 0ms
+   ✓ WP050 owned resource reader > does not soften a post-read source violation into unavailable data 0ms
+   ✓ WP050 owned resource reader > propagates interruption before the read 0ms
+   ✓ WP050 owned resource reader > propagates interruption during the read 0ms
+   ✓ performance read-only application access > rechecks ownership and app identity before a local-context read-only transaction and always rolls back 1ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"role_name":"solvi_owner"} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"rolsuper":true} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"rolbypassrls":true} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"owns_tables":true} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"read_only":"off"} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"isolation_level":"read committed"} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"row_security":"off"} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"ticket_rls_active":false} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"ticket_rls_forced":false} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"organization_id":"22222222-2222-4222-8222-222222222222"} before calling user code 0ms
+   ✓ performance read-only application access > refuses unsafe role/RLS/context proof {"actor_id":"11111111-1111-4111-8111-111111111111"} before calling user code 0ms
+   ✓ performance read-only application access > refuses invalid context and changed container ownership before connecting 0ms
+   ✓ performance read-only application access > requires actual read-only SQLSTATE rather than success or an unrelated error (undefined) 0ms
+   ✓ performance read-only application access > requires actual read-only SQLSTATE rather than success or an unrelated error (42501) 0ms
+   ✓ performance read-only application access > closes a mismatched actual database connection before beginning a transaction 0ms
+   ✓ performance read-only application access > rejects transaction escape or write command COMMIT 0ms
+   ✓ performance read-only application access > rejects transaction escape or write command ROLLBACK 0ms
+   ✓ performance read-only application access > rejects transaction escape or write command SET TRANSACTION READ WRITE 0ms
+   ✓ performance read-only application access > rejects transaction escape or write command DELETE FROM ticket 0ms
+   ✓ performance read-only application access > rejects transaction escape or write command BEGIN 0ms
+   ✓ performance read-only application access > rolls back after callback failure and suppresses SQL/parameter or credential error details 0ms
+   ✓ performance read-only application access > ends active private connections on cancellation, rejects reuse, and closes idempotently 54ms
+   ✓ performance read-only application access > closes active connections during runtime cleanup without requiring the callback to return 52ms
+   ✓ performance read-only application access > bounds a stalled callback and never counts a failed connection close as clean 6ms
+   ✓ performance read-only application access > ends the owned connection when the complete read-only callback exceeds its budget 6ms
+   ✓ performance read-only application access > prevents a pending ownership check from opening a connection after runtime cleanup 0ms
+   ✓ performance read-only application access > refuses reuse of a callback facade after its transaction has been rolled back and closed 0ms
+   ✓ WP053 fixed static preparation and reader > permits only WP053 and binds its container/source guard to the fixed049 bytes 1ms
+   ✓ WP053 fixed static preparation and reader > keeps the fixed 4096 recipe, organization split, own needle and native boundary fields 14ms
+   ✓ WP053 fixed static preparation and reader > prepares only a new owned database, fixed SELECT-only posting and native PG tokenization, then commits 20ms
+   ✓ WP053 fixed static preparation and reader > rejects a nonempty fixture before writes {"tickets":1} 1ms
+   ✓ WP053 fixed static preparation and reader > rejects a nonempty fixture before writes {"organizations":1} 1ms
+   ✓ WP053 fixed static preparation and reader > rejects a nonempty fixture before writes {"users":1} 1ms
+   ✓ WP053 fixed static preparation and reader > rejects a nonempty fixture before writes {"schema_absent":false} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back unknown collation {"engine":"170000"} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back unknown collation {"provider":"c"} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back unknown collation {"locale":"en-US"} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back unknown collation {"deterministic":false} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back unknown collation {"actual_version":"different"} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back unknown collation {"ticket_default":false} 1ms
+   ✓ WP053 fixed static preparation and reader > rolls back a fixture limit/proof failure {"postings":1000001} 4ms
+   ✓ WP053 fixed static preparation and reader > rolls back a fixture limit/proof failure {"max_body":2049} 4ms
+   ✓ WP053 fixed static preparation and reader > rolls back a fixture limit/proof failure {"bytes":"536870913"} 4ms
+   ✓ WP053 fixed static preparation and reader > rolls back a fixture limit/proof failure {"generated_correct":false} 4ms
+   ✓ WP053 fixed static preparation and reader > rolls back a fixture limit/proof failure {"control_tickets":2047} 3ms
+   ✓ WP053 fixed static preparation and reader > rolls back a fixture limit/proof failure {"users":9} 4ms
+   ✓ WP053 fixed static preparation and reader > refuses preparation before any SQL if ownership/source checks fail 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies agent before and after each query 2ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies requester before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies other-requester before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies foreign before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies actor-missing before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies deactivated before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies expired before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > uses a private app connection and verifies revoked before and after each query 1ms
+   ✓ WP053 fixed static preparation and reader > refuses arbitrary context "owner" before connecting 1ms
+   ✓ WP053 fixed static preparation and reader > refuses arbitrary context "" before connecting 1ms
+   ✓ WP053 fixed static preparation and reader > refuses arbitrary context {"actorId":"22222222-2222-4222-8222-222222222222"} before connecting 1ms
+   ✓ WP053 fixed static preparation and reader > refuses arbitrary context null before connecting 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"posting_write":true} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"posting_select":false} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"posting_rls_forced":false} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"posting_rls_active":false} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"schema_create":true} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"token_bytea":false} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"owns_tables":true} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"rolbypassrls":true} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"read_only":"off"} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"seqscan":"off"} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses a weakened proof {"statement_timeout":"0"} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses contaminated actorless context {"autoclose_disabled":false} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses contaminated actorless context {"actor_id":"22222222-2222-4222-8222-222222222222"} 1ms
+   ✓ WP053 fixed static preparation and reader > refuses contaminated actorless context {"organization_id":"11111111-1111-4111-8111-111111111111"} 1ms
+   ✓ WP053 fixed static preparation and reader > does not return rows if context is changed during the callback 1ms
+   ✓ WP053 fixed static preparation and reader > rejects setting/transaction/mutation SQL COMMIT 1ms
+   ✓ WP053 fixed static preparation and reader > rejects setting/transaction/mutation SQL UPDATE ticket SET id=id 1ms
+   ✓ WP053 fixed static preparation and reader > rejects setting/transaction/mutation SQL SELECT set_config(undefined,undefined,true) 1ms
+   ✓ WP053 fixed static preparation and reader > rejects setting/transaction/mutation SQL EXPLAIN UPDATE ticket SET id=id 1ms
+   ✓ WP053 fixed static preparation and reader > rejects setting/transaction/mutation SQL SELECT pg_sleep(1) 1ms
+   ✓ WP053 fixed static preparation and reader > suppresses callback details, rolls back and closes 1ms
+   ✓ WP053 fixed static preparation and reader > aborts and closes the owned callback connection 1ms
+   ✓ WP053 fixed static preparation and reader > bounds a callback that never finishes and prevents retained connection reuse 7ms
+   ✓ performance runtime resource ownership > delegates credential creation and session operations to existing services on the same client 0ms
+   ✓ performance runtime resource ownership > does not invoke credential writes when runtime ownership validation fails 0ms
+   ✓ performance runtime resource ownership > removes only the exact directory identity with its unmodified owner marker 1ms
+   ✓ performance runtime resource ownership > refuses deleting a symlink or a directory whose recorded inode differs 1ms
+   ✓ performance runtime resource ownership > refuses a foreign PID or wildcard listener after the port-reservation race 0ms
+   ✓ performance runtime resource ownership > refuses terminating an orphan process group unless every remaining cwd belongs to the copy 0ms
+   ✓ performance runtime resource ownership > reserves a real loopback socket and releases it idempotently 1ms
+   ✓ performance runtime resource ownership > waits beyond the old 1.5-second window for a transient forwarding socket to release 0ms
+   ✓ performance runtime resource ownership > uses one release budget for all ports and distinguishes busy binds without listeners 0ms
+   ✓ performance runtime resource ownership > reports a real listener by safe port/PID metadata without claiming ownership or killing it 0ms
+   ✓ performance runtime resource ownership > never counts an ambiguous failed probe or diagnostic as successful release 0ms
+   ✓ performance runtime resource ownership > cleans an already-aborted startup without launching any runtime 1ms
+   ✓ performance runtime resource ownership > preserves the requested WP042 metadata in interrupted startup cleanup 0ms
+ ❯ tests/unit/knowledge-search-page.test.ts (15 tests | 2 failed) 26ms
+   ✓ NFR-UX-002/003/004 knowledge list rendering and URL recovery > requests 20 results, keeps backend order and reports total separately from visible count 15ms
+   × NFR-UX-002/003/004 knowledge list rendering and URL recovery > preserves q and manage through detail, next/previous, and first while resetting mode cursors 3ms
+     → missing expected link: 公開された記事を見る
+   ✓ NFR-UX-002/003/004 knowledge list rendering and URL recovery > keeps the full maximum Japanese query and cursor in detail returnTo without shared navigation changes 1ms
+   ✓ NFR-UX-002/003/004 knowledge list rendering and URL recovery > FR-KNW-003 partial: renders safe text and exposes a body match beyond the leading summary 1ms
+   × NFR-UX-002/003/004 knowledge list rendering and URL recovery > uses the current organization staff visibility and never enables management for a requester 3ms
+     → expected '<main id="main" class="shell knowledg…' not to contain '公開済み'
+   ✓ NFR-UX-002/003/004 knowledge list rendering and URL recovery > leaves session recovery to the shared session path before requesting knowledge 0ms
+   ✓ knowledge list recovery > distinguishes empty states: '公開中の記事はありません' 0ms
+   ✓ knowledge list recovery > distinguishes empty states: '条件に合う記事はありません' 0ms
+   ✓ knowledge list recovery > distinguishes empty states: '記事はまだ登録されていません' 0ms
+   ✓ knowledge list recovery > recovers an empty continuation without losing its exact total or q/mode 0ms
+   ✓ knowledge list recovery > shows a recoverable API 400 without reporting zero results 0ms
+   ✓ knowledge list recovery > shows a recoverable API 401 without reporting zero results 0ms
+   ✓ knowledge list recovery > shows a recoverable API 403 without reporting zero results 0ms
+   ✓ knowledge list recovery > shows a recoverable API 503 without reporting zero results 0ms
+   ✓ knowledge list recovery > does not discard a duplicated cursor and silently show unrelated first-page results 0ms
+ ❯ tests/unit/performance-search-static-cli.test.ts (12 tests | 8 failed) 11ms
+   ✓ WP053 bounded CLI > rejects the current formatted root rules before creating a database or analyzing 2ms
+   ✓ WP053 bounded CLI > rejects modified historical rules before creating a database or analyzing 0ms
+   ✓ WP053 bounded CLI > rejects the live inventory with later evidence before creating a database 0ms
+   ✓ WP053 bounded CLI > refuses target URLs, profiles, budgets, duplicate/missing values before resource creation 1ms
+   × WP053 bounded CLI > refuses changed corpus bytes before DB creation and persists a safe failure 3ms
+     → expected 'STATIC_SOURCE_MISMATCH' to be 'STATIC_CORPUS_MISMATCH' // Object.is equality
+   × WP053 bounded CLI > requires index/catalog proof, leaves adoption false, and closes resources before publishing 1ms
+     → expected false to be true // Object.is equality
+   × WP053 bounded CLI > cleans a deliberate failure after preparing the owned frozen fixture 0ms
+     → expected 'STATIC_SOURCE_MISMATCH' to be 'EXPECTED_CLEANUP_EXERCISE' // Object.is equality
+   × WP053 bounded CLI > binds private fixture bytes before DB creation and rejects changed preparation 1ms
+     → expected value must be number or bigint, received "undefined"
+   × WP053 bounded CLI > refuses an API start stage in the database-only factory 0ms
+     → expected 'STATIC_SOURCE_MISMATCH' to be 'STATIC_API_START_FORBIDDEN' // Object.is equality
+   × WP053 bounded CLI > persists only a fixed code after an unexpected child error and still closes DB 0ms
+     → expected 'STATIC_SOURCE_MISMATCH' to be 'STATIC_PROOF_FAILED' // Object.is equality
+   × WP053 bounded CLI > SIGTERM interrupts proof and cannot become a successful report 0ms
+     → expected false to be true // Object.is equality
+   × WP053 bounded CLI > preserves Next.js dynamic route source hashes but rejects parent/absolute paths 0ms
+     → Cannot read properties of undefined (reading 'sourceInventoryVerified')
+ ✓ tests/unit/performance-list-load.test.ts (68 tests) 21115ms
+   ✓ comparison report preserves measured failures separately from harness completion > runs the same 12-arrival ABBA schedule for outcome 200  1280ms
+   ✓ comparison report preserves measured failures separately from harness completion > runs the same 12-arrival ABBA schedule for outcome 500  1270ms
+   ✓ comparison report preserves measured failures separately from harness completion > runs the same 12-arrival ABBA schedule for outcome timeout  1681ms
+   ✓ WP046 fixed search burst and API probes > preserves HTTP 200 separately from valid controlled comparison  1547ms
+   ✓ WP046 fixed search burst and API probes > preserves HTTP 500 separately from valid controlled comparison  1525ms
+   ✓ WP046 fixed search burst and API probes > requires 100 actual distinct sessions in the growth contrast  2752ms
+   ✓ WP046 fixed search burst and API probes > fails the API contract on a requester leak while preserving completed observations  1540ms
+   ✓ WP044 fixed deadline burst and separate API probes > preserves eight fixed 100-arrival phases and 100 distinct real-login cookies in the growth profile  2768ms
+   ✓ WP044 fixed deadline burst and separate API probes > keeps 12-arrival ABBA and independent session counts with HTTP 200  1544ms
+   ✓ WP044 fixed deadline burst and separate API probes > keeps 12-arrival ABBA and independent session counts with HTTP 500  1522ms
+   ✓ WP044 fixed deadline burst and separate API probes > keeps an own-scope identity mismatch as a failed API contract even if every burst succeeds  1539ms
+ ✓ tests/unit/user-directory-read.test.ts (5 tests) 503ms
+   ✓ UserAdmin direct Ticket SQL architecture guard > accepts the public service and rejects qualified/quoted direct reads or writes in both owned files  500ms
+ ✓ tests/unit/catalog-authoring-ui.test.ts (54 tests) 260ms
+ ✓ tests/unit/auth-primitives.test.ts (26 tests) 257ms
+ ✓ tests/unit/performance-search-capacity.test.ts (12 tests) 172ms
+ ✓ tests/unit/performance-search.test.ts (18 tests) 117ms
+ ✓ tests/unit/performance-cli.test.ts (80 tests) 130ms
+ ✓ tests/unit/performance-baseline.test.ts (16 tests) 115ms
+ ✓ tests/unit/performance-observability.test.ts (19 tests) 90ms
+ ✓ tests/unit/catalog-edit-ui.test.ts (30 tests) 72ms
+ ✓ tests/unit/performance-search-repro.test.ts (15 tests) 83ms
+ ✓ tests/unit/assets-form-ui.test.ts (73 tests) 78ms
+ ✓ tests/unit/performance-directory-load.test.ts (29 tests) 71ms
+ ✓ tests/unit/asset-edit-detail-recovery-ui.test.ts (33 tests) 62ms
+ ✓ tests/unit/assets-import-history-ui.test.ts (46 tests) 49ms
+ ✓ tests/unit/assets-import-detail-ui.test.ts (65 tests) 39ms
+ ✓ tests/unit/group-member-selection-ui.test.ts (49 tests) 37ms
+ ✓ tests/unit/performance-search-index-cli.test.ts (46 tests) 35ms
+ ✓ tests/unit/approval-assertion.test.ts (47 tests) 42ms
+ ✓ tests/unit/operator-detail-recovery-ui.test.ts (60 tests) 32ms
+ ✓ tests/unit/knowledge-edit-ui.test.ts (22 tests) 29ms
+ ✓ tests/unit/approval-delegation-ui.test.ts (58 tests) 35ms
+ ✓ tests/unit/assets-detail-ui.test.ts (64 tests) 31ms
+ ✓ tests/unit/notification-list-ui.test.ts (54 tests) 34ms
+ ✓ tests/unit/changes-ui.test.ts (56 tests) 32ms
+ ✓ tests/unit/request-detail-recovery-ui.test.ts (59 tests) 29ms
+ ✓ tests/unit/change-detail-recovery-ui.test.ts (56 tests) 28ms
+ ✓ tests/unit/performance-search-repro-cli.test.ts (42 tests) 29ms
+ ✓ tests/unit/requests-ui.test.ts (48 tests) 28ms
+ ✓ tests/unit/approval-dual-control-ui.test.ts (17 tests) 31ms
+ ✓ tests/unit/asset-import-inspection.test.ts (24 tests) 27ms
+ ✓ tests/unit/approval-reassign-ui.test.ts (45 tests) 28ms
+ ✓ tests/unit/ticket-detail-recovery-ui.test.ts (53 tests) 26ms
+ ✓ tests/unit/catalog-detail-recovery-ui.test.ts (67 tests) 31ms
+ ✓ tests/unit/performance-search-prefix.test.ts (39 tests) 29ms
+ ✓ tests/unit/inbox-ui.test.ts (35 tests) 24ms
+ ✓ tests/unit/performance-deadline.test.ts (12 tests) 19ms
+ ✓ tests/unit/group-detail-read-recovery-ui.test.ts (16 tests) 21ms
+ ✓ tests/unit/assets-import-form-ui.test.ts (46 tests) 21ms
+ ✓ tests/unit/assets-ui.test.ts (57 tests) 20ms
+ ✓ tests/unit/catalog-operations-ui.test.ts (34 tests) 22ms
+ ✓ tests/unit/catalog-preview.test.ts (90 tests) 20ms
+ ✓ tests/unit/department-ui.test.ts (12 tests) 22ms
+ ✓ tests/unit/slo-metrics.test.ts (11 tests) 22ms
+ ✓ tests/unit/group-management-list-ui.test.ts (64 tests) 19ms
+ ✓ tests/unit/knowledge-detail-recovery-ui.test.ts (59 tests) 15ms
+ ✓ tests/unit/catalog-operations.test.ts (34 tests) 16ms
+stdout | tests/unit/ticket-state-machine.test.ts > 遷移表の全セル網羅 > 許可される遷移と拒否される遷移の件数を記録する
+  遷移表: 許可 20 件 / 拒否 684 件 (全 704 組合せ)
+
+ ✓ tests/unit/ticket-state-machine.test.ts (723 tests) 18ms
+ ✓ tests/unit/change-create-recovery-ui.test.ts (61 tests) 16ms
+ ✓ tests/unit/support-portal-ui.test.ts (21 tests) 16ms
+ ✓ tests/unit/notification-manual-retry.test.ts (51 tests) 15ms
+ ✓ tests/unit/citation-detail-recovery-ui.test.ts (61 tests) 15ms
+ ✓ tests/unit/performance-search-index.test.ts (18 tests) 15ms
+ ✓ tests/unit/catalog-management-list-ui.test.ts (41 tests) 13ms
+ ✓ tests/unit/glpi.test.ts (48 tests) 15ms
+ ✓ tests/unit/notification-preference-ui.test.ts (39 tests) 12ms
+ ✓ tests/unit/catalog-request-entry-recovery-ui.test.ts (46 tests) 12ms
+ ✓ tests/unit/catalog-entry-recovery-ui.test.ts (47 tests) 15ms
+ ✓ tests/unit/portal-catalog.test.ts (32 tests) 13ms
+ ✓ tests/unit/performance-search-cost.test.ts (25 tests) 13ms
+ ✓ tests/unit/catalog-flexible.test.ts (51 tests) 11ms
+ ✓ tests/unit/change-edit-recovery-ui.test.ts (58 tests) 12ms
+ ✓ tests/unit/notification-preference.test.ts (70 tests) 11ms
+ ✓ tests/unit/notification-manual-retry-ui.test.ts (43 tests) 11ms
+ ✓ tests/unit/performance-overview.test.ts (9 tests) 12ms
+ ✓ tests/unit/observability.test.ts (12 tests) 9ms
+ ✓ tests/unit/performance-directory.test.ts (13 tests) 11ms
+ ✓ tests/unit/notification-list.test.ts (64 tests) 10ms
+ ✓ tests/unit/user-directory.test.ts (27 tests) 11ms
+ ✓ tests/unit/catalog-request-fields-ui.test.ts (19 tests) 10ms
+ ✓ tests/unit/approval-state.test.ts (43 tests) 9ms
+ ✓ tests/unit/asset-pending-ui.test.ts (37 tests) 10ms
+ ✓ tests/unit/notification-retry.test.ts (20 tests) 11ms
+ ✓ tests/unit/catalog-flexible-ui.test.ts (10 tests) 8ms
+ ✓ tests/unit/catalog-reuse.test.ts (17 tests) 8ms
+ ✓ tests/unit/performance-search-static.test.ts (36 tests) 8ms
+ ✓ tests/unit/ticket-search-state-prefix.test.ts (65 tests) 8ms
+ ✓ tests/unit/ticket-search-workload.test.ts (55 tests) 9ms
+ ✓ tests/unit/operations-overview.test.ts (48 tests) 7ms
+ ✓ tests/unit/ticket-search-projection.test.ts (35 tests) 7ms
+ ✓ tests/unit/catalog-definition.test.ts (58 tests) 9ms
+ ✓ tests/unit/ticket-deadline-projection.test.ts (28 tests) 8ms
+ ✓ tests/unit/ticket-overview.test.ts (46 tests) 6ms
+ ✓ tests/unit/performance-query-analysis.test.ts (8 tests) 6ms
+ ✓ tests/unit/knowledge-search.test.ts (19 tests) 6ms
+ ✓ tests/unit/clamav.test.ts (21 tests) 5ms
+ ✓ tests/unit/catalog-priority-two-ui.test.ts (16 tests) 5ms
+ ✓ tests/unit/ticket-search-prefix.test.ts (32 tests) 5ms
+ ✓ tests/unit/catalog-flexible-templates.test.ts (11 tests) 5ms
+ ✓ tests/unit/ticket-queue.test.ts (24 tests) 5ms
+ ✓ tests/unit/approval-route-ui.test.ts (31 tests) 5ms
+ ✓ tests/unit/approval-delegation.test.ts (13 tests) 4ms
+ ✓ tests/unit/auth-role-clock.test.ts (7 tests) 5ms
+ ✓ tests/unit/ticket-assignment-read.test.ts (20 tests) 4ms
+ ✓ tests/unit/approval-resolver.test.ts (29 tests) 4ms
+ ✓ tests/unit/approval-dual-control.test.ts (21 tests) 4ms
+ ✓ tests/unit/operation-session.test.ts (19 tests) 3ms
+ ✓ tests/unit/require-session.test.ts (9 tests) 4ms
+ ✓ tests/unit/approval-reassign.test.ts (18 tests) 3ms
+ ✓ tests/unit/webhook-signature.test.ts (19 tests) 3ms
+ ✓ tests/unit/approval-notice.test.ts (13 tests) 3ms
+ ✓ tests/unit/attachment-validation.test.ts (32 tests) 2ms
+ ✓ tests/unit/ticket-query-ordering.test.ts (7 tests) 2ms
+ ✓ tests/unit/authz.test.ts (15 tests) 2ms
+ ✓ tests/unit/sla.test.ts (18 tests) 2ms
+ ✓ tests/unit/navigation-ui.test.ts (5 tests) 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/knowledge-list.test.ts [ tests/unit/knowledge-list.test.ts ]
+Error: Cannot find module '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs' imported from '/Users/jp.infra/Dev/SOLVI/tests/unit/knowledge-list.test.ts'
+ ❯ tests/unit/knowledge-list.test.ts:6:1
+      4| import type { RoleCode } from '../../services/api/src/common/authz/aut…
+      5| import { KnowledgeController } from '../../services/api/src/modules/kn…
+      6| import {
+       | ^
+      7|   assertKnowledgeDatabaseUrls,
+      8|   seedKnowledgeFixture,
+
+Caused by: Error: Failed to load url ../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs (resolved id: ../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs) in /Users/jp.infra/Dev/SOLVI/tests/unit/knowledge-list.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/35]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 34 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/knowledge-search-page.test.ts > NFR-UX-002/003/004 knowledge list rendering and URL recovery > preserves q and manage through detail, next/previous, and first while resetting mode cursors
+Error: missing expected link: 公開された記事を見る
+ ❯ link tests/unit/knowledge-search-page.test.ts:61:21
+     59| const link = (html: string, label: string) => {
+     60|   const found = links(html).find((item) => item.text === label);
+     61|   if (!found) throw new Error(`missing expected link: ${label}`);
+       |                     ^
+     62|   return new URL(found.href, 'https://solvi.test');
+     63| };
+ ❯ tests/unit/knowledge-search-page.test.ts:107:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/35]⎯
+
+ FAIL  tests/unit/knowledge-search-page.test.ts > NFR-UX-002/003/004 knowledge list rendering and URL recovery > uses the current organization staff visibility and never enables management for a requester
+AssertionError: expected '<main id="main" class="shell knowledg…' not to contain '公開済み'
+
+Expected: [32m"公開済み"[39m
+Received: [31m"<main id="main" class="shell knowledge-search fs-knowledge"><div class="fs-page-with-sidebar"><aside class="fs-side-nav" aria-label="ナレッジのカテゴリ"><p class="fs-side-nav-heading">ナレッジ</p><nav class="fs-side-nav-links"><a href="/knowledge">すべての記事</a></nav><p class="fs-side-nav-heading fs-side-nav-heading--tags">タグ <span class="hint">表示中の記事</span></p><nav class="fs-side-nav-links fs-side-nav-tags" aria-label="タグ"><a href="/knowledge?q=VPN" aria-current="page"><span>VPN</span><span class="fs-side-nav-count">1</span></a></nav></aside><section class="fs-page-main" aria-label="ナレッジ検索結果"><div class="page-heading knowledge-heading"><div><h1>ナレッジを探す</h1><p class="hint">よくある質問や対応手順を、タイトル・本文・タグから探せます。</p></div></div><form class="knowledge-filters" aria-label="ナレッジを検索" action="/knowledge" method="get"><div class="field"><label for="knowledge-q">検索する言葉</label><input id="knowledge-q" type="search" maxLength="200" placeholder="例: VPN、パスワード" aria-describedby="knowledge-search-hint" name="q" value="VPN"/><span id="knowledge-search-hint" class="visually-hidden">タイトル・本文・タグを部分一致で検索します。</span></div><div class="knowledge-filter-actions"><button type="submit">検索する</button><a href="/knowledge">検索条件を解除</a></div></form><div class="knowledge-result" role="status"><p><strong>205件</strong>の検索結果</p><p>この画面に1件を表示</p></div><nav class="knowledge-pagination" aria-label="ナレッジ検索結果のページ（上）"><a href="/knowledge?q=VPN&amp;cursor=nextCursor">次の結果</a></nav><div class="table-scroll"><table class="fs-knowledge-table"><caption class="visually-hidden">ナレッジ記事 205件中 1件を表示</caption><thead><tr><th scope="col">タイトル</th><th scope="col">状態</th><th scope="col">公開範囲</th><th scope="col">版</th><th scope="col">更新日</th><th scope="col">タグ</th></tr></thead><tbody><tr><td class="fs-knowledge-title"><a href="/knowledge/first?returnTo=%2Fknowledge%3Fq%3DVPN">記事 first</a><p class="hint">接続の確認手順です。</p></td><td><span class="knowledge-state">公開済み</span></td><td>組織内</td><td>v1</td><td title="2026年10月7日 10:02" class="fs-knowledge-date">2026/10/07</td><td class="fs-knowledge-tags"><mark>VPN</mark></td></tr></tbody></table></div><nav class="knowledge-pagination" aria-label="ナレッジ検索結果のページ（下）"><a href="/knowledge?q=VPN&amp;cursor=nextCursor">次の結果</a></nav></section></div></main>"[39m
+
+ ❯ tests/unit/knowledge-search-page.test.ts:163:22
+    161|     expect(html).not.toContain('記事を作成・管理する');
+    162|     expect(html).not.toContain('新しい記事を書く');
+    163|     expect(html).not.toContain('公開済み');
+       |                      ^
+    164|   });
+    165| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP045 private directory adapters and fixed security report > compiles only the immutable UserAdmin service next to its copied relative dependencies
+Error: Command failed: git show 035288fcb2caf0a77b74282cc56fd14c73ca79bc:services/api/src/modules/auth/user-admin.service.ts
+fatal: path 'services/api/src/modules/auth/user-admin.service.ts' exists on disk, but not in '035288fcb2caf0a77b74282cc56fd14c73ca79bc'
+
+ ❯ legacySource tests/unit/performance-runtime.test.ts:326:5
+    324| describe('WP045 private directory adapters and fixed security report',…
+    325|   const legacySource = () =>
+    326|     execFileSync(
+       |     ^
+    327|       'git',
+    328|       ['show', `${LEGACY_USER_ADMIN_BASELINE.ref}:${LEGACY_USER_ADMIN_…
+ ❯ tests/unit/performance-runtime.test.ts:347:69
+ ❯ installLegacyUserAdmin tools/performance/runtime.mjs:485:24
+ ❯ tests/unit/performance-runtime.test.ts:347:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP045 private directory adapters and fixed security report > rejects symlinked ancestors and existing legacy modules
+AssertionError: expected [Function] to throw error including 'LEGACY_USER_ADMIN_ALREADY_EXISTS' but got 'Command failed: git show 035288fcb2ca…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_USER_ADMIN_ALREADY_EXISTS[39m
+[31m+ Command failed: git show 035288fcb2caf0a77b74282cc56fd14c73ca79bc:services/api/src/modules/auth/user-admin.service.ts[39m
+[31m+ fatal: path 'services/api/src/modules/auth/user-admin.service.ts' exists on disk, but not in '035288fcb2caf0a77b74282cc56fd14c73ca79bc'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:374:5
+    372|     const target = join(identity.path, LEGACY_USER_ADMIN_BASELINE.comp…
+    373|     writeFileSync(target, 'preserve');
+    374|     await expect(installLegacyUserAdmin(identity, async () => legacySo…
+       |     ^
+    375|       'LEGACY_USER_ADMIN_ALREADY_EXISTS',
+    376|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > fixed legacy ticket query compilation > compiles the pinned source only inside the owned API dist and preserves relative ESM imports
+Error: Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'
+
+ ❯ pinnedLegacySource tests/unit/performance-runtime.test.ts:613:3
+    611| };
+    612| const pinnedLegacySource = () =>
+    613|   execFileSync(
+       |   ^
+    614|     'git',
+    615|     ['show', `${LEGACY_TICKET_QUERY_BASELINE.ref}:${LEGACY_TICKET_QUER…
+ ❯ tests/unit/performance-runtime.test.ts:622:71
+ ❯ compilePinnedTicketQuery tools/performance/runtime.mjs:411:24
+ ❯ installLegacyTicketQuery tools/performance/runtime.mjs:375:10
+ ❯ tests/unit/performance-runtime.test.ts:622:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > fixed legacy ticket query compilation > refuses a symlinked dist ancestor without writing outside the owned directory
+AssertionError: expected [Function] to throw error including 'LEGACY_TICKET_QUERY_PATH_UNSAFE' but got 'Command failed: git show 08a0904145a3…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_TICKET_QUERY_PATH_UNSAFE[39m
+[31m+ Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:661:5
+    659|     rmSync(dist, { recursive: true });
+    660|     symlinkSync(outside, dist);
+    661|     await expect(
+       |     ^
+    662|       installLegacyTicketQuery(identity, async () => pinnedLegacySourc…
+    663|     ).rejects.toThrow('LEGACY_TICKET_QUERY_PATH_UNSAFE');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > fixed legacy ticket query compilation > never overwrites an existing comparison module
+AssertionError: expected [Function] to throw error including 'LEGACY_TICKET_QUERY_ALREADY_EXISTS' but got 'Command failed: git show 08a0904145a3…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_TICKET_QUERY_ALREADY_EXISTS[39m
+[31m+ Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:671:5
+    669|     const target = join(identity.path, LEGACY_TICKET_QUERY_BASELINE.co…
+    670|     writeFileSync(target, 'preserve-existing-content');
+    671|     await expect(
+       |     ^
+    672|       installLegacyTicketQuery(identity, async () => pinnedLegacySourc…
+    673|     ).rejects.toThrow('LEGACY_TICKET_QUERY_ALREADY_EXISTS');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > fixed legacy ticket query compilation > rechecks interruption after awaiting source and before compilation or writes
+AssertionError: expected [Function] to throw error including 'RUNTIME_INTERRUPTED' but got 'Command failed: git show 08a0904145a3…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- RUNTIME_INTERRUPTED[39m
+[31m+ Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:680:5
+    678|     const identity = legacyDirectory();
+    679|     let stopped = false;
+    680|     await expect(
+       |     ^
+    681|       installLegacyTicketQuery(
+    682|         identity,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP046 immutable search comparison source > pins WP045 ticket SQL separately from WP044 and compiles only in the owned copy
+Error: Command failed: git show d66537ca01a6c127d3bc55a66bb75eb8a3ade8ea:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'd66537ca01a6c127d3bc55a66bb75eb8a3ade8ea'
+
+ ❯ source tests/unit/performance-runtime.test.ts:698:5
+    696| describe('WP046 immutable search comparison source', () => {
+    697|   const source = () =>
+    698|     execFileSync(
+       |     ^
+    699|       'git',
+    700|       ['show', `${LEGACY_SEARCH_QUERY_BASELINE.ref}:${LEGACY_SEARCH_QU…
+ ❯ tests/unit/performance-runtime.test.ts:705:71
+ ❯ compilePinnedTicketQuery tools/performance/runtime.mjs:411:24
+ ❯ installLegacySearchQuery tools/performance/runtime.mjs:385:10
+ ❯ tests/unit/performance-runtime.test.ts:705:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP046 immutable search comparison source > rejects the deadline legacy source and a changed owner marker before writing
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_QUERY_SOURCE_MISMATCH' but got 'Command failed: git show 08a0904145a3…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_QUERY_SOURCE_MISMATCH[39m
+[31m+ Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:722:5
+    720|   it('rejects the deadline legacy source and a changed owner marker be…
+    721|     const identity = legacyDirectory();
+    722|     await expect(
+       |     ^
+    723|       installLegacySearchQuery(identity, async () => pinnedLegacySourc…
+    724|     ).rejects.toThrow('LEGACY_SEARCH_QUERY_SOURCE_MISMATCH');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP046 immutable search comparison source > rejects ancestor symlinks and rechecks cancellation before search artifact creation
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_QUERY_PATH_UNSAFE' but got 'Command failed: git show d66537ca01a6…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_QUERY_PATH_UNSAFE[39m
+[31m+ Command failed: git show d66537ca01a6c127d3bc55a66bb75eb8a3ade8ea:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'd66537ca01a6c127d3bc55a66bb75eb8a3ade8ea'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:736:5
+    734|     rmSync(dist, { recursive: true });
+    735|     symlinkSync(outside, dist);
+    736|     await expect(installLegacySearchQuery(identity, async () => source…
+       |     ^
+    737|       'LEGACY_SEARCH_QUERY_PATH_UNSAFE',
+    738|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP047 immutable projected-search workload source > pins the WP046 result separately and permits only one owned destination
+Error: Command failed: git show 15016d7326c91503a200be815e128f35b5107f13:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '15016d7326c91503a200be815e128f35b5107f13'
+
+ ❯ source tests/unit/performance-runtime.test.ts:759:5
+    757| describe('WP047 immutable projected-search workload source', () => {
+    758|   const source = () =>
+    759|     execFileSync(
+       |     ^
+    760|       'git',
+    761|       [
+ ❯ tests/unit/performance-runtime.test.ts:769:79
+ ❯ compilePinnedTicketQuery tools/performance/runtime.mjs:411:24
+ ❯ installLegacySearchWorkloadQuery tools/performance/runtime.mjs:399:10
+ ❯ tests/unit/performance-runtime.test.ts:769:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP047 immutable projected-search workload source > rejects a different fixed baseline, a changed marker, and interruption before writing
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_WORKLOAD_SOURCE_MISMATCH' but got 'Command failed: git show 08a0904145a3…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_WORKLOAD_SOURCE_MISMATCH[39m
+[31m+ Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:786:5
+    784|   it('rejects a different fixed baseline, a changed marker, and interr…
+    785|     const identity = legacyDirectory();
+    786|     await expect(
+       |     ^
+    787|       installLegacySearchWorkloadQuery(identity, async () => pinnedLeg…
+    788|     ).rejects.toThrow('LEGACY_SEARCH_WORKLOAD_SOURCE_MISMATCH');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP047 immutable projected-search workload source > refuses a symlinked compilation ancestor
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_WORKLOAD_PATH_UNSAFE' but got 'Command failed: git show 15016d7326c9…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_WORKLOAD_PATH_UNSAFE[39m
+[31m+ Command failed: git show 15016d7326c91503a200be815e128f35b5107f13:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '15016d7326c91503a200be815e128f35b5107f13'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:817:5
+    815|     rmSync(dist, { recursive: true });
+    816|     symlinkSync(directory(), dist);
+    817|     await expect(installLegacySearchWorkloadQuery(identity, async () =…
+       |     ^
+    818|       'LEGACY_SEARCH_WORKLOAD_PATH_UNSAFE',
+    819|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP048 immutable held-WP047 comparison source > keeps the fixed held combined-SQL source and the adopted two-statement source distinct
+Error: Command failed: git show 15016d7326c91503a200be815e128f35b5107f13:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '15016d7326c91503a200be815e128f35b5107f13'
+
+ ❯ adoptedSource tests/unit/performance-runtime.test.ts:831:5
+    829|     );
+    830|   const adoptedSource = () =>
+    831|     execFileSync(
+       |     ^
+    832|       'git',
+    833|       [
+ ❯ tests/unit/performance-runtime.test.ts:841:82
+ ❯ compilePinnedTicketQuery tools/performance/runtime.mjs:411:24
+ ❯ installLegacySearchWorkloadQuery tools/performance/runtime.mjs:399:10
+ ❯ tests/unit/performance-runtime.test.ts:841:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP048 immutable held-WP047 comparison source > rejects adopted-source substitution and a replaced marker before compilation
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_PREFIX_SOURCE_MISMATCH' but got 'Command failed: git show 15016d7326c9…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_PREFIX_SOURCE_MISMATCH[39m
+[31m+ Command failed: git show 15016d7326c91503a200be815e128f35b5107f13:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '15016d7326c91503a200be815e128f35b5107f13'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:861:5
+    859|   it('rejects adopted-source substitution and a replaced marker before…
+    860|     const identity = legacyDirectory();
+    861|     await expect(
+       |     ^
+    862|       installLegacySearchPrefixQuery(identity, async () => adoptedSour…
+    863|     ).rejects.toThrow('LEGACY_SEARCH_PREFIX_SOURCE_MISMATCH');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP048 immutable held-WP047 comparison source > rejects symlinked ancestors and interruption before creating the fixed artifact
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_PREFIX_PATH_UNSAFE' but got 'Command failed: git show 1d5e0ec89427…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_PREFIX_PATH_UNSAFE[39m
+[31m+ Command failed: git show 1d5e0ec89427d4d04c496b908b2ce5abaa1d1b04:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '1d5e0ec89427d4d04c496b908b2ce5abaa1d1b04'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:877:5
+    875|     rmSync(dist, { recursive: true });
+    876|     symlinkSync(directory(), dist);
+    877|     await expect(installLegacySearchPrefixQuery(identity, async () => …
+       |     ^
+    878|       'LEGACY_SEARCH_PREFIX_PATH_UNSAFE',
+    879|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP049 immutable held-WP048 comparison source > pins the prefix source separately from both earlier controls
+Error: Command failed: git show 1e491c998bbf71189139fa6003af2930eda14eef:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '1e491c998bbf71189139fa6003af2930eda14eef'
+
+ ❯ source tests/unit/performance-runtime.test.ts:902:5
+    900| describe('WP049 immutable held-WP048 comparison source', () => {
+    901|   const source = () =>
+    902|     execFileSync(
+       |     ^
+    903|       'git',
+    904|       ['show', `${LEGACY_SEARCH_048_BASELINE.ref}:${LEGACY_SEARCH_048_…
+ ❯ tests/unit/performance-runtime.test.ts:909:74
+ ❯ compilePinnedTicketQuery tools/performance/runtime.mjs:411:24
+ ❯ installLegacySearch048Query tools/performance/runtime.mjs:462:10
+ ❯ tests/unit/performance-runtime.test.ts:909:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP049 immutable held-WP048 comparison source > rejects a previous control and replaced ownership marker without writing
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_048_SOURCE_MISMATCH' but got 'Command failed: git show 08a0904145a3…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_048_SOURCE_MISMATCH[39m
+[31m+ Command failed: git show 08a0904145a3b036ad5c36330b56e1d638e1451e:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '08a0904145a3b036ad5c36330b56e1d638e1451e'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:933:5
+    931|   it('rejects a previous control and replaced ownership marker without…
+    932|     const identity = legacyDirectory();
+    933|     await expect(
+       |     ^
+    934|       installLegacySearch048Query(identity, async () => pinnedLegacySo…
+    935|     ).rejects.toThrow('LEGACY_SEARCH_048_SOURCE_MISMATCH');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP049 immutable held-WP048 comparison source > rejects a symlinked destination ancestor and aborts before compilation output
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_048_PATH_UNSAFE' but got 'Command failed: git show 1e491c998bbf…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_048_PATH_UNSAFE[39m
+[31m+ Command failed: git show 1e491c998bbf71189139fa6003af2930eda14eef:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in '1e491c998bbf71189139fa6003af2930eda14eef'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:949:5
+    947|     rmSync(dist, { recursive: true });
+    948|     symlinkSync(directory(), dist);
+    949|     await expect(installLegacySearch048Query(identity, async () => sou…
+       |     ^
+    950|       'LEGACY_SEARCH_048_PATH_UNSAFE',
+    951|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP050/051 immutable product and WP050 fixed WP049 control > WP-P2-PERF-050 rechecks exact product bytes and suppresses private reader errors
+ FAIL  tests/unit/performance-runtime.test.ts > WP050/051 immutable product and WP050 fixed WP049 control > WP-P2-PERF-051 rechecks exact product bytes and suppresses private reader errors
+Error: Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'
+
+ ❯ source tests/unit/performance-runtime.test.ts:972:5
+    970| describe('WP050/051 immutable product and WP050 fixed WP049 control', …
+    971|   const source = () =>
+    972|     execFileSync(
+       |     ^
+    973|       'git',
+    974|       ['show', `${LEGACY_SEARCH_049_BASELINE.ref}:${LEGACY_SEARCH_049_…
+ ❯ tests/unit/performance-runtime.test.ts:980:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP050/051 immutable product and WP050 fixed WP049 control > rejects changed WP051 source before constructing a read-only app connection
+AssertionError: expected [Function] to throw error including 'SEARCH_REPRO_PRODUCT_SOURCE_MISMATCH' but got 'SEARCH_REPRO_PRODUCT_SOURCE_UNAVAILAB…'
+
+Expected: [32m"SEARCH_REPRO_PRODUCT_SOURCE_[7mMISMATCH[27m"[39m
+Received: [31m"SEARCH_REPRO_PRODUCT_SOURCE_[7mUNAVAILABLE[27m"[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:1014:5
+    1012|     });
+    1013|     const callback = vi.fn();
+    1014|     await expect(access.withAppReadOnly(context, callback)).rejects.to…
+       |     ^
+    1015|       'SEARCH_REPRO_PRODUCT_SOURCE_MISMATCH',
+    1016|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP050/051 immutable product and WP050 fixed WP049 control > pins the current product to exact WP049 bytes and preserves a distinct compiled control
+Error: Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts
+fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'
+
+ ❯ source tests/unit/performance-runtime.test.ts:972:5
+    970| describe('WP050/051 immutable product and WP050 fixed WP049 control', …
+    971|   const source = () =>
+    972|     execFileSync(
+       |     ^
+    973|       'git',
+    974|       ['show', `${LEGACY_SEARCH_049_BASELINE.ref}:${LEGACY_SEARCH_049_…
+ ❯ tests/unit/performance-runtime.test.ts:1023:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP050/051 immutable product and WP050 fixed WP049 control > rejects altered fixed source or replaced owner before writing
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_049_SOURCE_MISMATCH' but got 'Command failed: git show a49ecbdf4504…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_049_SOURCE_MISMATCH[39m
+[31m+ Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:1054:5
+    1052|   it('rejects altered fixed source or replaced owner before writing', …
+    1053|     const identity = legacyDirectory();
+    1054|     await expect(installLegacySearch049Query(identity, async () => sou…
+       |     ^
+    1055|       'LEGACY_SEARCH_049_SOURCE_MISMATCH',
+    1056|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/35]⎯
+
+ FAIL  tests/unit/performance-runtime.test.ts > WP050/051 immutable product and WP050 fixed WP049 control > refuses redirected compilation and cancellation before output
+AssertionError: expected [Function] to throw error including 'LEGACY_SEARCH_049_PATH_UNSAFE' but got 'Command failed: git show a49ecbdf4504…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- LEGACY_SEARCH_049_PATH_UNSAFE[39m
+[31m+ Command failed: git show a49ecbdf45047c8daa48027635649f8869e311c6:services/api/src/modules/ticket/ticket-query.ts[39m
+[31m+ fatal: path 'services/api/src/modules/ticket/ticket-query.ts' exists on disk, but not in 'a49ecbdf45047c8daa48027635649f8869e311c6'[39m
+[31m+[39m
+
+ ❯ tests/unit/performance-runtime.test.ts:1070:5
+    1068|     rmSync(dist, { recursive: true });
+    1069|     symlinkSync(directory(), dist);
+    1070|     await expect(installLegacySearch049Query(identity, async () => sou…
+       |     ^
+    1071|       'LEGACY_SEARCH_049_PATH_UNSAFE',
+    1072|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > refuses changed corpus bytes before DB creation and persists a safe failure
+AssertionError: expected 'STATIC_SOURCE_MISMATCH' to be 'STATIC_CORPUS_MISMATCH' // Object.is equality
+
+Expected: [32m"STATIC_[7mCORPUS[27m_MISMATCH"[39m
+Received: [31m"STATIC_[7mSOURCE[27m_MISMATCH"[39m
+
+ ❯ tests/unit/performance-search-static-cli.test.ts:237:32
+    235|     const report = await executeSearchStatic({}, deps);
+    236|     expect(report.success).toBe(false);
+    237|     expect(report.failureCode).toBe('STATIC_CORPUS_MISMATCH');
+       |                                ^
+    238|     expect(deps.createRuntime).not.toHaveBeenCalled();
+    239|     expect(deps.saved.join('')).not.toContain('private-corpus-marker');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > requires index/catalog proof, leaves adoption false, and closes resources before publishing
+AssertionError: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ tests/unit/performance-search-static-cli.test.ts:250:30
+    248|       const deps = dependencies(result);
+    249|       const report = await executeSearchStatic({}, deps);
+    250|       expect(report.success).toBe(result === complete);
+       |                              ^
+    251|       expect(report.adoptionEstablished).toBe(false);
+    252|       expect(deps.cleanup).toHaveBeenCalledOnce();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > cleans a deliberate failure after preparing the owned frozen fixture
+AssertionError: expected 'STATIC_SOURCE_MISMATCH' to be 'EXPECTED_CLEANUP_EXERCISE' // Object.is equality
+
+Expected: [32m"EXPECTED_CLEANUP_EXERCISE"[39m
+Received: [31m"STATIC_SOURCE_MISMATCH"[39m
+
+ ❯ tests/unit/performance-search-static-cli.test.ts:264:32
+    262|     const deps = dependencies();
+    263|     const report = await executeSearchStatic({ 'exercise-cleanup': tru…
+    264|     expect(report.failureCode).toBe('EXPECTED_CLEANUP_EXERCISE');
+       |                                ^
+    265|     expect(report.cleanup?.success).toBe(true);
+    266|     expect(deps.runtime.prepareStaticFixture).toHaveBeenCalledOnce();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > binds private fixture bytes before DB creation and rejects changed preparation
+TypeError: expected value must be number or bigint, received "undefined"
+ ❯ tests/unit/performance-search-static-cli.test.ts:274:58
+    272|     deps.runtime.prepareStaticFixture.mockResolvedValueOnce({ definiti…
+    273|     const report = await executeSearchStatic({}, deps);
+    274|     expect(deps.writeReport.mock.invocationCallOrder[0]).toBeLessThan(
+       |                                                          ^
+    275|       deps.createRuntime.mock.invocationCallOrder[0],
+    276|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > refuses an API start stage in the database-only factory
+AssertionError: expected 'STATIC_SOURCE_MISMATCH' to be 'STATIC_API_START_FORBIDDEN' // Object.is equality
+
+Expected: [32m"STATIC_[7mAPI_START_FORBIDDEN[27m"[39m
+Received: [31m"STATIC_[7mSOURCE_MISMATCH[27m"[39m
+
+ ❯ tests/unit/performance-search-static-cli.test.ts:291:32
+    289|     };
+    290|     const report = await executeSearchStatic({}, deps);
+    291|     expect(report.failureCode).toBe('STATIC_API_START_FORBIDDEN');
+       |                                ^
+    292|     expect(deps.analyzeSearchStatic).not.toHaveBeenCalled();
+    293|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > persists only a fixed code after an unexpected child error and still closes DB
+AssertionError: expected 'STATIC_SOURCE_MISMATCH' to be 'STATIC_PROOF_FAILED' // Object.is equality
+
+Expected: [32m"STATIC_[7mPROOF_FAILED[27m"[39m
+Received: [31m"STATIC_[7mSOURCE_MISMATCH[27m"[39m
+
+ ❯ tests/unit/performance-search-static-cli.test.ts:302:32
+    300|     };
+    301|     const report = await executeSearchStatic({}, deps);
+    302|     expect(report.failureCode).toBe('STATIC_PROOF_FAILED');
+       |                                ^
+    303|     expect(deps.saved.join('')).not.toContain('private-error-marker');
+    304|     expect(deps.cleanup).toHaveBeenCalledOnce();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > SIGTERM interrupts proof and cannot become a successful report
+AssertionError: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ tests/unit/performance-search-static-cli.test.ts:317:32
+    315|     const report = await executeSearchStatic({}, deps);
+    316|     expect(report.success).toBe(false);
+    317|     expect(report.interrupted).toBe(true);
+       |                                ^
+    318|     expect(report.failureCode).toBe('STATIC_INTERRUPTED');
+    319|     expect(deps.cleanup).toHaveBeenCalledOnce();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/35]⎯
+
+ FAIL  tests/unit/performance-search-static-cli.test.ts > WP053 bounded CLI > preserves Next.js dynamic route source hashes but rejects parent/absolute paths
+TypeError: Cannot read properties of undefined (reading 'sourceInventoryVerified')
+ ❯ tests/unit/performance-search-static-cli.test.ts:333:29
+    331|       await executeSearchStatic({}, deps);
+    332|       const report = JSON.parse(deps.saved.at(-1)!);
+    333|       expect(report.runtime.sourceInventoryVerified === true).toBe(pat…
+       |                             ^
+    334|       if (path === route) expect(report.runtime.sourceFiles).toEqual(f…
+    335|       else expect(report.runtime.sourceFiles).toBeUndefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/35]⎯
+
+
+ Test Files  4 failed | 106 passed (110)
+      Tests  34 failed | 4637 passed (4671)
+   Start at  18:32:09
+   Duration  47.50s (transform 1.27s, setup 0ms, collect 5.21s, tests 25.11s, environment 6ms, prepare 2.29s)
+

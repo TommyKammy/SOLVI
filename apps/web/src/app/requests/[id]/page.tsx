@@ -10,6 +10,7 @@ import { safeReturnTo } from '../../../lib/navigation';
 import {
   authorityLabel,
   displayStepState,
+  HIGH_RISK_APPROVAL_NOTICE,
   reassignmentRecords,
   requestApprovalTimeline,
   requestHistoryVersions,
@@ -149,6 +150,11 @@ export default async function RequestPage({
         </p>
       )}
       <h2>{labels[q.state] ?? q.state}</h2>
+      {data.highRisk === true && (
+        <p className="notice" id="request-detail-high-risk-note" role="note">
+          {HIGH_RISK_APPROVAL_NOTICE}
+        </p>
+      )}
       {delegatedToMe && q.state === 'pending' && !expired && (
         <p role="status" className="notice" data-delegated-to-me="true">
           {delegatedToMe.delegatorName}

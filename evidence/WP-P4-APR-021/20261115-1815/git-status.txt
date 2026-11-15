@@ -1,0 +1,18 @@
+ M apps/web/src/app/catalog/[itemId]/page.tsx
+ M apps/web/src/app/catalog/manage/[id]/page.tsx
+ M apps/web/src/app/catalog/manage/actions.ts
+ M apps/web/src/app/catalog/manage/page.tsx
+ M apps/web/src/app/ops/approvals/actions.ts
+ M apps/web/src/app/ops/approvals/page.tsx
+ M apps/web/src/app/requests/[id]/page.tsx
+ M apps/web/src/app/requests/actions.ts
+ M apps/web/src/components/CatalogAdminForm.tsx
+ M apps/web/src/lib/api.ts
+ M apps/web/src/lib/approval-route.ts
+ M docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md
+ M services/api/src/modules/catalog/catalog-admin.routes.ts
+ M services/api/src/modules/catalog/catalog.routes.ts
+ M tests/security/approval-dual-control.test.ts
+ M tools/ui_approval_routing_check.mjs
+?? evidence/WP-P4-APR-021/20261115-1815/
+?? tests/unit/approval-dual-control-ui.test.ts

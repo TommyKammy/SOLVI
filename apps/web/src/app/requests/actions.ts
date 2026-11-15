@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { withReturnTo } from '../../lib/navigation';
 import { revalidatePath } from 'next/cache';
 import { api } from '../../lib/api';
+import { highRiskUnresolvedMessage } from '../../lib/approval-route';
 import { formScopeError } from '../../lib/form-scope';
 import type { FormFeedback } from '../../lib/form-state';
 import { readCatalogFormValues } from '../../lib/catalog-form';
@@ -41,7 +42,16 @@ export async function saveServiceRequest(
         },
         String(form.get('formScope')),
       );
-  if (!result.ok)
+  if (!result.ok) {
+    // 高リスクの条件を満たさない 409 は、API の `detail` の文だけを既存の
+    // 失敗の表示に出す。理由のコード(`high_risk_route_invalid`)は出さない。
+    const highRiskMessage = highRiskUnresolvedMessage(result.problem);
+    if (highRiskMessage)
+      return {
+        message: highRiskMessage,
+        attempt: (previous.attempt ?? 0) + 1,
+        values,
+      };
     return {
       message:
         result.problem.status >= 500
@@ -51,6 +61,7 @@ export async function saveServiceRequest(
       attempt: (previous.attempt ?? 0) + 1,
       values,
     };
+  }
   // Full navigation below fetches current no-store data. Revalidating here would
   // remount the revision-keyed form before its success cleanup can run.
   return {

@@ -102,6 +102,14 @@ export default async function CatalogManagePage({
               {i.active && i.draftRevision !== i.publishedRevision ? ' · 未公開の変更あり' : ''}
             </p>
             <p>{i.description}</p>
+            {(i.highRisk === true || (i.active === true && i.publishedHighRisk === true)) && (
+              <p className="notice">
+                <strong>高リスク（2名の承認が必要）</strong>
+                {i.active === true && i.publishedHighRisk === true
+                  ? ' · 公開中の版で指定されています'
+                  : ' · 下書きで指定されています（公開すると適用されます）'}
+              </p>
+            )}
             <p>
               担当責任者: {i.ownerName || '未設定'} · 最終更新:{' '}
               {i.updatedAt ? formatDateTime(i.updatedAt) : '記録なし'}

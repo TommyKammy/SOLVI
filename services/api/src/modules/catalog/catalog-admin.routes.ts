@@ -357,16 +357,23 @@ export class CatalogAdminController {
       const options = await this.options(c, auth);
       const rows = (
         await c.query(
-          `SELECT i.id,i.code,i.edit_version AS "editVersion",i.draft_revision AS "draftRevision",i.published_revision AS "publishedRevision",i.active,r.title,r.description,r.definition,r.created_at AS "updatedAt" FROM local_catalog_item i JOIN local_catalog_revision r ON r.item_id=i.id AND r.organization_id=i.organization_id AND r.revision=i.draft_revision WHERE i.organization_id=$1 AND ($2::boolean OR r.definition->>'ownerId'=$3) ORDER BY i.code`,
+          `SELECT i.id,i.code,i.edit_version AS "editVersion",i.draft_revision AS "draftRevision",i.published_revision AS "publishedRevision",i.active,r.title,r.description,r.definition,pr.definition AS "publishedDefinition",r.created_at AS "updatedAt" FROM local_catalog_item i JOIN local_catalog_revision r ON r.item_id=i.id AND r.organization_id=i.organization_id AND r.revision=i.draft_revision LEFT JOIN local_catalog_revision pr ON pr.item_id=i.id AND pr.organization_id=i.organization_id AND pr.revision=i.published_revision WHERE i.organization_id=$1 AND ($2::boolean OR r.definition->>'ownerId'=$3) ORDER BY i.code`,
           [auth.authz.organizationId, this.administrator(auth), auth.userId],
         )
       ).rows;
       return {
         ...options,
-        items: rows.map(({ definition, ...row }) => ({
+        items: rows.map(({ definition, publishedDefinition, ...row }) => ({
           ...row,
           ownerName: options.owners.find((person) => person.id === definition.ownerId)?.name,
           readiness: this.readiness(definition, options),
+          // 一覧の目印(加算的)。画面が定義の JSON を推測せずに済むよう、
+          // API が同じ判定(`=== true` のときだけ)で返す。
+          highRisk: readHighRiskAttribute(definition.approval) === 'true',
+          publishedHighRisk:
+            readHighRiskAttribute(
+              (publishedDefinition as { approval?: unknown } | null)?.approval,
+            ) === 'true',
         })),
       };
     });
@@ -401,14 +408,16 @@ export class CatalogAdminController {
         )
       ).rows;
       const options = await this.options(c, auth);
+      const draft = revisions.find((r) => r.revision === i.draft_revision);
+      const published = revisions.find((r) => r.revision === i.published_revision) ?? null;
       return {
         id: i.id,
         code: i.code,
         editVersion: i.edit_version,
         active: i.active,
         publishedRevision: i.published_revision,
-        draft: revisions.find((r) => r.revision === i.draft_revision),
-        published: revisions.find((r) => r.revision === i.published_revision) ?? null,
+        draft,
+        published,
         history: revisions.map(({ revision, title, createdAt }) => ({
           revision,
           title,
@@ -416,10 +425,10 @@ export class CatalogAdminController {
         })),
         ...options,
         canEdit: true,
-        readiness: this.readiness(
-          revisions.find((revision) => revision.revision === i.draft_revision)?.definition,
-          options,
-        ),
+        // 画面の目印(加算的)。一覧と同じく、属性が真偽値の `true` のときだけ真。
+        highRisk: readHighRiskAttribute(draft?.definition?.approval) === 'true',
+        publishedHighRisk: readHighRiskAttribute(published?.definition?.approval) === 'true',
+        readiness: this.readiness(draft?.definition, options),
       };
     });
   }

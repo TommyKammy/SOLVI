@@ -46,6 +46,13 @@ export function authorityLabel(value: string | null | undefined): string {
   return (value && AUTHORITY_LABELS[value]) || '種別を確認できません';
 }
 
+/**
+ * 高リスク(2名の承認が必要)の申請であることの表示 (WP-P4-APR-021 §6.8)。
+ * 画面は API が返す `highRisk` が真のときだけ、この文を出す。
+ */
+export const HIGH_RISK_APPROVAL_NOTICE =
+  'この申請は2名の承認が必要です。代理による承認はできません。';
+
 export function resolvedFromLabel(value: string | null | undefined): string {
   return (value && RESOLVED_FROM_LABELS[value]) || '解決方法を確認できません';
 }
@@ -727,6 +734,8 @@ export const REASSIGN_REASON_TEXT: Record<string, string> = {
     '再割当後の承認者が今と同じ人のため、再割当できません。申請者の上長や部署長の設定を確認してから、もう一度実行してください。',
   concurrent_update:
     'ほかの操作で申請が同時に更新されました。申請を読み込み直してから、もう一度実行してください。',
+  high_risk_route_invalid:
+    '高リスクの申請の承認条件（別人の固定承認者2名）を満たさない経路になるため、再割当できません。組織の管理者に承認ルールの固定承認者を確認してもらってください。',
 };
 
 const REASSIGN_GENERIC =
@@ -768,6 +777,69 @@ export function reassignmentFailureText(problem: ReassignProblem): string {
   if (!code) return REASSIGN_GENERIC;
   const text = REASSIGN_REASON_TEXT[code]!;
   return stepNo === null ? text : `段${stepNo}: ${text}`;
+}
+
+type ProblemLike = {
+  status: number;
+  type?: unknown;
+  detail?: unknown;
+  errors?: ReadonlyArray<{ field?: unknown; message?: unknown }> | undefined;
+};
+
+function problemTypeEndsWith(problem: ProblemLike, suffix: string): boolean {
+  return typeof problem.type === 'string' && problem.type.endsWith(suffix);
+}
+
+/**
+ * 高リスクの申請の条件を満たさない拒否 (WP-P4-APR-021 §6.4) の文。
+ *
+ * API の 409 は `detail` に利用者向けの文、`errors[0].message` に理由のコードを
+ * 返す。画面には `detail` だけを出し、コードは出さない。
+ * 高リスクの拒否でなければ null。
+ */
+export function highRiskUnresolvedMessage(problem: ProblemLike): string | null {
+  if (problem.status !== 409) return null;
+  if (!problemTypeEndsWith(problem, '/approval-high-risk-unresolved')) return null;
+  const detail = typeof problem.detail === 'string' ? problem.detail.trim() : '';
+  return (
+    (detail ? detail.slice(0, 500) : '') ||
+    '高リスクの申請の承認条件を満たしていないため、送信できません。組織の管理者に承認ルールの設定を確認してもらってください。'
+  );
+}
+
+export type HighRiskConstraint = {
+  /** 変更できない理由(固定した文。APIのコードは出さない)。 */
+  message: string;
+  /** 影響する項目の `code: title`。APIが返した表示用の文字だけを使う。 */
+  items: string[];
+};
+
+/**
+ * ルール・組織の設定の変更の 409 (条件を崩す変更) を、画面の文と一覧にする
+ * (WP-P4-APR-021 §6.3 / ADR-0026 §2)。`high_risk_definition_blocked` のような
+ * 理由コードは画面に出さない。高リスクの拒否でなければ null。
+ */
+export function highRiskConstraint(problem: ProblemLike): HighRiskConstraint | null {
+  if (problem.status !== 409) return null;
+  if (!problemTypeEndsWith(problem, '/high-risk-approval-constraint')) return null;
+  const items: string[] = [];
+  for (const error of problem.errors ?? []) {
+    if (error.field !== 'affectedItems') continue;
+    const item =
+      typeof error.message === 'string' ? error.message.replace(/\s*\n\s*/g, ' ').trim() : '';
+    if (item) items.push(item.slice(0, 300));
+  }
+  return {
+    message: '公開中の高リスクの項目が条件を満たさなくなるため、変更できません。',
+    items,
+  };
+}
+
+/** 409 の文と影響する項目を、既存のエラー表示(1つの文字列)に収める。 */
+export function highRiskConstraintErrorText(problem: ProblemLike): string | null {
+  const constraint = highRiskConstraint(problem);
+  if (!constraint) return null;
+  return [constraint.message, ...constraint.items].join('\n');
 }
 
 /**

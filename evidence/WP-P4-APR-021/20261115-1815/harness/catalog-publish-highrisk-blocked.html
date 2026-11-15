@@ -1,0 +1,6690 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カタログ管理: 高リスクの公開の拒否</title>
+<style>/*
+ * SOLVI Portal のスタイル (WP-P2-PORTAL-002)
+ *
+ * 方針は3つ。
+ *   1. **色だけで状態を伝えない。** 色覚特性や白黒印刷で情報が消える。
+ *      状態には必ず文言を添える(11.10 の「色だけでStatus伝達」は対象外)
+ *   2. **フォーカスを必ず見せる。** キーボードだけで操作する利用者にとって、
+ *      いまどこにいるか分からない画面は使えない
+ *   3. **コントラスト比 4.5:1 以上**(WCAG 2.2 AA)
+ */
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-muted: #f0f2f5;
+  --surface-hover: #eaeef4;
+  --border: #dce0e6;
+  --control-border: #8490a2;
+  --surface-subtle: #f8f9fb;
+  --text-muted: #596273;
+  --text: #202938;
+  --accent: #3454ad;
+  --accent-bg: #edf1fb;
+  --accent-hover: #28448f;
+  --danger: #a12e37;
+  --danger-bg: #fff1f2;
+  --warning: #805413;
+  --warning-bg: #fff5df;
+  --success: #21634c;
+  --success-bg: #edf7f0;
+  --internal: #665188;
+  --internal-bg: #f5f1fa;
+  --radius: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --nav-width: 248px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Hiragino Sans',
+    'Noto Sans JP',
+    sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+/* キーボード操作でいまどこにいるかを必ず示す。
+   outline: none を書かないこと。書いた瞬間にキーボード利用者が迷子になる。 */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 本文へ飛ぶリンク。毎回ヘッダを読み上げさせない。 */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  z-index: 10;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+.shell {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-8) 4rem;
+}
+
+header.site {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+header.site .inner {
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+header.site a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+header.site a:hover {
+  text-decoration: underline;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 1.5rem 0 0.5rem;
+}
+h2 {
+  font-size: 1.2rem;
+  margin: 2rem 0 0.75rem;
+}
+p.lead {
+  color: var(--text-muted);
+  margin-top: 0;
+}
+
+/* 主要な2つの行動。カードは1行に2枚だが、狭い画面では縦積みにする。 */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+.action-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  background: var(--bg);
+}
+.action-card:hover {
+  border-color: var(--accent);
+}
+.action-card .title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--accent);
+}
+.action-card .desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+form.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 40rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.field label {
+  font-weight: 600;
+}
+.field .hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+input[type='text'],
+input:not([type]),
+input[type='number'],
+input[type='datetime-local'],
+input[type='email'],
+input[type='password'],
+textarea,
+select {
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+/* 誤りのある項目は、枠線の色**と**文言の両方で示す。
+   色だけだと、色覚特性のある利用者にはどこが誤りか分からない。 */
+[aria-invalid='true'],
+input[aria-invalid='true'],
+textarea[aria-invalid='true'],
+select[aria-invalid='true'] {
+  border-color: var(--danger);
+  border-width: 2px;
+}
+.field-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* エラー要約。送信直後にここへフォーカスを移し、
+   何が起きたかを最初に読み上げさせる。 */
+.error-summary {
+  border: 2px solid var(--danger);
+  background: var(--danger-bg);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+.error-summary h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: var(--danger);
+}
+.error-summary ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.error-summary a {
+  color: var(--danger);
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  align-self: flex-start;
+}
+button:hover {
+  filter: brightness(0.92);
+}
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+table.tickets {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+table.tickets th,
+table.tickets td {
+  text-align: left;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.tickets th {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* 状態は「色 + 文言」で示す。文言だけでも意味が通る。 */
+.state {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+dl.detail {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.5rem;
+  margin: 1rem 0;
+}
+dl.detail dt {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+dl.detail dd {
+  margin: 0;
+}
+
+.body-text {
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.empty {
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * コメント欄 (WP-P2-OPSUI-010)
+ *
+ * 内部メモと公開コメントを**視覚的に強く区別する**。
+ * 担当者が誤って内部メモへ依頼者向けの返信を書く、あるいはその逆が起きると、
+ * 一方は「返事が来ない」、もう一方は「見せてはいけないものを見せた」になる。
+ * 後者は取り返しがつかない。
+ *
+ * 区別は色だけに頼らない。左の太い罫線・ラベル・背景の3つで示す。
+ * ------------------------------------------------------------------------- */
+
+.comments {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comment {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  background: var(--bg);
+}
+
+.comment .meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.comment .body {
+  white-space: pre-wrap;
+}
+
+/* 内部メモ。依頼者には**そもそも届かない**が、担当者の画面では
+   ひと目で分かる必要がある。 */
+.comment.internal {
+  border-left-color: var(--internal);
+  background: var(--internal-bg);
+}
+
+.comment .visibility-label {
+  font-weight: 700;
+}
+.comment.internal .visibility-label {
+  color: var(--internal);
+}
+
+/* 投稿フォームの公開範囲選択。選択中の状態が背景色でも分かるようにする。 */
+fieldset.visibility {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+fieldset.visibility legend {
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+fieldset.visibility .choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+}
+fieldset.visibility .choice label {
+  font-weight: 500;
+}
+fieldset.visibility .choice .note {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* 担当者の操作。行動が並ぶので、押し間違いを減らすため間隔を取る。 */
+.actions-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.actions-row form {
+  margin: 0;
+}
+.actions-row button {
+  align-self: auto;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 1rem 0;
+}
+.filters .field {
+  min-width: 12rem;
+}
+
+/* 添付 (WP-P2-SCAN-011) */
+.attachments {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.attachment {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+.attachment.internal {
+  border-left-color: var(--internal);
+  background: var(--internal-bg);
+}
+.attachment .meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+/* スキャン未完了のファイル名。リンクに見せない —
+   押しても開かないものをリンクにすると、壊れていると思われる。 */
+.file-name-disabled {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+/* 一覧の絞り込み (WP-P2-OPSUI-010) */
+.filters {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.filter-group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 9rem;
+}
+.filter-group legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-bottom: 0.35rem;
+}
+.filter-group .choice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+}
+.filter-group .choice label {
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+.filter-actions button {
+  align-self: auto;
+}
+/* 絞り込み中であることを本文でも示す。件数だけだと、
+   絞り込んでいることを忘れて「件数が減った」と誤解される。 */
+.filter-notice {
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+/* 添付の削除 (WP-P2-SCAN-011 追補) */
+.delete-attachment {
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+.delete-attachment summary {
+  cursor: pointer;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+.delete-attachment form {
+  margin-top: 0.75rem;
+  max-width: 28rem;
+}
+/* 取り消せない操作は見た目でも区別する。ただし色だけに頼らず、
+   文言でも「元に戻せません」と書く。 */
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+/* 検索欄 (WP-P2-SEARCH-006 の画面) */
+.filters .search-field {
+  flex: 1 1 18rem;
+  min-width: 14rem;
+}
+
+/* 関連付けと統合 (WP-P2-RELUI-012) */
+.relations {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.relation {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+.relation .meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+/* 関係の向きは一覧の中で最も読み違えやすい。目立たせる。 */
+.relation-role {
+  font-weight: 600;
+  color: var(--text);
+}
+.relation-unlink {
+  margin-top: 0.5rem;
+}
+
+/* 注意書き。エラーではないので赤にしない。
+   赤を使いすぎると、本当に止めるべき場面で効かなくなる。 */
+.notice {
+  border: 1px solid var(--accent);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+.notice h2,
+.notice h3 {
+  font-size: 1.05rem;
+}
+.notice ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* 統合前の確認表。**この表を読ませることが確認そのものである。** */
+.merge-preview {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+.merge-preview th,
+.merge-preview td {
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+.merge-preview th {
+  width: 16rem;
+  background: var(--surface-muted, #f6f7f9);
+}
+
+/* 見出しを支援技術にだけ渡す。表の意味を音声で伝えるために使う。 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 組織の選択 (WP-P1-IDM-010) */
+.org-choice {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+.org-choice legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+}
+.org-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+/* 選択肢は押しやすくする。ラベルだけが当たり判定だと、
+   ラジオの丸を正確に狙わせることになる。 */
+.org-option label {
+  flex: 1;
+  cursor: pointer;
+}
+
+/* ヘッダの「いまどの組織か」 (WP-P1-IDM-010) */
+.current-org {
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* 見立て(影響度・緊急度・優先度) (WP-P2-PRIO-013) */
+.assessment .detail {
+  margin-top: 0;
+}
+.reassess {
+  margin-top: 0.75rem;
+}
+.reassess summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.reassess form {
+  margin-top: 0.75rem;
+  max-width: 28rem;
+}
+
+/* 担当グループ (WP-P2-GRP-015) */
+.groups {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+/* 運用から外したもの。
+   **`opacity` で薄くしない。** 薄くすると文字のコントラストが落ち、
+   読めない人が出る(axe で 2.92:1 と判定された)。
+   区別は左の罫線と、文言(「運用から外れています」)で行う。 */
+.group.inactive {
+  border-left: 5px solid var(--text-muted);
+  background: var(--surface-muted, #f6f7f9);
+}
+.group .meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+.group-code {
+  font-family: ui-monospace, monospace;
+}
+
+/* 期限の表示 (FR-TKT-008 / WP-P2-SLAUI-016) */
+.sla {
+  white-space: nowrap;
+}
+/* **色だけに頼らない。** 文言が「◯◯超過」「あと◯◯」で意味を持つ。
+   色は一覧を走査するときの補助にとどめる。 */
+.sla-breached {
+  color: var(--danger);
+  font-weight: 700;
+}
+.sla-soon {
+  font-weight: 600;
+}
+.sla-unknown {
+  color: var(--text-muted);
+}
+/* 詳細画面の期限。超過しているときだけ枠で囲む。 */
+.sla-panel {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+.sla-panel.breached {
+  border-left-color: var(--internal);
+  background: var(--internal-bg);
+}
+
+/* 在籍者の管理 (FR-IDM-007 / WP-P1-IDM-011) */
+.user-action {
+  margin-top: 0.5rem;
+}
+.user-action summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.user-action form {
+  margin-top: 0.75rem;
+  max-width: 30rem;
+}
+
+/* 接続が切れていることの表示 (NFR-UX-004 / WP-P2-UISTATE-020) */
+.offline-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  padding: 0.75rem 1rem;
+  background: var(--danger-bg);
+  /* **色だけに頼らない。** 文言が状態を語り、左の帯は補助にすぎない。 */
+  border-left: 4px solid var(--danger);
+  font-size: 0.95rem;
+}
+.offline-notice span {
+  color: var(--text-muted);
+}
+
+/* 期限つきの役割 (FR-IDM-006 / WP-P1-IDM-014) */
+.temporary-roles {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.temporary-roles .soon {
+  /* **色だけに頼らない。** 残り日数の文言が先にあり、これは補助である。 */
+  color: var(--danger);
+}
+
+/* 申告から対応完了までの業務フロー (WP-P2-FLOW-025)。 */
+.ops-shell {
+  max-width: 76rem;
+}
+.request-form,
+.reply-panel {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin: 1.5rem 0;
+}
+.form-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.queue-shortcuts,
+.pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+.queue-shortcuts a {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  text-decoration: none;
+  background: var(--surface);
+}
+.queue-shortcuts a:hover {
+  border-color: var(--accent);
+}
+.pagination {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.pagination span {
+  margin-right: auto;
+  color: var(--text-muted);
+}
+@media (max-width: 640px) {
+  .form-columns {
+    grid-template-columns: 1fr;
+  }
+  .request-form,
+  .reply-panel {
+    padding: 1rem;
+  }
+  dl.detail {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  dl.detail dd {
+    margin-bottom: 0.7rem;
+  }
+}
+
+/* Work inbox: one next action per current item; text preserves status without color. */
+.inbox-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.inbox-summary p {
+  margin: 0;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.inbox-summary strong {
+  display: block;
+  font-size: 1.5rem;
+  margin-top: 0.3rem;
+}
+.inbox-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+.inbox-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  background: var(--surface);
+}
+.inbox-card h2 {
+  margin: 0.5rem 0;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+.inbox-card .inbox-meta {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.inbox-overdue {
+  border-left: 4px solid var(--danger);
+}
+.inbox-empty {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.catalog-editor-field {
+  padding: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.catalog-editor-field legend {
+  font-weight: 700;
+}
+
+/* 相談・申請と担当業務を分けた共通ナビ (WP-P2-UX-028)。 */
+.identity-row,
+.session-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.site-brand {
+  font-size: 1.2rem;
+  letter-spacing: 0.03em;
+}
+.session-actions {
+  margin-left: auto;
+  font-size: 0.875rem;
+}
+.session-actions button {
+  padding: 0.35rem 0.65rem;
+}
+.navigation-groups {
+  display: grid;
+  gap: 0.4rem;
+}
+.navigation-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.35rem;
+  font-size: 0.9rem;
+}
+.navigation-label {
+  color: var(--text-muted);
+  width: 6rem;
+  font-size: 0.875rem;
+}
+.navigation-group a {
+  padding: 0.35rem 0.55rem;
+  border-radius: 5px;
+}
+.navigation-group a[aria-current='page'] {
+  color: var(--accent);
+  background: #e8efff;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+.route-context {
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+.route-context a {
+  color: var(--accent);
+}
+.return-link {
+  margin-left: auto;
+}
+.error-link {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--danger);
+  text-align: left;
+  padding: 0;
+  min-height: 1.5rem;
+  text-decoration: underline;
+  font: inherit;
+}
+button.error-link:hover:not(:disabled) {
+  background: transparent;
+  color: var(--danger);
+}
+.field-error {
+  margin: 0;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+form.stack > button {
+  align-self: flex-start;
+}
+fieldset {
+  min-width: 0;
+}
+.field,
+.form-panel,
+.filters > * {
+  min-width: 0;
+}
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+main,
+.navigation-group a,
+.current-org,
+.attachments li {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .navigation-label {
+    width: 100%;
+  }
+  .session-actions {
+    gap: 0.5rem;
+  }
+  .current-org {
+    max-width: 60%;
+  }
+  .navigation-group {
+    gap: 0.1rem;
+  }
+  .navigation-group a {
+    padding: 0.45rem;
+  }
+  .route-context .return-link {
+    width: 100%;
+    margin-left: 0;
+  }
+  .shell {
+    padding-top: 0.75rem;
+  }
+  .filters {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filters button,
+  .actions-row button,
+  .form-actions button,
+  form.stack > button {
+    width: 100%;
+  }
+  .form-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 40rem) {
+  .identity-row {
+    gap: 0.5rem;
+  }
+  .site-brand {
+    font-size: 1.05rem;
+  }
+  .identity-row .current-org {
+    font-size: 0.875rem;
+    padding: 0.2rem 0.5rem;
+    max-width: 50%;
+  }
+  .session-actions button {
+    font-size: 0.875rem;
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+/* Optional, tab-scoped draft recovery. Keep long text readable without widening forms. */
+.draft-recovery {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.draft-recovery h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+}
+.draft-recovery .table-scroll {
+  overflow-x: auto;
+}
+.draft-value {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 160px;
+  max-width: 320px;
+}
+
+/* WP-P2-UI-035: shared workspace surfaces and responsive hierarchy. */
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+h1 {
+  font-size: clamp(1.5rem, 2.2vw, 1.875rem);
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+h3 {
+  font-size: 1rem;
+}
+.hint,
+.field .hint,
+.lead,
+.state,
+.comment .meta {
+  font-size: 0.875rem;
+}
+p.lead {
+  font-size: 1rem;
+  margin-bottom: var(--space-6);
+}
+.eyebrow {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.text-action {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+button,
+input,
+select,
+textarea,
+a {
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+button {
+  font-size: 0.875rem;
+  padding: 10px 16px;
+  min-height: 40px;
+}
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  filter: none;
+}
+button.secondary {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--surface);
+}
+button.secondary:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: #aab3c2;
+}
+button:disabled {
+  opacity: 0.55;
+}
+input[type='search'],
+input[type='date'] {
+  font: inherit;
+  padding: 10px 12px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+legend {
+  font-weight: 600;
+}
+summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 12px 0;
+}
+summary:hover {
+  color: var(--accent);
+}
+.empty,
+.inbox-empty {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 32px;
+}
+.notice,
+.sla-panel {
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.error-summary {
+  border-width: 1px;
+}
+.sla-panel.breached {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+.state {
+  border: 0;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  padding: 4px 8px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.state[data-state='new'],
+.state[data-state='in_progress'] {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.state[data-state='pending'],
+.state[data-state='review'] {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.state[data-state='resolved'],
+.state[data-state='completed'],
+.state[data-state='approved'] {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.priority-label {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.record-number {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.record-title {
+  display: block;
+  margin: 4px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.record-number + .record-title {
+  color: var(--text);
+}
+.table-scroll {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+table.tickets,
+.work-table {
+  border-collapse: collapse;
+  margin: 0;
+  width: 100%;
+  font-size: 0.875rem;
+}
+table.tickets caption,
+.work-table caption {
+  text-align: left;
+  padding: 16px !important;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+table.tickets th,
+.work-table th {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+table.tickets th,
+table.tickets td,
+.work-table th,
+.work-table td {
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.tickets tr:last-child td,
+.work-table tr:last-child td {
+  border-bottom: 0;
+}
+table.tickets tbody tr:hover,
+.work-table tbody tr:hover {
+  background: var(--surface-subtle);
+}
+table.tickets .ticket-subject {
+  min-width: 260px;
+  max-width: 400px;
+}
+table.tickets .ticket-subject a {
+  text-decoration: none;
+  display: block;
+}
+table.tickets .ticket-subject a:hover .record-title {
+  color: var(--accent);
+  text-decoration: underline;
+}
+table.tickets td .hint,
+.work-table td .hint {
+  margin: 4px 0;
+}
+.ops-shell {
+  max-width: 92rem;
+}
+.queue-shortcuts {
+  gap: 4px;
+  margin: 20px 0;
+  padding: 4px;
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  width: fit-content;
+}
+.queue-shortcuts a {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  text-decoration: none;
+  color: var(--text-muted);
+  border-radius: 6px;
+}
+.queue-shortcuts a:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.filters {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 20px 0;
+  gap: 16px;
+}
+.ticket-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(130px, 1fr));
+  align-items: end;
+}
+.ticket-filters .search-field {
+  grid-column: auto;
+}
+.filters label,
+.filter-group legend {
+  font-size: 0.875rem;
+}
+.filters .field > .hint {
+  margin: 0;
+}
+.advanced-filters {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+}
+.advanced-filters summary {
+  width: fit-content;
+}
+.advanced-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  padding: 8px 0 16px;
+}
+.filter-group {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.filter-group .choice {
+  font-size: 0.875rem;
+  gap: 8px;
+}
+.filter-actions {
+  grid-column: 1 / -1;
+  gap: 16px;
+}
+.filter-notice {
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  font-size: 0.875rem;
+  padding: 0;
+}
+.inbox-summary {
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.inbox-summary p {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  border-right: 1px solid var(--border);
+  margin: 0;
+  padding: 20px 24px;
+  font-size: 0.875rem;
+}
+.inbox-summary p:last-child {
+  border-right: 0;
+}
+.inbox-summary strong {
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.inbox-table .ticket-subject {
+  width: 38%;
+  min-width: 260px;
+}
+.inbox-table td {
+  min-width: 170px;
+}
+.inbox-table td:last-child {
+  width: 190px;
+}
+.inbox-table button {
+  white-space: normal;
+  text-align: left;
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--border);
+}
+.inbox-table button:hover:not(:disabled) {
+  background: var(--accent-bg);
+}
+.update-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.update-label.unread {
+  color: var(--accent);
+  font-weight: 600;
+}
+.deadline-label {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.deadline-overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+.deadline-paused,
+.deadline-none {
+  color: var(--text-muted);
+}
+.ticket-workspace {
+  max-width: 88rem;
+}
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+}
+.workspace-primary,
+.workspace-secondary {
+  min-width: 0;
+}
+.workspace-primary > h2:first-child {
+  margin-top: 0;
+}
+.workspace-secondary {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.workspace-secondary > h2 {
+  margin-top: 24px;
+}
+.workspace-secondary dl.detail {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.workspace-secondary dl.detail dt:not(:first-child) {
+  margin-top: 12px;
+}
+.workspace-secondary .actions-row {
+  gap: 8px;
+}
+.workspace-secondary .actions-row form,
+.workspace-secondary .actions-row button {
+  width: 100%;
+  text-align: left;
+}
+.workspace-secondary .sla-panel {
+  padding: 16px;
+  margin-top: 24px;
+}
+.workspace-secondary .form-actions,
+.workspace-secondary .form-columns {
+  display: flex;
+  flex-direction: column;
+}
+.workspace-disclosure {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+.workspace-disclosure[open] > summary {
+  margin-bottom: 12px;
+}
+.body-text {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+.comment {
+  background: var(--surface);
+  border-left-width: 3px;
+  padding: 20px 24px;
+}
+.comment .meta {
+  gap: 12px;
+}
+.comment .body {
+  line-height: 1.75;
+}
+.comments {
+  gap: 16px;
+}
+form.stack.reply-panel,
+.workspace-primary form.stack {
+  max-width: none;
+}
+.reply-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.internal-composer {
+  border-color: var(--internal);
+}
+fieldset.visibility {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border: 0;
+  padding: 0;
+}
+fieldset.visibility legend {
+  margin-bottom: 8px;
+}
+fieldset.visibility .choice {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 0;
+}
+fieldset.visibility .choice:has(input:checked) {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+.internal-composer fieldset.visibility .choice:has(input:checked) {
+  background: var(--internal-bg);
+  border-color: var(--internal);
+}
+.draft-recovery {
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.draft-recovery h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+.draft-recovery .form-actions {
+  gap: 8px;
+}
+.portal-shell {
+  max-width: 76rem;
+}
+.portal-intro {
+  padding: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.portal-intro h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+}
+.portal-search {
+  max-width: 680px;
+  margin-top: 24px;
+}
+.portal-search label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.portal-search > div {
+  display: flex;
+  gap: 12px;
+}
+.portal-search button {
+  flex-shrink: 0;
+}
+.action-card {
+  padding: 24px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  position: relative;
+}
+.action-card::after {
+  content: '→';
+  display: block;
+  color: var(--accent);
+  margin-top: 16px;
+  font-size: 1.25rem;
+}
+.action-card .title {
+  color: var(--text);
+  font-size: 1.125rem;
+}
+.action-card:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+.request-menu .action-card {
+  height: 100%;
+}
+.request-menu .desc {
+  display: block;
+  margin: 12px 0;
+}
+.request-menu .hint {
+  display: block;
+}
+.navigation-toggle {
+  display: none;
+}
+.route-context {
+  max-width: 92rem;
+  border: 0;
+  padding: 20px 32px 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.site-brand {
+  letter-spacing: 0;
+}
+@media (min-width: 68rem) {
+  body:has(.workspace-nav) {
+    padding-left: var(--nav-width);
+  }
+  header.site.workspace-nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--nav-width);
+    height: 100dvh;
+    overflow-y: auto;
+    border-bottom: 0;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header.site.workspace-nav .inner {
+    display: flex;
+    flex-direction: column;
+    padding: 28px 16px;
+    gap: 24px;
+  }
+  .workspace-nav .identity-row {
+    display: grid;
+    gap: 12px;
+    padding: 0 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .workspace-nav .site-brand {
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+  .workspace-nav .current-org {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    max-width: none;
+  }
+  .workspace-nav .session-actions {
+    margin: 0;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+  .workspace-nav .session-actions > a {
+    font-weight: 400;
+    font-size: 0.875rem;
+  }
+  .workspace-nav .session-actions button {
+    min-height: 32px;
+    padding: 4px 8px;
+  }
+  .navigation-groups {
+    gap: 28px;
+  }
+  .navigation-group {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .navigation-label {
+    width: auto;
+    font-size: 0.875rem;
+    padding: 0 12px 8px;
+  }
+  .navigation-group a {
+    font-size: 0.875rem;
+    padding: 10px 12px;
+    font-weight: 500;
+  }
+  .navigation-group a[aria-current='page'] {
+    background: var(--accent-bg);
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .navigation-group a:hover {
+    background: var(--surface-hover);
+    text-decoration: none;
+  }
+}
+@media (max-width: 85rem) {
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+  }
+  .workspace-secondary {
+    padding: 20px;
+  }
+  .ticket-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ticket-filters .search-field {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 67.99rem) {
+  .navigation-toggle {
+    display: inline-flex;
+    margin: 4px 0 0;
+  }
+  .navigation-groups {
+    display: none;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    gap: 16px;
+  }
+  .navigation-groups.expanded {
+    display: grid;
+  }
+  .navigation-label {
+    font-size: 0.875rem;
+    width: 100%;
+  }
+  .navigation-group a {
+    font-size: 0.875rem;
+    padding: 10px 12px;
+  }
+  .site .inner {
+    padding: 16px 24px;
+  }
+  .site-brand {
+    color: var(--accent);
+  }
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+}
+@media (max-width: 48rem) {
+  .shell {
+    padding: 24px 16px 48px;
+  }
+  .route-context {
+    padding: 16px 16px 0;
+  }
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .workspace-secondary {
+    padding: 20px;
+  }
+  .advanced-filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filters.ticket-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ticket-filters .search-field {
+    grid-column: auto;
+  }
+  .page-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .page-heading .text-action {
+    margin-bottom: 16px;
+  }
+  .portal-intro {
+    padding: 24px 20px;
+  }
+  .portal-search > div {
+    flex-direction: column;
+  }
+  .portal-search button {
+    width: 100%;
+  }
+  .actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .reply-panel {
+    padding: 20px 16px;
+  }
+  fieldset.visibility {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .comment {
+    padding: 16px;
+  }
+  .body-text {
+    padding: 20px;
+  }
+  header.site .inner {
+    padding: 16px;
+  }
+  .identity-row .current-org {
+    font-size: 0.875rem;
+    max-width: none;
+  }
+  .session-actions,
+  .session-actions button {
+    font-size: 0.875rem;
+  }
+  .inbox-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .inbox-summary p {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .inbox-summary p:last-child {
+    border-bottom: 0;
+  }
+  .inbox-summary strong {
+    display: inline;
+    margin-left: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Align breadcrumbs with the same page container and keep search actions close. */
+.route-context {
+  max-width: 76rem;
+}
+body:has(.ops-shell) .route-context {
+  max-width: 92rem;
+}
+body:has(.ticket-workspace) .route-context {
+  max-width: 88rem;
+}
+.ticket-filters .filter-actions {
+  margin-left: 0;
+}
+.filters .field {
+  min-width: 0;
+}
+.state[data-state='failed'] {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+input[type='text'],
+input:not([type]),
+input[type='search'],
+input[type='number'],
+input[type='email'],
+input[type='password'],
+input[type='date'],
+input[type='datetime-local'],
+select,
+textarea {
+  border-color: var(--control-border);
+}
+[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.attachments > li:not(.attachment) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 24px;
+}
+.attachments > li > h2 {
+  margin: 0 0 8px;
+}
+.attachment {
+  background: var(--surface);
+  border-left-width: 3px;
+}
+.attachment.internal {
+  background: var(--internal-bg);
+}
+.state[data-state='implementing'],
+.state[data-state='scheduled'] {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.state[data-state='active'] {
+  color: var(--success);
+  background: var(--success-bg);
+}
+.state[data-state='in_repair'] {
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+
+/* WP-P2-UX-037: compact directory, with full labels on narrow screens. */
+.navigation-group a.navigation-subitem {
+  padding-left: 28px;
+  font-weight: 400;
+}
+.directory-shell {
+  max-width: 92rem;
+  padding-top: 20px;
+}
+.directory-heading,
+.directory-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.directory-heading h1 {
+  margin: 0;
+}
+.directory-heading p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.directory-heading-actions,
+.directory-form-actions,
+.directory-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.directory-heading-actions {
+  flex-shrink: 0;
+}
+.directory-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.directory-cta:hover {
+  background: var(--accent-hover);
+  color: white;
+}
+.directory-cta.secondary {
+  background: var(--surface);
+  color: var(--accent);
+}
+.directory-cta.secondary:hover {
+  background: var(--accent-bg);
+}
+.directory-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  margin: 18px 0 14px;
+}
+.directory-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.directory-tabs a[aria-current='page'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.directory-tabs a:hover {
+  color: var(--accent);
+}
+.directory-tabs span {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+.directory-filters {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(125px, 175px) minmax(110px, 145px) auto;
+  align-items: end;
+  gap: 12px;
+}
+.directory-filters label {
+  font-size: 0.8125rem;
+}
+.directory-filters input,
+.directory-filters select,
+.directory-filters button {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+}
+.directory-filter-actions {
+  font-size: 0.8125rem;
+}
+.directory-result-info,
+.directory-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 12px 0 8px;
+}
+.directory-result-info p {
+  margin: 0;
+}
+.directory-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.directory-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.directory-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.directory-table th,
+.directory-table td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.directory-table thead th {
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  font-weight: 500;
+}
+.directory-table thead th:nth-child(1) {
+  width: 22%;
+}
+.directory-table thead th:nth-child(2) {
+  width: 27%;
+}
+.directory-table thead th:nth-child(3) {
+  width: 24%;
+}
+.directory-table thead th:nth-child(4) {
+  width: 10%;
+}
+.directory-table thead th:nth-child(5) {
+  width: 10%;
+}
+.directory-table thead th:nth-child(6) {
+  width: 7%;
+}
+.directory-table tbody th {
+  font-weight: 600;
+}
+.directory-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.directory-table tbody tr:hover {
+  background: var(--surface-subtle);
+}
+.directory-table tbody tr[data-selected='true'] {
+  background: var(--accent-bg);
+}
+.directory-table small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.directory-state {
+  display: inline-block;
+  color: var(--success);
+}
+.directory-state[data-state='deactivated'] {
+  color: var(--danger);
+}
+.directory-pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 20px;
+}
+.directory-pagination [aria-disabled] {
+  color: var(--text-muted);
+}
+.directory-footnote {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 16px 0;
+}
+.directory-panel,
+.directory-empty {
+  margin: 20px 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  scroll-margin-top: 20px;
+}
+.directory-panel h2,
+.directory-empty h2 {
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+.directory-detail-email {
+  overflow-wrap: anywhere;
+}
+.directory-detail-heading > a {
+  flex-shrink: 0;
+}
+.directory-form {
+  max-width: 42rem;
+}
+.directory-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.directory-form fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.directory-form-actions {
+  margin-top: 16px;
+  gap: 16px;
+}
+.directory-notice p {
+  margin: 0;
+}
+.directory-notice p + p {
+  margin-top: 8px;
+}
+@media (max-width: 1199px) {
+  .directory-heading {
+    flex-wrap: wrap;
+  }
+  .directory-filters {
+    grid-template-columns: minmax(140px, 1fr) 150px 130px;
+  }
+  .directory-filter-actions {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .directory-shell {
+    padding: 16px 16px 32px;
+  }
+  .directory-heading-actions {
+    flex-shrink: 1;
+    width: 100%;
+  }
+  .directory-heading-actions > a {
+    flex: 1;
+  }
+  .directory-tabs {
+    gap: 16px;
+  }
+  .directory-tabs a {
+    gap: 5px;
+    font-size: 0.8125rem;
+  }
+  .directory-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .directory-search {
+    grid-column: 1 / -1;
+  }
+  .directory-result-info {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .directory-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .directory-table,
+  .directory-table tbody {
+    display: block;
+  }
+  .directory-table tbody tr {
+    display: block;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .directory-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .directory-table tbody th,
+  .directory-table tbody td {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 4px 10px;
+    padding: 4px 12px;
+    border: 0;
+  }
+  .directory-table tbody th::before,
+  .directory-table tbody td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .directory-table tbody small {
+    grid-column: 2;
+  }
+  .directory-panel,
+  .directory-empty {
+    padding: 16px;
+  }
+  .directory-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* WP-P2-UX-038: keep the queue controls compact and the table locally scrollable. */
+.ops-queue {
+  min-width: 0;
+  padding-top: 20px;
+}
+.ops-queue .queue-heading {
+  align-items: flex-start;
+  gap: 12px;
+}
+.ops-queue .queue-heading h1 {
+  margin: 0;
+  font-size: 1.625rem;
+  line-height: 1.4;
+}
+.ops-queue .queue-heading .hint {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+}
+.queue-utilities {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 0.8125rem;
+}
+.ops-queue .queue-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  width: auto;
+  margin: 16px 0 12px;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+.ops-queue .queue-shortcuts a {
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+.ops-queue .queue-shortcuts a[aria-current='page'] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.queue-custom-view {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.ops-queue .ticket-filters-compact {
+  grid-template-columns:
+    minmax(180px, 2fr) minmax(115px, 1fr) minmax(100px, 1fr) minmax(135px, 1fr)
+    auto;
+  gap: 10px 12px;
+  margin: 12px 0;
+  padding: 12px 14px 0;
+}
+.ops-queue .ticket-filters-compact .search-field {
+  grid-column: auto;
+}
+.ops-queue .ticket-filters-compact label {
+  font-size: 0.8125rem;
+}
+.ops-queue .ticket-filters-compact input:not([type='checkbox']),
+.ops-queue .ticket-filters-compact select,
+.ops-queue .ticket-filters-compact button {
+  min-height: 38px;
+  padding: 7px 9px;
+  font-size: 0.875rem;
+}
+.ops-queue .ticket-filters-compact .filter-actions {
+  grid-column: auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.ops-queue .ticket-filters-compact .advanced-filters {
+  margin: 0;
+  padding: 0;
+}
+.ops-queue .advanced-filters summary {
+  padding: 8px 0;
+  font-size: 0.8125rem;
+}
+.queue-conditions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+  font-size: 0.8125rem;
+}
+.queue-conditions > a {
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.queue-conditions > a:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.queue-results {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 12px 0 8px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.queue-results strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.ops-queue table.tickets {
+  min-width: 930px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.ops-queue table.tickets caption.visually-hidden {
+  padding: 0 !important;
+}
+.ops-queue table.tickets th,
+.ops-queue table.tickets td {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+.ops-queue table.tickets th {
+  font-size: 0.8125rem;
+}
+.ops-queue table.tickets .ticket-subject {
+  min-width: 220px;
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+.ops-queue .record-number {
+  font-size: 0.75rem;
+}
+.ops-queue .record-title {
+  margin: 2px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.ops-queue table.tickets td .hint {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+}
+.queue-message {
+  margin: 12px 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.queue-message h2 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+}
+.queue-message p {
+  margin: 8px 0 16px;
+}
+@media (max-width: 1199px) {
+  .ops-queue .queue-heading {
+    flex-wrap: wrap;
+  }
+  .ops-queue .ticket-filters-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ops-queue .ticket-filters-compact .search-field {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 700px) {
+  .ops-queue .ticket-filters-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px 12px 0;
+  }
+  .ops-queue .ticket-filters-compact .search-field,
+  .ops-queue .ticket-filters-compact .filter-actions {
+    grid-column: 1 / -1;
+  }
+  .ops-queue .ticket-filters-compact .filter-actions {
+    justify-content: flex-start;
+  }
+  .ops-queue .queue-shortcuts {
+    gap: 4px 14px;
+  }
+  .queue-custom-view {
+    margin-left: 0;
+  }
+  .queue-message {
+    padding: 16px;
+  }
+}
+
+/* WP-P2-UX-039: personal progress first; discovery uses published service data. */
+.requester-home,
+.service-catalog {
+  min-width: 0;
+  padding-top: 20px;
+}
+.portal-heading,
+.portal-primary-actions,
+.portal-section-heading,
+.catalog-utilities {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+.portal-heading {
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.portal-heading h1,
+.service-catalog h1 {
+  margin: 0;
+  font-size: 1.625rem;
+  line-height: 1.4;
+}
+.portal-heading p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.portal-primary-actions {
+  gap: 10px;
+}
+.portal-primary-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.portal-primary-actions a.secondary {
+  color: var(--accent);
+  background: var(--surface);
+}
+.portal-primary-actions a:hover {
+  text-decoration: underline;
+}
+.portal-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.portal-work > section {
+  min-width: 0;
+}
+.portal-section-heading {
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px 16px;
+}
+.requester-home h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+.portal-section-heading > a,
+.catalog-utilities {
+  font-size: 0.8125rem;
+}
+.portal-ticket-views {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 10px;
+}
+.portal-ticket-views a {
+  padding: 7px 0;
+  border-bottom: 2px solid transparent;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.portal-ticket-views a[aria-current='page'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.portal-result,
+.catalog-result {
+  margin: 12px 0 8px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.portal-ticket-list,
+.portal-request-list,
+.portal-service-links,
+.catalog-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.portal-ticket-list > li,
+.portal-request-list > li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.portal-ticket-line,
+.portal-ticket-followup {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.portal-ticket-line > a {
+  min-width: 0;
+  text-decoration: none;
+}
+.portal-ticket-line > a:hover .record-title,
+.portal-request-list a:hover .record-title {
+  text-decoration: underline;
+}
+.portal-ticket-line > .state {
+  flex-shrink: 0;
+}
+.requester-home .record-title {
+  margin: 2px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.requester-home .record-number {
+  font-size: 0.75rem;
+}
+.portal-ticket-followup {
+  margin-top: 6px;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+}
+.portal-ticket-followup .hint,
+.portal-request-list .hint {
+  margin: 0;
+  font-size: 0.75rem;
+}
+.portal-your-turn {
+  color: var(--accent);
+  font-weight: 600;
+}
+.portal-request-list a {
+  text-decoration: none;
+}
+.portal-request-list p {
+  margin: 5px 0;
+  font-size: 0.8125rem;
+}
+.portal-request-state {
+  font-weight: 600;
+}
+.portal-request-next {
+  color: var(--text-muted);
+}
+.portal-message,
+.catalog-message {
+  margin: 12px 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.portal-message h3,
+.catalog-message h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.portal-message p,
+.catalog-message p {
+  margin: 0 0 12px;
+}
+.portal-message a + a {
+  margin-left: 14px;
+}
+.portal-services,
+.portal-knowledge {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.portal-find-form {
+  margin: 14px 0;
+  max-width: 44rem;
+}
+.portal-find-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+}
+.portal-find-form > div {
+  display: flex;
+  gap: 10px;
+}
+.portal-find-form input {
+  flex: 1;
+  min-width: 0;
+}
+.portal-find-form button {
+  flex-shrink: 0;
+}
+.portal-service-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+  margin: 12px 0 16px;
+}
+.portal-service-links a {
+  display: block;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.service-catalog .catalog-heading {
+  margin-bottom: 16px;
+  gap: 12px;
+}
+.catalog-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(170px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  margin: 20px 0 14px;
+}
+.catalog-filters label {
+  font-size: 0.8125rem;
+}
+.catalog-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8125rem;
+}
+.catalog-result {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.catalog-list {
+  border-top: 1px solid var(--border);
+}
+.catalog-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.catalog-item h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.catalog-item p {
+  margin: 0;
+  font-size: 0.875rem;
+  grid-column: 1;
+  max-width: 70ch;
+}
+.catalog-item .catalog-target {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.catalog-start {
+  align-self: center;
+  grid-column: 2;
+  grid-row: 1 / 4;
+  color: var(--accent);
+  font-size: 0.8125rem;
+}
+.catalog-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 0.875rem;
+}
+@media (max-width: 1100px) {
+  .portal-work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .portal-requests {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+}
+@media (max-width: 700px) {
+  .portal-heading {
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .portal-primary-actions {
+    width: 100%;
+  }
+  .portal-primary-actions a {
+    flex: 1;
+    padding: 8px;
+    font-size: 0.8125rem;
+  }
+  .portal-ticket-line {
+    flex-wrap: wrap;
+  }
+  .portal-ticket-line > a {
+    width: 100%;
+  }
+  .portal-find-form > div {
+    flex-wrap: wrap;
+  }
+  .portal-find-form input {
+    flex-basis: 100%;
+  }
+  .portal-service-links,
+  .catalog-filters,
+  .catalog-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-start {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 4px;
+  }
+  .portal-message,
+  .catalog-message {
+    padding: 16px;
+  }
+}
+
+/* WP-P2-UX-040: current operations counts and the existing resolution-SLA queue. */
+.operations-overview {
+  padding-top: 20px;
+}
+.operations-overview .overview-heading,
+.operations-overview .overview-section-heading,
+.operations-overview .overview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.operations-overview .overview-heading {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.operations-overview h1 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+}
+.operations-overview .overview-heading p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.operations-overview .overview-utilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.8125rem;
+  padding-top: 6px;
+}
+.operations-overview .overview-filter {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 0 0 16px;
+}
+.operations-overview .overview-filter .field {
+  flex: 0 1 300px;
+}
+.operations-overview .overview-filter label {
+  margin-bottom: 4px;
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-filter select,
+.operations-overview .overview-filter button {
+  min-height: 40px;
+  font-size: 0.875rem;
+}
+.operations-overview .overview-filter button {
+  align-self: auto;
+}
+.operations-overview .overview-filter > a {
+  padding-bottom: 8px;
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-section-heading {
+  margin-bottom: 8px;
+}
+.operations-overview .overview-section-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.operations-overview .overview-section-heading p {
+  margin: 0;
+}
+.operations-overview .overview-section-heading > a {
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-counts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+}
+.operations-overview .overview-metric {
+  min-width: 0;
+  padding: 12px;
+}
+.operations-overview .overview-metric dt {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.operations-overview .overview-metric dt a {
+  display: inline-block;
+}
+.operations-overview .overview-metric dd {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-count {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.operations-overview .overview-metric[data-overdue='true'] .overview-count {
+  color: var(--danger);
+}
+.operations-overview .overview-metric-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-meta {
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-meta p {
+  margin: 0;
+  font-size: inherit;
+}
+.operations-overview .overview-definitions {
+  margin: 6px 0 16px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.operations-overview .overview-definitions summary {
+  padding: 4px 0;
+  color: var(--text);
+  cursor: pointer;
+}
+.operations-overview .overview-definitions dl {
+  margin: 8px 0;
+}
+.operations-overview .overview-definitions dl > div {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 12px;
+  padding: 4px 0;
+}
+.operations-overview .overview-definitions dt {
+  font-weight: 600;
+}
+.operations-overview .overview-definitions dd {
+  margin: 0;
+}
+.operations-overview .overview-definitions p {
+  margin: 8px 0;
+  max-width: 75ch;
+}
+.operations-overview .overview-deadline-scope,
+.operations-overview .overview-deadline-result {
+  margin: 4px 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.operations-overview .overview-deadline-result {
+  margin-bottom: 8px;
+}
+.operations-overview .overview-deadline-table {
+  min-width: 660px;
+}
+.operations-overview .overview-deadline-table caption.visually-hidden {
+  padding: 0 !important;
+}
+.operations-overview .overview-deadline-table th,
+.operations-overview .overview-deadline-table td {
+  padding: 10px 12px;
+  font-size: 0.8125rem;
+}
+.operations-overview .overview-ticket {
+  width: 42%;
+}
+.operations-overview .overview-ticket a {
+  display: block;
+  text-decoration: none;
+}
+.operations-overview .overview-ticket a:hover .record-title {
+  text-decoration: underline;
+}
+.operations-overview .overview-ticket .record-number {
+  font-size: 0.75rem;
+}
+.operations-overview .overview-ticket .record-title {
+  margin: 2px 0 0;
+  font-size: 0.875rem;
+}
+.operations-overview .overview-group-name {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
+.operations-overview .overview-message,
+.operations-overview .overview-notice {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-size: 0.875rem;
+}
+.operations-overview .overview-message h2,
+.operations-overview .overview-message h3 {
+  margin: 0 0 8px;
+}
+.operations-overview .overview-message p {
+  margin: 4px 0 8px;
+}
+.operations-overview .overview-limit {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+}
+@media (max-width: 1199px) {
+  .operations-overview .overview-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .operations-overview .overview-metric:nth-child(3n) {
+    border-right: 0;
+  }
+  .operations-overview .overview-metric:nth-child(-n + 3) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+@media (max-width: 700px) {
+  .operations-overview {
+    padding: 16px 16px 32px;
+  }
+  .operations-overview .overview-heading,
+  .operations-overview .overview-section-heading {
+    flex-wrap: wrap;
+  }
+  .operations-overview .overview-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operations-overview .overview-metric:nth-child(3n) {
+    border-right: 1px solid var(--border);
+  }
+  .operations-overview .overview-metric:nth-child(2n) {
+    border-right: 0;
+  }
+  .operations-overview .overview-metric:nth-child(-n + 4) {
+    border-bottom: 1px solid var(--border);
+  }
+  .operations-overview .overview-filter .field {
+    flex-basis: 100%;
+  }
+  .operations-overview .overview-definitions dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+/* WP-P3-KNWUI-054: paged knowledge search within the existing visual system. */
+.knowledge-search .knowledge-heading {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.knowledge-search .knowledge-utilities,
+.knowledge-search .knowledge-filter-actions,
+.knowledge-search .knowledge-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.875rem;
+}
+.knowledge-search .knowledge-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  align-items: end;
+  margin: 20px 0 16px;
+}
+.knowledge-search .knowledge-filters label {
+  font-size: 0.875rem;
+}
+.knowledge-search .knowledge-filters input {
+  min-width: 0;
+}
+.knowledge-search .knowledge-filter-actions button {
+  align-self: auto;
+}
+.knowledge-search .knowledge-result {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 16px 0;
+  font-size: 0.875rem;
+}
+.knowledge-search .knowledge-result p {
+  margin: 0;
+}
+.knowledge-search .knowledge-result p:last-child {
+  color: var(--text-muted);
+}
+.knowledge-search .knowledge-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--border);
+}
+.knowledge-search .knowledge-results > li {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.knowledge-search .knowledge-results h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+.knowledge-search .knowledge-excerpt {
+  max-width: 80ch;
+  margin: 8px 0 10px;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.knowledge-search mark {
+  background: var(--accent-bg);
+  color: inherit;
+  font-weight: 600;
+}
+.knowledge-search .knowledge-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.knowledge-search .knowledge-state {
+  color: var(--text);
+  font-weight: 600;
+}
+.knowledge-search .knowledge-tags {
+  max-width: 80ch;
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.knowledge-search .knowledge-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px 20px;
+  margin: 16px 0;
+  font-size: 0.875rem;
+}
+.knowledge-search .knowledge-message {
+  padding: 24px;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.knowledge-search .knowledge-message h2 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+}
+.knowledge-search .knowledge-message p {
+  max-width: 65ch;
+  margin: 8px 0 16px;
+  font-size: 0.875rem;
+}
+@media (max-width: 700px) {
+  .knowledge-search .knowledge-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .knowledge-search .knowledge-heading {
+    flex-wrap: wrap;
+  }
+  .knowledge-search .knowledge-utilities {
+    width: 100%;
+  }
+  .knowledge-search .knowledge-pagination {
+    justify-content: flex-start;
+  }
+  .knowledge-search .knowledge-message {
+    padding: 16px;
+  }
+}
+/* WP056: notification metadata, within the existing workspace shell. */
+.notification-list .notification-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.notification-list .notification-heading h1 {
+  margin: 0;
+}
+.notification-list .notification-recording {
+  max-width: 70ch;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+.notification-list .notification-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 20px 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+.notification-list .notification-filters a {
+  padding: 8px 0;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+.notification-list .notification-filters a[aria-current='page'] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.notification-list .notification-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 16px 0;
+  font-size: 0.875rem;
+}
+.notification-list .notification-counts > div {
+  display: flex;
+  gap: 8px;
+}
+.notification-list .notification-counts dt {
+  color: var(--text-muted);
+}
+.notification-list .notification-counts dd {
+  margin: 0;
+  font-weight: 600;
+}
+.notification-list .notification-result {
+  font-size: 0.875rem;
+  margin: 16px 0 8px;
+}
+.notification-list .notification-table {
+  min-width: 880px;
+  font-size: 0.875rem;
+}
+.notification-list .notification-table th,
+.notification-list .notification-table td {
+  padding: 12px;
+  vertical-align: top;
+}
+.notification-list .notification-event {
+  display: block;
+  margin: 4px 0;
+  font-weight: 600;
+}
+.notification-list .notification-status {
+  font-weight: 600;
+}
+.notification-list .notification-status[data-status='failed'] {
+  color: var(--danger);
+}
+.notification-list .notification-time {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.notification-list .notification-time time {
+  display: block;
+}
+.notification-list .notification-actions,
+.notification-list .notification-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 16px;
+}
+.notification-list .notification-pagination {
+  justify-content: flex-end;
+}
+.notification-list .notification-message {
+  padding: 20px;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.notification-list .notification-message h2 {
+  font-size: 1.125rem;
+  margin: 0 0 8px;
+}
+.notification-list .notification-message p {
+  max-width: 70ch;
+}
+.notification-list .notification-message > a {
+  display: inline-block;
+  margin-right: 20px;
+}
+.notification-list .notification-definitions {
+  margin-top: 24px;
+  max-width: 75ch;
+  font-size: 0.875rem;
+}
+.notification-list .notification-definitions summary {
+  cursor: pointer;
+}
+.notification-list .notification-skeleton {
+  height: 64px;
+  margin: 8px 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.notification-list .notification-retry-cell {
+  min-width: 150px;
+}
+.notification-list .notification-retry-row > td {
+  padding: 0 12px 20px;
+}
+.notification-list .notification-retry {
+  border-left: 3px solid var(--primary);
+  padding: 16px 20px;
+  background: var(--surface);
+  max-width: 74ch;
+}
+.notification-list .notification-retry h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+.notification-list .notification-retry p {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.notification-list .notification-retry-target {
+  font-weight: 600;
+}
+.notification-list .notification-retry-result[role='alert'] {
+  color: var(--danger);
+}
+.notification-list .notification-retry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+.notification-list .notification-retry-actions form {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .notification-list .notification-retry {
+    max-width: 310px;
+    padding: 12px;
+  }
+}
+.notification-preferences {
+  max-width: 880px;
+}
+.notification-preferences .notification-preference-heading {
+  margin-bottom: 28px;
+}
+.notification-preferences .notification-preference-heading h1 {
+  margin-bottom: 8px;
+}
+.notification-preferences .notification-preference-heading .eyebrow {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.notification-preferences .notification-preference-form fieldset {
+  margin: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.notification-preferences .notification-preference-form legend {
+  padding: 0 8px;
+  font-weight: 600;
+}
+.notification-preferences .notification-preference-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.notification-preferences .notification-preference-choice input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.notification-preferences .notification-preference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 24px;
+}
+.notification-preferences .notification-preference-actions button {
+  align-self: auto;
+}
+.notification-preferences .notification-preference-notes {
+  margin-top: 32px;
+  max-width: 72ch;
+}
+.notification-preferences .notification-preference-notes h2 {
+  font-size: 1rem;
+}
+.notification-preferences .notification-preference-notes li {
+  margin-bottom: 8px;
+}
+@media (max-width: 700px) {
+  .notification-preferences .notification-preference-form fieldset {
+    padding: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .notification-list .notification-heading {
+    align-items: flex-start;
+  }
+  .notification-list .notification-pagination {
+    justify-content: flex-start;
+  }
+  .notification-list .notification-counts {
+    gap: 8px 16px;
+  }
+}
+
+/*
+ * Freshservice準拠の共通UI基盤 (WP-P2-UIX-025)
+ *
+ * Freshservice本番のエージェント向けライトテーマを、読み取り専用で観察した
+ * 値だけを参考にしている。ロゴ・画像・イラスト・フォントファイルは複製しない。
+ * 既存のglobals.cssより後に読み込み、body.fs-ui配下で上書きする。
+ */
+
+:root {
+  --fs-app-bg: #eff6ff;
+  --fs-surface: #ffffff;
+  --fs-surface-muted: #f6f7f8;
+  --fs-surface-hover: #f0f4f8;
+  --fs-text: #12334c;
+  --fs-text-secondary: #485a68;
+  --fs-text-muted: #596b7d;
+  --fs-border: #eaeef2;
+  --fs-border-strong: #dfe6ee;
+  --fs-brand: #276cf0;
+  --fs-brand-strong: #003fd2;
+  --fs-brand-soft: #e8f1ff;
+  --fs-brand-softer: #f3f8ff;
+  --fs-success: #00513f;
+  --fs-success-soft: #e6f7f1;
+  --fs-warning: #7a4300;
+  --fs-warning-soft: #fff4e5;
+  --fs-danger: #a12e37;
+  --fs-danger-soft: #ffebee;
+  --fs-radius-sm: 8px;
+  --fs-radius-md: 12px;
+  --fs-radius-pill: 999px;
+  --fs-shadow-sm: 0 1px 2px rgba(18, 51, 76, 0.05);
+  --fs-shadow-md: 0 8px 24px rgba(18, 51, 76, 0.12);
+  --fs-font:
+    Inter, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+}
+
+body.fs-ui {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--fs-app-bg);
+  color: var(--fs-text);
+  font-family: var(--fs-font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.fs-ui * {
+  box-sizing: border-box;
+}
+
+body.fs-ui .skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--fs-brand);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 0 0 var(--fs-radius-sm) 0;
+  font-weight: 600;
+}
+body.fs-ui .skip-link:focus {
+  left: 0;
+}
+
+body.fs-ui :focus-visible {
+  outline: 2px solid var(--fs-brand);
+  outline-offset: 2px;
+}
+
+body.fs-ui a {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+body.fs-ui a:hover {
+  text-decoration: underline;
+}
+/* 本文中のリンクは色だけで区別させない(WCAG 1.4.1)。 */
+body.fs-ui p a,
+body.fs-ui li a,
+body.fs-ui .hint a,
+body.fs-ui .lead a,
+body.fs-ui .notice a,
+body.fs-ui .body-text a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+body.fs-ui .fs-flyout-list a,
+body.fs-ui .fs-user-links a,
+body.fs-ui .fs-breadcrumb a,
+body.fs-ui .fs-create-button,
+body.fs-ui .fs-icon-button,
+body.fs-ui .fs-rail-link,
+body.fs-ui .fs-rail-brand,
+body.fs-ui .fs-rail-bottom,
+body.fs-ui .fs-public-brand {
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------------- */
+/* アプリシェル                                                              */
+/* ------------------------------------------------------------------------- */
+
+.fs-private {
+  min-height: 100vh;
+}
+
+.fs-app {
+  min-height: 100vh;
+  background: var(--fs-app-bg);
+}
+
+.fs-rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--fs-app-bg);
+  padding: 12px 0 10px;
+}
+
+.fs-rail-brand {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fs-brand);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  box-shadow: var(--fs-shadow-sm);
+}
+.fs-rail-brand:hover {
+  background: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+.fs-rail-close {
+  display: none;
+}
+
+.fs-rail-nav {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 18px;
+  overflow: visible;
+}
+
+.fs-rail-item {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.fs-rail-link {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--fs-radius-sm);
+  color: var(--fs-text-secondary);
+  text-decoration: none;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+.fs-rail-link:hover,
+.fs-rail-link:focus-visible {
+  background: #e0edff;
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.fs-rail-link.is-active {
+  background: #d7e8ff;
+  color: var(--fs-brand-strong);
+}
+
+.fs-rail-bottom {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--fs-radius-sm);
+  color: var(--fs-text-secondary);
+  margin-top: 6px;
+}
+.fs-rail-bottom:hover,
+.fs-rail-bottom:focus-visible {
+  background: #e0edff;
+  color: var(--fs-brand-strong);
+}
+
+.fs-flyout {
+  position: absolute;
+  left: 56px;
+  top: -8px;
+  z-index: 60;
+  width: 224px;
+  padding: 8px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 100ms ease,
+    visibility 100ms ease;
+}
+.fs-flyout::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+}
+.fs-rail-item.is-open .fs-flyout {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.fs-flyout-title {
+  margin: 2px 8px 6px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fs-flyout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fs-flyout-list a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--fs-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+.fs-flyout-list a:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.fs-flyout-list a[aria-current='page'] {
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+  font-weight: 600;
+}
+
+.fs-main {
+  min-height: 100vh;
+  margin-left: 64px;
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 64px;
+  flex: 0 0 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 18px 0 22px;
+  background: var(--fs-app-bg);
+}
+
+.fs-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 170px;
+  color: var(--fs-text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fs-breadcrumb a {
+  color: var(--fs-text-secondary);
+  font-weight: 600;
+}
+.fs-breadcrumb a:hover {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.fs-breadcrumb svg {
+  color: var(--fs-text-muted);
+  flex: 0 0 auto;
+}
+.fs-breadcrumb span[aria-current='page'] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-global-search {
+  flex: 1 1 auto;
+  max-width: 500px;
+  height: 36px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-sm);
+  color: var(--fs-text-muted);
+}
+.fs-global-search:focus-within {
+  border-color: var(--fs-brand);
+  box-shadow: 0 0 0 3px rgba(39, 108, 240, 0.15);
+}
+.fs-global-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--fs-text);
+}
+.fs-global-search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.fs-global-search input::placeholder {
+  color: var(--fs-text-muted);
+}
+.fs-global-search kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid var(--fs-border);
+  border-radius: 4px;
+  background: var(--fs-surface-muted);
+  color: var(--fs-text-muted);
+  font: inherit;
+  font-size: 11px;
+}
+
+.fs-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.fs-create-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-right: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fs-create-button:hover {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.fs-create-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--fs-text);
+  color: #fff;
+}
+
+.fs-icon-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--fs-radius-sm);
+  background: transparent;
+  color: var(--fs-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+}
+.fs-icon-button:hover,
+.fs-icon-button:focus-visible {
+  background: #e0edff;
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+.fs-user-menu {
+  position: relative;
+  margin-left: 2px;
+}
+.fs-user-menu summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  /* グローバルな summary の padding を打ち消し、通知アイコンと中心を揃える。 */
+  padding: 0;
+  border-radius: 50%;
+}
+.fs-user-menu summary::-webkit-details-marker {
+  display: none;
+}
+.fs-user-menu summary::marker {
+  content: '';
+}
+.fs-avatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #d7e8ff;
+  color: var(--fs-brand-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.fs-avatar--large {
+  width: 40px;
+  height: 40px;
+}
+.fs-user-popover {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 70;
+  width: 280px;
+  padding: 14px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-md);
+}
+.fs-user-menu[open] .fs-user-popover {
+  display: block;
+}
+.fs-user-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-user-popover-head div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.fs-user-popover-head strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.fs-user-popover-head span {
+  color: var(--fs-text-muted);
+  font-size: 12px;
+}
+.fs-user-org {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-user-links {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+}
+.fs-user-links a {
+  display: block;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: var(--fs-text);
+  font-size: 13px;
+}
+.fs-user-links a:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.fs-user-logout {
+  padding-top: 8px;
+  border-top: 1px solid var(--fs-border);
+}
+.fs-user-logout button {
+  width: 100%;
+  justify-content: center;
+}
+
+.fs-rail-toggle,
+.fs-rail-backdrop {
+  display: none;
+}
+
+.fs-content {
+  flex: 1;
+  padding: 0 16px 16px;
+}
+
+body.fs-ui .fs-content > main {
+  max-width: none;
+  min-height: calc(100vh - 80px);
+  margin: 0;
+  padding: 24px 28px 40px;
+  background: var(--fs-surface);
+  border-radius: var(--fs-radius-md);
+  box-shadow: 0 1px 2px rgba(18, 51, 76, 0.03);
+}
+
+/* 旧レイアウトの最大幅・余白を打ち消す。 */
+body.fs-ui .shell {
+  max-width: none;
+  margin: 0;
+  padding: 24px 28px 40px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* タイポグラフィ                                                            */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui h1 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+body.fs-ui h2 {
+  margin: 24px 0 10px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+body.fs-ui h3 {
+  margin: 20px 0 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+body.fs-ui p {
+  margin: 0 0 12px;
+}
+
+body.fs-ui .lead {
+  margin: 0 0 16px;
+  color: var(--fs-text-secondary);
+  font-size: 14px;
+}
+
+body.fs-ui .hint,
+body.fs-ui .field .hint,
+body.fs-ui .state,
+body.fs-ui .comment .meta {
+  color: var(--fs-text-muted);
+  font-size: 12px;
+}
+
+body.fs-ui .eyebrow {
+  margin: 0 0 4px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.fs-ui .page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+body.fs-ui .page-heading h1 {
+  margin-bottom: 2px;
+}
+
+body.fs-ui .record-number {
+  display: block;
+  color: var(--fs-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+body.fs-ui .record-title {
+  display: block;
+  margin: 2px 0;
+  color: var(--fs-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* フォーム                                                                  */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+body.fs-ui .field label,
+body.fs-ui .filters label,
+body.fs-ui .filter-group legend {
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.fs-ui input[type='text'],
+body.fs-ui input:not([type]),
+body.fs-ui input[type='number'],
+body.fs-ui input[type='datetime-local'],
+body.fs-ui input[type='date'],
+body.fs-ui input[type='email'],
+body.fs-ui input[type='password'],
+body.fs-ui input[type='search'],
+body.fs-ui textarea,
+body.fs-ui select {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font: inherit;
+  font-size: 14px;
+}
+body.fs-ui textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+body.fs-ui input:focus,
+body.fs-ui textarea:focus,
+body.fs-ui select:focus {
+  outline: none;
+  border-color: var(--fs-brand);
+  box-shadow: 0 0 0 3px rgba(39, 108, 240, 0.15);
+}
+body.fs-ui [aria-invalid='true'],
+body.fs-ui input[aria-invalid='true'],
+body.fs-ui textarea[aria-invalid='true'],
+body.fs-ui select[aria-invalid='true'] {
+  border-color: var(--fs-danger);
+  border-width: 1px;
+  box-shadow: 0 0 0 3px rgba(161, 46, 55, 0.12);
+}
+body.fs-ui .field-error {
+  color: var(--fs-danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.fs-ui form.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 42rem;
+}
+
+body.fs-ui .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+body.fs-ui .form-panel {
+  padding: 20px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+}
+
+/* ------------------------------------------------------------------------- */
+/* ボタン                                                                    */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--fs-brand);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-brand);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+}
+body.fs-ui button:hover:not(:disabled) {
+  background: var(--fs-brand-strong);
+  border-color: var(--fs-brand-strong);
+  filter: none;
+}
+body.fs-ui button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+body.fs-ui button.secondary {
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  border-color: var(--fs-border-strong);
+}
+body.fs-ui button.secondary:hover:not(:disabled) {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  border-color: #c9d3db;
+}
+body.fs-ui button.error-link {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fs-danger);
+  font-size: inherit;
+  text-align: left;
+}
+body.fs-ui button.error-link:hover {
+  background: transparent;
+  color: var(--fs-danger);
+  text-decoration: underline;
+}
+body.fs-ui .button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-weight: 600;
+}
+body.fs-ui .button-link:hover {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------------- */
+/* カード・パネル                                                            */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .notice,
+body.fs-ui .form-panel,
+body.fs-ui .inbox-summary,
+body.fs-ui .sla-panel,
+body.fs-ui .empty,
+body.fs-ui .inbox-empty,
+body.fs-ui .queue-message,
+body.fs-ui .overview-metrics,
+body.fs-ui .overview-deadlines,
+body.fs-ui .portal-intro,
+body.fs-ui .action-card,
+body.fs-ui .directory-panel,
+body.fs-ui .directory-empty,
+body.fs-ui .workspace-secondary {
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+
+body.fs-ui .notice {
+  padding: 14px 16px;
+  background: var(--fs-brand-soft);
+  border-color: #cfe1ff;
+}
+
+body.fs-ui .empty,
+body.fs-ui .inbox-empty {
+  padding: 40px 24px;
+  text-align: center;
+}
+body.fs-ui .empty h2,
+body.fs-ui .inbox-empty h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+body.fs-ui .error-summary {
+  padding: 14px 16px;
+  background: var(--fs-danger-soft);
+  border: 1px solid #ffc2cb;
+  border-radius: var(--fs-radius-md);
+}
+body.fs-ui .error-summary h2 {
+  margin: 0 0 6px;
+  color: var(--fs-danger);
+  font-size: 15px;
+}
+
+body.fs-ui .sla-panel {
+  padding: 14px 16px;
+  background: var(--fs-brand-softer);
+  border-color: #dbe8ff;
+}
+body.fs-ui .sla-panel.breached {
+  background: var(--fs-danger-soft);
+  border-color: #ffc2cb;
+}
+
+body.fs-ui .inbox-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+body.fs-ui .inbox-summary p {
+  margin: 0;
+  padding: 18px 20px;
+  border-right: 1px solid var(--fs-border);
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+body.fs-ui .inbox-summary p:last-child {
+  border-right: 0;
+}
+body.fs-ui .inbox-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--fs-text);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+}
+
+body.fs-ui .action-card {
+  padding: 20px;
+  background: var(--fs-surface);
+}
+body.fs-ui .action-card:hover {
+  background: var(--fs-surface);
+  border-color: var(--fs-brand);
+  box-shadow: 0 2px 8px rgba(39, 108, 240, 0.1);
+}
+body.fs-ui .action-card .title {
+  color: var(--fs-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+body.fs-ui .action-card .desc {
+  color: var(--fs-text-secondary);
+  font-size: 13px;
+}
+body.fs-ui .action-card::after {
+  content: '→';
+  margin-top: 12px;
+  color: var(--fs-brand);
+  font-size: 18px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* フィルタ・検索                                                            */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+body.fs-ui .filters .field {
+  min-width: 160px;
+}
+body.fs-ui .filters > button {
+  flex: 0 0 auto;
+}
+body.fs-ui .filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+body.fs-ui .filter-group {
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-sm);
+  padding: 10px 12px;
+}
+body.fs-ui .filter-group legend {
+  padding: 0 4px;
+}
+body.fs-ui .filter-group .choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 10px;
+}
+body.fs-ui .advanced-filters {
+  border-top: 1px solid var(--fs-border);
+  padding-top: 12px;
+  width: 100%;
+}
+body.fs-ui .advanced-filters summary {
+  cursor: pointer;
+  color: var(--fs-brand-strong);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------- */
+/* タブ                                                                      */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .queue-shortcuts,
+body.fs-ui .directory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 16px;
+  border-bottom: 1px solid var(--fs-border);
+}
+body.fs-ui .queue-shortcuts a,
+body.fs-ui .directory-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--fs-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+body.fs-ui .queue-shortcuts a:hover,
+body.fs-ui .directory-tabs a:hover {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+body.fs-ui .queue-shortcuts a[aria-current='page'],
+body.fs-ui .directory-tabs a[aria-current='page'] {
+  border-bottom-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  background: transparent;
+}
+body.fs-ui .queue-custom-view {
+  padding: 0 12px;
+  color: var(--fs-text-muted);
+  font-size: 12px;
+}
+body.fs-ui .queue-conditions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+body.fs-ui .queue-conditions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid #cfe1ff;
+  border-radius: var(--fs-radius-pill);
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+body.fs-ui .queue-conditions a:hover {
+  text-decoration: none;
+  border-color: var(--fs-brand);
+}
+
+/* ------------------------------------------------------------------------- */
+/* テーブル                                                                  */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .table-scroll {
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  overflow: auto;
+  box-shadow: var(--fs-shadow-sm);
+}
+
+body.fs-ui table.tickets,
+body.fs-ui .work-table,
+body.fs-ui .directory-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+  background: var(--fs-surface);
+}
+body.fs-ui table.tickets th,
+body.fs-ui .work-table th,
+body.fs-ui .directory-table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fs-border);
+  background: var(--fs-surface-muted);
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+body.fs-ui table.tickets td,
+body.fs-ui .work-table td,
+body.fs-ui .directory-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--fs-border);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-size: 14px;
+  vertical-align: middle;
+}
+body.fs-ui table.tickets tbody tr:last-child td,
+body.fs-ui .work-table tbody tr:last-child td,
+body.fs-ui .directory-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+body.fs-ui table.tickets tbody tr:hover td,
+body.fs-ui .work-table tbody tr:hover td,
+body.fs-ui .directory-table tbody tr:hover td {
+  background: var(--fs-surface-hover);
+}
+body.fs-ui table.tickets caption,
+body.fs-ui .work-table caption,
+body.fs-ui .directory-table caption {
+  caption-side: top;
+  padding: 10px 12px;
+  color: var(--fs-text-muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+body.fs-ui .inbox-table .ticket-subject,
+body.fs-ui .ticket-subject {
+  min-width: 280px;
+}
+
+body.fs-ui .queue-results {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+
+body.fs-ui .pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* サイドナビ付きのページ(ナレッジ・カタログ)                               */
+/* ------------------------------------------------------------------------- */
+
+.fs-page-with-sidebar {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.fs-side-nav {
+  position: sticky;
+  top: 80px;
+  padding: 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+
+.fs-side-nav-heading {
+  margin: 0 0 8px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fs-side-nav-heading--tags {
+  margin-top: 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+.fs-side-nav-links {
+  display: grid;
+  gap: 2px;
+}
+.fs-side-nav-links a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--fs-radius-sm);
+  color: var(--fs-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.fs-side-nav-links a:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.fs-side-nav-links a[aria-current='page'] {
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+  font-weight: 600;
+}
+.fs-side-nav-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--fs-radius-pill);
+  background: var(--fs-surface-muted);
+  color: var(--fs-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+.fs-side-nav-note {
+  display: block;
+  padding: 6px 10px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+}
+
+.fs-page-main {
+  min-width: 0;
+}
+
+/* ナレッジ */
+
+body.fs-ui .fs-knowledge .knowledge-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  margin: 0 0 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+body.fs-ui .fs-knowledge .knowledge-filters .field {
+  flex: 1;
+}
+body.fs-ui .fs-knowledge .knowledge-result {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+body.fs-ui .fs-knowledge .knowledge-result p {
+  margin: 0;
+}
+
+body.fs-ui .fs-knowledge-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--fs-surface);
+}
+body.fs-ui .fs-knowledge-table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fs-border);
+  background: var(--fs-surface-muted);
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+body.fs-ui .fs-knowledge-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--fs-border);
+  color: var(--fs-text);
+  font-size: 13px;
+  vertical-align: top;
+}
+body.fs-ui .fs-knowledge-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+body.fs-ui .fs-knowledge-table tbody tr:hover td {
+  background: var(--fs-surface-hover);
+}
+body.fs-ui .fs-knowledge-title {
+  min-width: 260px;
+}
+body.fs-ui .fs-knowledge-title a {
+  color: var(--fs-text);
+  font-weight: 600;
+}
+body.fs-ui .fs-knowledge-title a:hover {
+  color: var(--fs-brand-strong);
+}
+body.fs-ui .fs-knowledge-title .hint {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 4px 0 0;
+}
+body.fs-ui .fs-knowledge-date,
+body.fs-ui .fs-knowledge-tags {
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+body.fs-ui .fs-knowledge-table td:nth-child(4),
+body.fs-ui .fs-knowledge-table th:nth-child(4) {
+  white-space: nowrap;
+  width: 56px;
+}
+body.fs-ui .fs-knowledge-table td:nth-child(2),
+body.fs-ui .fs-knowledge-table th:nth-child(2) {
+  white-space: nowrap;
+}
+body.fs-ui .knowledge-state {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--fs-surface-muted);
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* カタログ */
+
+body.fs-ui .fs-catalog .catalog-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  margin: 0 0 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+body.fs-ui .fs-catalog .catalog-filters .catalog-search {
+  flex: 1;
+}
+body.fs-ui .fs-catalog .catalog-result {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+
+.fs-catalog-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+body.fs-ui a.fs-catalog-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  height: 100%;
+  padding: 18px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+body.fs-ui a.fs-catalog-card:hover {
+  border-color: var(--fs-brand);
+  box-shadow: 0 2px 8px rgba(39, 108, 240, 0.1);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+body.fs-ui .fs-catalog-card strong {
+  color: var(--fs-text);
+}
+.fs-catalog-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+}
+.fs-catalog-card-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.fs-catalog-card-body strong {
+  font-size: 14px;
+  line-height: 20px;
+}
+.fs-catalog-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+.fs-catalog-target {
+  color: var(--fs-text-muted);
+  font-size: 11px;
+}
+.fs-catalog-card > svg {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--fs-text-muted);
+}
+
+/* 利用者ポータル */
+
+.fs-portal-hero {
+  margin: 0 0 16px;
+  padding: 40px 32px;
+  border-radius: var(--fs-radius-md);
+  background: linear-gradient(135deg, #0b3fae 0%, #276cf0 55%, #6aa8ff 100%);
+  color: #fff;
+}
+.fs-portal-hero-inner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.fs-portal-kicker {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+body.fs-ui .fs-portal-hero h1 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 28px;
+  line-height: 36px;
+}
+.fs-portal-hero-lead {
+  margin: 0 0 20px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+}
+.fs-portal-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 14px;
+  background: #fff;
+  border-radius: 10px;
+  color: var(--fs-text-muted);
+}
+.fs-portal-search input {
+  flex: 1;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fs-text);
+  font: inherit;
+}
+.fs-portal-search input:focus {
+  box-shadow: none;
+}
+.fs-portal-search button {
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+}
+.fs-portal-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+}
+body.fs-ui a.fs-portal-action-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+body.fs-ui a.fs-portal-action-card:hover {
+  border-color: var(--fs-brand);
+  box-shadow: 0 2px 8px rgba(39, 108, 240, 0.1);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+body.fs-ui .fs-portal-action-card strong {
+  color: var(--fs-text);
+}
+.fs-portal-action-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+  margin-bottom: 4px;
+}
+.fs-portal-action-card strong {
+  font-size: 14px;
+}
+.fs-portal-action-card span:last-child {
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+.portal-section-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 管理ホーム                                                                */
+/* ------------------------------------------------------------------------- */
+
+.fs-admin-section {
+  margin-bottom: 28px;
+}
+.fs-admin-section-heading {
+  margin-bottom: 12px;
+}
+.fs-admin-section-heading h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.fs-admin-section-heading .hint {
+  margin: 0;
+}
+.fs-admin-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+body.fs-ui a.fs-admin-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+  padding: 18px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+body.fs-ui a.fs-admin-card:hover {
+  border-color: var(--fs-brand);
+  box-shadow: 0 2px 8px rgba(39, 108, 240, 0.1);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+.fs-admin-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+}
+.fs-admin-card-body {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.fs-admin-card-body strong {
+  font-size: 14px;
+}
+.fs-admin-card-body span {
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+}
+.fs-admin-card > svg {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--fs-text-muted);
+}
+
+/* ------------------------------------------------------------------------- */
+/* サポートポータル(Freshservice /support/home 準拠)                        */
+/* ------------------------------------------------------------------------- */
+
+.fs-support {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ebeff3;
+}
+
+.fs-support-header {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0));
+}
+
+.fs-support-header-left,
+.fs-support-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fs-support-menu {
+  position: relative;
+}
+.fs-support-menu summary {
+  list-style: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fs-support-menu summary::-webkit-details-marker {
+  display: none;
+}
+.fs-support-menu summary::marker {
+  content: '';
+}
+.fs-support-menu summary:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.fs-support-menu-panel {
+  display: none;
+  position: absolute;
+  top: 48px;
+  left: 0;
+  width: 280px;
+  padding: 8px;
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-md);
+}
+.fs-support-menu[open] .fs-support-menu-panel {
+  display: block;
+}
+.fs-support-menu-title {
+  margin: 6px 10px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fs-support-menu-title--staff {
+  margin-top: 14px;
+}
+.fs-support-menu-panel a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--fs-text);
+  font-size: 13px;
+}
+.fs-support-menu-panel a:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+body.fs-ui a.fs-support-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+body.fs-ui a.fs-support-brand:hover {
+  color: #fff;
+  text-decoration: none;
+}
+.fs-support-brand-mark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--fs-brand-strong);
+  font-size: 15px;
+  font-weight: 800;
+}
+body.fs-ui .fs-support-org {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 500;
+}
+body.fs-ui a.fs-support-icon-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  text-decoration: none;
+}
+body.fs-ui a.fs-support-icon-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  text-decoration: none;
+}
+.fs-support-user summary {
+  color: #fff;
+}
+.fs-support-user .fs-avatar {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--fs-brand-strong);
+}
+.fs-support-user .fs-user-popover {
+  top: 46px;
+}
+
+.support-main {
+  min-height: 100vh;
+  background: #ebeff3;
+}
+
+.support-hero {
+  position: relative;
+  height: 372px;
+  padding: 108px 0 20px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.12) 0 2px, transparent 2.5px) 0 0 /
+      26px 26px,
+    linear-gradient(135deg, #0b3fae 0%, #276cf0 55%, #6aa8ff 100%);
+}
+.support-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+.support-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+  text-align: center;
+}
+body.fs-ui .support-hero h1 {
+  margin: 0 0 28px;
+  color: #fff;
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.support-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 680px;
+  max-width: 100%;
+  height: 60px;
+  margin: 0 auto;
+  padding: 0 18px 0 48px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  color: var(--fs-text-muted);
+}
+.support-search > svg {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.support-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fs-text);
+  font: inherit;
+  font-size: 20px;
+}
+.support-search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+body.fs-ui .support-search button {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 40px;
+  margin-left: 12px;
+}
+
+.support-cards {
+  padding: 48px 72px;
+  background: #ebeff3;
+}
+.support-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 400px));
+  justify-content: center;
+  gap: 32px;
+  max-width: 832px;
+  margin: 0 auto;
+}
+body.fs-ui a.support-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 142px;
+  padding: 28px 24px;
+  background: var(--fs-surface);
+  border-radius: 8px;
+  box-shadow: 0 6px 19px rgba(32, 33, 39, 0.08);
+  color: var(--fs-text);
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+body.fs-ui a.support-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(32, 33, 39, 0.12);
+  color: var(--fs-text);
+  text-decoration: none;
+}
+.support-card-icon {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+}
+.support-card--service .support-card-icon {
+  background: #fff3e6;
+  color: #b45f00;
+}
+.support-card--incident .support-card-icon {
+  background: #e6f7f1;
+  color: #00795c;
+}
+.support-card--knowledge .support-card-icon {
+  background: #e8f1ff;
+  color: #003fd2;
+}
+.support-card--approval .support-card-icon {
+  background: #f0eaff;
+  color: #5b21b6;
+}
+.support-card-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.support-card-text strong {
+  color: var(--fs-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+.support-card-text span {
+  color: var(--fs-text-secondary);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.support-lists {
+  padding: 24px 82px 48px;
+  background: var(--fs-surface);
+}
+.support-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--fs-border);
+  overflow-x: auto;
+}
+.support-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px;
+  margin-right: 16px;
+  border-bottom: 2px solid transparent;
+  color: var(--fs-text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.support-tabs a:hover {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+.support-tabs a[aria-current='page'] {
+  color: #2c5cc5;
+  border-bottom-color: #2c5cc5;
+}
+.support-tab-panel {
+  max-width: 1036px;
+}
+.support-panel {
+  min-width: 0;
+}
+.support-panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.support-panel-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+}
+.support-panel-heading > a {
+  font-size: 13px;
+  font-weight: 600;
+}
+.support-panel-heading .portal-ticket-views {
+  margin-top: 0;
+  border-bottom: 0;
+  gap: 16px;
+}
+.support-services-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+.support-footer {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fs-surface);
+  border-top: 1px solid var(--fs-border);
+  color: var(--fs-text-muted);
+  font-size: 12px;
+}
+
+/* サポートポータル配下のサブ画面 (WP-P2-UIX-033) */
+.fs-support--subpage .fs-support-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  color: var(--fs-text);
+  background: var(--fs-surface);
+  border-bottom: 1px solid var(--fs-border);
+}
+body.fs-ui .fs-support--subpage a.fs-support-brand {
+  color: var(--fs-text);
+}
+body.fs-ui .fs-support--subpage a.fs-support-brand:hover {
+  color: var(--fs-text);
+}
+.fs-support--subpage .fs-support-brand-mark {
+  background: var(--fs-brand);
+  color: #fff;
+}
+body.fs-ui .fs-support--subpage .fs-support-org {
+  color: var(--fs-text-muted);
+}
+body.fs-ui .fs-support--subpage a.fs-support-icon-button {
+  color: var(--fs-text-secondary);
+}
+body.fs-ui .fs-support--subpage a.fs-support-icon-button:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+}
+.fs-support--subpage .fs-support-menu summary {
+  color: var(--fs-text-secondary);
+}
+.fs-support--subpage .fs-support-menu summary:hover {
+  background: var(--fs-surface-muted);
+}
+.fs-support--subpage .fs-support-user summary {
+  color: var(--fs-text-secondary);
+}
+.fs-support--subpage .fs-support-user .fs-avatar {
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+}
+.fs-support-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+body.fs-ui .fs-support-content > main.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+/* 一覧(ナレッジ/カタログ)は各パネルを白くし、詳細・フォーム・設定は
+   ページ全体を白い面にして読みやすくする。 */
+body.fs-ui .fs-support-content > main.shell:not(.fs-knowledge):not(.fs-catalog) {
+  padding: 24px 28px;
+  background: var(--fs-surface);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+
+/* ------------------------------------------------------------------------- */
+/* チケット一覧の2カラム                                                     */
+/* ------------------------------------------------------------------------- */
+
+.fs-ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 12px;
+  align-items: start;
+}
+
+.fs-ticket-main {
+  min-width: 0;
+}
+
+.fs-ticket-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.fs-filter-link {
+  display: none;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.fs-filter-link:hover {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+.fs-ticket-filters {
+  position: sticky;
+  top: 80px;
+  min-width: 0;
+}
+
+.fs-filter-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 8px;
+}
+.fs-filter-panel-heading h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.fs-filter-panel-heading a {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.fs-ui .ticket-filters-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+body.fs-ui .ticket-filters-panel .field {
+  width: 100%;
+  min-width: 0;
+}
+body.fs-ui .ticket-filters-panel .search-field {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+body.fs-ui .ticket-filters-panel .filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+body.fs-ui .ticket-filters-panel .filter-actions button {
+  width: 100%;
+}
+body.fs-ui .ticket-filters-panel .advanced-filters {
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid var(--fs-border);
+}
+body.fs-ui .ticket-filters-panel .advanced-filter-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+body.fs-ui .ticket-filters-panel .filter-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+body.fs-ui .ticket-filters-panel .filter-group .choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+body.fs-ui .ticket-filters-panel .filter-group .choice input {
+  width: auto;
+  min-height: 0;
+}
+body.fs-ui .ticket-filters-panel .search-field .hint {
+  margin-top: 0;
+}
+
+body.fs-ui .fs-queue-table {
+  table-layout: fixed;
+  min-width: 880px;
+}
+body.fs-ui .fs-queue-table th,
+body.fs-ui .fs-queue-table td {
+  padding: 10px 8px;
+}
+body.fs-ui .fs-queue-table th:nth-child(1) {
+  width: 24%;
+}
+body.fs-ui .fs-queue-table th:nth-child(2) {
+  width: 13%;
+}
+body.fs-ui .fs-queue-table th:nth-child(3) {
+  width: 13%;
+}
+body.fs-ui .fs-queue-table th:nth-child(4) {
+  width: 8%;
+}
+body.fs-ui .fs-queue-table th:nth-child(5) {
+  width: 13%;
+}
+body.fs-ui .fs-queue-table th:nth-child(6) {
+  width: 9%;
+}
+body.fs-ui .fs-queue-table th:nth-child(7) {
+  width: 12%;
+}
+body.fs-ui .fs-queue-table th:nth-child(8) {
+  width: 8%;
+}
+body.fs-ui .fs-queue-table .state-cell .hint {
+  margin: 4px 0 0;
+}
+body.fs-ui .fs-queue-table .sla {
+  font-size: 12px;
+  white-space: nowrap;
+}
+body.fs-ui .fs-queue-table td:nth-child(8) {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 状態・優先度                                                              */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--fs-surface-muted);
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+body.fs-ui .state::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+body.fs-ui .state[data-state='new'],
+body.fs-ui .state[data-state='in_progress'] {
+  background: var(--fs-brand-soft);
+  color: var(--fs-brand-strong);
+}
+body.fs-ui .state[data-state='pending'],
+body.fs-ui .state[data-state='review'] {
+  background: var(--fs-warning-soft);
+  color: var(--fs-warning);
+}
+body.fs-ui .state[data-state='resolved'],
+body.fs-ui .state[data-state='completed'],
+body.fs-ui .state[data-state='approved'] {
+  background: var(--fs-success-soft);
+  color: var(--fs-success);
+}
+body.fs-ui .state[data-state='failed'],
+body.fs-ui .state[data-state='cancelled'] {
+  background: var(--fs-danger-soft);
+  color: var(--fs-danger);
+}
+body.fs-ui .state[data-state='scheduled'],
+body.fs-ui .state[data-state='implementing'] {
+  background: #f0eaff;
+  color: #5b21b6;
+}
+
+body.fs-ui .priority-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fs-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+body.fs-ui .priority-label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--fs-brand);
+}
+
+body.fs-ui .deadline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+body.fs-ui .deadline-overdue {
+  color: var(--fs-danger);
+}
+body.fs-ui .deadline-paused,
+body.fs-ui .deadline-none {
+  color: var(--fs-text-muted);
+}
+
+body.fs-ui .update-label {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+}
+body.fs-ui .update-label.unread {
+  color: var(--fs-brand-strong);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------- */
+/* チケット詳細                                                              */
+/* ------------------------------------------------------------------------- */
+
+.fs-ticket-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.fs-ticket-heading h1 {
+  margin-bottom: 4px;
+}
+.fs-ticket-heading .lead {
+  margin-bottom: 0;
+}
+.fs-ticket-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fs-ticket-quick-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fs-ticket-quick-actions a:hover {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+
+.fs-ticket-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 12px 0 20px;
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-ticket-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--fs-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.fs-ticket-tabs a:hover {
+  color: var(--fs-brand-strong);
+  text-decoration: none;
+  border-bottom-color: #cfe1ff;
+}
+.fs-ticket-tabs a:first-child {
+  border-bottom-color: var(--fs-brand);
+  color: var(--fs-brand-strong);
+}
+
+#ticket-detail,
+#ticket-conversation,
+#ticket-reply,
+#ticket-attachments,
+#ticket-relations,
+#ticket-properties {
+  scroll-margin-top: 80px;
+}
+
+body.fs-ui .workspace-secondary > h2:first-of-type {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+body.fs-ui .workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+body.fs-ui .workspace-primary,
+body.fs-ui .workspace-secondary {
+  min-width: 0;
+}
+body.fs-ui .workspace-secondary {
+  padding: 20px;
+}
+body.fs-ui .workspace-secondary > h2:first-child {
+  margin-top: 0;
+}
+body.fs-ui .workspace-secondary dl.detail {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  margin: 0;
+}
+body.fs-ui .workspace-secondary dl.detail dt:not(:first-child) {
+  margin-top: 12px;
+}
+body.fs-ui .workspace-secondary .actions-row form,
+body.fs-ui .workspace-secondary .actions-row button {
+  width: 100%;
+  text-align: left;
+}
+body.fs-ui .workspace-disclosure {
+  border-top: 1px solid var(--fs-border);
+  margin-top: 20px;
+}
+body.fs-ui .body-text {
+  padding: 16px;
+  background: var(--fs-surface-muted);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-sm);
+  white-space: pre-wrap;
+}
+
+body.fs-ui .comments {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+body.fs-ui .comment {
+  padding: 14px 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-sm);
+}
+body.fs-ui .comment.internal {
+  background: #fbf7ff;
+  border-color: #e7d8f5;
+}
+body.fs-ui .comment .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+body.fs-ui .comment .body {
+  white-space: pre-wrap;
+}
+
+body.fs-ui .reply-panel,
+body.fs-ui .request-form {
+  padding: 20px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+}
+
+/* ------------------------------------------------------------------------- */
+/* ダッシュボード・運営状況                                                  */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .overview-counts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+body.fs-ui .overview-metric {
+  position: relative;
+  padding: 18px 16px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+/* カード全体をラベルリンクのクリック領域にする。数字からも一覧へ進める。 */
+body.fs-ui .overview-metric dt a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+body.fs-ui .overview-metric:has(dt a:focus-visible) {
+  outline: 2px solid var(--fs-brand);
+  outline-offset: 2px;
+}
+body.fs-ui .overview-metric dt a:focus-visible {
+  outline: none;
+}
+body.fs-ui .overview-metric dt {
+  margin: 0;
+  color: var(--fs-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+body.fs-ui .overview-metric dt a {
+  color: inherit;
+  text-decoration: none;
+}
+body.fs-ui .overview-metric dd {
+  margin: 8px 0 0;
+  color: var(--fs-text);
+}
+body.fs-ui .overview-count {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+}
+body.fs-ui .overview-metric[data-overdue='true'] {
+  border-color: #ffc2cb;
+  background: var(--fs-danger-soft);
+}
+body.fs-ui .overview-metrics,
+body.fs-ui .overview-deadlines {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+/* 運営状況もFreshserviceのダッシュボードと同じく、コンテンツ面は白。
+   左レールと上部バーだけが淡い青(#EFF6FF)である。
+   カードの区切りは背景色ではなく、境界線と影で示す。 */
+body.fs-ui .fs-dashboard .overview-metrics {
+  padding: 0;
+  margin-bottom: 16px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+body.fs-ui .fs-dashboard .overview-metrics .overview-section-heading {
+  margin-bottom: 12px;
+}
+body.fs-ui .fs-dashboard .overview-filter {
+  padding: 12px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+body.fs-ui .fs-dashboard .overview-deadlines {
+  background: var(--fs-surface);
+}
+body.fs-ui .fs-dashboard .overview-meta {
+  padding: 0 4px;
+}
+body.fs-ui .fs-dashboard .overview-definitions {
+  padding: 0 4px;
+}
+
+.fs-dashboard-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fs-donut {
+  margin: 0;
+  padding: 20px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-sm);
+}
+.fs-donut-heading {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.fs-donut-heading .hint {
+  font-weight: 400;
+}
+.fs-donut-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.fs-donut-chart {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+/* 中央の合計数字をクリックして一覧へ移動する。 */
+.fs-donut-center-link {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+}
+.fs-donut-center-link:hover {
+  background: rgba(39, 108, 240, 0.08);
+}
+.fs-donut-center-link:focus-visible {
+  outline: 2px solid var(--fs-brand);
+  outline-offset: 2px;
+}
+.fs-donut-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 150px;
+}
+.fs-donut-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.fs-donut-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.fs-donut-label {
+  flex: 1;
+  color: var(--fs-text-secondary);
+}
+.fs-donut-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.fs-donut-total {
+  fill: var(--fs-text);
+  font-size: 28px;
+  font-weight: 600;
+}
+.fs-donut-total-label {
+  fill: var(--fs-text-muted);
+  font-size: 12px;
+}
+.fs-donut-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--fs-text-muted);
+  font-size: 13px;
+}
+body.fs-ui .overview-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+body.fs-ui .overview-section-heading h2 {
+  margin: 0;
+}
+body.fs-ui .overview-utilities {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+body.fs-ui .overview-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+body.fs-ui .overview-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* ポータル                                                                  */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .portal-intro {
+  padding: 28px;
+  border-radius: var(--fs-radius-md);
+}
+body.fs-ui .portal-intro h1 {
+  font-size: 24px;
+  line-height: 32px;
+}
+body.fs-ui .portal-search {
+  max-width: 640px;
+  margin-top: 18px;
+}
+body.fs-ui .portal-search > div {
+  display: flex;
+  gap: 8px;
+}
+body.fs-ui .portal-primary-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 管理・ディレクトリ                                                        */
+/* ------------------------------------------------------------------------- */
+
+body.fs-ui .directory-shell {
+  max-width: none;
+}
+body.fs-ui .directory-heading,
+body.fs-ui .directory-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+body.fs-ui .directory-heading h1 {
+  margin: 0;
+}
+body.fs-ui .directory-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+body.fs-ui .directory-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--fs-brand);
+  border-radius: var(--fs-radius-sm);
+  background: var(--fs-brand);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+body.fs-ui .directory-cta:hover {
+  background: var(--fs-brand-strong);
+  border-color: var(--fs-brand-strong);
+  text-decoration: none;
+}
+body.fs-ui .directory-cta.secondary {
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  border-color: var(--fs-border-strong);
+}
+body.fs-ui .directory-cta.secondary:hover {
+  background: var(--fs-surface-muted);
+  color: var(--fs-brand-strong);
+  border-color: #c9d3db;
+}
+body.fs-ui .directory-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-md);
+}
+body.fs-ui .directory-panel,
+body.fs-ui .directory-empty {
+  padding: 20px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 公開画面(ログイン・組織選択)                                             */
+/* ------------------------------------------------------------------------- */
+
+.fs-public {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--fs-app-bg);
+}
+
+.fs-public-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  background: var(--fs-surface);
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-public-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--fs-text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.fs-public-brand:hover {
+  text-decoration: none;
+}
+.fs-public-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fs-brand);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+.fs-public-subtitle {
+  color: var(--fs-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.fs-public-content {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+}
+body.fs-ui .fs-public-content > main {
+  width: 100%;
+  max-width: 440px;
+  min-height: 0;
+  margin: 0;
+  padding: 32px;
+  background: var(--fs-surface);
+  border-radius: var(--fs-radius-md);
+  box-shadow: var(--fs-shadow-md);
+}
+body.fs-ui .fs-public-content > main h1 {
+  margin-top: 0;
+}
+body.fs-ui .fs-public-content > main form.stack {
+  max-width: none;
+}
+.fs-public-footer {
+  padding: 18px 24px;
+  color: var(--fs-text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------------- */
+/* レスポンシブ                                                              */
+/* ------------------------------------------------------------------------- */
+
+@media (max-width: 1200px) {
+  .fs-ticket-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-ticket-filters {
+    position: static;
+  }
+  .fs-filter-link {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 1000px) {
+  .fs-page-with-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-side-nav {
+    position: static;
+  }
+  .fs-portal-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fs-admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fs-side-nav-tags a:nth-child(n + 7) {
+    display: none;
+  }
+  .support-cards {
+    padding: 32px 16px;
+  }
+  .support-cards-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 560px;
+  }
+  .support-lists {
+    padding: 20px 16px 32px;
+  }
+  .support-services-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.fs-ui .support-hero h1 {
+    font-size: 32px;
+    line-height: 40px;
+  }
+  .fs-support-org {
+    display: none;
+  }
+  .fs-support-header {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .fs-dashboard-charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .fs-portal-hero {
+    padding: 28px 20px;
+  }
+  body.fs-ui .fs-portal-hero h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .fs-portal-action-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-admin-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-catalog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.fs-ui .fs-knowledge .knowledge-filters,
+  body.fs-ui .fs-catalog .catalog-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .support-hero {
+    height: auto;
+    padding: 96px 0 32px;
+  }
+  body.fs-ui .support-hero h1 {
+    margin-bottom: 20px;
+    font-size: 28px;
+    line-height: 36px;
+  }
+  .support-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .support-tabs a {
+    margin-right: 10px;
+    padding: 8px 4px;
+    font-size: 13px;
+  }
+  .support-search {
+    height: 52px;
+    padding-left: 42px;
+  }
+  .support-search > svg {
+    left: 14px;
+  }
+  .support-search input {
+    font-size: 16px;
+  }
+  body.fs-ui a.support-card {
+    min-height: 0;
+    padding: 20px;
+  }
+  .support-card-icon {
+    width: 56px;
+    height: 56px;
+  }
+  .fs-support-header {
+    padding: 0 12px;
+  }
+  .fs-support-header-left,
+  .fs-support-header-right {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 1100px) {
+  body.fs-ui .overview-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  body.fs-ui .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 800px) {
+  .fs-rail {
+    width: 280px;
+    align-items: stretch;
+    padding: 14px;
+    transform: translateX(-100%);
+    transition: transform 160ms ease;
+    box-shadow: var(--fs-shadow-md);
+    z-index: 45;
+  }
+  .fs-app--rail-open .fs-rail {
+    transform: translateX(0);
+  }
+  .fs-rail-brand {
+    margin: 0 0 12px;
+  }
+  body.fs-ui .fs-rail-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--fs-text-secondary);
+    font-size: 22px;
+    line-height: 1;
+  }
+  body.fs-ui .fs-rail-close:hover {
+    background: #e0edff;
+    color: var(--fs-brand-strong);
+  }
+  .fs-rail-nav {
+    align-items: stretch;
+    margin-top: 0;
+    gap: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .fs-rail-item {
+    display: block;
+  }
+  .fs-rail-link {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 12px;
+  }
+  .fs-rail-link::after {
+    content: attr(aria-label);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .fs-flyout {
+    position: static;
+    width: auto;
+    padding: 0 0 8px 44px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+  .fs-flyout::before {
+    display: none;
+  }
+  .fs-flyout-title {
+    display: none;
+  }
+  .fs-rail-bottom {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 12px;
+  }
+  .fs-rail-bottom::after {
+    content: '自分の設定';
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .fs-rail-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    border: 0;
+    background: rgba(18, 51, 76, 0.35);
+    cursor: pointer;
+  }
+  .fs-app--rail-open .fs-rail-backdrop {
+    display: block;
+  }
+  .fs-main {
+    margin-left: 0;
+  }
+  .fs-topbar {
+    height: 56px;
+    flex-basis: 56px;
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .fs-rail-toggle {
+    display: grid;
+  }
+  .fs-breadcrumb {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .fs-breadcrumb a {
+    display: none;
+  }
+  .fs-global-search {
+    display: none;
+  }
+  .fs-create-button {
+    padding: 0;
+    width: 36px;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+  }
+  .fs-create-button .fs-create-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .fs-create-button span:last-child {
+    display: none;
+  }
+  .fs-topbar-actions {
+    gap: 0;
+  }
+  .fs-content {
+    padding: 0 8px 8px;
+  }
+  body.fs-ui .fs-content > main,
+  body.fs-ui .shell {
+    padding: 16px;
+    border-radius: var(--fs-radius-md);
+  }
+  body.fs-ui .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  body.fs-ui .inbox-summary {
+    grid-template-columns: 1fr;
+  }
+  body.fs-ui .inbox-summary p {
+    border-right: 0;
+    border-bottom: 1px solid var(--fs-border);
+  }
+  body.fs-ui .inbox-summary p:last-child {
+    border-bottom: 0;
+  }
+  body.fs-ui .overview-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body.fs-ui .workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fs-public-header {
+    padding: 0 16px;
+  }
+  body.fs-ui .fs-public-content > main {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 520px) {
+  body.fs-ui .overview-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body.fs-ui .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  body.fs-ui .filters button,
+  body.fs-ui .form-actions button,
+  body.fs-ui form.stack > button {
+    width: 100%;
+  }
+}
+</style>
+</head>
+<body class="fs-ui">
+<a class="skip-link" href="#main">本文へ移動</a>
+<div class="fs-app">
+  <aside class="fs-rail" aria-label="メインメニュー">
+    <a class="fs-rail-brand" href="#" aria-label="SOLVI ホーム"><span aria-hidden="true">S</span></a>
+    <nav class="fs-rail-nav" aria-label="業務メニュー">
+      <div class="fs-rail-item"><a class="fs-rail-link" href="#" aria-label="チケット"><span aria-hidden="true">T</span></a></div>
+      <div class="fs-rail-item"><a class="fs-rail-link is-active" href="#" aria-label="サービスカタログ"><span aria-hidden="true">C</span></a></div>
+      <div class="fs-rail-item"><a class="fs-rail-link" href="#" aria-label="承認ルール"><span aria-hidden="true">A</span></a></div>
+    </nav>
+    <a class="fs-rail-bottom" href="#" aria-label="自分の設定"><span aria-hidden="true">⚙</span></a>
+  </aside>
+  <div class="fs-main">
+    <header class="fs-topbar">
+      <button type="button" class="fs-icon-button fs-rail-toggle" aria-label="メニューを開く" aria-expanded="false"><span aria-hidden="true">≡</span></button>
+      <div class="fs-breadcrumb"><a href="#">サービスカタログ</a><span aria-current="page">カタログ管理</span></div>
+      <form class="fs-global-search" action="#" method="get" role="search">
+        <label class="visually-hidden" for="fs-global-search-input">検索</label>
+        <input id="fs-global-search-input" type="search" name="q" placeholder="検索">
+      </form>
+      <div class="fs-topbar-actions">
+        <a class="fs-create-button" href="#" aria-label="チケットを作成する"><span aria-hidden="true">＋</span><span>作成する</span></a>
+        <a class="fs-icon-button" href="#" aria-label="通知設定"><span aria-hidden="true">🔔</span></a>
+      </div>
+    </header>
+    <div class="fs-content"><main id="main" class="shell">
+  <a class="context-link" href="#">カタログ管理へ戻る</a>
+  <h1>合成 高リスク申請</h1>
+  <p class="notice">公開中: 合成 高リスク申請（版3） · 下書き版4</p>
+  <p class="notice"><strong>高リスク（2名の承認が必要）</strong> · 公開中の版で指定されています</p>
+  <section aria-label="カタログの編集と公開">
+    <p role="status" class="notice">入力は保存済みの下書き版4と同じです。</p>
+    <h2>保存済みの下書き版4</h2>
+    <p class="hint">以下は保存済みの内容です。編集中の入力は、保存するまで反映されません。</p>
+    <div class="error-summary" role="alert" tabindex="-1">
+  <h2>保存・送信できませんでした</h2>
+  <p>高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です</p>
+  <ul>
+    <li><button type="button" class="error-link">入力項目: 高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です</button></li>
+  </ul>
+  <p class="hint">この画面の入力は保持しています。内容を確認して、もう一度送信してください。</p>
+</div>
+<div class="stack form-panel">
+  <p>公開すると保存済みの下書き版4を新しい申請に使用します。既存申請は元の版で継続します。</p>
+  <div class="actions-row">
+    <button type="button">保存済みの下書き版4を公開する</button>
+  </div>
+  <p class="hint"><a href="#catalog-approval-settings">「承認と検証設定」の高リスクの指定を確認してください。</a></p>
+</div>
+    <details open>
+      <summary>下書きの項目と承認者を編集する</summary>
+      <div class="stack form-panel">
+        <section>
+          <h2 id="catalog-approval-settings" tabindex="-1">承認と検証設定</h2>
+          <div class="field">
+            <label for="catalog-approver">固定の承認者</label>
+            <select id="catalog-approver" name="approverId">
+              <option>合成 承認者A</option>
+              <option>合成 承認者B</option>
+            </select>
+            <p class="hint">この版での申請先です。申請者本人が承認者になる申請は受け付けません。</p>
+          </div>
+          <div class="field">
+            <label for="catalog-approval-rule">承認ルール</label>
+            <select id="catalog-approval-rule" name="ruleId">
+              <option>two-step — 2段承認（版1）</option>
+            </select>
+            <p class="hint">組織で承認ルールが有効なときだけ、このルールで承認の経路を決めます。</p>
+          </div>
+          <div class="field" data-error-field="highRisk">
+  <input type="hidden" name="highRiskEditable" value="1">
+  <label class="visibility-toggle" for="catalog-high-risk" style="display:flex;align-items:center;gap:10px;font-weight:600;min-height:32px">
+    <input type="checkbox" id="catalog-high-risk" name="highRisk" value="true" checked aria-invalid="true" aria-describedby="high-risk-error" style="width:24px;height:24px">
+    高リスク（2名の承認が必要）
+  </label>
+  <p class="hint">高リスクの項目は、承認ルールが必要です。ルールには、別人の固定承認者を2段以上含めてください。代理による承認はできません。</p>
+  <p id="high-risk-error" role="alert" class="field-error">高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です</p>
+</div>
+        </section>
+      </div>
+    </details>
+  </section>
+</main></div>
+  </div>
+</div>
+</body></html>

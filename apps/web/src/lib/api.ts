@@ -1955,6 +1955,10 @@ export interface CatalogAdminSummary {
   ownerName?: string;
   updatedAt?: string;
   readiness?: { ready: boolean; issues: string[]; warnings?: string[] };
+  /** 下書きの版が高リスク(2名の承認が必要)か。APIの値だけで判定する。 */
+  highRisk?: boolean;
+  /** 公開中の版が高リスクか。 */
+  publishedHighRisk?: boolean;
 }
 export interface CatalogAdminDetail extends CatalogAuthoringOptions {
   id: string;
@@ -1978,6 +1982,10 @@ export interface CatalogAdminDetail extends CatalogAuthoringOptions {
   approvers: Array<{ id: string; name: string }>;
   canEdit?: boolean;
   readiness?: { ready: boolean; issues: string[]; warnings?: string[] };
+  /** 下書きの版が高リスク(2名の承認が必要)か。APIの値だけで判定する。 */
+  highRisk?: boolean;
+  /** 公開中の版が高リスクか。 */
+  publishedHighRisk?: boolean;
 }
 export interface CatalogItem {
   id: string;
@@ -1987,6 +1995,8 @@ export interface CatalogItem {
   definition: Omit<import('@solvi/shared/catalog').CatalogDefinition, 'action'> & {
     action?: 'simulate.access_grant';
   };
+  /** 公開中の定義が高リスクか (WP-P4-APR-021)。APIの値だけで判定する。 */
+  highRisk?: boolean;
 }
 export interface ServiceRequestSummary {
   number: string;
@@ -2017,6 +2027,11 @@ export interface ServiceRequestSummary {
 export interface ServiceRequestDetail {
   requesterName: string;
   approverName: string;
+  /**
+   * 申請の snapshot が高リスク(2名の承認が必要)か (WP-P4-APR-021)。
+   * API が snapshot の属性を判定した値で、画面はこれをそのまま使う。
+   */
+  highRisk?: boolean;
   fulfillment?: CatalogFulfillment;
   request: {
     id: string;

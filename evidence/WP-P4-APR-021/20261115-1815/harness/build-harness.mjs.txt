@@ -1,0 +1,311 @@
+// WP-P4-APR-021 段階B の見た目の確認用ハーネス。
+//
+// **実画面ではない。** apps/web/src/app/globals.css と freshservice.css をそのまま
+// 読み込み、画面と同じクラス・同じ文言で組んだ静的HTMLを Chromium / WebKit の
+// 1440px / 375px で撮る。axe も同じHTMLに対して実行する。
+// 実画面の確認は、開発用DBのデータを用意したあとに別の指示で行う(段階C)。
+import { mkdir } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '../../../..');
+const output = resolve(root, process.env.WP021_OUT);
+const realCss = `${await readFile(resolve(root, 'apps/web/src/app/globals.css'), 'utf8')}\n${await readFile(
+  resolve(root, 'apps/web/src/app/freshservice.css'),
+  'utf8',
+)}`;
+await mkdir(output, { recursive: true });
+
+const frame = (title, main) => `<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>${realCss}</style>
+</head>
+<body class="fs-ui">
+<a class="skip-link" href="#main">本文へ移動</a>
+<div class="fs-app">
+  <aside class="fs-rail" aria-label="メインメニュー">
+    <a class="fs-rail-brand" href="#" aria-label="SOLVI ホーム"><span aria-hidden="true">S</span></a>
+    <nav class="fs-rail-nav" aria-label="業務メニュー">
+      <div class="fs-rail-item"><a class="fs-rail-link" href="#" aria-label="チケット"><span aria-hidden="true">T</span></a></div>
+      <div class="fs-rail-item"><a class="fs-rail-link is-active" href="#" aria-label="サービスカタログ"><span aria-hidden="true">C</span></a></div>
+      <div class="fs-rail-item"><a class="fs-rail-link" href="#" aria-label="承認ルール"><span aria-hidden="true">A</span></a></div>
+    </nav>
+    <a class="fs-rail-bottom" href="#" aria-label="自分の設定"><span aria-hidden="true">⚙</span></a>
+  </aside>
+  <div class="fs-main">
+    <header class="fs-topbar">
+      <button type="button" class="fs-icon-button fs-rail-toggle" aria-label="メニューを開く" aria-expanded="false"><span aria-hidden="true">≡</span></button>
+      <div class="fs-breadcrumb"><a href="#">サービスカタログ</a><span aria-current="page">カタログ管理</span></div>
+      <form class="fs-global-search" action="#" method="get" role="search">
+        <label class="visually-hidden" for="fs-global-search-input">検索</label>
+        <input id="fs-global-search-input" type="search" name="q" placeholder="検索">
+      </form>
+      <div class="fs-topbar-actions">
+        <a class="fs-create-button" href="#" aria-label="チケットを作成する"><span aria-hidden="true">＋</span><span>作成する</span></a>
+        <a class="fs-icon-button" href="#" aria-label="通知設定"><span aria-hidden="true">🔔</span></a>
+      </div>
+    </header>
+    <div class="fs-content">${main}</div>
+  </div>
+</div>
+</body></html>`;
+
+const highRiskDescription =
+  '高リスクの項目は、承認ルールが必要です。ルールには、別人の固定承認者を2段以上含めてください。代理による承認はできません。';
+
+const catalogShell = ({ title, state, marker, publishForm, editor }) => `<main id="main" class="shell">
+  <a class="context-link" href="#">カタログ管理へ戻る</a>
+  <h1>${title}</h1>
+  <p class="notice">${state}</p>
+  ${marker ?? ''}
+  <section aria-label="カタログの編集と公開">
+    <p role="status" class="notice">入力は保存済みの下書き版4と同じです。</p>
+    <h2>保存済みの下書き版4</h2>
+    <p class="hint">以下は保存済みの内容です。編集中の入力は、保存するまで反映されません。</p>
+    ${publishForm}
+    <details open>
+      <summary>下書きの項目と承認者を編集する</summary>
+      <div class="stack form-panel">
+        <section>
+          <h2 id="catalog-approval-settings" tabindex="-1">承認と検証設定</h2>
+          <div class="field">
+            <label for="catalog-approver">固定の承認者</label>
+            <select id="catalog-approver" name="approverId">
+              <option>合成 承認者A</option>
+              <option>合成 承認者B</option>
+            </select>
+            <p class="hint">この版での申請先です。申請者本人が承認者になる申請は受け付けません。</p>
+          </div>
+          <div class="field">
+            <label for="catalog-approval-rule">承認ルール</label>
+            <select id="catalog-approval-rule" name="ruleId">
+              <option>two-step — 2段承認（版1）</option>
+            </select>
+            <p class="hint">組織で承認ルールが有効なときだけ、このルールで承認の経路を決めます。</p>
+          </div>
+          ${editor}
+        </section>
+      </div>
+    </details>
+  </section>
+</main>`;
+
+const adminHighRiskChecked = `<div class="field" data-error-field="highRisk">
+  <input type="hidden" name="highRiskEditable" value="1">
+  <label class="visibility-toggle" for="catalog-high-risk" style="display:flex;align-items:center;gap:10px;font-weight:600;min-height:32px">
+    <input type="checkbox" id="catalog-high-risk" name="highRisk" value="true" checked style="width:24px;height:24px">
+    高リスク（2名の承認が必要）
+  </label>
+  <p class="hint">${highRiskDescription}</p>
+</div>`;
+
+const adminHighRiskUnchecked = `<div class="field" data-error-field="highRisk">
+  <input type="hidden" name="highRiskEditable" value="1">
+  <label class="visibility-toggle" for="catalog-high-risk" style="display:flex;align-items:center;gap:10px;font-weight:600;min-height:32px">
+    <input type="checkbox" id="catalog-high-risk" name="highRisk" value="true" style="width:24px;height:24px">
+    高リスク（2名の承認が必要）
+  </label>
+  <p class="hint">${highRiskDescription}</p>
+</div>`;
+
+const delegatedHighRisk = `<div class="field" data-error-field="highRisk">
+  <p><strong>高リスク（2名の承認が必要）:</strong> 指定されています</p>
+  <p class="hint">高リスクの指定は組織管理者だけが変更できます。</p>
+</div>`;
+
+const publicationForm = `<div class="stack form-panel">
+  <p>公開すると保存済みの下書き版4を新しい申請に使用します。既存申請は元の版で継続します。</p>
+  <div class="actions-row">
+    <button type="button">保存済みの下書き版4を公開する</button>
+    <button type="button" class="secondary">公開版3の新規受付を停止する</button>
+  </div>
+</div>`;
+
+const publicationBlocked = `<div class="error-summary" role="alert" tabindex="-1">
+  <h2>保存・送信できませんでした</h2>
+  <p>高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です</p>
+  <ul>
+    <li><button type="button" class="error-link">入力項目: 高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です</button></li>
+  </ul>
+  <p class="hint">この画面の入力は保持しています。内容を確認して、もう一度送信してください。</p>
+</div>
+<div class="stack form-panel">
+  <p>公開すると保存済みの下書き版4を新しい申請に使用します。既存申請は元の版で継続します。</p>
+  <div class="actions-row">
+    <button type="button">保存済みの下書き版4を公開する</button>
+  </div>
+  <p class="hint"><a href="#catalog-approval-settings">「承認と検証設定」の高リスクの指定を確認してください。</a></p>
+</div>`;
+
+const highRiskFieldBlocked = `<div class="field" data-error-field="highRisk">
+  <input type="hidden" name="highRiskEditable" value="1">
+  <label class="visibility-toggle" for="catalog-high-risk" style="display:flex;align-items:center;gap:10px;font-weight:600;min-height:32px">
+    <input type="checkbox" id="catalog-high-risk" name="highRisk" value="true" checked aria-invalid="true" aria-describedby="high-risk-error" style="width:24px;height:24px">
+    高リスク（2名の承認が必要）
+  </label>
+  <p class="hint">${highRiskDescription}</p>
+  <p id="high-risk-error" role="alert" class="field-error">高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です</p>
+</div>`;
+
+const markerPublished = `<p class="notice"><strong>高リスク（2名の承認が必要）</strong> · 公開中の版で指定されています</p>`;
+
+const requestForm = `<main id="main" class="shell">
+  <a class="context-link" href="#">カタログへ戻る</a>
+  <h1>合成 高リスク申請</h1>
+  <p class="notice">ローカル模擬申請です。承認後も実アカウント作成・Box権限付与・機器の貸出は行いません。</p>
+  <p>高リスクの合成申請です。必要事項を入力してください。</p>
+  <p class="hint">必要事項を入力 → 固定の承認者2名が確認 → IT担当者が模擬結果を記録。状況は「申請状況」で確認できます。</p>
+  <form class="stack form-panel">
+    <p class="notice" role="note">この申請は2名の承認が必要です。代理による承認はできません。</p>
+    <div class="field">
+      <label for="request-reason">利用する理由</label>
+      <textarea id="request-reason" name="reason" required maxlength="2000"></textarea>
+    </div>
+    <div class="field">
+      <label for="request-days">希望する利用日数</label>
+      <select id="request-days" name="durationDays"><option>7日</option></select>
+    </div>
+    <section class="field" aria-labelledby="request-approval-route-title">
+      <h2 id="request-approval-route-title">承認の経路</h2>
+      <ol>
+        <li><strong>段1（固定承認者）</strong>: 合成 承認者A</li>
+        <li><strong>段2（固定承認者）</strong>: 合成 承認者B</li>
+      </ol>
+      <p class="hint">表示は申請前の見込みです。申請を送信した時点の設定で、承認者が確定します。承認の期限は各段72時間です。</p>
+    </section>
+    <div class="form-actions">
+      <button type="button">申請する（模擬）</button>
+      <a href="#">キャンセルして戻る</a>
+    </div>
+  </form>
+</main>`;
+
+const requestDetail = `<main id="main" class="shell">
+  <a class="context-link" href="#">申請一覧へ戻る</a>
+  <h1>合成 高リスク申請</h1>
+  <p class="notice">ローカル模擬実行の検証用。実際の権限付与・外部変更は行いません。</p>
+  <h2>承認待ち</h2>
+  <p class="notice" id="request-detail-high-risk-note" role="note">この申請は2名の承認が必要です。代理による承認はできません。</p>
+  <dl>
+    <dt>申請者</dt><dd>合成 申請者</dd>
+    <dt>指定された承認者</dt><dd>合成 承認者A</dd>
+    <dt>利用日数</dt><dd>7日</dd>
+    <dt>理由</dt><dd>UI021 合成: 2名の承認を確認する申請です。</dd>
+    <dt>承認の期限</dt><dd>2026年11月18日 18:00</dd>
+  </dl>
+  <p>カタログ定義版: 4 · 申請内容版: 1</p>
+  <section aria-labelledby="approval-timeline-title">
+    <h2 id="approval-timeline-title">承認の経過</h2>
+    <ol class="attachments" aria-label="承認の経過">
+      <li class="attachment">
+        <p><strong>段1（固定承認者）</strong> · 承認待ち · 承認者: 合成 承認者A</p>
+        <p class="hint">期限: 2026年11月18日 18:00</p>
+      </li>
+      <li class="attachment">
+        <p><strong>段2（固定承認者）</strong> · 前の段の承認後に依頼</p>
+        <p class="hint">前の段の承認後に依頼します。</p>
+      </li>
+    </ol>
+  </section>
+  <section class="stack form-panel">
+    <div class="field">
+      <label for="decision-reason">判断の理由</label>
+      <textarea id="decision-reason" name="reason" maxlength="2000"></textarea>
+      <p class="hint">却下・承認取消には理由が必要です。</p>
+    </div>
+    <div class="actions-row">
+      <button type="button">承認する</button>
+      <button type="button" class="secondary">理由を添えて却下する</button>
+    </div>
+  </section>
+</main>`;
+
+const approvalsBlocked = `<main id="main" class="shell directory-shell">
+  <div class="directory-heading">
+    <div>
+      <h1>承認ルール</h1>
+      <p>承認の段（固定承認者・上長・部署長）と、組織での使用を管理します。保存済みの版は変更できません。</p>
+    </div>
+    <div class="directory-heading-actions">
+      <a class="directory-cta secondary" href="#">上長・部署長の変更履歴</a>
+      <a class="directory-cta secondary" href="#">代理承認の委任</a>
+    </div>
+  </div>
+  <div class="error-summary" id="approval-error" role="alert" tabindex="-1" autofocus>
+    <h2>操作できませんでした</h2>
+    <p>公開中の高リスクの項目が条件を満たさなくなるため、変更できません。</p>
+    <ul aria-label="影響するカタログ項目">
+      <li>svc-high-risk: 合成 高リスク申請</li>
+      <li>svc-access: 合成 権限申請</li>
+    </ul>
+  </div>
+  <section class="directory-panel" id="approval-rule-detail" aria-labelledby="approval-rule-detail-title">
+    <div class="directory-detail-heading">
+      <h2 id="approval-rule-detail-title">UI021 合成 高リスク2段</h2>
+      <a href="#">詳細を閉じる</a>
+    </div>
+    <p><code>ui021-syn</code> · 有効 · 現在の版: 版1 · 更新: 2026年11月15日 18:00</p>
+    <p>段の構成: 固定承認者 → 固定承認者</p>
+    <section aria-labelledby="approval-deactivate-title" id="approval-deactivate">
+      <h3 id="approval-deactivate-title">承認ルールの無効化</h3>
+      <p>無効化すると元に戻せません。カタログ項目の結び付けは残りますが、新しい申請ではこのルールを使いません。</p>
+      <p><a href="#" id="approval-deactivate-link">この承認ルールを無効化する</a></p>
+    </section>
+  </section>
+</main>`;
+
+const states = {
+  'catalog-admin-highrisk-unchecked': frame(
+    'カタログ管理: 高リスクの指定(未指定)',
+    catalogShell({
+      title: '合成 通常申請',
+      state: '公開中: 合成 通常申請（版3） · 下書き版4',
+      marker: '',
+      publishForm: publicationForm,
+      editor: adminHighRiskUnchecked,
+    }),
+  ),
+  'catalog-admin-highrisk-checked': frame(
+    'カタログ管理: 高リスクの指定(指定あり)',
+    catalogShell({
+      title: '合成 高リスク申請',
+      state: '公開中: 合成 高リスク申請（版3） · 下書き版4',
+      marker: markerPublished,
+      publishForm: publicationForm,
+      editor: adminHighRiskChecked,
+    }),
+  ),
+  'catalog-admin-highrisk-delegated': frame(
+    'カタログ管理: 委任された編集者(表示だけ)',
+    catalogShell({
+      title: '合成 高リスク申請',
+      state: '公開中: 合成 高リスク申請（版3） · 下書き版4',
+      marker: markerPublished,
+      publishForm: '',
+      editor: delegatedHighRisk,
+    }),
+  ),
+  'catalog-publish-highrisk-blocked': frame(
+    'カタログ管理: 高リスクの公開の拒否',
+    catalogShell({
+      title: '合成 高リスク申請',
+      state: '公開中: 合成 高リスク申請（版3） · 下書き版4',
+      marker: markerPublished,
+      publishForm: publicationBlocked,
+      editor: highRiskFieldBlocked,
+    }),
+  ),
+  'request-new-highrisk': frame('申請画面: 2名の承認が必要', requestForm),
+  'request-detail-highrisk': frame('申請の詳細: 2名の承認が必要', requestDetail),
+  'approvals-rule-highrisk-blocked': frame(
+    '承認ルール: 条件を崩す変更の拒否',
+    approvalsBlocked,
+  ),
+};
+
+for (const [name, html] of Object.entries(states)) {
+  await writeFile(resolve(output, `${name}.html`), html);
+}
+console.log(Object.keys(states).join('\n'));

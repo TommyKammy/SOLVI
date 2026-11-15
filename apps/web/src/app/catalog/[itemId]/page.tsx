@@ -4,6 +4,7 @@ import { api, requireSession } from '../../../lib/api';
 import { formScope } from '../../../lib/form-scope';
 import { RequestForm } from '../../../components/RequestForms';
 import { safeReturnTo } from '../../../lib/navigation';
+import { HIGH_RISK_APPROVAL_NOTICE } from '../../../lib/approval-route';
 export default async function CatalogItemPage({
   params,
   searchParams,
@@ -70,6 +71,11 @@ export default async function CatalogItemPage({
         必要事項を入力 → 固定の承認者が確認 →
         IT担当者が模擬結果を記録。状況は「申請状況」で確認できます。希望日の入力による在庫予約や、実際の貸出は行いません。
       </p>
+      {item.highRisk === true && (
+        <p className="notice" role="note">
+          {HIGH_RISK_APPROVAL_NOTICE}
+        </p>
+      )}
       <RequestForm
         scope={formScope(session)}
         item={item}

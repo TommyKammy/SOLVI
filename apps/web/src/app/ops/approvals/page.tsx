@@ -64,7 +64,15 @@ export default async function ApprovalRulesPage({
   const catalogResult = await api.catalogAdmin();
   const unavailableResult = await api.serviceRequests('approverUnavailable=1');
 
-  const error = typeof raw.error === 'string' ? raw.error.trim().slice(0, 500) : '';
+  const errorText = typeof raw.error === 'string' ? raw.error.trim().slice(0, 500) : '';
+  const errorLines = errorText
+    ? errorText
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+    : [];
+  const error = errorLines[0] ?? '';
+  const errorItems = errorLines.slice(1);
   const notice = approvalNoticeText(raw.notice);
 
   if (!rulesResult.ok) {
@@ -186,6 +194,13 @@ export default async function ApprovalRulesPage({
         <div className="error-summary" id="approval-error" role="alert" tabIndex={-1} autoFocus>
           <h2>操作できませんでした</h2>
           <p>{error}</p>
+          {errorItems.length > 0 && (
+            <ul aria-label="影響するカタログ項目">
+              {errorItems.map((item, index) => (
+                <li key={`${index}-${item}`}>{item}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
