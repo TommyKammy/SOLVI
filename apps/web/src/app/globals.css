@@ -55,7 +55,7 @@ body {
     sans-serif;
   color: var(--text);
   background: var(--bg);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.65;
 }
 
@@ -1260,6 +1260,10 @@ summary:hover {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+.merge-preview-region {
+  border: 0;
+  background: transparent;
 }
 table.tickets,
 .work-table {

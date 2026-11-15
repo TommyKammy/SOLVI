@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
 import { navigationRoles, withReturnTo } from '../../lib/navigation';
 import { formatDateTime } from '../../lib/labels';
+import { TableRegion } from '../../components/TableRegion';
 import {
   KNOWLEDGE_PAGE_SIZE,
   KNOWLEDGE_SEARCH_MAX_LENGTH,
@@ -269,7 +270,7 @@ export default async function KnowledgePage({
                   </div>
                 </section>
               ) : (
-                <div className="table-scroll">
+                <TableRegion label="ナレッジ記事一覧">
                   <table className="fs-knowledge-table">
                     <caption className="visually-hidden">
                       ナレッジ記事 {result.data.total}件中 {result.data.items.length}件を表示
@@ -327,7 +328,7 @@ export default async function KnowledgePage({
                       })}
                     </tbody>
                   </table>
-                </div>
+                </TableRegion>
               )}
               {result.data.items.length > 0 && pagination('下')}
             </>

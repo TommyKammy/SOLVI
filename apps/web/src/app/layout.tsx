@@ -6,6 +6,8 @@ import { AppShell } from '../components/AppShell';
 export const metadata: Metadata = {
   title: 'SOLVI',
   description: '社内サポートポータル',
+  // OSの文字拡大設定をブラウザの基準文字サイズへ反映する。
+  other: { 'text-scale': 'scale' },
 };
 
 export const viewport: Viewport = {

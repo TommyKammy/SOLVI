@@ -253,8 +253,6 @@ export function FeedbackForm({
       window.location.assign(feedback.redirectTo);
     }
   }, [feedback.redirectTo, onSuccess]);
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
   const [localFeedback, setLocalFeedback] = useState<FormFeedback | null>(null);
   useEffect(() => {
     if (!pending) submitting.current = false;
@@ -264,8 +262,7 @@ export function FeedbackForm({
       <form
         {...props}
         noValidate
-        aria-busy={pending || !ready}
-        inert={!ready}
+        aria-busy={pending}
         onReset={(event) => event.preventDefault()}
         onSubmit={(event) => {
           if (submitting.current || pending) {
@@ -326,11 +323,6 @@ export function FeedbackForm({
           }
         }}
       >
-        {!ready && (
-          <p role="status" className="hint">
-            入力画面を準備しています…
-          </p>
-        )}
         <ReturnToField current={returnToCurrent} />
         <FeedbackSummary feedback={localFeedback ?? feedback} />
         {children}

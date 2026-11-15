@@ -13,7 +13,7 @@
 .description {
   white-space: pre-wrap;
   color: var(--fs-text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.7;
 }
 
@@ -64,5 +64,5 @@
 .error {
   margin: 0;
   color: var(--fs-danger);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }

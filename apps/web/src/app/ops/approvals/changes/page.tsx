@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { api, requireSession } from '../../../../lib/api';
 import { isOrgAdmin, navigationRoles } from '../../../../lib/navigation';
-import { formatDateTime } from '../../../../lib/labels';
+import { formatDateTime, jstToday } from '../../../../lib/labels';
+import { TableRegion } from '../../../../components/TableRegion';
 import {
   formatRelationshipChangeSide,
   parseRelationshipHistoryQuery,
@@ -39,7 +40,7 @@ export default async function RelationshipChangesPage({
     );
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = jstToday();
   const query = parseRelationshipHistoryQuery(raw, today);
   const result = await api.relationshipChanges(query);
   const problem = result.ok ? null : result.problem;
@@ -125,7 +126,7 @@ export default async function RelationshipChangesPage({
           {result.data.items.length === 0 ? (
             <p className="empty">指定した期間に、上長・主部署・部署長の変更はありません。</p>
           ) : (
-            <div className="directory-table-wrap">
+            <TableRegion className="directory-table-wrap" label="上長・部署長の変更履歴">
               <table className="directory-table">
                 <caption>上長・部署長の変更履歴</caption>
                 <thead>
@@ -167,7 +168,7 @@ export default async function RelationshipChangesPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableRegion>
           )}
           <nav className="actions-row directory-pagination" aria-label="変更履歴のページ">
             {query.page > 1 ? (

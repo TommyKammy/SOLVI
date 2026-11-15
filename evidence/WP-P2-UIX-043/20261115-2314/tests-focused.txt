@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ✓ tests/unit/support-portal-ui.test.ts (23 tests) 18ms
+ ✓ tests/unit/jst-format.test.ts (3 tests) 11ms
+ ✓ tests/unit/form-feedback-progressive.test.ts (3 tests) 4ms
+ ✓ tests/unit/table-regions.test.ts (18 tests) 2ms
+ ✓ tests/unit/ui-contrast-and-focus.test.ts (6 tests) 2ms
+
+ Test Files  5 passed (5)
+      Tests  53 passed (53)
+   Start at  23:18:45
+   Duration  941ms (transform 72ms, setup 0ms, collect 119ms, tests 37ms, environment 0ms, prepare 110ms)
+

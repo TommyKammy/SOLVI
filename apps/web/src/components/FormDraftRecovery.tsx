@@ -1,6 +1,7 @@
 'use client';
 import { TableRegion } from './TableRegion';
 import { useEffect, useId, useRef, useState } from 'react';
+import { formatDateTime } from '../lib/labels';
 import {
   bindDraftScope,
   clearFormDrafts,
@@ -226,8 +227,8 @@ export function FormDraftRecovery({
       {message && <p role="status">{message}</p>}
       {draft && (
         <p className="hint">
-          保存: {new Date(draft.savedAt).toLocaleTimeString('ja-JP')} · 期限:{' '}
-          {new Date(draft.expiresAt).toLocaleTimeString('ja-JP')}
+          保存: {formatDateTime(new Date(draft.savedAt).toISOString())} · 期限:{' '}
+          {formatDateTime(new Date(draft.expiresAt).toISOString())}
           {!review && changed.length > 0 && ' · 保存後に変更があります。'}
         </p>
       )}
