@@ -1141,6 +1141,9 @@ export class CatalogController {
         history: history.map((row) => ({
           ...row,
           state: stepStateForDisplay({ state: row.state, expiresAt: row.expiresAt, now }),
+          // 代理で決定されたこと(加算的)。画面が decided_by と approver_id を
+          // 突き合わせ直さなくてよいように、サーバで1回だけ判定する。
+          delegated: row.decidedBy !== null && row.decidedBy !== row.approverId,
         })),
         receipt:
           (

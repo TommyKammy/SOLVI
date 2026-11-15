@@ -60,6 +60,9 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
               <Link href="/settings/notifications" onClick={closeDetails}>
                 通知設定
               </Link>
+              <Link href="/settings/delegations" onClick={closeDetails}>
+                承認の委任
+              </Link>
               {workLinks.length > 0 && (
                 <>
                   <p className="fs-support-menu-title fs-support-menu-title--staff">担当業務</p>
@@ -113,6 +116,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
               )}
               <nav className="fs-user-links" aria-label="アカウント">
                 <Link href="/settings/notifications">自分の通知設定</Link>
+                <Link href="/settings/delegations">承認の委任</Link>
                 {canSwitchOrganization && <Link href="/select-organization">組織を切り替える</Link>}
                 {inbox && <Link href={inbox.href}>{inbox.label}</Link>}
               </nav>

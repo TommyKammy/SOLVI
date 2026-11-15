@@ -1,0 +1,27 @@
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ✓ tests/security/approval-notice.test.ts (45 tests) 4834ms
+   ✓ Migration 0041: 通知の記録の表 (TL-04) > **行が無ければ down → up の往復ができる。0040 から増えるポリシーはちょうど3件(0041 と 0042)**  339ms
+   ✓ Migration 0041: 通知の記録の表 (TL-04) > **行が1件でもあれば down を拒否する(前進修復)**  370ms
+   ✓ 巡回: 組織を1つずつ処理し、失敗を隔離する (指摘2.2) > **2つの組織を1周で処理し、監査と送信の記録をそれぞれの組織に残す**  360ms
+ ✓ tests/security/approval-delegation.test.ts (48 tests) 4198ms
+   ✓ Migration 0042: 委任の表と、ステップの委任のID (TL-04) > 行が無ければ down → up の往復ができる。分離ポリシーは1件だけ増える  324ms
+ ✓ tests/security/approval-reassign.test.ts (38 tests) 3530ms
+   ✓ Migration 0040: 経路世代の表 (TL-04) > 行が無ければ down → up の往復ができる(最後のMigrationであることを仮定しない)  334ms
+   ✓ Migration 0040: 経路世代の表 (TL-04) > 行が1件でもあれば down を拒否する(前進修復)  383ms
+(node:35001) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/security/approval-routing.test.ts (45 tests) 2910ms
+ ✓ tests/security/approval-steps.test.ts (22 tests) 1159ms
+ ✓ tests/security/approval-migration-compat.test.ts (6 tests) 1349ms
+   ✓ 0038: 適用前後の互換(TL-05) > 新しい列にデータが無ければ down → up でき、移行前の行は legacy のまま  328ms
+   ✓ 0038: 適用前後の互換(TL-05) > route が非NULLの行があると down を拒否する(前進修復)  329ms
+ ✓ tests/security/approval-assertion.test.ts (18 tests) 754ms
+ ✓ tests/security/approval-rule.test.ts (28 tests) 654ms
+
+ Test Files  8 passed (8)
+      Tests  250 passed (250)
+   Start at  10:31:45
+   Duration  21.87s (transform 264ms, setup 0ms, collect 1.11s, tests 19.39s, environment 0ms, prepare 174ms)
+

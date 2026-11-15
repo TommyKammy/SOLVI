@@ -537,6 +537,10 @@ export interface RequestTimelineStep {
   expiresAt: string | null;
   /** 前の段の承認後に依頼する段か。 */
   pendingCreation: boolean;
+  /** 代理で決定されたステップか (WP-P4-APR-020 §6.5)。 */
+  delegated?: boolean;
+  /** 代理で決定した人の表示名。委任者本人の決定では null/未指定。 */
+  decidedByName?: string | null;
 }
 
 type TimelineRouteStep = {
@@ -553,6 +557,8 @@ type TimelineCreatedStep = {
   reason: string | null;
   decidedAt: string | null;
   expiresAt: string;
+  delegated?: boolean;
+  decidedByName?: string | null;
 };
 
 /**
@@ -573,6 +579,9 @@ export function requestApprovalTimeline(input: {
     reason: step.reason,
     expiresAt: step.expiresAt,
     pendingCreation: false,
+    // 代理で決定されたこと(加算的)。既存の応答では未指定のまま。
+    ...(step.delegated === true ? { delegated: true } : {}),
+    ...(step.decidedByName !== undefined ? { decidedByName: step.decidedByName } : {}),
   });
   if (input.route && input.route.steps.length > 0) {
     return input.route.steps.map((routeStep) => {

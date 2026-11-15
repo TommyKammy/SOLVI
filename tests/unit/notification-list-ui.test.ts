@@ -235,6 +235,35 @@ describe('notification minimum DTO and URL', () => {
     expect(NOTIFICATION_EVENTS.other).toBe('その他');
     expect(OUTBOX_STATUS_LABELS.stopped).toBe('再試行なし');
   });
+  it('accepts the delegation events with Japanese labels (WP-P4-APR-020 §6.5)', () => {
+    // 委任の通知が「その他」や解析不能にならない(段階Bで表示名を足した)。
+    expect(NOTIFICATION_EVENTS['approval.delegation.created']).toBe('代理承認の委任の作成');
+    expect(NOTIFICATION_EVENTS['approval.delegation.revoked']).toBe('代理承認の委任の取消');
+    for (const eventType of [
+      'approval.delegation.created',
+      'approval.delegation.revoked',
+    ] as const) {
+      const parsed = parseNotificationList(
+        data({
+          items: [
+            item({
+              eventType,
+              status: 'sent',
+              failedAt: null,
+              sentAt: '2026-10-08T00:01:00.123456Z',
+              outboxStatus: 'finished',
+              nextAttemptAt: null,
+              manualRetry: 'unavailable',
+            }),
+          ],
+          counts: { all: 1, pending: 0, sent: 1, failed: 0 },
+        }),
+        'all',
+      );
+      expect(parsed, eventType).not.toBeNull();
+      expect(parsed!.items[0]!.eventType).toBe(eventType);
+    }
+  });
   it.each([
     { total: 0 },
     { total: '1' },

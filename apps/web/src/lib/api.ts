@@ -1175,6 +1175,36 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  /** 承認の委任の一覧 (WP-P4-APR-020 §6.2)。自分が委任者・代理者のもの。 */
+  approvalDelegations: () => call<ApprovalDelegationList>('/approval-delegations'),
+  /** 委任の代理者の候補。表示名とIDだけを返す(メール・社員番号は含まれない)。 */
+  approvalDelegationCandidates: () =>
+    call<{ items: ApprovalDelegationCandidate[]; asOf: string }>(
+      '/approval-delegations/candidates',
+    ),
+  /**
+   * 委任の作成。本文は代理者・開始・終了だけ。
+   * 委任者は常に認証済みの本人であり、本文では指定できない。
+   */
+  createApprovalDelegation: (body: { delegateId: string; startsAt: string; endsAt: string }) =>
+    call<{
+      id: string;
+      delegatorId: string;
+      delegateId: string;
+      startsAt: string;
+      endsAt: string;
+      createdAt: string;
+      state: ApprovalDelegationState;
+    }>('/approval-delegations', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  /** 委任の取消(代理者の辞退も同じ経路)。本文は理由だけ。 */
+  revokeApprovalDelegation: (id: string, body: { reason: string }) =>
+    call<{ id: string; revokedAt: string }>(
+      `/approval-delegations/${encodeURIComponent(id)}/revocations`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   simulateRequest: (id: string, body: Record<string, unknown>) =>
     call<{ receipt: { id: string } }>(`/service-requests/${id}/simulate`, {
       method: 'POST',
@@ -1978,6 +2008,11 @@ export interface ServiceRequestSummary {
   approvalState: string;
   /** 現在の pending ステップの承認者が有効な所属でない (WP-P4-APR-015 §6.1)。 */
   approverUnavailable?: boolean;
+  /**
+   * 現在の pending ステップを、有効な委任の代理者として見ている (WP-P4-APR-020 §6.5)。
+   * この場合の `approverName` は委任者(承認者本人)の表示名である。
+   */
+  delegated?: boolean;
 }
 export interface ServiceRequestDetail {
   requesterName: string;
@@ -2022,6 +2057,10 @@ export interface ServiceRequestDetail {
     decidedBy: string | null;
     expiresAt: string;
     routeGeneration?: number;
+    /** 代理で決定されたステップか (WP-P4-APR-020 §6.5)。 */
+    delegated?: boolean;
+    /** 代理で決定した人の表示名。委任者本人の決定では null。 */
+    decidedByName?: string | null;
   }>;
   /**
    * 段ごとの有効な世代のステップ (WP-P4-APR-018 §6-6)。
@@ -2057,6 +2096,11 @@ export interface ServiceRequestDetail {
   } | null;
   /** 現在の pending ステップの承認者が、いま決定できない状態か。 */
   approverUnavailable?: boolean;
+  /**
+   * 現在の pending ステップを、有効な委任の代理者として見ている場合の委任
+   * (WP-P4-APR-020 §6.5)。委任者本人・担当者には null。判定はAPIが行う。
+   */
+  currentDelegation?: { id: string; delegatorId: string; delegatorName: string } | null;
   approvers: Array<{ id: string; name: string }>;
   history: Array<{
     id: string;
@@ -2069,6 +2113,11 @@ export interface ServiceRequestDetail {
     routeGeneration?: number;
     /** 再割当で無効になったステップか。 */
     invalidatedByReassign?: boolean;
+    /** 代理で決定されたステップか (WP-P4-APR-020 §6.5)。 */
+    delegated?: boolean;
+    /** 代理で決定した人のIDと表示名。委任者本人の決定では null。 */
+    decidedBy?: string | null;
+    decidedByName?: string | null;
     item: { version: number; definition: CatalogItem['definition'] };
     inputs: {
       reason?: string;
@@ -2096,8 +2145,39 @@ export interface ServiceRequestDetail {
   } | null;
 }
 
-export type ApprovalRuleStepView = import('@solvi/shared/catalog').ApprovalRuleStep;
+/** 委任の状態 (WP-P4-APR-020 §6.2)。値が読めない場合は `unknown` で、有効とは扱わない。 */
+export type ApprovalDelegationState =
+  'scheduled' | 'active' | 'ended' | 'revoked' | 'delegate_ineligible' | 'unknown';
 
+/** 委任の一覧の行。表示名だけを返し、メールアドレス・社員番号は含まない。 */
+export interface ApprovalDelegationItem {
+  id: string;
+  delegatorId: string;
+  delegatorName: string;
+  delegateId: string;
+  delegateName: string;
+  startsAt: string;
+  endsAt: string;
+  state: ApprovalDelegationState;
+  revokedAt: string | null;
+  revokeReason: string | null;
+  createdAt: string;
+  /** 一覧の閲覧者から見た関係。`admin` は組織管理者として見ている行。 */
+  relation: 'delegator' | 'delegate' | 'admin';
+}
+
+export interface ApprovalDelegationList {
+  items: ApprovalDelegationItem[];
+  asOf: string;
+}
+
+/** 代理者の候補。表示名とIDだけ。 */
+export interface ApprovalDelegationCandidate {
+  id: string;
+  displayName: string;
+}
+
+export type ApprovalRuleStepView = import('@solvi/shared/catalog').ApprovalRuleStep;
 /** 承認ルールの一覧行 (WP-P4-APR-016 段階A)。 */
 export interface ApprovalRuleSummary {
   id: string;
@@ -2534,6 +2614,12 @@ export interface InboxItem {
   unread: boolean;
   plannedStart?: string | null;
   plannedEnd?: string | null;
+  /**
+   * 有効な委任の代理者として受け取った承認依頼 (WP-P4-APR-020 §6.5)。
+   * `scopeLabel` に「◯◯さんの代理」が入る。
+   */
+  delegated?: boolean;
+  delegatorName?: string | null;
   deadline: {
     label: string;
     status: 'none' | 'paused' | 'upcoming' | 'within' | 'overdue';

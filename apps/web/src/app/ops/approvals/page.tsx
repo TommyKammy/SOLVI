@@ -171,6 +171,9 @@ export default async function ApprovalRulesPage({
           <Link className="directory-cta secondary" href="/ops/approvals/changes">
             上長・部署長の変更履歴
           </Link>
+          <Link className="directory-cta secondary" href="/settings/delegations">
+            代理承認の委任
+          </Link>
         </div>
       </div>
 

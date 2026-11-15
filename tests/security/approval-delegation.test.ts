@@ -912,6 +912,84 @@ describe('委任の作成 (WP §7-1〜§7-3 / ADR-0025 §1・§2・§3)', () => 
     for (const item of result.items)
       expect(Object.keys(item).sort()).toEqual(['displayName', 'id']);
   });
+
+  /**
+   * 段階Bの指摘5。有効な所属でも `org_member_profile` の行が無い利用者が居り、
+   * 委任の複合外部キーが INSERT を拒否して 500 になっていた。
+   * 既存の流儀(`department.service` の `requireActiveMember` は 409)に合わせ、
+   * 自分の行が無い場合は 409、代理者の行が無い場合は候補から除き、直接指定しても
+   * 資格の無い人と同じ 403 にする(プロフィールの有無を応答の違いで漏らさない)。
+   */
+  it('プロフィールの行が無い利用者: 委任者は 409、代理者は候補外・同じ 403(500 にしない)', async () => {
+    const noProfileDelegator = await makeUser('no-profile-delegator', ['approver']);
+    const noProfileDelegate = await makeUser('no-profile-delegate', ['approver']);
+    await q('DELETE FROM org_member_profile WHERE organization_id=$1 AND user_id=ANY($2::uuid[])', [
+      org,
+      [noProfileDelegator.id, noProfileDelegate.id],
+    ]);
+    // 前提: どちらも有効な所属で、承認者ロールを持つ(所属の判定は profile を見ない)。
+    const facts = (
+      await q(
+        `SELECT u.id,
+           EXISTS (
+             SELECT 1 FROM role_binding rb
+              WHERE rb.user_id=u.id AND rb.role_scope='org' AND rb.organization_id=$2
+           ) AS active
+           FROM app_user u WHERE u.id=ANY($1::uuid[])`,
+        [[noProfileDelegator.id, noProfileDelegate.id], org],
+      )
+    ).rows as Array<{ id: string; active: boolean }>;
+    expect(facts.every((row) => row.active === true)).toBe(true);
+
+    // 代理者の候補には、プロフィールの行が無い利用者を出さない(選ぶと作成できない)。
+    const candidatesFor = await run(() => delegations.candidates(fixedA.auth));
+    const ids = candidatesFor.items.map((item: { id: string }) => item.id);
+    expect(ids).toContain(delegateX.id);
+    expect(ids).not.toContain(noProfileDelegate.id);
+
+    // 委任者自身の行が無い → 500 ではなく 409。既存の「組織プロフィール未設定」と同じ扱い。
+    const delegatorProblem = await expectProblem(
+      run(() =>
+        delegations.create(noProfileDelegator.auth, {
+          delegateId: delegateX.id,
+          startsAt: startOf(-MINUTE),
+          endsAt: iso(HOUR),
+        }),
+      ),
+      409,
+      ['プロフィール'],
+    );
+    expect(delegatorProblem.message).not.toContain('approval_delegation');
+    expect(await delegationRows()).toHaveLength(0);
+
+    // 代理者の行が無い利用者を直接指定した場合は、資格の無い人と同じ 403 と同じ文言。
+    const unknownMessage = (
+      await expectProblem(
+        run(() =>
+          delegations.create(fixedA.auth, {
+            delegateId: randomUUID(),
+            startsAt: startOf(-MINUTE),
+            endsAt: iso(HOUR),
+          }),
+        ),
+        403,
+      )
+    ).message;
+    const noProfileMessage = (
+      await expectProblem(
+        run(() =>
+          delegations.create(fixedA.auth, {
+            delegateId: noProfileDelegate.id,
+            startsAt: startOf(-MINUTE),
+            endsAt: iso(HOUR),
+          }),
+        ),
+        403,
+      )
+    ).message;
+    expect(noProfileMessage).toBe(unknownMessage);
+    expect(await delegationRows()).toHaveLength(0);
+  });
 });
 
 describe('委任の取消と一覧 (WP §7-12 / ADR-0025 §1・§5)', () => {
@@ -1276,6 +1354,50 @@ describe('代理者による決定 (WP §7-4 / ADR-0025 §2・§3)', () => {
     await expectProblem(decide(delegateX, created.id, await currentVersion(created.id)), 404);
     expect(await countsFor(created.id)).toEqual(before);
   });
+
+  /**
+   * 段階Bの指摘6。委任の無い申請では、`decide` の
+   * 「同じ申請の複数の段を同じ人が決定することはできません」(409) に到達しないことを、
+   * 到達しうる2つの入口から確かめる。
+   */
+  it('委任の無い申請は、承認者の重複をリゾルバが拒否し、決定者の重複の 409 に到達しない', async () => {
+    // 1. 固定承認者の重複は、**ルールの保存時**に拒否される(400)。
+    await expectProblem(
+      run(() =>
+        rules.create(adminUser.auth, {
+          code: nextCode(),
+          name: '合成 重複した固定承認者',
+          steps: [fixedStep(fixedA.id), fixedStep(fixedA.id)],
+        }),
+      ),
+      400,
+      ['同じ固定承認者'],
+    );
+    // 種別をまたぐ重複(固定承認者と上長が同じ人)は、**申請の作成時**にリゾルバが拒否する。
+    // どの経路でも、同じ人が2つの段の approver_id になる申請は作られない。
+    await setManager(requester.id, fixedA.id);
+    const duplicatedRule = await createRule([fixedStep(fixedA.id), managerStep()]);
+    const duplicatedItem = await publishItem({ ruleId: duplicatedRule });
+    await expectProblem(createRequest(requester, duplicatedItem), 409, ['同じ承認者']);
+
+    // 2. 正規の2段の経路で、1段目を承認した本人が2段目を決定しようとしても、
+    //    委任が無いため「指定された承認者だけが決定できます」(403)になる。
+    //    409 の判定(decided_by の重複)は、本人・代理のどちらの経路でも
+    //    その手前で拒否されるため、委任の無い申請では到達しない。
+    const ruleId = await createRule([fixedStep(fixedA.id), fixedStep(fixedB.id)]);
+    const itemId = await publishItem({ ruleId });
+    const created = await createRequest(requester, itemId);
+    await decide(fixedA, created.id, await currentVersion(created.id));
+    const before = await countsFor(created.id);
+    const problem = await expectProblem(
+      decide(fixedA, created.id, await currentVersion(created.id)),
+      403,
+    );
+    expect(problem.message).toBe('指定された承認者だけが決定できます');
+    expect(await countsFor(created.id)).toEqual(before);
+    // 2段目は、その段の承認者(fixedB)が決定できる(経路は壊れていない)。
+    await decide(fixedB, created.id, await currentVersion(created.id));
+  });
 });
 
 describe('決定の6項目 (ADR-0025 §3) — 1項目ずつ欠かす', () => {
@@ -1582,7 +1704,7 @@ describe('承認の通知の宛先 (WP §7-13 / ADR-0025 §5)', () => {
     );
     for (const mail of deliveredCreated.sender.sent) {
       expect(mail.subject).toBe('[SOLVI] 代理承認の委任を作成しました');
-      expect(mail.linkPath).toBe('/approvals/delegations');
+      expect(mail.linkPath).toBe('/settings/delegations');
       expect(mail.subject).not.toContain('WP020');
       expect(mail.subject).not.toContain('合成');
     }
@@ -1595,7 +1717,7 @@ describe('承認の通知の宛先 (WP §7-13 / ADR-0025 §5)', () => {
     for (const mail of deliveredRevoked.sender.sent) {
       expect(mail.subject).toBe('[SOLVI] 代理承認の委任を取り消しました');
       expect(mail.subject).not.toContain('取消の理由');
-      expect(mail.linkPath).toBe('/approvals/delegations');
+      expect(mail.linkPath).toBe('/settings/delegations');
     }
     expect(Object.keys(revokedEvent!.payload)).toEqual(['delegationId']);
   });

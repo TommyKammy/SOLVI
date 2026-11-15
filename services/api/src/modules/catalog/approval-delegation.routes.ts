@@ -46,6 +46,25 @@ function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
   return r.data;
 }
 
+/**
+ * 組織プロフィールの行があるか。委任の行は委任者・代理者を `org_member_profile` への
+ * 複合外部キーで持つため、行が無い利用者では INSERT できない(500 にしない)。
+ * 行の存在は所属の証明ではない(所属は `membership.ts` で判定する)。
+ */
+async function hasOrgMemberProfile(
+  client: pg.PoolClient,
+  organizationId: string,
+  userId: string,
+): Promise<boolean> {
+  const row = (
+    await client.query('SELECT 1 FROM org_member_profile WHERE organization_id=$1 AND user_id=$2', [
+      organizationId,
+      userId,
+    ])
+  ).rows[0];
+  return row !== undefined;
+}
+
 export type ApprovalDelegationItem = {
   id: string;
   delegatorId: string;
@@ -134,15 +153,28 @@ export class ApprovalDelegationController {
       if (!isActiveMember(delegatorFacts))
         throw Problems.forbidden('委任できるのは現在有効な所属の本人だけです');
 
+      // 委任の行は `org_member_profile` への複合外部キーを持つ。有効な所属でも
+      // プロフィールの行が無い利用者が居り、そのまま INSERT すると 500 になる
+      // (WP-P4-APR-020 段階B の指摘5)。既存の流儀(`department.service` の
+      // `requireActiveMember`)に合わせ、**自分の行が無い**場合は 409 で理由を示す。
+      // プロフィールの行をこのAPIが作ることはしない(役割の付与・管理の経路が作る)。
+      if (!(await hasOrgMemberProfile(c, auth.authz.organizationId, auth.userId)))
+        throw Problems.conflict(
+          '組織プロフィールが未設定のため、委任を作成できません。組織の管理者にプロフィールの設定を依頼してください',
+        );
+
       // 代理者は本人以外で、有効な所属かつ approver ロール。
       // 存在しない・他組織・停止・所属切れ・ロール無し・本人を、同じ応答にする。
+      // プロフィールの行が無い利用者も、委任の行を作れないため**同じ 403** にする
+      // (候補の一覧からは除く。応答の違いで、その人のプロフィールの有無を漏らさない)。
       const delegateFacts = (
         await loadUserFacts(c, auth.authz.organizationId, [input.delegateId], now)
       ).get(input.delegateId);
       if (
         input.delegateId === auth.userId ||
         !isActiveMember(delegateFacts) ||
-        delegateFacts?.hasApproverRole !== true
+        delegateFacts?.hasApproverRole !== true ||
+        !(await hasOrgMemberProfile(c, auth.authz.organizationId, input.delegateId))
       )
         throw Problems.forbidden('現在有効な所属の承認者を代理者に選んでください');
 
@@ -358,6 +390,9 @@ export class ApprovalDelegationController {
    * 委任の代理者の候補(表示名とIDだけ)。
    * 有効な所属かつ `approver` ロールを持つ、自分以外の利用者。
    * **メールアドレス・社員番号・役職・勤務地を返さない。**
+   *
+   * 委任の行は `org_member_profile` への複合外部キーを持つため、行の無い利用者は
+   * 候補から除く(選ぶと作成できない選択肢を並べない。WP-P4-APR-020 段階B の指摘5)。
    */
   async candidates(auth: AuthenticatedRequest) {
     return this.run(auth, async (c) => {
@@ -374,6 +409,10 @@ export class ApprovalDelegationController {
              FROM app_user u
             WHERE u.id <> $2
               AND ${eligible}
+              AND EXISTS (
+                SELECT 1 FROM org_member_profile p
+                 WHERE p.organization_id = $1 AND p.user_id = u.id
+              )
             ORDER BY u.display_name, u.id
             LIMIT 200`,
           [auth.authz.organizationId, auth.userId, now],

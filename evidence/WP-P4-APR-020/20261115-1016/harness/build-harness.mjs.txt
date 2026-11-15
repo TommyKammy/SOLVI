@@ -1,0 +1,421 @@
+/* global document, innerWidth */
+// WP-P4-APR-020 段階B の見た目の確認用ハーネス。
+//
+// **実画面ではない。** `apps/web/src/app/globals.css` と `freshservice.css` を
+// そのまま読み込み、画面と同じクラス・同じ文言で組んだ静的HTMLを
+// Chromium / WebKit の 1440px / 375px で撮る。axe も同じHTMLに対して実行する。
+// 実画面の確認は、開発用DBへ 0042 を適用したあとに別に行う。
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { chromium, webkit } from 'playwright';
+import { AxeBuilder } from '@axe-core/playwright';
+
+const root = resolve(import.meta.dirname, '../..');
+const realCss = `${await readFile(resolve(root, 'apps/web/src/app/globals.css'), 'utf8')}\n${await readFile(
+  resolve(root, 'apps/web/src/app/freshservice.css'),
+  'utf8',
+)}`;
+
+const now = new Date();
+const parts = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Tokyo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+}).formatToParts(now);
+const stamp = `${parts.find((p) => p.type === 'year').value}${parts.find((p) => p.type === 'month').value}${parts.find((p) => p.type === 'day').value}-${parts.find((p) => p.type === 'hour').value}${parts.find((p) => p.type === 'minute').value}`;
+const output = process.env.WP020_OUT
+  ? resolve(root, process.env.WP020_OUT)
+  : resolve(root, `evidence/WP-P4-APR-020/${stamp}/harness`);
+await mkdir(output, { recursive: true });
+
+const frame = (title, main) => `<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>${realCss}</style>
+</head>
+<body class="fs-ui">
+<a class="skip-link" href="#main">本文へ移動</a>
+<div class="fs-app">
+  <aside class="fs-rail" aria-label="メインメニュー">
+    <a class="fs-rail-brand" href="#" aria-label="SOLVI ホーム"><span aria-hidden="true">S</span></a>
+    <nav class="fs-rail-nav" aria-label="業務メニュー">
+      <div class="fs-rail-item"><a class="fs-rail-link" href="#" aria-label="チケット"><span aria-hidden="true">T</span></a></div>
+      <div class="fs-rail-item"><a class="fs-rail-link is-active" href="#" aria-label="サービスカタログ"><span aria-hidden="true">C</span></a></div>
+    </nav>
+    <a class="fs-rail-bottom" href="#" aria-label="自分の設定"><span aria-hidden="true">⚙</span></a>
+  </aside>
+  <div class="fs-main">
+    <header class="fs-topbar">
+      <button type="button" class="fs-icon-button fs-rail-toggle" aria-label="メニューを開く" aria-expanded="false"><span aria-hidden="true">≡</span></button>
+      <div class="fs-breadcrumb"><a href="#">サービスカタログ</a><span aria-current="page">承認の委任</span></div>
+      <form class="fs-global-search" action="#" method="get" role="search">
+        <label class="visually-hidden" for="fs-global-search-input">検索</label>
+        <input id="fs-global-search-input" type="search" name="q" placeholder="検索">
+      </form>
+      <div class="fs-topbar-actions">
+        <a class="fs-create-button" href="#" aria-label="チケットを作成する"><span aria-hidden="true">＋</span><span>作成する</span></a>
+        <a class="fs-icon-button" href="#" aria-label="通知設定"><span aria-hidden="true">🔔</span></a>
+      </div>
+    </header>
+    <div class="fs-content">${main}</div>
+  </div>
+</div>
+</body></html>`;
+
+const about = `<section class="directory-panel" aria-labelledby="delegation-about-title">
+  <h2 id="delegation-about-title">委任の範囲と期間</h2>
+  <ul>
+    <li>委任の範囲は、自分宛ての承認のすべてです。カタログ項目ごとの指定はできません。</li>
+    <li>期間は最長30日です。延長するときは、新しい委任を作成してください。</li>
+    <li>委任の期間中も、自分で承認・却下できます。委任は権限の追加であり、移転ではありません。</li>
+    <li>委任を取り消しても、代理で承認済みのステップは有効のままです。</li>
+    <li>代理者になれるのは同時に1人です。同じ期間に重なる委任は作成できません。</li>
+    <li>代理者になれるのは、承認者の役割を持つ有効な所属の利用者だけです。</li>
+  </ul>
+  <p class="hint">代理者が今は承認者の役割を持たないか、有効な所属ではありません。この委任では代理で承認できません。</p>
+  <p class="hint">状態は「開始前」「有効」「期間終了」「取消済み」「代理者が資格なし」のほか、値を確認できない場合は「状態を確認できません」と表示します。有効とは扱いません。</p>
+  <p class="hint">確認時点: 2026年11月15日 10:00 · <a href="#">一覧を読み直す</a></p>
+</section>`;
+
+const notice = (text) =>
+  `<div class="notice directory-notice" id="delegation-notice" role="status" tabindex="-1"><p>${text}</p></div>`;
+
+const createForm = `<form class="directory-form">
+  <fieldset class="directory-form-grid">
+    <legend class="visually-hidden">承認の委任を作成</legend>
+    <div class="field" data-error-field="delegateId">
+      <label for="dg-delegate">代理者</label>
+      <p class="hint" id="dg-delegate-hint">現在有効な所属で、承認者の役割を持つ人だけを候補にしています。</p>
+      <select id="dg-delegate" name="delegateId" required aria-describedby="dg-delegate-hint" style="max-width:100%">
+        <option value="">選択してください</option>
+        <option value="a">合成 代理者B</option>
+        <option value="b">合成 代理者C</option>
+      </select>
+    </div>
+    <div class="field" data-error-field="startsAt">
+      <label for="dg-starts">開始（日本時間・JST）</label>
+      <p class="hint" id="dg-starts-hint">いまから開始できます。開始前の委任として先の日時も指定できます。</p>
+      <input type="datetime-local" id="dg-starts" name="startsAt" value="2026-11-15T10:00" required aria-describedby="dg-starts-hint">
+    </div>
+    <div class="field" data-error-field="endsAt">
+      <label for="dg-ends">終了（日本時間・JST）</label>
+      <p class="hint" id="dg-ends-hint">終了は開始より後にしてください。期間は最長30日です。延長するときは新しい委任を作成します。</p>
+      <input type="datetime-local" id="dg-ends" name="endsAt" required aria-describedby="dg-ends-hint">
+    </div>
+  </fieldset>
+  <div class="field" data-error-field="confirm" style="flex-direction:row;align-items:flex-start;gap:0.5rem">
+    <input type="checkbox" id="dg-confirm" name="confirm" value="1" required style="width:24px;height:24px;margin-top:0.1rem">
+    <label for="dg-confirm" style="min-width:0">委任の期間中、この人が自分宛ての承認を判断できることを確認しました</label>
+  </div>
+  <div class="directory-form-actions"><button type="submit">委任を作成する</button></div>
+</form>`;
+
+const revokeForm = (id, kind, who) => {
+  const declining = kind === 'declined';
+  return `<details aria-label="${declining ? '委任を辞退する' : '委任を取り消す'}（${who}）" style="grid-column:1 / -1">
+  <summary>${declining ? '委任を辞退する' : '委任を取り消す'}（${who}）</summary>
+  <form class="directory-form">
+    <div class="field" data-error-field="reason">
+      <label for="${id}-reason">${declining ? '辞退の理由' : '取消の理由'}</label>
+      <p class="hint" id="${id}-hint">${declining ? '辞退' : '取消'}の理由を書いてください。2000文字以内です。</p>
+      <textarea id="${id}-reason" name="reason" required maxlength="2000" rows="3" aria-describedby="${id}-hint"></textarea>
+    </div>
+    <div class="field" data-error-field="confirm" style="flex-direction:row;align-items:flex-start;gap:0.5rem">
+      <input type="checkbox" id="${id}-confirm" name="confirm" value="1" required style="width:24px;height:24px;margin-top:0.1rem">
+      <label for="${id}-confirm" style="min-width:0">${declining ? 'この委任を辞退し、以後は代理で承認しないことを確認しました' : 'この委任を取り消し、以後は代理で承認できないことを確認しました'}</label>
+    </div>
+    <div class="directory-form-actions"><button type="submit" class="${declining ? '' : 'danger'}">${declining ? '辞退する' : '取り消す'}</button></div>
+  </form>
+</details>`;
+};
+
+const row = (label, who, starts, ends, state, hint, action) => `<tr>
+  <td data-label="${label}">${who}</td>
+  <td data-label="開始">${starts}</td>
+  <td data-label="終了">${ends}</td>
+  <td data-label="状態">${state}</td>
+  <td data-label="操作">${action ?? '—'}</td>
+</tr>`;
+
+const actionRow = (form, label) =>
+  `<tr><td colspan="5" data-label="${label}" style="padding-top:0">${form}</td></tr>`;
+
+const delegatorMain = `<main id="main" class="shell directory-shell">
+  <div class="directory-heading">
+    <div><p class="eyebrow">自分の設定</p><h1>承認の委任（代理承認）</h1>
+      <p>休暇などで自分が承認できない期間に、自分宛ての承認を別の人へ任せられます。委任できるのは自分宛ての承認だけです。</p></div>
+    <div class="directory-heading-actions"><a class="directory-cta secondary" href="#">自分が判断する承認待ち</a></div>
+  </div>
+  ${notice('「合成 代理者B」さんへの委任を作成しました（2026年11月15日 10:00〜2026年11月17日 10:00）。')}
+  ${about}
+  <section class="directory-panel" id="delegation-mine" aria-labelledby="delegation-mine-title">
+    <h2 id="delegation-mine-title">自分が任せている委任</h2>
+    <div class="directory-table-wrap"><table class="directory-table">
+      <caption>自分が任せている委任</caption>
+      <thead><tr><th scope="col">代理者</th><th scope="col">開始</th><th scope="col">終了</th><th scope="col">状態</th><th scope="col">操作</th></tr></thead>
+      <tbody>
+        ${row('代理者', '合成 代理者B', '2026年11月15日 10:00', '2026年11月17日 10:00', '有効', '', '取消')}
+        ${actionRow(revokeForm('dg-mine', 'revoked', '合成 代理者B'), '取消')}
+      </tbody></table></div>
+    <h3 id="delegation-create-title">委任を作成</h3>
+    ${createForm}
+  </section>
+  <section class="directory-panel" id="delegation-received" aria-labelledby="delegation-received-title">
+    <h2 id="delegation-received-title">自分が任されている委任</h2>
+    <div class="directory-table-wrap"><table class="directory-table">
+      <caption>自分が任されている委任</caption>
+      <thead><tr><th scope="col">委任者</th><th scope="col">開始</th><th scope="col">終了</th><th scope="col">状態</th><th scope="col">操作</th></tr></thead>
+      <tbody>
+        ${row('委任者', '合成 委任者A', '2026年11月10日 09:00', '2026年11月12日 09:00', '取消済み', '取り消されています。代理で承認済みのステップは有効のままです。')}
+      </tbody></table></div>
+  </section>
+</main>`;
+
+const delegateMain = `<main id="main" class="shell directory-shell">
+  <div class="directory-heading">
+    <div><p class="eyebrow">自分の設定</p><h1>承認の委任（代理承認）</h1>
+      <p>休暇などで自分が承認できない期間に、自分宛ての承認を別の人へ任せられます。委任できるのは自分宛ての承認だけです。</p></div>
+    <div class="directory-heading-actions"><a class="directory-cta secondary" href="#">自分が判断する承認待ち</a></div>
+  </div>
+  ${about}
+  <section class="directory-panel" id="delegation-mine" aria-labelledby="delegation-mine-title">
+    <h2 id="delegation-mine-title">自分が任せている委任</h2>
+    <p class="empty">まだ委任していません。下の「委任を作成」から作成できます。</p>
+    <h3 id="delegation-create-title">委任を作成</h3>
+    ${createForm}
+  </section>
+  <section class="directory-panel" id="delegation-received" aria-labelledby="delegation-received-title">
+    <h2 id="delegation-received-title">自分が任されている委任</h2>
+    <div class="directory-table-wrap"><table class="directory-table">
+      <caption>自分が任されている委任</caption>
+      <thead><tr><th scope="col">委任者</th><th scope="col">開始</th><th scope="col">終了</th><th scope="col">状態</th><th scope="col">操作</th></tr></thead>
+      <tbody>
+        ${row('委任者', '合成 委任者A', '2026年11月15日 10:00', '2026年11月17日 10:00', '有効', '', '辞退')}
+        ${actionRow(revokeForm('dg-received', 'declined', '合成 委任者A'), '辞退')}
+      </tbody></table></div>
+  </section>
+</main>`;
+
+const adminRows = [
+  ['delegator', '合成 委任者A', '合成 代理者B', '2026年11月15日 10:00', '2026年11月17日 10:00', '有効', '', '—'],
+  ['admin', '合成 委任者C', '合成 代理者D', '2026年11月18日 10:00', '2026年11月20日 10:00', '開始前', '', '取消'],
+  ['admin', '合成 委任者E', '合成 代理者F', '2026年11月1日 10:00', '2026年11月3日 10:00', '期間終了', '', '—'],
+  ['admin', '合成 委任者G', '合成 代理者H', '2026年11月5日 10:00', '2026年11月7日 10:00', '取消済み', '取り消されています。代理で承認済みのステップは有効のままです。', '—'],
+  ['admin', '合成 委任者I', '合成 代理者J', '2026年11月15日 10:00', '2026年11月17日 10:00', '代理者が資格なし', '代理者が今は承認者の役割を持たないか、有効な所属ではありません。この委任では代理で承認できません。', '取消'],
+  ['admin', '合成 委任者K', '合成 代理者L', '2026年11月15日 10:00', '2026年11月17日 10:00', '状態を確認できません', '状態を確認できませんでした。この委任は有効とは扱いません。一覧を読み直してください。', '—'],
+];
+const orgTableRows = adminRows
+  .map(
+    ([, who1, who2, starts, ends, state, _hint, action]) => `<tr>
+      <td data-label="委任者">${who1}</td><td data-label="代理者">${who2}</td>
+      <td data-label="開始">${starts}</td><td data-label="終了">${ends}</td>
+      <td data-label="状態">${state}</td>
+      <td data-label="操作">${action}</td></tr>`,
+  )
+  .join('');
+
+const adminMain = `<main id="main" class="shell directory-shell">
+  <div class="directory-heading">
+    <div><p class="eyebrow">自分の設定</p><h1>承認の委任（代理承認）</h1>
+      <p>休暇などで自分が承認できない期間に、自分宛ての承認を別の人へ任せられます。委任できるのは自分宛ての承認だけです。</p></div>
+    <div class="directory-heading-actions"><a class="directory-cta secondary" href="#">自分が判断する承認待ち</a></div>
+  </div>
+  ${about}
+  <section class="directory-panel" id="delegation-mine" aria-labelledby="delegation-mine-title">
+    <h2 id="delegation-mine-title">自分が任せている委任</h2>
+    <p class="empty">まだ委任していません。下の「委任を作成」から作成できます。</p>
+    <h3 id="delegation-create-title">委任を作成</h3>
+    ${createForm}
+  </section>
+  <section class="directory-panel" id="delegation-organization" aria-labelledby="delegation-organization-title">
+    <h2 id="delegation-organization-title">組織のすべての委任</h2>
+    <p class="hint">組織管理者として、組織の委任をすべて表示します。自分が関係する委任の取消は、上の一覧から行えます。他人の委任の取消は、一覧の下の欄から行えます。</p>
+    <div class="directory-table-wrap"><table class="directory-table">
+      <caption>組織のすべての委任</caption>
+      <thead><tr><th scope="col">委任者</th><th scope="col">代理者</th><th scope="col">開始</th><th scope="col">終了</th><th scope="col">状態</th><th scope="col">操作</th></tr></thead>
+      <tbody>${orgTableRows}</tbody></table></div>
+    ${revokeForm('dg-org', 'revoked', '合成 代理者D')}
+  </section>
+</main>`;
+
+const noCandidatesMain = `<main id="main" class="shell directory-shell">
+  <div class="directory-heading"><div><p class="eyebrow">自分の設定</p><h1>承認の委任（代理承認）</h1>
+    <p>休暇などで自分が承認できない期間に、自分宛ての承認を別の人へ任せられます。</p></div></div>
+  ${about}
+  <section class="directory-panel" id="delegation-mine" aria-labelledby="delegation-mine-title">
+    <h2 id="delegation-mine-title">自分が任せている委任</h2>
+    <p class="empty">まだ委任していません。下の「委任を作成」から作成できます。</p>
+    <h3 id="delegation-create-title">委任を作成</h3>
+    <p class="hint" role="alert">代理者にできるのは、承認者の役割を持つ有効な利用者だけです。該当する人がいません。組織の管理者に役割の付与を依頼してください。</p>
+  </section>
+</main>`;
+
+const requestsMain = `<main id="main" class="shell">
+  <h1>申請の状況</h1>
+  <p>申請の進捗と、いま誰が対応するかを確認します。実際の権限・外部サービスは変更しません。</p>
+  <p><a href="#">カタログから申請する</a></p>
+  <p><a href="#">代理承認の委任を管理する</a></p>
+  <form method="get" class="filters" aria-label="申請の絞り込み">
+    <div class="field"><label for="request-q">受付番号・サービス名・申請者で検索</label><input id="request-q" name="q" value=""></div>
+    <div class="field"><label for="request-view">処理対象</label><select id="request-view" name="view"><option value="all">閲覧できるすべて</option><option value="mine">自分の申請</option><option value="approvals" selected>自分が判断する承認待ち</option></select></div>
+    <div class="field"><label for="request-state">進捗</label><select id="request-state" name="state"><option value="all">すべて</option><option value="pending">承認待ち</option></select></div>
+    <button>絞り込む</button>
+    <a href="#">条件を解除する</a>
+  </form>
+  <p role="status">絞り込み中 · 表示対象 2件 · 1ページ目。更新が新しい順に表示します。</p>
+  <ul class="attachments">
+    <li class="attachment">
+      <h2><a href="#">REQ-082 · 合成の申請（委任）</a></h2>
+      <p><strong>承認待ち</strong> · 更新 2026年11月15日 10:00</p>
+      <p>申請者: 合成 申請者 · 承認者: 合成 委任者</p>
+      <p class="hint">合成 委任者さんの代理で判断できます（委任された承認です）。</p>
+      <p>内容を確認して承認・却下を判断する</p>
+      <p class="hint">承認期限: 2026年11月18日 10:00</p>
+    </li>
+    <li class="attachment">
+      <h2><a href="#">REQ-083 · 合成の申請（通常）</a></h2>
+      <p><strong>承認待ち</strong> · 更新 2026年11月15日 09:00</p>
+      <p>申請者: 合成 申請者2 · 承認者: 合成 承認者</p>
+      <p>内容を確認して承認・却下を判断する</p>
+      <p class="hint">承認期限: 2026年11月18日 09:00</p>
+    </li>
+  </ul>
+</main>`;
+
+const detailMain = `<main id="main" class="shell">
+  <a href="#">申請一覧へ戻る</a>
+  <h1>合成の申請（委任）</h1>
+  <p class="notice">ローカル模擬実行の検証用。実際の権限付与・外部変更は行いません。</p>
+  <h2>承認待ち</h2>
+  <p role="status" class="notice" data-delegated-to-me="true">合成 委任者さんの代理で承認・却下できます。委任された範囲は、この方宛ての承認のすべてです。</p>
+  <dl>
+    <dt>申請者</dt><dd>合成 申請者</dd>
+    <dt>指定された承認者</dt><dd>合成 委任者</dd>
+    <dt>利用日数</dt><dd>7日</dd>
+    <dt>理由</dt><dd>合成の申請理由です。</dd>
+    <dt>承認の期限</dt><dd>2026年11月18日 10:00</dd>
+  </dl>
+  <form class="stack form-panel">
+    <div class="field"><label for="decision-reason">判断の理由</label><textarea id="decision-reason" name="reason" maxlength="2000"></textarea><p class="hint">却下・承認取消には理由が必要です。</p></div>
+    <div class="actions-row">
+      <button type="submit">承認する</button>
+      <button type="submit" class="secondary">理由を添えて却下する</button>
+    </div>
+  </form>
+  <section aria-labelledby="approval-timeline-title">
+    <h2 id="approval-timeline-title">承認の経過</h2>
+    <ol class="attachments" aria-label="承認の経過">
+      <li class="attachment"><p><strong>段1（固定承認者）</strong> · 承認済み · 承認者: 合成 委任者（代理: 合成 代理者B）</p><p>決定日時: 2026年11月14日 15:00</p></li>
+      <li class="attachment"><p><strong>段2（上長）</strong> · 承認待ち · 承認者: 合成 上長</p><p class="hint">期限: 2026年11月18日 10:00</p></li>
+    </ol>
+  </section>
+  <h2>承認の記録</h2>
+  <ul class="attachments">
+    <li class="attachment">
+      <p>申請内容 1 · 承認済み · 2026年11月14日 15:00</p>
+      <details><summary>この版の申請内容を見る</summary><p>承認者: 合成 委任者（代理: 合成 代理者B）</p><p>合成の申請理由です。</p></details>
+    </li>
+  </ul>
+</main>`;
+
+const inboxMain = `<main id="main" class="shell ops-shell">
+  <p class="eyebrow">担当ワークスペース</p>
+  <h1>業務受信箱</h1>
+  <p class="lead">自分の担当、指名された承認、変更の予定を確認して、次の作業へ進みます。</p>
+  <p class="hint">業務を開くと今回の更新を既読として記録します。既読でも、未完了の業務はここに残ります。外部への通知送信は行いません。</p>
+  <div class="inbox-summary" role="group" aria-label="現在の業務件数"><p>担当チケット <strong>0件</strong></p><p>自分への承認 <strong>1件</strong></p><p>担当する変更・PIR <strong>0件</strong></p></div>
+  <p role="status">表示対象 1件 · 新しい更新 1件 · 1ページ目</p>
+  <p>確認時点: 2026年11月15日 10:00 · <a href="#">受信箱を更新する</a></p>
+  <div class="table-scroll" role="region" aria-label="業務一覧" tabindex="0">
+  <table class="work-table inbox-table">
+    <caption>表示対象 1 件中 1 件を表示</caption>
+    <thead><tr><th scope="col">業務</th><th scope="col">状況・待ち先</th><th scope="col">期限</th><th scope="col">次の対応</th></tr></thead>
+    <tbody><tr>
+      <td class="ticket-subject"><span class="record-number">REQ-082 · 合成 委任者さんの代理</span><strong class="record-title">合成の申請（委任）</strong><span class="update-label unread">新しい更新</span><span class="hint"> · 更新 2026年11月15日 10:00</span></td>
+      <td><span class="state" data-state="pending">代理での承認依頼</span></td>
+      <td><span class="deadline-label deadline-within">承認期限：2026年11月18日 10:00（あと3日）</span></td>
+      <td><button type="button">申請を確認して承認・却下する</button></td>
+    </tr></tbody>
+  </table>
+  </div>
+</main>`;
+
+const pages = [
+  ['delegations-delegator', '承認の委任（委任者）', delegatorMain],
+  ['delegations-delegate', '承認の委任（代理者）', delegateMain],
+  ['delegations-admin', '承認の委任（組織管理者）', adminMain],
+  ['delegations-no-candidates', '承認の委任（候補0人）', noCandidatesMain],
+  ['requests-approvals', '申請の状況（代理）', requestsMain],
+  ['request-detail-delegated', '申請の詳細（代理）', detailMain],
+  ['inbox-delegated', '業務受信箱（代理）', inboxMain],
+];
+
+const summary = { harness: true, css: ['globals.css', 'freshservice.css'], startedAt: now.toISOString(), scans: [] };
+for (const [name, title, main] of pages) {
+  const file = resolve(output, `${name}.html`);
+  await writeFile(file, frame(title, main));
+  for (const engineName of ['chromium', 'webkit']) {
+    const browser = await (engineName === 'chromium'
+      ? chromium.launch({ channel: 'chrome' })
+      : webkit.launch());
+    try {
+      for (const width of [1440, 375]) {
+        const context = await browser.newContext({
+          viewport: { width, height: 900 },
+          deviceScaleFactor: 1,
+        });
+        const page = await context.newPage();
+        await page.goto(`file://${file}`, { waitUntil: 'load' });
+        const dimensions = await page.evaluate(() => ({
+          document: document.documentElement.scrollWidth,
+          viewport: innerWidth,
+        }));
+        if (dimensions.document > dimensions.viewport)
+          throw new Error(`${name} overflows at ${width}: ${dimensions.document} > ${dimensions.viewport}`);
+        const result = await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+          .analyze();
+        const violations = result.violations.map(({ id, impact, nodes, help }) => ({
+          id,
+          impact,
+          help,
+          targets: nodes.map((node) => node.target),
+        }));
+        const severe = violations.filter(
+          (violation) => violation.impact === 'serious' || violation.impact === 'critical',
+        );
+        const scan = { name, engine: engineName, width, dimensions, violations };
+        summary.scans.push(scan);
+        await writeFile(
+          resolve(output, `axe-${engineName}-${width}-${name}.json`),
+          JSON.stringify(scan, null, 2) + '\n',
+        );
+        await page.screenshot({
+          path: resolve(output, `${engineName}-${width}-${name}.png`),
+          fullPage: true,
+        });
+        if (severe.length > 0)
+          throw new Error(
+            `${name} ${engineName} ${width}: serious/critical axe violations: ${severe
+              .map((violation) => violation.id)
+              .join(', ')}`,
+          );
+        await context.close();
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+}
+summary.finishedAt = new Date().toISOString();
+summary.severe = summary.scans.filter((scan) =>
+  scan.violations.some((v) => v.impact === 'serious' || v.impact === 'critical'),
+).length;
+await writeFile(resolve(output, 'axe-summary.json'), JSON.stringify(summary, null, 2) + '\n');
+console.log(`WP020 harness: ${summary.scans.length} scans, serious/critical=${summary.severe}`);
+console.log(`Evidence: ${output}`);

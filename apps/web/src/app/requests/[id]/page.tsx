@@ -96,6 +96,11 @@ export default async function RequestPage({
   const now = Date.now();
   const assigned = data.approval.approver_id === session.userId && !own,
     expired = new Date(data.approval.expires_at).getTime() <= now;
+  // 代理で見ている場合は、APIが返す `currentDelegation` だけで判断する
+  // (委任の一覧や期間を画面で組み立て直さない / ADR-0025 §3・§5)。
+  const delegatedToMe = data.currentDelegation ?? null;
+  const canApproveNow =
+    !own && (assigned || delegatedToMe !== null) && q.state === 'pending' && !expired;
   const item: CatalogItem = { ...s.item, description: '', definition: s.item.definition };
   const { saved } = await searchParams;
   const editable = own && !['completed', 'cancelled'].includes(q.state);
@@ -144,6 +149,12 @@ export default async function RequestPage({
         </p>
       )}
       <h2>{labels[q.state] ?? q.state}</h2>
+      {delegatedToMe && q.state === 'pending' && !expired && (
+        <p role="status" className="notice" data-delegated-to-me="true">
+          {delegatedToMe.delegatorName}
+          さんの代理で承認・却下できます。委任された範囲は、この方宛ての承認のすべてです。
+        </p>
+      )}
       {own && q.state === 'pending' && data.approverUnavailable === true && (
         <p role="status" className="notice">
           承認者が不在です。下の「申請内容を変更して再承認を依頼する」から内容を変更して、再承認を依頼してください。
@@ -220,7 +231,7 @@ export default async function RequestPage({
       <RequestActions
         key={`actions-${q.version}`}
         request={data}
-        canApprove={assigned && q.state === 'pending' && !expired}
+        canApprove={canApproveNow}
         canRevoke={!own && (assigned || admin) && q.state === 'approved'}
         canSimulate={
           staff &&
@@ -241,7 +252,15 @@ export default async function RequestPage({
                   </strong>
                   {' · '}
                   {step.pendingCreation ? '前の段の承認後に依頼' : stepStateLabel(step.state)}
-                  {!step.pendingCreation && step.approverName && ` · 承認者: ${step.approverName}`}
+                  {!step.pendingCreation && step.approverName && (
+                    <>
+                      {' · 承認者: '}
+                      {step.approverName}
+                      {step.delegated && step.decidedByName
+                        ? `（代理: ${step.decidedByName}）`
+                        : ''}
+                    </>
+                  )}
                 </p>
                 {step.pendingCreation && <p className="hint">前の段の承認後に依頼します。</p>}
                 {!step.pendingCreation && step.decidedAt && (
@@ -330,7 +349,12 @@ export default async function RequestPage({
                           {row.invalidatedByReassign && '（再割当により無効）'}
                           {row.decidedAt && ` · ${formatDateTime(row.decidedAt)}`}
                         </p>
-                        <p>承認者: {row.approverName}</p>
+                        <p>
+                          承認者: {row.approverName}
+                          {row.delegated && row.decidedByName
+                            ? `（代理: ${row.decidedByName}）`
+                            : ''}
+                        </p>
                         {row.reason && <p style={{ whiteSpace: 'pre-wrap' }}>理由: {row.reason}</p>}
                       </li>
                     ))}

@@ -459,8 +459,9 @@ export class NotificationService {
         ? '代理承認の委任を作成しました'
         : '代理承認の委任を取り消しました';
     const subject = `[SOLVI] ${label}`;
-    // 委任の画面(段階B)。クエリ・フラグメント・委任のIDを付けない。
-    const linkPath = '/approvals/delegations';
+    // 委任の画面。クエリ・フラグメント・委任のIDを付けない。
+    // `/settings` は利用者ごとの設定の置き場所である(段階Bで `/approvals` から移した)。
+    const linkPath = '/settings/delegations';
 
     const recipients = this.mergeRecipients(
       await this.activeMembers(organizationId, delegation.delegator_id),

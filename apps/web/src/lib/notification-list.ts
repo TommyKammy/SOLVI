@@ -18,6 +18,9 @@ export const NOTIFICATION_EVENTS = {
   'approval.notice.expiring': '承認期限の予告',
   'approval.notice.expired': '承認期限切れ',
   'approval.notice.approver_unavailable': '承認者不在',
+  // 委任の通知 (WP-P4-APR-020 §6.5)。
+  'approval.delegation.created': '代理承認の委任の作成',
+  'approval.delegation.revoked': '代理承認の委任の取消',
   other: 'その他',
 } as const;
 export const NOTIFICATION_STATUS_LABELS = {

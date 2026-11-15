@@ -1,0 +1,27 @@
+{
+  "database": "solvi",
+  "counts": {
+    "app_user": 15,
+    "role_binding": 26,
+    "local_catalog_item": 26,
+    "local_service_request": 18,
+    "local_request_revision": 23,
+    "local_request_approval": 30,
+    "local_request_route_generation": 2,
+    "local_request_approval_notice": 8,
+    "department": 22,
+    "department_head": 7,
+    "approval_rule": 14,
+    "approval_rule_revision": 20,
+    "org_member_profile": 15,
+    "audit_event": 1960,
+    "notification": 95,
+    "outbox_event": 454
+  },
+  "migrations": {
+    "count": 42,
+    "max": "0042"
+  },
+  "policies": 79,
+  "approvalDelegationTable": "approval_delegation"
+}

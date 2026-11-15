@@ -1,0 +1,10 @@
+{
+  "name": "inbox-delegated",
+  "engine": "chromium",
+  "width": 375,
+  "dimensions": {
+    "document": 375,
+    "viewport": 375
+  },
+  "violations": []
+}

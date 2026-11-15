@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "delegation"]
 source_of_truth: true
-implementation_status: "in-progress"
+implementation_status: "review"
 story_points: 8
 risk: "high"
 workstream: "APR"
@@ -205,6 +205,7 @@ FR-CAT-006(代理承認)を実装する。承認者が、期間を限って、�
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-11-15 | Codex(段階A) | 未コミット | 段階A(スキーマ・API・通知)を実装・検証済み。画面は段階B | `evidence/WP-P4-APR-020/20261115-0930/` | 下記 |
+| 2026-11-15 | Codex(段階B) | 未コミット | 段階B(指摘の修正と画面)を実装・検証済み。実画面の操作は未実施 | `evidence/WP-P4-APR-020/20261115-1016/` | 下記 |
 
 ### 段階A の実行記録(2026-11-15)
 
@@ -277,4 +278,123 @@ FR-CAT-006(代理承認)を実装する。承認者が、期間を限って、�
 #### Evidence
 
 `evidence/WP-P4-APR-020/20261115-0930/`(検証ログ・開発用DBの件数・`git status`)。
+
+
+### 段階B の実行記録(2026-11-15)
+
+段階Aへの指摘(ブリーフ §1)への対応、画面(§6.7)、検証。
+
+#### 指摘への対応
+
+1. **決定の拒否の応答**: 変更なし。委任が無い・資格を満たさない場合は従来の 403、委任は有効でも ADR-0025 §3-6・`decided_by` の非重複で拒否する場合は 404、の使い分けを維持した。
+2. **委任の状態 `unknown`**: 変更なし。画面は「状態を確認できません」と表示し、有効とは扱わない(取消の入口も出さない)。
+3. **助言ロック+トリガでの重なりの防止**: 変更なし。
+4. **通知の一覧のイベント型**: `services/api/src/modules/notification/notification-list.service.ts` の `NOTIFICATION_EVENT_TYPES` と `apps/web/src/lib/notification-list.ts` の `NOTIFICATION_EVENTS` に `approval.delegation.created` / `approval.delegation.revoked` を追加した。表示名は「代理承認の委任の作成」「代理承認の委任の取消」。段階Aではサーバが委任のイベントを `other` に落としていた(画面では「その他」)。今回、サーバと画面の両方に型を追加し、通知の一覧の解析(`parseNotificationList`)も委任の通知をそのまま受け付ける。
+5. **プロフィールの行が無い利用者**: 次のとおり**不具合だった**。
+   - 現状: 有効な所属でも `org_member_profile` の行が無い利用者は、委任の作成で `approval_delegation` の複合外部キー(23503)に当たり、`create` は 23514 だけを 409 に変換していたため **500** になった。代理者の候補の一覧は、所属と `approver` ロールだけを見ており、行の無い利用者も候補に含めていた。
+   - 既存の流儀: `services/api/src/modules/auth/department.service.ts` の `requireActiveMember` は、有効な所属でもプロフィール行が無い利用者を **409「組織プロフィールが未設定の利用者です。先にプロフィールを設定してください。」** で拒否する。行は `user-admin.service.ts` の `ensureOrgMemberProfile`(役割の付与・プロフィール更新と同じトランザクション)が作り、作らないのは役割の付与の経路が無い場合だけである(0037 のバックフィルも同じ前提)。
+   - 対処(スキーマ・認可は変えない): 候補の一覧からプロフィール行の無い利用者を除く。委任者自身の行が無い場合は **409**(上記と同じ扱い)。代理者の行が無い場合は、存在・資格を漏らさないため**他の資格の無い代理者と同じ 403** にする。このAPIはプロフィールの行を作らない。
+   - テスト: 「プロフィールの行が無い利用者: 委任者は 409、代理者は候補外・同じ 403(500 にしない)」。
+6. **委任者本人の決定で足された 409**: 委任の無い既存の経路では**到達しない**ことをコードで確認した。理由は、(a) 固定承認者の重複はルールの保存時に 400 で拒否され、(b) 種別をまたぐ重複(固定承認者と上長が同じ人等)は申請の作成時にリゾルバの `duplicate_approver` が 409 で拒否し、(c) 再割当の再解決は承認済みの段の承認者を除外し重複も拒否し、(d) 申請内容の変更は旧版・旧世代の全ステップを `invalidated` にし、(e) `decide` が見るステップは現在の版だけである、ため。委任が無ければ `decided_by` は `approver_id` と一致するので、同一人物が2つの段の `decided_by` になる経路が残らない。テスト「委任の無い申請は、承認者の重複をリゾルバが拒否し、決定者の重複の 409 に到達しない」で、重複の保存 400・作成 409・1段目を承認した本人による2段目の決定が **403**(409ではない)を固定した。到達し得るのは、APIを経由せずに重複した `approver_id` の行・経路を作った場合だけである(サポートする経路ではない)。
+
+#### 画面(§6.7)
+
+- 置き場所は **`/settings/delegations`** にした(理由: これは「自分宛ての承認を誰に任せるか」という利用者ごとの設定であり、承認者でない利用者も上長として承認が来るため全員が開く。`/ops/approvals` は組織管理者だけの承認ルール、`/approvals` は既存の上位領域に無い。`/settings` はエージェント/サポート両方のシェルと戻り先の検証で既に扱われている)。WP §4 の想定(`apps/web/src/app/approvals/delegations/`)とは異なるため、`apps/web/src/app/settings/delegations/` を追加した。通知のリンク先も `/settings/delegations` に変えた。
+- ナビゲーション: エージェントのユーザーメニュー(`AppFrame`)とサポートポータルのメニュー(`SupportFrame`)に「承認の委任」を追加。`/ops/approvals` の見出しから「代理承認の委任」、`/requests?view=approvals` から「代理承認の委任を管理する」を追加。
+- 内容: 自分が任せている委任(代理者・開始・終了・状態・取消)、作成(代理者の `select`、開始・終了、確認のチェック)、自分が任されている委任(委任者・期間・状態・辞退)、組織管理者の組織のすべての委任と取消。作成の操作は管理者にも自分の分だけ。候補が0人のときは理由を出してフォームを出さない。説明文として範囲・最長30日・期間中も自分で承認できる・取消後も承認済みは有効・代理者は同時に1人を出した。
+- 日時は `datetime-local` + 「日本時間・JST」で、既存の変更管理と同じく `+09:00` として送る。開始の既定は現在、終了の既定は無し。30日超・終了が開始以前などはAPIの 400 を項目(`startsAt` / `endsAt` / `delegateId`)に結び付けて表示し、理由のコードは出さない。成功は一覧を読み直し、実在する記録から文を作る(URLの値だけでは出さない)。表示名だけを使い、メールアドレス・社員番号は出さない。
+- 代理の表示: 承認待ちの一覧に「◯◯さんの代理で判断できます」、受信箱はAPIの「◯◯さんの代理」をそのまま表示、詳細は `currentDelegation` があるときだけ代理の案内と承認・却下の操作を出す。承認の経過と記録は「承認者: ◯◯(代理: △△)」と表示する。委任の無い申請の表示は変えていない。
+
+#### API 側の追加(応答への加算だけ)
+
+- `GET /approval-delegations/candidates`: `org_member_profile` の行が無い利用者を除いた。
+- `POST /approval-delegations`: 委任者自身のプロフィール行が無い場合 409、代理者の行が無い場合は 403(既存の資格の無い代理者と同じ文言)。
+- 申請の詳細の `history[]` に `delegated`(boolean)を加算した(画面が `decided_by` と `approver_id` を突き合わせ直さないため)。
+- 認可・検証・Migration の変更はない。
+
+#### 変更ファイル
+
+- `db/migrations/` — 変更なし(0042 は段階Aのまま)。
+- `services/api/src/modules/catalog/approval-delegation.routes.ts`(プロフィール行の検査、候補の除外)
+- `services/api/src/modules/catalog/catalog.routes.ts`(`history[].delegated` の加算)
+- `services/api/src/modules/notification/notification-list.service.ts`(委任のイベント型)
+- `services/api/src/modules/notification/notification.service.ts`(委任の通知のリンク先)
+- `apps/web/src/lib/api.ts`(委任のAPI・型、`delegated` / `decidedBy` / `currentDelegation`)
+- `apps/web/src/lib/approval-delegation.ts`(新規。表示名・文言・日時の変換・失敗の対応付け)
+- `apps/web/src/lib/approval-route.ts`(経過の型に `delegated` / `decidedByName` を加算)
+- `apps/web/src/lib/notification-list.ts`(委任の表示名)
+- `apps/web/src/app/settings/delegations/page.tsx`、`actions.ts`、`DelegationForms.tsx`(新規)
+- `apps/web/src/app/requests/page.tsx`、`apps/web/src/app/requests/[id]/page.tsx`(代理の表示。受信箱はAPIの値をそのまま表示するため画面の変更なし)
+- `apps/web/src/app/ops/approvals/page.tsx`、`apps/web/src/components/AppFrame.tsx`、`apps/web/src/components/SupportFrame.tsx`(導線)
+- `tests/security/approval-delegation.test.ts`(指摘5・6のテスト、通知のリンク先)
+- `tests/unit/approval-delegation-ui.test.ts`(新規)、`tests/unit/notification-list-ui.test.ts`(委任のイベント型)
+- `tools/ui_approval_routing_check.mjs`(`wp020` の段階。**今回は実行しない**。構文と既存の段階は確認済み)
+- `docs/planning/.../WP-P4-APR-020.md`(§13 と `implementation_status`)
+- `evidence/WP-P4-APR-020/20261115-1016/`
+
+#### 検証(使い捨てDB `solvi_wp020_wp019_wp018_wp015_test`)
+
+- `npx vitest run tests/security/approval-*.test.ts`: 250 passed(8ファイル)。
+- `npx vitest run tests/security` 全体: 902 passed / 10 skipped。失敗は既知の読み込み不能6ファイルのみ(`knowledge-pagination`、`notification-*` 4件、`user-directory-consistency`)。テスト自体の失敗は0。
+- `npx vitest run tests/unit/approval-*.test.ts tests/unit/catalog-*.test.ts tests/unit/requests-ui.test.ts tests/unit/notification-list.test.ts tests/unit/notification-list-ui.test.ts`: 1083 passed(28ファイル)。
+- `npm run test:unit`: 34 failed / 4594 passed(108ファイル中4ファイル)。失敗は `knowledge-list`、`knowledge-search-page`、`performance-runtime`、`performance-search-static-cli` のみで、段階Aの基点(34件)と同じ。承認・カタログ・受信箱・通知の新規失敗は0。増えた pass 55 は新しいテスト(54 + 通知の1)である。
+- `npm run typecheck`: エラー0。`npm run check:all`: OK。`npx eslint . --max-warnings=0 --ignore-pattern '.claude/**'`: 警告0。`node tools/check_rls.mjs`(使い捨てDB): 問題0件。
+- 見た目: **実画面ではないハーネス**(`globals.css` と `freshservice.css` をそのまま読み込み、画面と同じクラス・文言で組んだ静的HTML)で、Chromium と WebKit の 1440px / 375px のスクリーンショットと axe(serious / critical 0)。7状態 × 2エンジン × 2幅 = 28スキャン、深刻な違反0、375px の横はみ出し0。委任の画面の各状態(委任者・代理者・組織管理者・候補0人)と、代理の表示(一覧・詳細・受信箱)を撮った。**実画面の確認は 0042 適用後に別途**行う(下記「未解決」)。
+- 開発用DB `solvi`: 作業の前後で件数は不変(下表)。書込み・Migration・seed・cleanup は行っていない(管理者接続の `SELECT` のみ)。
+
+| テーブル | 作業前 | 作業後 |
+|---|---|---|
+| `app_user` | 15 | 15 |
+| `role_binding` | 26 | 26 |
+| `local_catalog_item` | 26 | 26 |
+| `local_service_request` | 18 | 18 |
+| `local_request_revision` | 23 | 23 |
+| `local_request_approval` | 30 | 30 |
+| `local_request_route_generation` | 2 | 2 |
+| `local_request_approval_notice` | 8 | 8 |
+| `department` | 22 | 22 |
+| `department_head` | 7 | 7 |
+| `approval_rule` | 14 | 14 |
+| `approval_rule_revision` | 20 | 20 |
+| `org_member_profile` | 15 | 15 |
+| `audit_event` | 1960 | 1960 |
+| `notification` | 95 | 95 |
+| `outbox_event` | 454 | 454 |
+| `schema_migration` | 42(最大0042) | 42(最大0042) |
+| `pg_policies`(public) | 79 | 79 |
+
+**注意**: ブリーフでは開発用DBは41件(0042 未適用)の前提だったが、実際には **0042 が既に適用されていた**(`schema_migration` の `0042.applied_at = 2026-11-15T00:55:15Z`。段階Bの作業開始より前)。42件・ポリシー79件はその結果であり、本作業では変更していない。`approval_delegation` は0行。
+
+#### §7 の充足(段階B)
+
+- 画面(§7-15): 委任の作成・取消・辞退、代理の表示を unit テストとハーネスで確認した。実画面(Chromium/WebKit、1440/375、axe)の操作は **0042 適用後に別の指示で行う**(本記録では未実施)。
+- `check:all`・`typecheck`・`lint`・新規依存0(§7-16): 充足(依存の追加なし)。
+- §7-1〜§7-14: 段階Aの充足を維持。指摘5・6の追加テストも含めて `tests/security/approval-*` が通過。
+
+#### セキュリティ影響
+
+- 段階Bでは認可を広げていない。候補の一覧は狭くし(プロフィール行の無い利用者を除く)、委任者自身の行が無い場合は 409、代理者の行が無い場合は他の資格の無い代理者と同じ 403 にした。
+- 画面は認可を判定しない。作成・取消・一覧・候補の可否はAPIが決め、画面はAPIの値で表示を制御するだけである。
+- 委任の画面は全認証済み利用者が開けるが、表示されるのはAPIが返した自分の委任(と `org_admin` の組織の委任)だけである。
+- 新しい RLS の例外・`SECURITY DEFINER`・環境変数/フラグによる切替はない。Migration の変更もない。
+- 代理の表示は表示名だけを使い、メールアドレス・社員番号を出さない。成功の文は実在する記録から作る。
+- **Security Reviewer(人間)の sign-off は未取得**(Gate B GB-3)。
+
+#### 未解決・確認事項
+
+1. **開発用DBの Migration**: ブリーフの前提(41件・0042 未適用)と異なり、0042 が既に適用済みだった。本作業では変更していない。`tools/ui_approval_routing_check.mjs` の `wp020` は「今回は実行しない」の指示に従い実行していない。実画面の確認は監督者の指示を待つ。
+2. **画面の置き場所**: WP §4 の想定 `/approvals/delegations` ではなく `/settings/delegations` にした(ブリーフ §2.1 の指示)。`apps/web/src/app/settings/delegations/` は WP §4 の列挙に無いパスである。通知のリンク先も合わせて変えた。
+3. 実画面の操作は未実施。スクリーンショットと axe は**ハーネス**の結果であり、実画面の証明ではない。
+4. 委任の一覧は最大200件でページングしない(段階Aから変わらず)。
+5. 委任の詳細画面は無い(一覧の行とフォームだけ)。代理者が自分の決定を取り消す(`revoke`)操作は、詳細画面の既存の規則(`assigned` は現在の承認者だけ)に合わせて出していない。APIは許可する。
+6. `notification-list.service.ts` の委任の2種は、通知の一覧の解析を通すために必要だった。表示名は `apps/web` と API の両方に置いている(既存の承認の通知と同じ)。
+
+#### Evidence
+
+`evidence/WP-P4-APR-020/20261115-1016/`(ハーネスのスクリーンショット・axe、検証ログ、開発用DBの件数、`git status`)。
+
+#### 監督者の注記(2026-11-15、段階Bの検査)
+
+- 委任の画面は `/settings/delegations`(`apps/web/src/app/settings/delegations/`)に置いた。§4 は `apps/web/src/app/approvals/delegations/` を見込みとして挙げ、「合わない場合は報告する」としていた。利用者ごとの設定であり、`/settings/notifications` と同じ流儀で作れるため、監督者がこの置き場所を認める。§4 の該当行は、このパスに読み替える。
+- 利用者の指示で、開発用DBへ Migration 0042 を適用した(2026-11-15、42件)。
 

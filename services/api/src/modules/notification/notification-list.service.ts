@@ -18,6 +18,9 @@ export const NOTIFICATION_EVENT_TYPES = [
   'approval.notice.expiring',
   'approval.notice.expired',
   'approval.notice.approver_unavailable',
+  // 委任の通知 (WP-P4-APR-020 §6.5)。段階Bで画面の表示名とあわせて加えた。
+  'approval.delegation.created',
+  'approval.delegation.revoked',
 ] as const;
 const statuses = ['all', 'pending', 'sent', 'failed'] as const;
 type StatusFilter = (typeof statuses)[number];

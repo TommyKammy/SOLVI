@@ -1,0 +1,292 @@
+{
+  "harness": true,
+  "css": [
+    "globals.css",
+    "freshservice.css"
+  ],
+  "startedAt": "2026-11-15T01:26:53.606Z",
+  "scans": [
+    {
+      "name": "delegations-delegator",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegator",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegator",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegator",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegate",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegate",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegate",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-delegate",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-admin",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-admin",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-admin",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-admin",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-no-candidates",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-no-candidates",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-no-candidates",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "delegations-no-candidates",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "requests-approvals",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-delegated",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-delegated",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-delegated",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "request-detail-delegated",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "inbox-delegated",
+      "engine": "chromium",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "inbox-delegated",
+      "engine": "chromium",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    },
+    {
+      "name": "inbox-delegated",
+      "engine": "webkit",
+      "width": 1440,
+      "dimensions": {
+        "document": 1440,
+        "viewport": 1440
+      },
+      "violations": []
+    },
+    {
+      "name": "inbox-delegated",
+      "engine": "webkit",
+      "width": 375,
+      "dimensions": {
+        "document": 375,
+        "viewport": 375
+      },
+      "violations": []
+    }
+  ],
+  "finishedAt": "2026-11-15T01:27:13.169Z",
+  "severe": 0
+}

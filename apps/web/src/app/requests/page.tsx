@@ -65,6 +65,11 @@ export default async function RequestsPage({
       <p>
         <a href="/catalog">カタログから申請する</a>
       </p>
+      {f.view === 'approvals' && (
+        <p>
+          <Link href="/settings/delegations">代理承認の委任を管理する</Link>
+        </p>
+      )}
       <form method="get" className="filters" aria-label="申請の絞り込み">
         <div className="field">
           <label htmlFor="request-q">受付番号・サービス名・申請者で検索</label>
@@ -118,6 +123,11 @@ export default async function RequestsPage({
               申請者: {q.requesterName}
               {q.own && '（自分）'} · 承認者: {q.approverName}
             </p>
+            {q.delegated && (
+              <p className="hint" data-delegated="true">
+                {q.approverName}さんの代理で判断できます（委任された承認です）。
+              </p>
+            )}
             <p>{q.nextAction}</p>
             {['pending', 'approved'].includes(q.state) && (
               <p className="hint">承認期限: {formatDateTime(q.expiresAt)}</p>

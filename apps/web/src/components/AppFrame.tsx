@@ -389,6 +389,7 @@ export function AppFrame({
                 )}
                 <nav className="fs-user-links" aria-label="アカウント">
                   <Link href="/settings/notifications">自分の通知設定</Link>
+                  <Link href="/settings/delegations">承認の委任</Link>
                   {canSwitchOrganization && (
                     <Link href="/select-organization">組織を切り替える</Link>
                   )}
