@@ -40,6 +40,12 @@ import {
 } from './approval-route-state.js';
 import { insertPendingApprovalStep } from './approval-notice.js';
 import {
+  effectiveDelegationSql,
+  findEffectiveDelegation,
+  loadDecisionDelegation,
+  type DecisionDelegation,
+} from './approval-delegation.js';
+import {
   approvalResolutionProblem,
   isActiveMember,
   loadRuleRevision,
@@ -587,9 +593,17 @@ export class CatalogController {
         authorityType,
         userStatus: 'ap.status',
       });
+      // 有効な委任の代理者(ADR-0025 §5)。判定は approval-delegation.ts の共有述語だけを使う。
+      const delegated = effectiveDelegationSql({
+        organizationId: 'q.organization_id',
+        delegatorId: 'a.approver_id',
+        delegateId: '$3',
+        at: '$4',
+        authorityType,
+      });
       const conditions = [
         'q.organization_id=$1',
-        '($2::boolean OR q.requester_id=$3 OR a.approver_id=$3)',
+        `($2::boolean OR q.requester_id=$3 OR a.approver_id=$3 OR ${delegated})`,
       ];
       if (filter.q) {
         values.push('%' + filter.q.replace(/([%_\\])/g, '\\$1') + '%');
@@ -600,8 +614,9 @@ export class CatalogController {
       if (filter.view === 'mine') conditions.push('q.requester_id=$3');
       if (filter.view === 'approvals')
         // ロールではなく「自分が現在の pending ステップの approver_id である」で決める。
+        // 有効な委任の代理者にも、委任者宛ての承認待ちを見せる(ADR-0025 §5)。
         conditions.push(
-          `a.approver_id=$3 AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`,
+          `(a.approver_id=$3 OR ${delegated}) AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`,
         );
       if (filter.approverUnavailable === '1')
         // 期限を過ぎたステップは滞留の対象ではない(WP-P4-APR-019 §6.4)。
@@ -634,6 +649,7 @@ export class CatalogController {
           q.created_at AS "createdAt",q.updated_at AS "updatedAt",a.state AS "approvalState",q.ticket_id AS "ticketId",t.number,
           u.display_name AS "requesterName",ap.display_name AS "approverName",a.expires_at AS "expiresAt",
           a.reason AS "decisionReason",q.requester_id=$3 AS own,a.approver_id=$3 AS assigned,${expired} AS expired,
+          ${delegated} AS delegated,
           NOT ${approverAvailable} AS "approverUnavailable"
          ${from} ORDER BY q.updated_at DESC,q.id DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
           [...values, pageSize, (filter.page - 1) * pageSize],
@@ -661,7 +677,7 @@ export class CatalogController {
                       ? row.own
                         ? '承認者が不在です。内容を変更して再承認を依頼してください'
                         : '承認者が不在です。申請者に内容の変更を依頼してください'
-                      : row.assigned && !row.own
+                      : (row.assigned || row.delegated) && !row.own
                         ? '内容を確認して承認・却下を判断する'
                         : '承認者の判断を待っています'
                     : row.state === 'approved'
@@ -671,6 +687,8 @@ export class CatalogController {
                       : '内容を確認する';
         return {
           ...rest,
+          // 有効な委任による代理であること(加算的)。既存の `assigned` の意味は変えない。
+          delegated: row.delegated === true,
           // 期限を過ぎた pending は `expired` として返す(定期処理の前後で同じ値)。
           approvalState: stepStateForDisplay({
             state: row.approvalState,
@@ -808,8 +826,13 @@ export class CatalogController {
     return { stepCount };
   }
   /**
-   * 可視性は「申請者・担当者・その版のいずれかのステップの承認者」(WP-P4-APR-014 / ADR-0023 §5)。
+   * 可視性は「申請者・担当者・その版のいずれかのステップの承認者・決定者」
+   * (WP-P4-APR-014 / ADR-0023 §5 / ADR-0025 §5)。
    * 現在の1行だけを見ない。再割当で置き換えられた世代の承認者も、その版の承認者として扱う。
+   *
+   * 代理者には、**有効な委任の委任者宛ての現在の承認待ちだけ**を見せる。
+   * 委任者が申請者である申請・委任者が承認済みの過去の申請・委任が無効になった申請は
+   * 見えない(ADR-0025 §5)。代理で決定したステップは `decided_by` で引き続き見える。
    */
   private async visible(
     c: pg.PoolClient,
@@ -821,10 +844,34 @@ export class CatalogController {
     const r = await c.query(
       `SELECT 1 FROM local_request_approval
         WHERE request_id=$1 AND organization_id=$2 AND revision=$3
-          AND approver_id=$4 LIMIT 1`,
+          AND (approver_id=$4 OR decided_by=$4) LIMIT 1`,
       [q.id, q.organization_id, revision.revision, auth.userId],
     );
-    if (!r.rowCount) throw Problems.notFound('申請');
+    if (r.rowCount) return;
+    // 代理の可視性。現在のステップが、有効な委任の委任者宛ての承認待ちであること。
+    // 判定は approval-delegation.ts の共有述語だけを使う(判定を書き写さない)。
+    const nowRow = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0];
+    if (!nowRow || !(nowRow.now instanceof Date))
+      throw Problems.conflict('現在時刻を確認できません');
+    const now = nowRow.now;
+    const delegation = await c.query(
+      `SELECT 1
+         FROM local_request_approval a
+        WHERE a.id=$1 AND a.organization_id=$2 AND a.request_id=$3 AND a.revision=$4
+          AND a.approver_id<>$5
+          AND a.state='pending'
+          AND a.expires_at > $6::timestamptz
+          AND ${effectiveDelegationSql({
+            organizationId: '$2',
+            delegatorId: 'a.approver_id',
+            delegateId: '$5',
+            at: '$6',
+            authorityType: 'a.authority_type',
+          })}`,
+      [q.current_approval_id, q.organization_id, q.id, revision.revision, auth.userId, now],
+    );
+    if (delegation.rowCount) return;
+    throw Problems.notFound('申請');
   }
   private async checklistProgress(c: pg.PoolClient, q: RequestRow) {
     return (
@@ -898,6 +945,9 @@ export class CatalogController {
         ...new Set([
           q.requester_id,
           ...steps.map((step) => step.approver_id),
+          ...steps
+            .map((step) => step.decided_by)
+            .filter((id): id is string => typeof id === 'string'),
           ...(route?.steps.map((step) => step.approverId) ?? []),
           // 再割当の実行者の表示名(世代の行の created_by)。
           ...state.generations.map((generation) => generation.createdBy),
@@ -915,6 +965,17 @@ export class CatalogController {
       // 期限を過ぎたステップ(行が pending のままでも expired でも)は「不在」ではない。
       const routeStep = effectiveRouteStep(state, a.step_no);
       const authorityType = routeStep?.authorityType ?? a.authority_type;
+      // 現在のステップを代理で見ている場合の委任(加算的)。委任者本人には null を返す。
+      const currentDelegation =
+        a.approver_id === auth.userId
+          ? null
+          : await findEffectiveDelegation(c, {
+              organizationId: q.organization_id,
+              delegatorId: a.approver_id,
+              delegateId: auth.userId,
+              authorityType,
+              now,
+            });
       let approverUnavailable = false;
       if (
         q.requester_id === auth.userId &&
@@ -941,6 +1002,11 @@ export class CatalogController {
         reason: step.reason,
         decidedAt: step.decided_at,
         decidedBy: step.decided_by,
+        // 代理で決定されたこと(加算的)。委任者・代理者の表示名は上で解決済みの値だけを使う。
+        delegated: step.decided_by !== null && step.decided_by !== step.approver_id,
+        decidedByName: step.decided_by
+          ? (names.find((u) => u.id === step.decided_by)?.display_name ?? '決定者')
+          : null,
         expiresAt: step.expires_at,
         routeGeneration: step.route_generation,
       });
@@ -956,6 +1022,8 @@ export class CatalogController {
           authorityType: string;
           approverId: string;
           approverName: string;
+          decidedBy: string | null;
+          decidedByName: string | null;
           reason: string | null;
           decidedAt: Date | null;
           expiresAt: Date;
@@ -963,14 +1031,14 @@ export class CatalogController {
           inputs: unknown;
           item: unknown;
         }>(
-          `SELECT a.id,a.state,a.revision,a.route_generation AS "routeGeneration",a.step_no AS "stepNo",a.authority_type AS "authorityType",a.approver_id AS "approverId",u.display_name AS "approverName",a.reason,a.decided_at AS "decidedAt",a.expires_at AS "expiresAt",r.snapshot->'inputs' AS inputs,r.snapshot->'item' AS item,
+          `SELECT a.id,a.state,a.revision,a.route_generation AS "routeGeneration",a.step_no AS "stepNo",a.authority_type AS "authorityType",a.approver_id AS "approverId",u.display_name AS "approverName",a.decided_by AS "decidedBy",du.display_name AS "decidedByName",a.reason,a.decided_at AS "decidedAt",a.expires_at AS "expiresAt",r.snapshot->'inputs' AS inputs,r.snapshot->'item' AS item,
              EXISTS (
                SELECT 1 FROM local_request_route_generation g
                 WHERE g.request_id=a.request_id AND g.organization_id=a.organization_id
                   AND g.revision=a.revision AND g.route_generation=a.route_generation+1
                   AND g.from_step_no=a.step_no
              ) AS "invalidatedByReassign"
-             FROM local_request_approval a JOIN local_request_revision r ON r.request_id=a.request_id AND r.organization_id=a.organization_id AND r.revision=a.revision JOIN app_user u ON u.id=a.approver_id
+             FROM local_request_approval a JOIN local_request_revision r ON r.request_id=a.request_id AND r.organization_id=a.organization_id AND r.revision=a.revision JOIN app_user u ON u.id=a.approver_id LEFT JOIN app_user du ON du.id=a.decided_by
              WHERE a.request_id=$1 AND a.organization_id=$2 ORDER BY a.revision,a.route_generation,a.step_no`,
           [id, q.organization_id],
         )
@@ -1060,6 +1128,15 @@ export class CatalogController {
           }),
         ],
         approverUnavailable,
+        // 代理で見ている場合の委任(加算的)。委任者本人・担当者には null を返す。
+        currentDelegation: currentDelegation
+          ? {
+              id: currentDelegation.id,
+              delegatorId: currentDelegation.delegatorId,
+              delegatorName:
+                names.find((u) => u.id === currentDelegation.delegatorId)?.display_name ?? '承認者',
+            }
+          : null,
         // 承認の記録も同じ表示規則にする(期限を過ぎた pending は expired)。
         history: history.map((row) => ({
           ...row,
@@ -1424,7 +1501,11 @@ export class CatalogController {
         if (!complete.ok) throw Problems.conflict('承認済みの申請だけ取り消せます');
         if (
           !hasRole(auth.authz, 'org_admin', 'platform_admin') &&
-          !steps.some((step) => step.state === 'approved' && step.approver_id === auth.userId)
+          !steps.some(
+            (step) =>
+              step.state === 'approved' &&
+              (step.approver_id === auth.userId || step.decided_by === auth.userId),
+          )
         )
           throw Problems.forbidden();
         if (!input.reason)
@@ -1459,15 +1540,83 @@ export class CatalogController {
       const routeStep = effectiveRouteStep(state, a.step_no);
       const authorityType = routeStep?.authorityType ?? 'legacy';
 
-      // 1. 決定者が現在のステップの approver_id と一致する。
-      if (a.approver_id !== auth.userId)
-        throw Problems.forbidden('指定された承認者だけが決定できます');
-      // 3. 決定者が申請者本人でない。
+      // 1. 決定者が現在のステップの approver_id と一致するか、または有効な委任の代理者である
+      //    (ADR-0023 §2-1 / ADR-0025 §2・§3)。どちらでもない決定は従来どおり拒否する。
+      // 3. 決定者が申請者本人でない。委任があっても代理者は申請者になれない(ADR-0025 §3-5)。
       if (q.requester_id === auth.userId)
         throw Problems.forbidden('自己承認・自己決定はできません');
+      // 時刻は1回だけ読む。期間・期限の判定はこの値を使う。
+      const nowRow = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0];
+      if (!nowRow || !(nowRow.now instanceof Date))
+        throw Problems.conflict('現在時刻を確認できません');
+      const now = nowRow.now;
+
+      // 決定の主体を決める。ステップの approver_id でない場合に限り、代理の6項目を検証する
+      // (ADR-0025 §3)。**委任のIDは本文から受け取らず、決定者とステップから引く。**
+      const actingAsApprover = a.approver_id === auth.userId;
+      let delegation: DecisionDelegation | null = null;
+      if (actingAsApprover) {
+        // 2. 決定者が有効な所属である / 6. fixed・legacy は approver ロールを持つ。
+        //    関係ベース(manager / department_head)は approver ロールを要求しない。
+        //    どちらも毎回DBの現在の値で検証する。
+        if (authorityType === 'fixed' || authorityType === 'legacy') {
+          requireRole(auth.authz, 'approver');
+          await this.validateApprover(c, q.organization_id, q.requester_id, a.approver_id);
+        } else {
+          // 所属の有効性はDBの現在時刻で判定する(アプリ時計を信用しない / ADR-0023 §1)。
+          const facts = await loadUserFacts(c, q.organization_id, [a.approver_id], now);
+          if (!isActiveMember(facts.get(a.approver_id)))
+            throw Problems.forbidden('現在有効な所属の承認者だけが決定できます');
+        }
+      } else {
+        const loaded = await loadDecisionDelegation(c, {
+          organizationId: q.organization_id,
+          delegatorId: a.approver_id,
+          delegateId: auth.userId,
+          authorityType,
+          now,
+        });
+        if (!loaded.ok) {
+          // 委任が無い・資格を失った・期間外・取消済みは、**従来の拒否と同じ応答**にする
+          // (代理者・委任者の存在や資格を、応答の違いで漏らさない)。
+          this.logger?.warn('catalog.approval.delegation_denied', {
+            organizationId: q.organization_id,
+            requestId: q.id,
+            reason: loaded.reason,
+          });
+          throw Problems.forbidden('指定された承認者だけが決定できます');
+        }
+        delegation = loaded.delegation;
+        // 6. 代理者が、ほかの段の approver_id でもある場合は代理で決定できない
+        //    (同じ人が2票を持たないため / ADR-0025 §3-6)。まだ行が作られていない
+        //    後続の段も、現在の経路の `approver_id` で判定する。
+        const otherRouteApprover =
+          route?.steps.some(
+            (routeStep) => routeStep.stepNo !== a.step_no && routeStep.approverId === auth.userId,
+          ) ?? false;
+        if (
+          otherRouteApprover ||
+          steps.some(
+            (step) =>
+              step.id !== a.id && step.state !== 'invalidated' && step.approver_id === auth.userId,
+          )
+        )
+          throw Problems.notFound('申請');
+      }
+      // 6. 決定者としての非重複。本人・代理のどちらの経路でも `decided_by` で数える
+      //    (ADR-0025 §4)。代理の経路は「見えない申請」と同じ応答にする。
+      if (
+        steps.some(
+          (step) =>
+            step.id !== a.id && step.state !== 'invalidated' && step.decided_by === auth.userId,
+        )
+      ) {
+        if (delegation) throw Problems.notFound('申請');
+        throw Problems.conflict('同じ申請の複数の段を同じ人が決定することはできません');
+      }
+
       // 4. ステップが pending で期限内、かつ現在の経路世代に属する。
       //    期限の判定はDBの現在時刻で行う(アプリ時計を信用しない)。
-      const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
       if (q.version !== input.expectedVersion) throw Problems.stale('申請');
       if (q.state !== 'pending' || a.state !== 'pending')
         throw Problems.conflict('承認待ちではないか、承認期限が過ぎています');
@@ -1487,19 +1636,6 @@ export class CatalogController {
         q.snapshot.item.definition.approval.approverId !== a.approver_id
       )
         throw Problems.conflict('固定承認者が申請版と一致しません');
-
-      // 2. 決定者が有効な所属である / 6. fixed・legacy は approver ロールを持つ。
-      //    関係ベース(manager / department_head)は approver ロールを要求しない。
-      //    どちらも毎回DBの現在の値で検証する。
-      if (authorityType === 'fixed' || authorityType === 'legacy') {
-        requireRole(auth.authz, 'approver');
-        await this.validateApprover(c, q.organization_id, q.requester_id, a.approver_id);
-      } else {
-        // 所属の有効性はDBの現在時刻で判定する(アプリ時計を信用しない / ADR-0023 §1)。
-        const facts = await loadUserFacts(c, q.organization_id, [a.approver_id], now);
-        if (!isActiveMember(facts.get(a.approver_id)))
-          throw Problems.forbidden('現在有効な所属の承認者だけが決定できます');
-      }
 
       const isFinalStep = a.step_no === stepCount;
       const nextRouteStep = isFinalStep ? null : (route?.steps[a.step_no] ?? null);
@@ -1521,6 +1657,7 @@ export class CatalogController {
         actorId: auth.userId,
         nextStep: nextRouteStep,
         nextRouteGeneration,
+        delegationId: delegation ? delegation.id : null,
       });
       await this.approvalEvent(
         c,
@@ -1533,6 +1670,15 @@ export class CatalogController {
         {
           requestState: result.requestState,
           finalStep: isFinalStep,
+          // 代理で決定した場合だけ、委任者・代理者・委任のIDを残す(ADR-0025 §4)。
+          ...(delegation
+            ? {
+                delegated: true,
+                delegatorId: a.approver_id,
+                delegateId: auth.userId,
+                delegationId: delegation.id,
+              }
+            : {}),
         },
       );
       if (result.nextStepId && nextRouteStep && nextRouteGeneration !== null)

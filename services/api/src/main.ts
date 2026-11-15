@@ -30,6 +30,7 @@ import { AssetsController } from './modules/assets/assets.routes.js';
 import { CatalogAdminController } from './modules/catalog/catalog-admin.routes.js';
 import { CatalogController } from './modules/catalog/catalog.routes.js';
 import { ApprovalRuleController } from './modules/catalog/approval-rule.routes.js';
+import { ApprovalDelegationController } from './modules/catalog/approval-delegation.routes.js';
 import {
   ApprovalNoticeSweeper,
   startApprovalNoticeLoop,
@@ -164,6 +165,11 @@ async function bootstrap(): Promise<void> {
   const assetImports = new AssetImportsController(db.authPool());
   const catalogAdmin = new CatalogAdminController(db.authPool(), env.NODE_ENV === 'development');
   const approvalRules = new ApprovalRuleController(db.authPool(), env.NODE_ENV === 'development');
+  const approvalDelegations = new ApprovalDelegationController(
+    db.authPool(),
+    env.NODE_ENV === 'development',
+    logger,
+  );
   const catalog = new CatalogController(
     db.authPool(),
     objectStorage,
@@ -502,6 +508,30 @@ async function bootstrap(): Promise<void> {
       res.writeHead(result.status, { 'content-type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result.body));
     })
+    // 代理承認の委任 (WP-P4-APR-020 §6.2 / ADR-0025 §1・§2・§5)。
+    // 本文は代理者・開始・終了だけ。**委任者のIDは本文から受け取らない**(常に本人)。
+    .get('/approval-delegations', async (req) =>
+      approvalDelegations.list(await auth.authenticate(req.headers)),
+    )
+    .get('/approval-delegations/candidates', async (req) =>
+      approvalDelegations.candidates(await auth.authenticate(req.headers)),
+    )
+    .post('/approval-delegations', async (req, res) => {
+      const result = await approvalDelegations.create(
+        await auth.authenticate(req.headers),
+        await readJsonBody(req),
+      );
+      res.writeHead(201, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result));
+    })
+    // 取消。理由が必須で、委任者・代理者・org_admin だけが実行できる。
+    .post('/approval-delegations/:id/revocations', async (req, _res, params) =>
+      approvalDelegations.revoke(
+        await auth.authenticate(req.headers),
+        params.id ?? '',
+        await readJsonBody(req),
+      ),
+    )
     .get('/service-requests', async (req) =>
       catalog.list(
         await auth.authenticate(req.headers),
@@ -1068,6 +1098,10 @@ async function bootstrap(): Promise<void> {
         'approval.notice.expiring',
         'approval.notice.expired',
         'approval.notice.approver_unavailable',
+        // 代理承認の委任の作成・取消 (WP-P4-APR-020 §6.5)。登録し忘れると
+        // Outbox に積まれたまま誰も処理しない(上の欠陥と同じ形)。
+        'approval.delegation.created',
+        'approval.delegation.revoked',
       ].map((type) => [type, notificationHandler] as const),
       [
         'notification.manual_retry.requested',

@@ -5,7 +5,11 @@ import { Problems, currentElapsedSeconds } from '@solvi/shared';
 import { hasRole } from '../../common/authz/authz.js';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
-import { effectiveGenerationSql } from '../catalog/approval-route-state.js';
+import {
+  effectiveAuthorityTypeSql,
+  effectiveGenerationSql,
+} from '../catalog/approval-route-state.js';
+import { effectiveDelegationSql } from '../catalog/approval-delegation.js';
 const sourceKinds = ['ticket', 'request_approval', 'change'] as const;
 type SourceKind = (typeof sourceKinds)[number];
 type Deadline = {
@@ -29,6 +33,10 @@ type Item = {
   updatedAt: string;
   deadline: Deadline;
   unread: boolean;
+  /** 有効な委任による代理の承認依頼であること(加算的 / ADR-0025 §5)。 */
+  delegated?: boolean;
+  /** 代理の場合の委任者(承認者)の表示名。委任者本人・担当者には返さない。 */
+  delegatorName?: string | null;
   plannedStart?: string | null;
   plannedEnd?: string | null;
 };
@@ -105,6 +113,23 @@ export class InboxController {
       stepNo: 'a.step_no',
       baseGeneration: 'r.route_generation',
     });
+    const now = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+    // 代理の到達性も、一覧と同じ共有述語で決める(ADR-0025 §5)。
+    const authorityType = effectiveAuthorityTypeSql({
+      requestId: 'q.id',
+      organizationId: 'q.organization_id',
+      revision: 'q.revision',
+      stepNo: 'a.step_no',
+      baseRouteAuthority: `r.route->'steps'->(a.step_no-1)->>'authorityType'`,
+      fallback: 'a.authority_type',
+    });
+    const delegated = effectiveDelegationSql({
+      organizationId: 'q.organization_id',
+      delegatorId: 'a.approver_id',
+      delegateId: '$2',
+      at: '$3',
+      authorityType,
+    });
     const r = await c.query(
       `SELECT 1
          FROM local_service_request q
@@ -115,9 +140,9 @@ export class InboxController {
           AND a.request_id=q.id AND a.revision=q.revision
           AND a.route_generation=${effectiveGeneration}
         WHERE q.organization_id=$1 AND q.state='pending' AND a.state IN ('pending','expired')
-          AND a.approver_id=$2 AND q.requester_id<>$2
+          AND (a.approver_id=$2 OR ${delegated}) AND q.requester_id<>$2
         LIMIT 1`,
-      [auth.authz.organizationId, auth.userId],
+      [auth.authz.organizationId, auth.userId, now],
     );
     if (!r.rowCount) throw Problems.forbidden('必要な権限がありません');
   }
@@ -241,15 +266,32 @@ export class InboxController {
         stepNo: 'a.step_no',
         baseGeneration: 'r.route_generation',
       });
+      const authorityType = effectiveAuthorityTypeSql({
+        requestId: 'q.id',
+        organizationId: 'q.organization_id',
+        revision: 'q.revision',
+        stepNo: 'a.step_no',
+        baseRouteAuthority: `r.route->'steps'->(a.step_no-1)->>'authorityType'`,
+        fallback: 'a.authority_type',
+      });
+      const delegated = effectiveDelegationSql({
+        organizationId: 'q.organization_id',
+        delegatorId: 'a.approver_id',
+        delegateId: '$2',
+        at: '$4',
+        authorityType,
+      });
       const rows = (
         await c.query(
-          `SELECT q.id,q.version,q.updated_at,q.snapshot->'item'->>'title' AS title,t.number,a.id AS approval_id,a.expires_at
+          `SELECT q.id,q.version,q.updated_at,q.snapshot->'item'->>'title' AS title,t.number,a.id AS approval_id,a.expires_at,ap.display_name AS delegator_name,
+      (a.approver_id<>$2 AND ${delegated}) AS delegated
     FROM local_service_request q
     JOIN local_request_revision r ON r.request_id=q.id AND r.organization_id=q.organization_id AND r.revision=q.revision
     JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id AND a.request_id=q.id AND a.revision=q.revision AND a.snapshot_hash=q.snapshot_hash
       AND a.route_generation=${effectiveGeneration}
     JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
-    WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND a.approver_id=$2 AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)
+    JOIN app_user ap ON ap.id=a.approver_id
+    WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND (a.approver_id=$2 OR ${delegated}) AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)
       -- 期限を過ぎたステップは承認待ちではない。行が pending のままでも expired でも出さない
       -- (WP-P4-APR-019 §6.4)。
       AND a.expires_at > $4::timestamptz`,
@@ -258,6 +300,7 @@ export class InboxController {
       ).rows;
       for (const r of rows) {
         const deadline = timed('承認期限', r.expires_at, now);
+        const isDelegated = r.delegated === true;
         add(
           {
             kind: 'request_approval',
@@ -265,9 +308,16 @@ export class InboxController {
             number: r.number,
             title: r.title,
             state: 'pending',
-            stateLabel:
-              deadline.status === 'overdue' ? '承認期限超過・再申請の確認' : '自分への承認依頼',
-            scopeLabel: '指名された承認者',
+            stateLabel: isDelegated
+              ? deadline.status === 'overdue'
+                ? '代理・承認期限超過・再申請の確認'
+                : '代理での承認依頼'
+              : deadline.status === 'overdue'
+                ? '承認期限超過・再申請の確認'
+                : '自分への承認依頼',
+            scopeLabel: isDelegated
+              ? `${r.delegator_name ?? '承認者'}さんの代理`
+              : '指名された承認者',
             nextAction:
               deadline.status === 'overdue'
                 ? '期限と再申請の必要を確認する'
@@ -276,6 +326,8 @@ export class InboxController {
             waiting: false,
             updatedAt: iso(r.updated_at),
             deadline,
+            delegated: isDelegated,
+            delegatorName: isDelegated ? (r.delegator_name ?? null) : null,
           },
           [r.version, r.approval_id],
         );

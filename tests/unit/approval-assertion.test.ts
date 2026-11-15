@@ -213,6 +213,8 @@ function database({ fixed = true } = {}) {
     )
       return { rows: [], rowCount: 0 };
     if (sql.includes('SELECT DISTINCT u.id')) return { rows: [], rowCount: 0 };
+    // 代理承認 (WP-P4-APR-020)。委任を使わない申請では委任の行を読まない/0件。
+    if (sql.includes('FROM approval_delegation')) return { rows: [], rowCount: 0 };
     if (/^(INSERT|UPDATE)/.test(sql.trim())) return { rows: [], rowCount: 1 };
     throw new Error('Unhandled approval-assertion test query: ' + sql.slice(0, 70));
   });

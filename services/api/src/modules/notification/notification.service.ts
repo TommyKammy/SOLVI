@@ -7,9 +7,11 @@ import {
   OPTIONAL_TICKET_EMAIL_EVENTS,
 } from './notification-preference.service.js';
 import {
+  activeApprovalDelegateRecipientSql,
   activeMemberRecipientSql,
   activeOrgAdminRecipientSql,
   isApprovalNoticeEventType,
+  isDelegationNoticeEventType,
 } from '../catalog/approval-notice.js';
 
 /**
@@ -141,6 +143,11 @@ export class NotificationService {
     // 承認の通知 (WP-P4-APR-019)。チケット番号を持たないため、チケットの経路より先に分ける。
     if (isApprovalNoticeEventType(record.eventType)) {
       return this.deliverApprovalNotice(record);
+    }
+
+    // 委任の作成・取消の通知 (WP-P4-APR-020 §6.5)。承認の通知とは宛先も文面も別である。
+    if (isDelegationNoticeEventType(record.eventType)) {
+      return this.deliverDelegationNotice(record);
     }
 
     const ticketId = String(record.payload.ticketId ?? '');
@@ -306,8 +313,12 @@ export class NotificationService {
       )
     ).rows[0];
     const approval = (
-      await this.client.query<{ request_id: string; approver_id: string }>(
-        `SELECT request_id, approver_id FROM local_request_approval
+      await this.client.query<{
+        request_id: string;
+        approver_id: string;
+        authority_type: string;
+      }>(
+        `SELECT request_id, approver_id, authority_type FROM local_request_approval
           WHERE id=$1 AND organization_id=$2`,
         [approvalId, organizationId],
       )
@@ -317,13 +328,22 @@ export class NotificationService {
       throw new Error('承認の通知の対象を確認できません');
     }
 
-    const recipients =
-      kind === 'approver_unavailable'
-        ? await this.activeOrgAdmins(organizationId)
-        : await this.activeMembers(
-            organizationId,
-            kind === 'expired' ? target.requester_id : approval.approver_id,
-          );
+    // 依頼・期限前は、承認者に加えて**配送の時点で有効な委任の代理者**へも送る
+    // (ADR-0025 §5)。委任が無効(期間外・取消済み・委任者や代理者が資格を失った)なら
+    // 宛先に上がらない。承認者不在の判定と、期限切れの宛先(申請者)は変えない。
+    let recipients: NotificationRecipient[];
+    if (kind === 'approver_unavailable') recipients = await this.activeOrgAdmins(organizationId);
+    else if (kind === 'expired')
+      recipients = await this.activeMembers(organizationId, target.requester_id);
+    else
+      recipients = this.mergeRecipients(
+        await this.activeMembers(organizationId, approval.approver_id),
+        await this.activeApprovalDelegates(
+          organizationId,
+          approval.approver_id,
+          approval.authority_type,
+        ),
+      );
     if (recipients.length === 0) return { sent: 0, skipped: 1 };
 
     // 件名には申請番号を含めてよい。**入力値・理由・個人データは含めない。**
@@ -374,6 +394,96 @@ export class NotificationService {
     return rows
       .filter((row): row is { user_id: string; email: string } => Boolean(row.email))
       .map((row) => ({ userId: row.user_id, address: row.email }));
+  }
+
+  /**
+   * ある承認者宛ての、配送の時点で有効な委任の代理者(ADR-0025 §2・§3)。
+   * 判定は `approval-notice.ts` の共有述語に閉じる(期間・取消・資格をここで書き直さない)。
+   */
+  private async activeApprovalDelegates(
+    organizationId: string,
+    approverId: string,
+    authorityType: string,
+  ): Promise<NotificationRecipient[]> {
+    const { rows } = await this.client.query<{ user_id: string; email: string | null }>(
+      activeApprovalDelegateRecipientSql({
+        organizationId: '$1',
+        approverId: '$2',
+        authorityType: '$3',
+        at: 'now()',
+      }),
+      [organizationId, approverId, authorityType],
+    );
+    return rows
+      .filter((row): row is { user_id: string; email: string } => Boolean(row.email))
+      .map((row) => ({ userId: row.user_id, address: row.email }));
+  }
+
+  /** 宛先を利用者IDで重複排除する(承認者と代理者が同じになることはないが、防御的に行う)。 */
+  private mergeRecipients(...groups: NotificationRecipient[][]): NotificationRecipient[] {
+    const seen = new Map<string, NotificationRecipient>();
+    for (const group of groups)
+      for (const recipient of group)
+        if (!seen.has(recipient.userId)) seen.set(recipient.userId, recipient);
+    return [...seen.values()];
+  }
+
+  /**
+   * 委任の作成・取消の通知 (WP-P4-APR-020 §6.5)。
+   *
+   * **件名とリンクだけを送る。** 委任者・代理者の氏名、期間、取消の理由は件名にも
+   * リンクにも載せない。宛先は配送の時点で委任の行から解決し、有効な所属の
+   * 利用者にだけ送る(資格を失った人へは送らない)。
+   */
+  private async deliverDelegationNotice(
+    record: OutboxRecordLike,
+  ): Promise<{ sent: number; skipped: number }> {
+    const organizationId = record.organizationId;
+    const delegationId = String(record.payload.delegationId ?? '');
+    if (!organizationId || !delegationId) {
+      throw new Error('通知に必要な情報がペイロードにありません');
+    }
+    const delegation = (
+      await this.client.query<{ delegator_id: string; delegate_id: string }>(
+        `SELECT delegator_id, delegate_id FROM approval_delegation
+          WHERE id=$1 AND organization_id=$2`,
+        [delegationId, organizationId],
+      )
+    ).rows[0];
+    if (!delegation) {
+      // 対象が読めない通知は送らない。再試行の上限で止まり、運用が気付ける。
+      throw new Error('委任の通知の対象を確認できません');
+    }
+    const label =
+      record.eventType === 'approval.delegation.created'
+        ? '代理承認の委任を作成しました'
+        : '代理承認の委任を取り消しました';
+    const subject = `[SOLVI] ${label}`;
+    // 委任の画面(段階B)。クエリ・フラグメント・委任のIDを付けない。
+    const linkPath = '/approvals/delegations';
+
+    const recipients = this.mergeRecipients(
+      await this.activeMembers(organizationId, delegation.delegator_id),
+      await this.activeMembers(organizationId, delegation.delegate_id),
+    );
+
+    let sent = 0;
+    let skipped = 0;
+    for (const recipient of recipients) {
+      const ready = await this.prepareNotification(organizationId, record.id, {
+        channel: 'email',
+        recipient,
+        subject,
+        linkPath,
+      });
+      if (!ready) {
+        skipped += 1;
+        continue;
+      }
+      await this.dispatch(ready, organizationId, recipient, subject, linkPath);
+      sent += 1;
+    }
+    return { sent, skipped };
   }
 
   /** @returns 配送する通知ID。成功済み/任意新規通知OFFはnull。呼出側の取引を必要とする。 */

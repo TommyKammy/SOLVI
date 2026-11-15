@@ -1,5 +1,6 @@
 import type pg from 'pg';
 import { enqueueOutboxEvent, type OutboxEventType } from '../../common/outbox/outbox.js';
+import { delegationValiditySql } from './approval-delegation.js';
 import { activeMembershipSql } from './membership.js';
 
 /**
@@ -44,6 +45,69 @@ export function isApprovalNoticeEventType(eventType: string): boolean {
   return (APPROVAL_NOTICE_EVENT_TYPES as readonly string[]).includes(eventType);
 }
 
+/**
+ * 委任の作成・取消の通知 (WP-P4-APR-020 §6.5)。
+ *
+ * 承認の通知(依頼・期限前・期限切れ・承認者不在)とはイベント型を分ける。
+ * 宛先は委任の行から配送の時点で解決し、payload には**委任のIDだけ**を載せる。
+ * 件名・リンクに委任者の氏名・申請の入力値・個人データを載せない。
+ */
+export const DELEGATION_NOTICE_KINDS = ['created', 'revoked'] as const;
+export type DelegationNoticeKind = (typeof DELEGATION_NOTICE_KINDS)[number];
+
+const DELEGATION_OUTBOX_EVENT_TYPE: Record<DelegationNoticeKind, OutboxEventType> = {
+  created: 'approval.delegation.created',
+  revoked: 'approval.delegation.revoked',
+};
+
+export const DELEGATION_NOTICE_EVENT_TYPES: readonly OutboxEventType[] =
+  DELEGATION_NOTICE_KINDS.map((kind) => DELEGATION_OUTBOX_EVENT_TYPE[kind]);
+
+export function isDelegationNoticeEventType(eventType: string): boolean {
+  return (DELEGATION_NOTICE_EVENT_TYPES as readonly string[]).includes(eventType);
+}
+
+/** 委任の作成・取消の通知を積む。**業務処理と同一のトランザクション**で呼ぶ。 */
+export async function recordDelegationNotice(
+  client: pg.PoolClient,
+  input: { organizationId: string; delegationId: string; kind: DelegationNoticeKind },
+): Promise<void> {
+  await enqueueOutboxEvent(client, {
+    eventType: DELEGATION_OUTBOX_EVENT_TYPE[input.kind],
+    organizationId: input.organizationId,
+    // **識別子だけ。** 宛先は配送時に委任の行から読む。
+    payload: { delegationId: input.delegationId },
+  });
+}
+
+/**
+ * ある承認者宛ての、配送の時点で有効な委任の代理者(通知の宛先)。
+ *
+ * `delegationValiditySql` と同じ判定を使う(期間・取消・委任者の権限根拠・代理者の資格)。
+ * 委任者が無効なら委任は効かないため、代理人へも送らない(ADR-0025 §3-3)。
+ */
+export function activeApprovalDelegateRecipientSql(input: {
+  organizationId: string;
+  approverId: string;
+  authorityType: string;
+  at: string;
+}): string {
+  return `SELECT DISTINCT u.id AS user_id, u.primary_email::text AS email
+    FROM approval_delegation d
+    JOIN app_user u ON u.id = d.delegate_id
+   WHERE d.organization_id = ${input.organizationId}
+     AND d.delegator_id = ${input.approverId}
+     AND ${delegationValiditySql({
+       alias: 'd',
+       organizationId: input.organizationId,
+       delegatorId: input.approverId,
+       delegateId: 'd.delegate_id',
+       at: input.at,
+       authorityType: input.authorityType,
+       delegateStatus: 'u.status',
+     })}`;
+}
+
 export interface PendingApprovalStepInput {
   id: string;
   organizationId: string;
@@ -65,7 +129,12 @@ export interface PendingApprovalStepInput {
  */
 export async function recordApprovalNotice(
   client: pg.PoolClient,
-  input: { organizationId: string; approvalId: string; requestId: string; kind: ApprovalNoticeKind },
+  input: {
+    organizationId: string;
+    approvalId: string;
+    requestId: string;
+    kind: ApprovalNoticeKind;
+  },
 ): Promise<boolean> {
   const inserted = await client.query(
     `INSERT INTO local_request_approval_notice (organization_id, approval_id, kind)
@@ -138,10 +207,7 @@ export function activeMemberRecipientSql(input: {
  * ある組織の「現在有効な組織管理者」の一覧。
  * 承認者不在の通知の宛先はこの1つの式だけで決める(定期処理の0人判定と配送で共有)。
  */
-export function activeOrgAdminRecipientSql(input: {
-  organizationId: string;
-  at: string;
-}): string {
+export function activeOrgAdminRecipientSql(input: { organizationId: string; at: string }): string {
   return `SELECT DISTINCT u.id AS user_id, u.primary_email::text AS email
     FROM app_user u
     JOIN role_binding rb

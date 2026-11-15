@@ -186,6 +186,57 @@ export const approvalRuleStepsSchema = z
   .max(3, '承認ステップは3段以内にしてください');
 export type ApprovalRuleStep = z.infer<typeof approvalRuleStepSchema>;
 
+/**
+ * 代理承認の委任(ADR-0025 / WP-P4-APR-020 §6.2)。
+ *
+ * - 期間は最長30日。延長は新しい委任を作る(期間の変更はできない)。
+ * - 開始は「現在より5分前」まで許す。画面の時計とDBの時計の差、入力の往復の間だけ
+ *   過去になることを許し、それより前の開始は拒否する(遡って有効な委任を作らせない)。
+ * - **委任者のIDは本文に含めない。** 委任者は常に認証済みの本人である。
+ * - 未知のキーは拒否する(委任者や代理者を本文から差し替える経路を作らない)。
+ */
+export const APPROVAL_DELEGATION_MAX_PERIOD_DAYS = 30;
+export const APPROVAL_DELEGATION_START_TOLERANCE_MINUTES = 5;
+
+export const approvalDelegationCreateSchema = z
+  .object({
+    delegateId: z
+      .string({
+        required_error: '代理者を選んでください',
+        invalid_type_error: '代理者を選んでください',
+      })
+      .uuid('代理者を選んでください'),
+    startsAt: z
+      .string({
+        required_error: '開始を入力してください',
+        invalid_type_error: '開始を入力してください',
+      })
+      .datetime({ offset: true, message: '開始の日時を確認してください' }),
+    endsAt: z
+      .string({
+        required_error: '終了を入力してください',
+        invalid_type_error: '終了を入力してください',
+      })
+      .datetime({ offset: true, message: '終了の日時を確認してください' }),
+  })
+  .strict();
+
+export const approvalDelegationRevokeSchema = z
+  .object({
+    reason: z
+      .string({
+        required_error: '取消の理由を入力してください',
+        invalid_type_error: '取消の理由を入力してください',
+      })
+      .trim()
+      .min(1, '取消の理由を入力してください')
+      .max(2000, '取消の理由は2000文字以内で入力してください'),
+  })
+  .strict();
+
+export type ApprovalDelegationCreateInput = z.infer<typeof approvalDelegationCreateSchema>;
+export type ApprovalDelegationRevokeInput = z.infer<typeof approvalDelegationRevokeSchema>;
+
 export const catalogSectionSchema = z
   .object({
     key: keySchema,

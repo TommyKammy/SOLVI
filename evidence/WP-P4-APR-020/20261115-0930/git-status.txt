@@ -1,0 +1,19 @@
+ M docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md
+ M packages/shared/src/catalog.ts
+ M services/api/src/common/audit/audit.ts
+ M services/api/src/common/outbox/outbox.ts
+ M services/api/src/main.ts
+ M services/api/src/modules/catalog/approval-assertion.ts
+ M services/api/src/modules/catalog/approval-notice.ts
+ M services/api/src/modules/catalog/approval-state.ts
+ M services/api/src/modules/catalog/catalog.routes.ts
+ M services/api/src/modules/inbox/inbox.routes.ts
+ M services/api/src/modules/notification/notification.service.ts
+ M tests/security/approval-notice.test.ts
+ M tests/unit/approval-assertion.test.ts
+?? db/migrations/0042_approval_delegation.sql
+?? evidence/WP-P4-APR-020/
+?? services/api/src/modules/catalog/approval-delegation.routes.ts
+?? services/api/src/modules/catalog/approval-delegation.ts
+?? tests/security/approval-delegation.test.ts
+?? tests/unit/approval-delegation.test.ts

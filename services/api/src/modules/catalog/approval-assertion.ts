@@ -41,6 +41,13 @@ export type ApprovalFailure =
   | 'fixed_approver_mismatch'
   | 'self_approval'
   | 'duplicate_approver'
+  // 代理承認 (ADR-0025 §4 / WP-P4-APR-020 §6.4)。値が読めない場合も失敗する(fail closed)。
+  | 'delegation_missing'
+  | 'delegation_mismatch'
+  | 'delegation_out_of_period'
+  | 'delegation_revoked'
+  | 'decided_by_self_approval'
+  | 'decided_by_duplicate'
   | RouteCheckFailure
   | RouteGenerationFailure;
 
@@ -80,6 +87,12 @@ const MESSAGES: Record<ApprovalFailure, string> = {
   fixed_approver_mismatch: '固定承認者が申請版と一致しません',
   self_approval: '自分の申請を承認することはできません',
   duplicate_approver: '承認記録を確認できません',
+  delegation_missing: '承認記録を確認できません',
+  delegation_mismatch: '承認記録を確認できません',
+  delegation_out_of_period: '承認記録を確認できません',
+  delegation_revoked: '承認記録を確認できません',
+  decided_by_self_approval: '自分の申請を承認することはできません',
+  decided_by_duplicate: '承認記録を確認できません',
   route_invalid: '承認経路を確認できません',
   route_hash_mismatch: '承認経路が申請版と一致しません',
   route_generation_mismatch: '承認経路の世代が申請版と一致しません',
@@ -214,6 +227,7 @@ export async function checkApprovalComplete(
   if (hash(q.snapshot) !== q.snapshot_hash) return fail('snapshot_tampered');
 
   // 7. 固定承認者。route が NULL の移行前の1行にだけ、カタログ定義との一致を要求する。
+  //    既存の申請の拒否理由を変えないため、代理の検査より先に行う。
   if (state.currentRoute === null) {
     const fixed = q.snapshot.item.definition.approval;
     if (fixed?.approverId && fixed.approverId !== effectiveRows[0]!.approver_id)
@@ -225,7 +239,91 @@ export async function checkApprovalComplete(
   if (approvers.includes(q.requester_id)) return fail('self_approval');
   if (new Set(approvers).size !== approvers.length) return fail('duplicate_approver');
 
-  // 9. 承認者の現在の有効性は要求しない(ADR-0023 §7)
+  // 9. 代理の記録と、決定者での非同一・非重複 (ADR-0025 §4)。
+  //    `decided_by` が NULL の行(0038 より前の承認)は、承認者が決定したものとして扱う
+  //    (ADR-0025 Migration Impact)。値が読めない・型が違う場合は失敗する。
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const decisions: { row: ApprovalRow; decidedBy: string }[] = [];
+  for (const approval of effectiveRows) {
+    const rawDecidedBy: unknown = approval.decided_by;
+    if (rawDecidedBy !== null && rawDecidedBy !== undefined && typeof rawDecidedBy !== 'string')
+      return fail('delegation_mismatch');
+    const decidedBy =
+      rawDecidedBy === null || rawDecidedBy === undefined ? approval.approver_id : rawDecidedBy;
+    if (typeof decidedBy !== 'string' || !UUID.test(decidedBy)) return fail('delegation_mismatch');
+    decisions.push({ row: approval, decidedBy });
+  }
+  // 決定者での非同一(申請者)・非重複。承認者の組ではなく decided_by で数える(ADR-0025 §4)。
+  const decidedBys = decisions.map((decision) => decision.decidedBy);
+  if (decidedBys.includes(q.requester_id)) return fail('decided_by_self_approval');
+  if (new Set(decidedBys).size !== decidedBys.length) return fail('decided_by_duplicate');
+
+  const delegatedRows: { row: ApprovalRow; decidedBy: string; delegationId: string }[] = [];
+  for (const { row: approval, decidedBy } of decisions) {
+    const rawDelegationId: unknown = approval.delegation_id;
+    if (rawDelegationId !== null && rawDelegationId !== undefined) {
+      if (typeof rawDelegationId !== 'string' || !UUID.test(rawDelegationId))
+        return fail('delegation_mismatch');
+    }
+    const delegated = decidedBy !== approval.approver_id;
+    if (delegated) {
+      // 委任のIDが無いまま代理者が決定した記録は検証できない(ADR-0025 §4)。
+      if (typeof rawDelegationId !== 'string') return fail('delegation_missing');
+      delegatedRows.push({ row: approval, decidedBy, delegationId: rawDelegationId });
+    } else if (rawDelegationId !== null && rawDelegationId !== undefined) {
+      // 委任のIDは、代理で決定したステップにだけ入る(DBの CHECK と同じ)。
+      return fail('delegation_mismatch');
+    }
+  }
+
+  if (delegatedRows.length > 0) {
+    const delegations = (
+      await client.query<{
+        id: unknown;
+        delegator_id: unknown;
+        delegate_id: unknown;
+        starts_at: unknown;
+        ends_at: unknown;
+        revoked_at: unknown;
+      }>(
+        `SELECT id, delegator_id, delegate_id, starts_at, ends_at, revoked_at
+           FROM approval_delegation
+          WHERE organization_id=$1 AND id=ANY($2::uuid[])`,
+        [q.organization_id, [...new Set(delegatedRows.map((item) => item.delegationId))]],
+      )
+    ).rows;
+    const byId = new Map(delegations.map((row) => [String(row.id), row]));
+    for (const { row, decidedBy, delegationId } of delegatedRows) {
+      const delegation = byId.get(delegationId);
+      if (!delegation) return fail('delegation_mismatch');
+      if (
+        typeof delegation.id !== 'string' ||
+        typeof delegation.delegator_id !== 'string' ||
+        typeof delegation.delegate_id !== 'string' ||
+        !(delegation.starts_at instanceof Date) ||
+        !(delegation.ends_at instanceof Date)
+      )
+        return fail('delegation_mismatch');
+      // 委任の委任者がステップの承認者、代理者が決定者と一致すること。
+      if (delegation.delegator_id !== row.approver_id || delegation.delegate_id !== decidedBy)
+        return fail('delegation_mismatch');
+      if (!(row.decided_at instanceof Date)) return fail('delegation_mismatch');
+      // 決定の時刻が委任の期間内であること([starts_at, ends_at))。
+      if (
+        row.decided_at.getTime() < delegation.starts_at.getTime() ||
+        row.decided_at.getTime() >= delegation.ends_at.getTime()
+      )
+        return fail('delegation_out_of_period');
+      // 取消より後の決定ではないこと。
+      if (delegation.revoked_at !== null && delegation.revoked_at !== undefined) {
+        if (!(delegation.revoked_at instanceof Date)) return fail('delegation_mismatch');
+        if (row.decided_at.getTime() >= delegation.revoked_at.getTime())
+          return fail('delegation_revoked');
+      }
+    }
+  }
+
+  // 10. 承認者の現在の有効性は要求しない(ADR-0023 §7)
   return {
     ok: true,
     steps: effectiveRows.map((row) => ({ approvalId: row.id, approverId: row.approver_id })),

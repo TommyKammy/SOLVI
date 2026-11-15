@@ -34,6 +34,10 @@ export const OUTBOX_EVENT_TYPES = [
   'approval.notice.expiring',
   'approval.notice.expired',
   'approval.notice.approver_unavailable',
+  // 代理承認 (WP-P4-APR-020 §6.5)。委任の作成・取消を、委任者と代理者へ知らせる。
+  // **payload は委任のIDだけ**。件名・リンクは配送側で組み立て、宛先は配送時に解決する。
+  'approval.delegation.created',
+  'approval.delegation.revoked',
 ] as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[number];

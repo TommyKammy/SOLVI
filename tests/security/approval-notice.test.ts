@@ -666,20 +666,24 @@ beforeEach(async () => {
 });
 
 describe('Migration 0041: 通知の記録の表 (TL-04)', () => {
-  it('**行が無ければ down → up の往復ができる。0040 から増えるポリシーはちょうど2件**', async () => {
+  it('**行が無ければ down → up の往復ができる。0040 から増えるポリシーはちょうど3件(0041 と 0042)**', async () => {
     const before = await policyNames();
     expect(before).toContain('local_request_approval_notice_isolation');
     expect(before).toContain('organization_approval_sweep_lookup');
     const down = migrate('down', '--to', '0040');
     expect(down.ok, down.output).toBe(true);
     expect(down.output).toContain('0041_local_request_approval_notice.sql');
+    // 0042(代理承認)が後続に加わったため、0040 まで戻すとその分離ポリシーも外れる。
+    expect(down.output).toContain('0042_approval_delegation.sql');
     const afterDown = await policyNames();
-    // 0041 が足すのは、新しいテーブルの分離ポリシーと、組織一覧の例外の**2件だけ**。
+    // 0041 が足すのは、新しいテーブルの分離ポリシーと、組織一覧の例外の**2件**。
+    // 0042 が足すのは、委任の表の分離ポリシーの**1件**。
     expect(before.filter((name) => !afterDown.includes(name)).sort()).toEqual([
+      'approval_delegation_isolation',
       'local_request_approval_notice_isolation',
       'organization_approval_sweep_lookup',
     ]);
-    expect(before.length).toBe(afterDown.length + 2);
+    expect(before.length).toBe(afterDown.length + 3);
     const tableGone = (
       await q(
         `SELECT count(*)::int AS n FROM pg_tables
@@ -707,11 +711,18 @@ describe('Migration 0041: 通知の記録の表 (TL-04)', () => {
     const created = await createRequest(requester, itemId, { approverId: fixedA.id });
     expect(await noticeRows(org)).toHaveLength(1);
     const down = migrate('down', '--to', '0040');
-    expect(down.ok).toBe(false);
-    expect(down.output).toContain('0041 rollback refused');
-    expect((await q(`SELECT 1 FROM schema_migration WHERE version='0041'`)).rowCount).toBe(1);
-    expect(await noticeRows(org)).toHaveLength(1);
-    expect(await currentStep(created.id)).toBeDefined();
+    try {
+      expect(down.ok).toBe(false);
+      expect(down.output).toContain('0041 rollback refused');
+      expect((await q(`SELECT 1 FROM schema_migration WHERE version='0041'`)).rowCount).toBe(1);
+      expect(await noticeRows(org)).toHaveLength(1);
+      expect(await currentStep(created.id)).toBeDefined();
+    } finally {
+      // 0042(代理承認)はデータが無いため先に巻き戻っている。0041 の拒否を確かめた後に戻す。
+      const restored = migrate('up');
+      expect(restored.ok, restored.output).toBe(true);
+      expect((await q(`SELECT 1 FROM schema_migration WHERE version='0042'`)).rowCount).toBe(1);
+    }
   }, 120_000);
 });
 

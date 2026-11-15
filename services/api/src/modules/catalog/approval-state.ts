@@ -417,6 +417,8 @@ export type ApprovalStepRow = {
   decided_at: Date | null;
   decided_by: string | null;
   resolved_from: string | null;
+  /** 代理で決定したときに使った委任 (WP-P4-APR-020)。委任者本人・既存行は null。 */
+  delegation_id: string | null;
 };
 
 type RequestDescriptor = {
@@ -448,6 +450,12 @@ export async function applyApprovalDecision(
     nextStep: ApprovalRouteStep | null;
     /** 次のステップを作る世代。有効な世代の導出結果を呼び出し側が渡す。 */
     nextRouteGeneration: number | null;
+    /**
+     * 代理で決定した場合に使った委任のID (WP-P4-APR-020 §6.3 / ADR-0025 §4)。
+     * 委任者本人の決定・委任の無い決定は null。**サーバが引いたIDだけ**を渡す
+     * (本文から受け取らない)。
+     */
+    delegationId: string | null;
   },
 ): Promise<{ stepState: StepState; requestState: RequestState; nextStepId: string | null }> {
   const transition = transitionFor(input.decision, {
@@ -470,7 +478,7 @@ export async function applyApprovalDecision(
 
   const updated = await client.query<{ id: string }>(
     `UPDATE local_request_approval
-        SET state=$2, reason=$3, decided_at=clock_timestamp(), decided_by=$4
+        SET state=$2, reason=$3, decided_at=clock_timestamp(), decided_by=$4, delegation_id=$11
       WHERE id=$1 AND organization_id=$5 AND request_id=$6 AND revision=$7
         AND route_generation=$8 AND step_no=$9 AND state=$10
       RETURNING id`,
@@ -485,6 +493,7 @@ export async function applyApprovalDecision(
       input.step.route_generation,
       input.step.step_no,
       input.step.state,
+      input.delegationId,
     ],
   );
   if (updated.rowCount !== 1) throw conflict();

@@ -1,0 +1,9 @@
+\$ node tools/migrate.mjs down --to 0041
+reverting 0042_approval_delegation.sql ...
+  ok
+
+\$ node tools/migrate.mjs up
+applying 0042_approval_delegation.sql ...
+  ok
+
+1 件を適用しました。

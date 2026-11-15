@@ -88,6 +88,11 @@ export const AUDIT_EVENT_TYPES = [
   // 再割当 (WP-P4-APR-018 / ADR-0024 §3)。旧・新の世代、無効化したステップ、
   // 新しい承認者、実行者、理由を記録する。申請の入力値・個人データは載せない。
   'approval.reassigned',
+  // 代理承認 (WP-P4-APR-020 / ADR-0025 §1・§4)。委任の作成・取消は承認権限の
+  // 付与と同格の特権操作である。委任者・代理者・期間・理由だけを残し、
+  // 申請の入力値・メールアドレス・社員番号は載せない。
+  'approval.delegated',
+  'approval.delegation_revoked',
   // 承認ルーティング (WP-P4-APR-015 / 02.17 §2.2)。
   // 経路を決めた各版・ルールの作成/改版/無効化・組織単位の有効化切替を記録する。
   'approval.route.resolved',

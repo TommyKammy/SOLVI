@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "delegation"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "in-progress"
 story_points: 8
 risk: "high"
 workstream: "APR"
@@ -204,4 +204,77 @@ FR-CAT-006(代理承認)を実装する。承認者が、期間を限って、�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-15 | Codex(段階A) | 未コミット | 段階A(スキーマ・API・通知)を実装・検証済み。画面は段階B | `evidence/WP-P4-APR-020/20261115-0930/` | 下記 |
+
+### 段階A の実行記録(2026-11-15)
+
+#### 変更ファイル
+
+- `db/migrations/0042_approval_delegation.sql`(新規)
+- `services/api/src/modules/catalog/approval-delegation.ts`(新規。判定・共有述語)
+- `services/api/src/modules/catalog/approval-delegation.routes.ts`(新規。作成・取消・一覧・候補)
+- `services/api/src/modules/catalog/catalog.routes.ts`(`decide` の代理分岐、`visible`、一覧、詳細)
+- `services/api/src/modules/catalog/approval-assertion.ts`(実行前検証)
+- `services/api/src/modules/catalog/approval-notice.ts`(委任の通知・代理者の宛先)
+- `services/api/src/modules/catalog/approval-state.ts`(`delegation_id` の記録)
+- `services/api/src/modules/inbox/inbox.routes.ts`(受信箱の代理)
+- `services/api/src/modules/notification/notification.service.ts`(宛先と委任の通知)
+- `services/api/src/common/audit/audit.ts`、`services/api/src/common/outbox/outbox.ts`、`services/api/src/main.ts`(型・経路・配送の登録)
+- `packages/shared/src/catalog.ts`(入力スキーマと定数)
+- `tests/security/approval-delegation.test.ts`(新規)、`tests/unit/approval-delegation.test.ts`(新規)
+- `tests/security/approval-notice.test.ts`、`tests/unit/approval-assertion.test.ts`(0042 への追従のみ)
+
+#### Migration 0042 とロールバック
+
+- `approval_delegation`(RLS ENABLE + FORCE、組織分離ポリシー1件、`SELECT/INSERT/UPDATE` をアプリロールへ、`DELETE` は与えない)。
+- 重なりは `btree_gist` を足さず、**委任者単位の助言ロック**(`pg_advisory_xact_lock`)を INSERT トリガで取ってから検査する。API も同じ鍵でロックして事前検査する。
+- UPDATE は取消の3列を NULL から一度だけ埋める場合だけ許可。DELETE・その他の列の変更・取消の書き換えはトリガで拒否。
+- `local_request_approval.delegation_id`(複合 FK、CHECK: 委任のIDがあるなら決定者があり承認者と異なる)。
+- down は、委任の行または `delegation_id` を持つステップが1件でもあれば拒否(前進修復)。データが無ければ down → up が往復する。
+
+#### 検証(使い捨てDB `solvi_wp020_wp019_wp018_wp015_test`)
+
+- `npx vitest run tests/security`: 900 passed / 10 skipped。失敗は既知の読み込み不能6ファイルのみ(`knowledge-pagination` / `notification-*` 4件 / `user-directory-consistency`)。
+- `npx vitest run tests/unit/approval-*.test.ts tests/unit/catalog-*.test.ts tests/unit/requests-ui.test.ts`: 911 passed。
+- `npm run test:unit`: 34 failed / 4539 passed。失敗は knowledge・performance の4ファイルのみで、承認・カタログ・受信箱の失敗は0(基点と同じ34件)。
+- `node tools/check_rls.mjs`: 問題0件。`npm run check:all`: OK。`npm run typecheck`: エラー0。`npx eslint . --max-warnings=0`: 警告0。
+- 開発用DB `solvi` の件数は前後で不変(申請18 / 版23 / 承認30 / 世代2 / 通知記録8 / 監査1960 / 通知95 / Outbox454、Migration 41・最大0041)。書込みは行っていない。
+
+#### §7 の充足(段階A)
+
+- 本人だけが作成・本文で委任者を指定できない・`org_admin` も他人の委任を作れない・他組織から作成できない: 充足(§7-1)。
+- 資格の無い代理者は同じ403と同じ文言: 充足(§7-2)。
+- 期間の上下限・30日超・過去終了・重なり: 充足(§7-3)。
+- `fixed` / `manager` / `department_head` の代理決定、`decided_by`・`approver_id`・委任のID・監査、経路と `route_hash`・世代の不変: 充足(§7-4)。
+- 期間前・期間後・取消後・資格喪失・委任者無効での拒否: 充足(§7-5、API。画面は段階B)。
+- 自己承認・同一人物の2段: 充足(§7-6)。ADR-0025 §3-6 により「代理で1段目→本人で2段目」は正規の経路では到達しない(下記「未解決」)。
+- 再委任の禁止: 充足(§7-7。委任は委任者本人が `approver_id` の段にだけ効く)。
+- 取消・期間終了・資格喪失の後も承認済みは有効: 充足(§7-8)。
+- 実行前検証の4種の失敗: 充足(§7-9)。
+- 可視性(委任者宛ての承認待ちだけ・取消後に見えない): 充足(§7-10)。
+- 取消の権限と、取消×決定の直列化: 充足(§7-11)。
+- 追記専用・RLS・新規例外なし: 充足(§7-12)。
+- 通知の宛先・個人データを載せない: 充足(§7-13)。
+- 委任の無い申請の挙動不変・Migration の往復・データがある down の拒否: 充足(§7-14)。
+- 画面(§7-15)と `check:all`/`typecheck`/`lint`/新規依存0(§7-16): 後者は充足。画面は段階B。
+
+#### セキュリティ影響
+
+- 決定の認可に「有効な委任の代理者」を1つ追加した。委任者が本人であること・期間・取消・委任者の権限根拠・代理者の資格・申請者でないこと・決定者としての非重複を、決定と同じトランザクションで検証する。
+- 代理者が資格を失う・委任者が無効になる・期間外・取消済みのときは、可視性も決定も成立しない(fail closed)。
+- 委任の作成・取消は承認権限の付与と同格の特権操作として監査に残す。入力値・個人データは監査・通知・Outbox に載せない。
+- 新しい RLS の例外・`SECURITY DEFINER`・環境変数/フラグによる切替は設けていない。
+- Security Reviewer(人間)の sign-off は**未取得**(Gate B GB-3)。
+
+#### 未解決・確認事項
+
+1. **決定の拒否の応答**: 委任が無い・資格を満たさない場合は、従来の 403「指定された承認者だけが決定できます」を維持した(WP §6.3 の「従来と同じ応答」、既存テストの期待)。一方、委任が有効でも ADR-0025 §3-6(ほかの段の approver_id である)や decided_by の非重複で拒否する場合は 404(「見えない申請」と同じ)にした。ブリーフの「決定の拒否は従来の「見えない申請」と同じ応答」と字面が異なるため、監督者の確認を求める。
+2. **2段の相互作用**: 「代理として1段目→本人として2段目」は、ADR-0025 §3-6 が代理者の決定自体を拒否するため、正規の経路では到達しない。ADR・WP との矛盾ではなく、ADR §3-6 が decided_by の非重複より先に効く。実行前検証の `decided_by_duplicate` も多層の防御として残した。
+3. 通知の一覧(`notification-list.service.ts`)のイベント型に委任の2種を加えていない。段階Bで画面の表示名(`apps/web`)と一緒に追加する(現状は「その他」と表示される)。
+4. 委任の一覧は最大200件でページングしない(段階Bで必要なら追加する)。
+5. 期間の上限30日・開始の猶予5分は API と DB の CHECK(30日)の両方で検証する。猶予5分は API だけである。
+
+#### Evidence
+
+`evidence/WP-P4-APR-020/20261115-0930/`(検証ログ・開発用DBの件数・`git status`)。
+
