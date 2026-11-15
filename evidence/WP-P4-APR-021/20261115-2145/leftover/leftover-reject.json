@@ -1,0 +1,21 @@
+[
+  {
+    "before": {
+      "state": "pending",
+      "steps": [
+        "pending"
+      ]
+    }
+  },
+  {
+    "after": {
+      "state": "rejected",
+      "steps": [
+        "rejected"
+      ]
+    }
+  },
+  {
+    "ok": true
+  }
+]

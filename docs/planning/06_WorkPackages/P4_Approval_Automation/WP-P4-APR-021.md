@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "sod", "high-risk"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "critical"
 workstream: "APR"
@@ -610,3 +610,16 @@ axe の結果、`run.log`、`dryrun-selectors-before-write.{json,log}`、`dryrun
 `db-before.json`・`db-after.json`・`db-precheck-before-write.txt`・`db-verify.txt`、
 `audit-timeline.jsonl`、`ids.json`、`typecheck.log`・`check-all.log`・`eslint.log`・
 `unit.log`・`node-check.log`、`git-status-before.txt`・`git-status-after.txt`)。
+
+### 監督者の検査(段階C・C2、2026-11-15)
+
+- 両回の報告・スクリーンショット・`summary.json` を確認した。停止の原因はいずれもハーネスの判定(1回目: 送信の待ち合わせ、2回目: 申請の作成時のステップ数の期待)であり、製品の挙動は正しい(段は1段目の承認時に作られる)。
+- 管理者接続の `SELECT` で片付けを照合した: ルールの使用が有効な組織0、有効な委任0、`UI021` のルール2件とも無効、`UI021` の項目2件とも非公開、`agent` の有効なロールは作業前と同じ(`agent`・`requester`)、Migration 42件。
+- 残った未完了の申請 `REQ-2026-000167` は、利用者の指示により、`approver` が画面から1段目を却下して閉じた(2026-11-15 22:30。`decided_by` = `approver_id`、`delegation_id` は空)。申請の状態の件数は作業前と同じ `pending` 7件に戻った。Evidence: `evidence/WP-P4-APR-021/20261115-2145/leftover/`(却下後の詳細のスクリーンショット、`leftover-reject.json`)。
+- 所見: 却下後の詳細で、作られていない段2が「前の段の承認後に依頼」と表示される(却下で終わった申請では依頼されない)。文言の不正確さで、本WPの範囲外。WP-019 からの既知の残り(期限・見出し)と同じ扱いで記録だけとする。
+- §7-10 の充足: 管理画面の指定・公開の失敗・一覧と詳細の目印・申請画面の注記は実画面(Chromium / WebKit、1440 / 375、axe serious / critical 0)で確認した。申請の詳細の注記・代理者の非表示・ルールの拒否の表示は実画面では未確認で、unit テスト(`approval-dual-control-ui.test.ts`)・security テスト・ハーネスで確認した範囲である。この扱いでの完了は利用者の判断による。
+
+#### 利用者の承認(2026-11-15)
+
+- **2026-11-15、利用者(人間)が承認した。** セキュリティ関連の変更(承認の認可の制限、実行前検証、ルール・組織設定の変更の拒否、カタログ定義の属性の変更権限、監査)に対する人間のレビューとして扱う。§7-10 は上記の内訳(実画面で確認した範囲と、テスト・ハーネスで確認した範囲)のまま完了とする。
+- 開発用データの一時的な変更(ルールの使用の有効化と無効化、合成ルール・合成の項目・申請・委任、`agent` への `approver` の付与と取り外し)は、利用者の承認の範囲で2回行い、どちらも片付けた。2回目の残りの申請は、利用者の指示で却下して閉じた。
