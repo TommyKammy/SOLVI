@@ -11,7 +11,7 @@ updated: "2026-11-15"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p4", "approval", "sod", "high-risk"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "in-progress"
 story_points: 8
 risk: "critical"
 workstream: "APR"
@@ -205,4 +205,83 @@ FR-CAT-010(高リスク二重承認とSoD)を実装する。高リスクかど�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-15 | Codex(段階A) | 未コミット | 段階A(属性・共有の判定・API)を実装・検証済み。画面(§6.8)は段階B | `evidence/WP-P4-APR-021/20261115-1736/` | 下記 |
+| - | - | - | 段階B(画面)は未着手 | - | - |
+
+### 段階A の実行記録(2026-11-15)
+
+#### 変更ファイル
+
+- `packages/shared/src/catalog.ts`(`approval.highRisk` の追加。真偽値・省略可)
+- `services/api/src/modules/catalog/approval-high-risk.ts`(新規。判定の純粋関数3つ・属性の読み方・可視性の SQL 述語)
+- `services/api/src/modules/catalog/approval-high-risk-store.ts`(新規。ロックの順序・公開中の高リスク項目の読み取り・409 の Problem)
+- `services/api/src/modules/catalog/catalog-admin.routes.ts`(下書きの属性の権限、公開の条件と `catalog.high_risk_changed`)
+- `services/api/src/modules/catalog/approval-rule.service.ts`(設定→ルールのロック順、版の追加・無効化・使用の停止の拒否)
+- `services/api/src/modules/catalog/catalog.routes.ts`(申請・変更の検証、決定の代理の拒否、可視性、再割当)
+- `services/api/src/modules/catalog/approval-assertion.ts`(実行前検証の3つの失敗コード)
+- `services/api/src/modules/catalog/approval-resolver.ts`(`high_risk_route_invalid` の失敗コードと Problem)
+- `services/api/src/modules/inbox/inbox.routes.ts`(受信箱から代理者へ高リスクを見せない)
+- `services/api/src/modules/notification/notification.service.ts`(依頼・期限前の宛先から代理者を除く)
+- `services/api/src/common/audit/audit.ts`(`catalog.high_risk_changed` の追加)
+- `tests/security/approval-dual-control.test.ts`(新規37件)、`tests/unit/approval-dual-control.test.ts`(新規21件)
+- `docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md`(本節と `implementation_status` だけ)
+- `evidence/WP-P4-APR-021/20261115-1736/`
+
+#### Migration
+
+なし(属性は定義の版の JSON に入る。テーブル・列を追加しない)。Migration は42件のまま。
+ロールバックは、属性を偽に戻した新しい版を公開する(§10)。
+
+#### 検証(使い捨てDB `solvi_wp021_wp020_wp019_wp018_wp015_test`・42 Migration・seed 済み)
+
+- `npx vitest run tests/security/approval-dual-control.test.ts`: 37 passed。
+- `npx vitest run tests/unit/approval-dual-control.test.ts`: 21 passed。
+- `npx vitest run tests/security/approval-rule.test.ts approval-routing approval-reassign approval-delegation approval-assertion approval-notice approval-steps approval-migration-compat`: 250 passed(既存の「ルールに `highRisk` は保存できない」を含む)。
+- `npx vitest run tests/security` 全体(`.env` を読み込んで実行): 939 passed / 10 skipped。失敗は既知の読み込み不能6ファイルだけ。
+- `npx vitest run tests/unit/approval-*.test.ts tests/unit/catalog-*.test.ts tests/unit/requests-ui.test.ts`: 990 passed(27ファイル)。
+- `npm run test:unit`: 34 failed / 4619 passed。失敗は knowledge・performance の4ファイルだけ(基点の34件と同じ)。
+- `node tools/check_rls.mjs`: 問題0件。`npm run check:all`: OK。`npm run typecheck`: エラー0。`npx eslint . --max-warnings=0 --ignore-pattern '.claude/**'`: 0件。
+- 開発用DB `solvi` の件数は前後で不変(Migration 42・最大0042)。書込みは行っていない。
+
+#### §7 の充足(段階A)
+
+- §7-1(申請者・同一人物の2段の拒否): 充足(申請者は403、`decided_by` の重複は409。API)。
+- §7-2(代理者の拒否・非表示・通知): 充足(403と同じ文言、一覧・受信箱・詳細は404/非表示、依頼・期限前の宛先から除外)。
+- §7-3(独立2名の `fixed`・代理・読めない値): 充足(`high_risk_insufficient_approvers` / `high_risk_delegated_decision` / `high_risk_unreadable`)。
+- §7-4(関係ベースだけ・`fixed` 1段・同じ承認者の2段): 充足(公開400・ルール変更409・申請409)。
+- §7-5(条件を崩す変更の拒否と同時実行): 充足(公開×版の追加・無効化・使用の停止)。
+- §7-6(ルール無し・使用が無効な組織での公開と申請): 充足。
+- §7-7(属性の変更権限と監査): 充足(`org_admin` 以外は403、公開時に前後の値だけを記録)。
+- §7-8(再割当後の条件): 充足(409 `high_risk_route_invalid`)。
+- §7-9(既存の定義・申請・高リスクでない申請の挙動): 充足(既存テストの期待値を変えていない)。
+- §7-10(画面): **段階B**。
+- §7-11(`check:all`・`typecheck`・`lint`・新規依存0): 充足。
+
+#### セキュリティ影響
+
+- 決定の認可に「高リスクでは代理者を認めない」制約を加えた。判定は snapshot の属性(真偽値の `true` だけ)で行う。
+- 公開・ルール/設定の変更・申請・変更・再割当・実行前検証が、同じ純粋関数の判定を通る。値が読めない場合は拒否する。
+- 新しい RLS の例外・`SECURITY DEFINER`・環境変数/フラグによる切替は設けていない。Migration も無い。
+- `catalog.high_risk_changed` は前後の真偽値・コード・版・実行者だけを記録し、入力値・個人データを載せない。
+- Security Reviewer(人間)の sign-off は**未取得**(Gate B GB-3)。
+
+#### 未解決・確認事項
+
+1. **`decide` の高リスクの代理の応答**: 代理者には `visible()` が 404 を返すため、決定の直前に「有効な委任があれば 403(委任の無い場合と同じ文言)」を返す分岐を置いた。委任の無い第三者は従来どおり 404。応答の違いから「委任している承認者が高リスクの申請の現在の承認者である」ことが分かり得る(§6.5-2 の 403 を優先した)。監督者の確認を求める。
+2. **ルールの版の追加での重複の拒否**: `fixed` の重複は既存の保存の検証が 400 で拒否するため、公開中の高リスクの項目を壊す場合に限り、高リスクの判定を先に行い 409(影響する項目つき)にした。重複が高リスクの項目を壊さない場合は従来の 400 のまま。
+3. **ルールの使用の停止のロック**: 停止では、公開中の高リスクの項目が参照するルールの行も ID の昇順で `FOR UPDATE` する。組織の設定の行を先に取るため、公開・版の追加・無効化・停止のすべてが「設定 → ルール」の順になり、デッドロックしない。
+4. **`org_approval_setting` の行が無い組織**: 「ルールの使用が無効」として扱う(行を作らない。行を作るのは `setRouting` だけ)。
+5. **再割当の検証**: §6.6 のとおり経路の条件だけを見る(組織の設定は、公開中の項目がある限り停止できないため前提とする)。`fixed` の段は再割当できないため、条件を崩す再割当は DB を直接いじった場合にだけ生じる。
+6. **公開時のハッシュ整合**: 承認の実行前検証は snapshot のハッシュを先に検査する。属性を DB で直接書き換える検査では、snapshot・版・承認行のハッシュを同時に更新している(本番の経路ではない)。
+
+#### Evidence
+
+`evidence/WP-P4-APR-021/20261115-1736/`(検証ログ・開発用DBの件数・`git status`)。
+
+
+#### 監督者の検査(段階A、2026-11-15)
+
+- **決定の応答の修正**: 段階Aの実装は、高リスクの申請に対する代理者の決定を、可視性の判定より前に 403 で拒否していた。この結果、代理者は 403、委任の無い同じ組織の利用者は 404 となり、応答の違いから「委任者がその申請の現在の承認者である」ことが分かり得た。[[ADR-0026_High_Risk_Approval_Constraints]] §1 の「委任の無い場合の代理者と同じ応答」に合わせ、判定を可視性の後へ移した。見えない代理者は 404、見える利用者(承認者でない)には従来の 403 となる。§6.5-2 の「従来の 403」は、見える利用者についての記述として読む。テストを「委任の無い利用者と同じ 404」に改めた。
+- **実行前検証の修正**: 代理による決定の検出が `fixed` の段だけを見ていた。ADR-0026 §1 のとおり、段の種別によらず検出するよう直し、関係ベースの段の代理の決定を拒否する unit テストを足した。
+- 監督者が使い捨てDB(`solvi_wp021_wp020_wp019_wp018_wp015_test`)で再実行した: `typecheck`、`check:all`、`eslint`(`.claude/**` を除く)、`tools/check_rls.mjs`、`vitest run tests/security`(939件通過。失敗は既知の読み込み不能6ファイルだけ)、承認・カタログ・申請の unit テスト990件。開発用DBの件数は作業前と同じ(Migration 42件)。
+- 段階Aの確認事項への回答: (2) 公開中の高リスクの項目を壊す場合に限り、固定承認者の重複を 409 にする順序の入れ替えは許容する。(3)(4)(5)(6)(7) は報告のとおりでよい。(8) は段階Bで扱う。

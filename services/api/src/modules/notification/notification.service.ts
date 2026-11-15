@@ -13,6 +13,7 @@ import {
   isApprovalNoticeEventType,
   isDelegationNoticeEventType,
 } from '../catalog/approval-notice.js';
+import { readHighRiskAttribute } from '../catalog/approval-high-risk.js';
 
 /**
  * 通知の組み立てと配送(FR-TKT-007)。
@@ -304,8 +305,8 @@ export class NotificationService {
 
     // 対象の申請と番号。RLS の組織文脈に加え、明示的に組織で絞る。
     const target = (
-      await this.client.query<{ requester_id: string; number: string }>(
-        `SELECT q.requester_id, t.number
+      await this.client.query<{ requester_id: string; number: string; snapshot: unknown }>(
+        `SELECT q.requester_id, t.number, q.snapshot
            FROM local_service_request q
            JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
           WHERE q.id=$1 AND q.organization_id=$2`,
@@ -329,8 +330,15 @@ export class NotificationService {
     }
 
     // 依頼・期限前は、承認者に加えて**配送の時点で有効な委任の代理者**へも送る
-    // (ADR-0025 §5)。委任が無効(期間外・取消済み・委任者や代理者が資格を失った)なら
-    // 宛先に上がらない。承認者不在の判定と、期限切れの宛先(申請者)は変えない。
+    // (ADR-0025 §5)。ただし高リスクの申請は代理による承認を認めないため、
+    // 代理者へは送らない(ADR-0026 §1 / WP-P4-APR-021 §6.5-4)。
+    // 委任が無効(期間外・取消済み・委任者や代理者が資格を失った)なら宛先に上がらない。
+    // 承認者不在の判定と、期限切れの宛先(申請者)は変えない。
+    const highRisk = readHighRiskAttribute(
+      (target.snapshot as { item?: { definition?: { approval?: unknown } } } | null)?.item
+        ?.definition?.approval,
+    );
+    const delegateExcluded = highRisk === 'true' || highRisk === 'invalid';
     let recipients: NotificationRecipient[];
     if (kind === 'approver_unavailable') recipients = await this.activeOrgAdmins(organizationId);
     else if (kind === 'expired')
@@ -338,11 +346,13 @@ export class NotificationService {
     else
       recipients = this.mergeRecipients(
         await this.activeMembers(organizationId, approval.approver_id),
-        await this.activeApprovalDelegates(
-          organizationId,
-          approval.approver_id,
-          approval.authority_type,
-        ),
+        delegateExcluded
+          ? []
+          : await this.activeApprovalDelegates(
+              organizationId,
+              approval.approver_id,
+              approval.authority_type,
+            ),
       );
     if (recipients.length === 0) return { sent: 0, skipped: 1 };
 

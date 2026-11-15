@@ -306,6 +306,9 @@ export const catalogDefinitionSchema = z
           .string({ invalid_type_error: '承認ルールを選んでください' })
           .uuid('承認ルールを選んでください')
           .optional(),
+        // WP-P4-APR-021: 高リスク申請の判定は定義の版属性で行う(ADR-0024 §4)。
+        // **省略は「高リスクではない」。** 真偽値以外は 400。変更できるのは org_admin だけである。
+        highRisk: z.boolean({ invalid_type_error: '高リスクの指定を確認してください' }).optional(),
       })
       .strict()
       .superRefine((approval, context) => {

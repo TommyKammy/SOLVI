@@ -55,6 +55,12 @@ import {
   type ResolverFailure,
 } from './approval-resolver.js';
 import { canonical, hash } from './snapshot-hash.js';
+import {
+  checkHighRiskRoute,
+  definitelyNotHighRiskSql,
+  evaluateHighRiskDefinition,
+  readHighRiskAttribute,
+} from './approval-high-risk.js';
 
 const uuid = z.string().uuid();
 const inputSchema = z
@@ -140,6 +146,38 @@ function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
     );
   return r.data;
 }
+/**
+ * 高リスクの条件を満たさない申請・変更の拒否 (WP-P4-APR-021 §6.4)。
+ * 既存の「承認者を解決できません」と同じ 409 の Problem の形で返す。
+ */
+function highRiskRouteFailure(
+  code:
+    | 'attribute_invalid'
+    | 'rule_missing'
+    | 'rule_routing_disabled'
+    | 'rule_unavailable'
+    | 'fixed_approvers_insufficient'
+    | 'fixed_approvers_duplicate'
+    | 'route_missing'
+    | 'route_invalid'
+    | 'requester_is_approver',
+): ResolverFailure {
+  const message =
+    code === 'rule_missing'
+      ? '高リスクの申請には承認ルールの経路が必要です'
+      : code === 'rule_routing_disabled'
+        ? '組織で承認ルールの使用が無効なため、高リスクの申請はできません'
+        : code === 'rule_unavailable'
+          ? '高リスクの申請に使う承認ルールが有効ではありません'
+          : code === 'requester_is_approver'
+            ? '高リスクの申請では、申請者本人を承認者にできません'
+            : code === 'route_missing' || code === 'route_invalid'
+              ? '高リスクの申請の承認経路を確認できません'
+              : code === 'attribute_invalid'
+                ? '高リスクの指定を確認できません'
+                : '高リスクの申請には、別人の固定承認者が2段以上必要です';
+  return { code: 'high_risk_route_invalid', message, missing: 'high_risk' };
+}
 /** 再割当の再解決失敗を 409 と理由コードで返す(WP-P4-APR-018 §6-4)。 */
 function reassignmentProblem(reason: ResolverFailure): ProblemError {
   return new ProblemError({
@@ -168,6 +206,7 @@ export type ReassignConflictCode =
   | 'approver_available'
   | 'step_mismatch'
   | 'approver_unchanged'
+  | 'high_risk_route_invalid'
   | 'concurrent_update';
 function reassignConflict(code: ReassignConflictCode, detail: string): ProblemError {
   return new ProblemError({
@@ -368,6 +407,9 @@ export class CatalogController {
    * 組織で有効化されていて定義に `ruleId` がある版だけルールで解決し、
    * それ以外は現行互換(固定承認者、無ければ申請者が選んだ承認者)の1段にする。
    * 解決できない場合は例外にし、申請者が選んだ承認者や固定承認者で代用しない。
+   *
+   * 高リスクの版では、解決した経路が二重承認の条件を満たすことも確かめる
+   * (WP-P4-APR-021 §6.4)。判定は `approval-high-risk.ts` の共有関数だけを使う。
    */
   private async resolveRoute(
     c: pg.PoolClient,
@@ -385,7 +427,27 @@ export class CatalogController {
       now,
     });
     const usingRule = resolution.ruleRoutingEnabled && Boolean(definition.approval?.ruleId);
+    // 高リスクの版: ルールの必須・有効、および解決した経路の条件を確かめる(fail closed)。
+    // 定義とルールの段で決まる条件は、経路の解決に失敗した場合でも先に返す
+    // (ルールが無い・使用が無効・ルールが無効、を「承認者を選んでください」で覆わない)。
+    const highRisk = evaluateHighRiskDefinition({
+      approval: definition.approval,
+      ruleRoutingEnabled: resolution.ruleRoutingEnabled,
+      rule: resolution.rule
+        ? { active: resolution.rule.active, steps: resolution.rule.steps }
+        : null,
+    });
+    if (highRisk.highRisk && !highRisk.ok)
+      throw new ApprovalRouteDenied(highRiskRouteFailure(highRisk.code), target);
     if (!resolution.ok) throw new ApprovalRouteDenied(resolution.reason, target);
+    if (highRisk.highRisk) {
+      const routeCheck = checkHighRiskRoute({
+        route: resolution.route,
+        requesterId: auth.userId,
+      });
+      if (!routeCheck.ok)
+        throw new ApprovalRouteDenied(highRiskRouteFailure(routeCheck.code), target);
+    }
     return {
       route: resolution.route,
       usingRule,
@@ -601,9 +663,12 @@ export class CatalogController {
         at: '$4',
         authorityType,
       });
+      // 高リスクの申請は、委任による可視性で代理者に見せない(WP-P4-APR-021 §6.5-3)。
+      // 判定は approval-high-risk.ts の共有述語だけを使う(読めない値は高リスク扱い)。
+      const notHighRisk = definitelyNotHighRiskSql('q.snapshot');
       const conditions = [
         'q.organization_id=$1',
-        `($2::boolean OR q.requester_id=$3 OR a.approver_id=$3 OR ${delegated})`,
+        `($2::boolean OR q.requester_id=$3 OR a.approver_id=$3 OR (${delegated} AND ${notHighRisk}))`,
       ];
       if (filter.q) {
         values.push('%' + filter.q.replace(/([%_\\])/g, '\\$1') + '%');
@@ -615,8 +680,9 @@ export class CatalogController {
       if (filter.view === 'approvals')
         // ロールではなく「自分が現在の pending ステップの approver_id である」で決める。
         // 有効な委任の代理者にも、委任者宛ての承認待ちを見せる(ADR-0025 §5)。
+        // 高リスクの申請は委任による可視性の対象外にする(WP-P4-APR-021 §6.5-3)。
         conditions.push(
-          `(a.approver_id=$3 OR ${delegated}) AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`,
+          `(a.approver_id=$3 OR (${delegated} AND ${notHighRisk})) AND q.requester_id<>$3 AND q.state='pending' AND a.state='pending' AND NOT ${expired}`,
         );
       if (filter.approverUnavailable === '1')
         // 期限を過ぎたステップは滞留の対象ではない(WP-P4-APR-019 §6.4)。
@@ -649,7 +715,7 @@ export class CatalogController {
           q.created_at AS "createdAt",q.updated_at AS "updatedAt",a.state AS "approvalState",q.ticket_id AS "ticketId",t.number,
           u.display_name AS "requesterName",ap.display_name AS "approverName",a.expires_at AS "expiresAt",
           a.reason AS "decisionReason",q.requester_id=$3 AS own,a.approver_id=$3 AS assigned,${expired} AS expired,
-          ${delegated} AS delegated,
+          (${delegated} AND ${notHighRisk}) AS delegated,
           NOT ${approverAvailable} AS "approverUnavailable"
          ${from} ORDER BY q.updated_at DESC,q.id DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
           [...values, pageSize, (filter.page - 1) * pageSize],
@@ -854,6 +920,10 @@ export class CatalogController {
     if (!nowRow || !(nowRow.now instanceof Date))
       throw Problems.conflict('現在時刻を確認できません');
     const now = nowRow.now;
+    // 高リスクの申請は、委任による可視性の対象外である(ADR-0026 §1 / WP-P4-APR-021 §6.5-3)。
+    // 属性が読めない場合も、代理者には見せない(fail closed)。画面側の判定に頼らない。
+    const highRisk = readHighRiskAttribute(q.snapshot.item.definition.approval);
+    if (highRisk === 'true' || highRisk === 'invalid') throw Problems.notFound('申請');
     const delegation = await c.query(
       `SELECT 1
          FROM local_request_approval a
@@ -966,8 +1036,10 @@ export class CatalogController {
       const routeStep = effectiveRouteStep(state, a.step_no);
       const authorityType = routeStep?.authorityType ?? a.authority_type;
       // 現在のステップを代理で見ている場合の委任(加算的)。委任者本人には null を返す。
+      // 高リスクの申請は代理の対象外なので、代理の案内も返さない(WP-P4-APR-021 §6.5-3)。
+      const detailHighRisk = readHighRiskAttribute(q.snapshot.item.definition.approval);
       const currentDelegation =
-        a.approver_id === auth.userId
+        a.approver_id === auth.userId || detailHighRisk === 'true' || detailHighRisk === 'invalid'
           ? null
           : await findEffectiveDelegation(c, {
               organizationId: q.organization_id,
@@ -1487,7 +1559,35 @@ export class CatalogController {
       const q = await this.lock(c, auth, id),
         revision = await this.revision(c, q),
         a = await this.approval(c, q);
+      // 時刻は1回だけ読む。期間・期限の判定はこの値を使う。
+      const nowRow = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0];
+      if (!nowRow || !(nowRow.now instanceof Date))
+        throw Problems.conflict('現在時刻を確認できません');
+      const now = nowRow.now;
       await this.visible(c, auth, q, revision);
+      // snapshot の高リスクの属性(ADR-0024 §4)。存在して真偽値でない場合は拒否する(fail closed)。
+      const highRisk = readHighRiskAttribute(q.snapshot.item.definition.approval);
+      if (highRisk === 'invalid') throw Problems.conflict('承認条件を確認できません');
+      // 高リスクの申請では代理による決定を認めない(ADR-0026 §1)。
+      // 可視性の判定の後に置く: 見えない利用者は委任の有無によらず 404(委任の無い利用者と同じ)。
+      // 見える利用者(承認者でない)には、委任の無い場合と同じ 403 と文言を返す。
+      if (input.decision !== 'revoke' && highRisk === 'true' && a.approver_id !== auth.userId) {
+        const delegation = await findEffectiveDelegation(c, {
+          organizationId: q.organization_id,
+          delegatorId: a.approver_id,
+          delegateId: auth.userId,
+          authorityType: a.authority_type,
+          now,
+        });
+        if (delegation) {
+          this.logger?.warn('catalog.approval.high_risk_delegation_denied', {
+            organizationId: q.organization_id,
+            requestId: q.id,
+            stepNo: a.step_no,
+          });
+          throw Problems.forbidden('指定された承認者だけが決定できます');
+        }
+      }
       // 現在の経路は、版の列(世代1)と世代の行から共有関数で導出する。
       const state = await this.routeState(c, q);
       const steps = await this.steps(c, q);
@@ -1548,11 +1648,6 @@ export class CatalogController {
       // 3. 決定者が申請者本人でない。委任があっても代理者は申請者になれない(ADR-0025 §3-5)。
       if (q.requester_id === auth.userId)
         throw Problems.forbidden('自己承認・自己決定はできません');
-      // 時刻は1回だけ読む。期間・期限の判定はこの値を使う。
-      const nowRow = (await c.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0];
-      if (!nowRow || !(nowRow.now instanceof Date))
-        throw Problems.conflict('現在時刻を確認できません');
-      const now = nowRow.now;
 
       // 決定の主体を決める。ステップの approver_id でない場合に限り、代理の6項目を検証する
       // (ADR-0025 §3)。**委任のIDは本文から受け取らず、決定者とステップから引く。**
@@ -1778,6 +1873,25 @@ export class CatalogController {
       // 段数は固定したルールの版で決まる。変わっていれば経路を保存しない。
       if (resolution.route.steps.length !== route.steps.length)
         throw reassignConflict('step_mismatch', '再割当後の承認経路を確認できません');
+      // 高リスクの申請では、再割当後の経路も申請時と同じ共有の判定で検証する
+      // (WP-P4-APR-021 §6.6 / ADR-0026 §4)。満たさなければ何も変更しない。
+      const reassignHighRisk = readHighRiskAttribute(q.snapshot.item.definition.approval);
+      if (reassignHighRisk === 'invalid')
+        throw reassignConflict(
+          'high_risk_route_invalid',
+          '高リスクの申請の承認条件を確認できません',
+        );
+      if (reassignHighRisk === 'true') {
+        const highRiskRoute = checkHighRiskRoute({
+          route: resolution.route,
+          requesterId: q.requester_id,
+        });
+        if (!highRiskRoute.ok)
+          throw reassignConflict(
+            'high_risk_route_invalid',
+            '高リスクの申請の承認条件を満たす経路に再割当できません',
+          );
+      }
       const newStep = resolution.route.steps[a.step_no - 1]!;
       if (newStep.stepNo !== a.step_no || newStep.approverId === a.approver_id)
         throw reassignConflict('approver_unchanged', '再割当後の承認者が現在の承認者と同じです');

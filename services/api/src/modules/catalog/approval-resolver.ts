@@ -45,7 +45,10 @@ export type ResolverFailureCode =
   | 'requester_selected_missing'
   | 'requester_selected_invalid'
   | 'requester_selected_self'
-  | 'approver_self';
+  | 'approver_self'
+  // WP-P4-APR-021 §6.4 / ADR-0024 §5: 高リスクの経路が二重承認の条件を満たさない。
+  // 既存の解決不能と同じ 409 の Problem で返し、理由の詳細は `missing` と監査に残す。
+  | 'high_risk_route_invalid';
 
 export type ResolverMissing =
   | 'requester'
@@ -54,7 +57,8 @@ export type ResolverMissing =
   | 'manager'
   | 'department_head'
   | 'selected_approver'
-  | 'duplicate';
+  | 'duplicate'
+  | 'high_risk';
 
 export type ResolverFailure = {
   code: ResolverFailureCode;
@@ -543,6 +547,16 @@ export function approvalResolutionProblem(reason: ResolverFailure): ProblemError
     reason.code === 'fixed_approver_self'
   )
     return Problems.forbidden(reason.message);
+  // 高リスクの条件を満たさない場合は、画面・テストが分岐に使える理由コードを返す
+  // (WP-P4-APR-021 §6.4)。文言は `detail` に置き、個人データ・入力値は含めない。
+  if (reason.code === 'high_risk_route_invalid')
+    return new ProblemError({
+      status: 409,
+      type: 'https://solvi.internal/problems/approval-high-risk-unresolved',
+      title: '高リスクの申請の承認条件を満たしていません',
+      detail: reason.message,
+      errors: [{ field: 'approval', message: reason.code }],
+    });
   return new ProblemError({
     status: 409,
     type: 'https://solvi.internal/problems/approval-unresolved',

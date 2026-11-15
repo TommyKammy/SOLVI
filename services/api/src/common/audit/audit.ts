@@ -18,6 +18,9 @@ export const AUDIT_EVENT_TYPES = [
   'catalog.saved',
   'catalog.published',
   'catalog.unpublished',
+  // 高リスクの指定の変更 (WP-P4-APR-021 §6.1 / ADR-0026 §3)。
+  // **公開の時点で**、公開中だった版との差として前後の値だけを残す(下書きの保存では記録しない)。
+  'catalog.high_risk_changed',
   'catalog.question_set.saved',
   // Phase 1(Gate 1 G1-4 の判定対象)
   'auth.login.success',

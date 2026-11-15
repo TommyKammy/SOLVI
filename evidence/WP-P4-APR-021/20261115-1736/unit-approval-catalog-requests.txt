@@ -1,0 +1,36 @@
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ✓ tests/unit/catalog-authoring-ui.test.ts (54 tests) 261ms
+ ✓ tests/unit/catalog-edit-ui.test.ts (30 tests) 67ms
+ ✓ tests/unit/approval-assertion.test.ts (47 tests) 43ms
+ ✓ tests/unit/catalog-detail-recovery-ui.test.ts (67 tests) 27ms
+ ✓ tests/unit/approval-delegation-ui.test.ts (58 tests) 34ms
+ ✓ tests/unit/approval-reassign-ui.test.ts (44 tests) 28ms
+ ✓ tests/unit/requests-ui.test.ts (48 tests) 31ms
+ ✓ tests/unit/catalog-operations-ui.test.ts (34 tests) 20ms
+ ✓ tests/unit/catalog-preview.test.ts (90 tests) 22ms
+ ✓ tests/unit/catalog-operations.test.ts (34 tests) 16ms
+ ✓ tests/unit/catalog-entry-recovery-ui.test.ts (47 tests) 14ms
+ ✓ tests/unit/catalog-management-list-ui.test.ts (41 tests) 12ms
+ ✓ tests/unit/catalog-flexible.test.ts (51 tests) 12ms
+ ✓ tests/unit/catalog-request-entry-recovery-ui.test.ts (46 tests) 13ms
+ ✓ tests/unit/catalog-request-fields-ui.test.ts (19 tests) 11ms
+ ✓ tests/unit/approval-state.test.ts (43 tests) 9ms
+ ✓ tests/unit/catalog-reuse.test.ts (17 tests) 8ms
+ ✓ tests/unit/catalog-flexible-ui.test.ts (10 tests) 9ms
+ ✓ tests/unit/catalog-definition.test.ts (58 tests) 8ms
+ ✓ tests/unit/catalog-flexible-templates.test.ts (11 tests) 5ms
+ ✓ tests/unit/catalog-priority-two-ui.test.ts (16 tests) 5ms
+ ✓ tests/unit/approval-route-ui.test.ts (31 tests) 5ms
+ ✓ tests/unit/approval-dual-control.test.ts (21 tests) 4ms
+ ✓ tests/unit/approval-delegation.test.ts (13 tests) 4ms
+ ✓ tests/unit/approval-resolver.test.ts (29 tests) 4ms
+ ✓ tests/unit/approval-reassign.test.ts (18 tests) 3ms
+ ✓ tests/unit/approval-notice.test.ts (13 tests) 3ms
+
+ Test Files  27 passed (27)
+      Tests  990 passed (990)
+   Start at  17:47:37
+   Duration  6.45s (transform 452ms, setup 0ms, collect 1.65s, tests 677ms, environment 1ms, prepare 549ms)
+

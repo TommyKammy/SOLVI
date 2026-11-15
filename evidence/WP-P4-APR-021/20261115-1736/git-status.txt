@@ -1,0 +1,15 @@
+ M docs/planning/06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md
+ M packages/shared/src/catalog.ts
+ M services/api/src/common/audit/audit.ts
+ M services/api/src/modules/catalog/approval-assertion.ts
+ M services/api/src/modules/catalog/approval-resolver.ts
+ M services/api/src/modules/catalog/approval-rule.service.ts
+ M services/api/src/modules/catalog/catalog-admin.routes.ts
+ M services/api/src/modules/catalog/catalog.routes.ts
+ M services/api/src/modules/inbox/inbox.routes.ts
+ M services/api/src/modules/notification/notification.service.ts
+?? evidence/WP-P4-APR-021/
+?? services/api/src/modules/catalog/approval-high-risk-store.ts
+?? services/api/src/modules/catalog/approval-high-risk.ts
+?? tests/security/approval-dual-control.test.ts
+?? tests/unit/approval-dual-control.test.ts

@@ -6,6 +6,7 @@ import {
   loadRouteState,
   type RouteGenerationFailure,
 } from './approval-route-state.js';
+import { checkHighRiskApprovals, readHighRiskAttribute } from './approval-high-risk.js';
 import { hash } from './snapshot-hash.js';
 
 /**
@@ -48,6 +49,10 @@ export type ApprovalFailure =
   | 'delegation_revoked'
   | 'decided_by_self_approval'
   | 'decided_by_duplicate'
+  // 高リスクの二重承認 (WP-P4-APR-021 §6.7 / ADR-0024 §5)。fail closed。
+  | 'high_risk_insufficient_approvers'
+  | 'high_risk_delegated_decision'
+  | 'high_risk_unreadable'
   | RouteCheckFailure
   | RouteGenerationFailure;
 
@@ -93,6 +98,9 @@ const MESSAGES: Record<ApprovalFailure, string> = {
   delegation_revoked: '承認記録を確認できません',
   decided_by_self_approval: '自分の申請を承認することはできません',
   decided_by_duplicate: '承認記録を確認できません',
+  high_risk_insufficient_approvers: '高リスクの申請は、別人2名の承認が揃っていません',
+  high_risk_delegated_decision: '高リスクの申請では代理による承認を認めていません',
+  high_risk_unreadable: '高リスクの承認条件を確認できません',
   route_invalid: '承認経路を確認できません',
   route_hash_mismatch: '承認経路が申請版と一致しません',
   route_generation_mismatch: '承認経路の世代が申請版と一致しません',
@@ -323,7 +331,33 @@ export async function checkApprovalComplete(
     }
   }
 
-  // 10. 承認者の現在の有効性は要求しない(ADR-0023 §7)
+  // 10. 高リスクの二重承認 (WP-P4-APR-021 §6.7 / ADR-0024 §5)。
+  //     属性が無い・偽の snapshot の検証は変えない。真のときと、読めないときだけ判定する。
+  //     判定は `approval-high-risk.ts` の共有関数だけを使う(ここで条件を書き直さない)。
+  const highRisk = readHighRiskAttribute(q.snapshot?.item?.definition?.approval);
+  if (highRisk === 'invalid') return fail('high_risk_unreadable');
+  if (highRisk === 'true') {
+    const highRiskCheck = checkHighRiskApprovals({
+      route: state.currentRoute,
+      requesterId: q.requester_id,
+      steps: effectiveRows.map((row) => ({
+        stepNo: row.step_no,
+        approverId: row.approver_id,
+        state: row.state,
+        decidedBy: row.decided_by,
+      })),
+    });
+    if (!highRiskCheck.ok)
+      return fail(
+        highRiskCheck.code === 'delegated_decision'
+          ? 'high_risk_delegated_decision'
+          : highRiskCheck.code === 'insufficient_approvers'
+            ? 'high_risk_insufficient_approvers'
+            : 'high_risk_unreadable',
+      );
+  }
+
+  // 11. 承認者の現在の有効性は要求しない(ADR-0023 §7)
   return {
     ok: true,
     steps: effectiveRows.map((row) => ({ approvalId: row.id, approverId: row.approver_id })),

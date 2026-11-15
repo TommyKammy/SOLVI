@@ -4,6 +4,13 @@ import { approvalRuleStepsSchema, type ApprovalRuleStep } from '@solvi/shared/ca
 import { requireRole, type AuthzContext } from '../../common/authz/authz.js';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import { definitionSchema } from './catalog-definition.js';
+import { evaluateHighRiskDefinition } from './approval-high-risk.js';
+import {
+  highRiskDefinitionBlockedProblem,
+  loadPublishedHighRiskItems,
+  lockApprovalSetting,
+  lockRulesForUpdate,
+} from './approval-high-risk-store.js';
 import {
   activeMembershipSql,
   loadOrganizationResolverSnapshot,
@@ -192,6 +199,40 @@ export class ApprovalRuleService {
     });
   }
 
+  /**
+   * 変更の後で、公開中の高リスクの定義が承認条件を満たさなくならないことを確かめる
+   * (WP-P4-APR-021 §6.3-2 / ADR-0026 §2)。
+   *
+   * 判定は `approval-high-risk.ts` の共有関数だけを使う。呼び出し側は
+   * **組織の設定の行 → ルールの行**の順にロックしてから呼ぶ(公開の側も同じ順)。
+   * 満たさなくなる項目があれば 409 にし、影響する項目のコードと名前を返す。
+   */
+  private async assertHighRiskItemsRemainValid(
+    ctx: AuthzContext,
+    input: {
+      routingEnabled: boolean;
+      /** 変更するルール。`null` は組織の設定の変更(すべてのルールが対象)。 */
+      ruleId: string | null;
+      ruleActive: boolean;
+      steps: unknown;
+    },
+  ): Promise<void> {
+    const items = await loadPublishedHighRiskItems(
+      this.client,
+      ctx.organizationId,
+      input.ruleId === null ? {} : { ruleId: input.ruleId },
+    );
+    const blocked = items.filter((item) => {
+      const evaluation = evaluateHighRiskDefinition({
+        approval: item.approval,
+        ruleRoutingEnabled: input.routingEnabled,
+        rule: { active: input.ruleActive, steps: input.steps },
+      });
+      return evaluation.highRisk && !evaluation.ok;
+    });
+    if (blocked.length > 0) throw highRiskDefinitionBlockedProblem(blocked);
+  }
+
   async list(ctx: AuthzContext): Promise<ApprovalRuleSummary[]> {
     this.requireAdmin(ctx);
     const { rows } = await this.client.query<RuleRow & { steps: unknown }>(
@@ -274,6 +315,9 @@ export class ApprovalRuleService {
   ): Promise<{ id: string; revision: number }> {
     this.requireAdmin(ctx);
     const steps = approvalRuleStepsSchema.parse(input.steps);
+    // ロックの順序は「組織の設定の行 → ルールの行」である(ADR-0026 §2)。
+    // 公開の側も同じ順でロックするため、公開と版の追加が同時に通ることはない。
+    const setting = await lockApprovalSetting(this.client, ctx.organizationId, 'update');
     const now = await this.now();
     const { rows } = await this.client.query<RuleRow>(
       `SELECT id, code, name, active, current_revision, created_at, updated_at
@@ -286,6 +330,15 @@ export class ApprovalRuleService {
     if (!rule) throw Problems.notFound('承認ルール');
     if (!rule.active) throw Problems.conflict('無効化された承認ルールは変更できません');
     if (rule.current_revision !== input.expectedRevision) throw Problems.stale('承認ルール');
+    // 公開中の高リスクの定義が、新しい段で条件を満たさなくならないこと。
+    // **既存の `fixed` の重複の拒否(400)より先に**判定する。重複が公開中の
+    // 高リスクの項目を壊す場合は、影響する項目を示す 409 を返す(WP §6.3-2)。
+    await this.assertHighRiskItemsRemainValid(ctx, {
+      routingEnabled: setting.enabled,
+      ruleId,
+      ruleActive: true,
+      steps,
+    });
     await this.assertFixedApprovers(ctx, steps, now);
 
     const previous = await this.client.query<RevisionRow>(
@@ -338,6 +391,8 @@ export class ApprovalRuleService {
 
   async deactivate(ctx: AuthzContext, ruleId: string): Promise<{ id: string; active: false }> {
     this.requireAdmin(ctx);
+    // ロックの順序は「組織の設定の行 → ルールの行」(ADR-0026 §2)。
+    const setting = await lockApprovalSetting(this.client, ctx.organizationId, 'update');
     const { rows } = await this.client.query<RuleRow>(
       `SELECT id, code, name, active, current_revision, created_at, updated_at
          FROM approval_rule
@@ -348,6 +403,12 @@ export class ApprovalRuleService {
     const rule = rows[0];
     if (!rule) throw Problems.notFound('承認ルール');
     if (!rule.active) throw Problems.conflict('この承認ルールは既に無効化されています');
+    await this.assertHighRiskItemsRemainValid(ctx, {
+      routingEnabled: setting.enabled,
+      ruleId,
+      ruleActive: false,
+      steps: null,
+    });
     await this.client.query(
       `UPDATE approval_rule
           SET active = false, updated_at = clock_timestamp()
@@ -423,12 +484,26 @@ export class ApprovalRuleService {
     enabled: boolean,
   ): Promise<{ enabled: boolean; changed: boolean }> {
     this.requireAdmin(ctx);
-    const current = await this.client.query<{ rule_routing_enabled: boolean }>(
-      'SELECT rule_routing_enabled FROM org_approval_setting WHERE organization_id = $1',
-      [ctx.organizationId],
-    );
-    const before = current.rows[0]?.rule_routing_enabled === true;
+    // ロックの順序は「組織の設定の行 → ルールの行」。停止のときは、公開中の
+    // 高リスクの定義が参照するルールの行も同じ順でロックする(ADR-0026 §2)。
+    const setting = await lockApprovalSetting(this.client, ctx.organizationId, 'update');
+    const before = setting.enabled;
     if (before === enabled) return { enabled, changed: false };
+    if (!enabled) {
+      const items = await loadPublishedHighRiskItems(this.client, ctx.organizationId);
+      await lockRulesForUpdate(
+        this.client,
+        ctx.organizationId,
+        items.map((item) => item.ruleId).filter((id): id is string => id !== null),
+      );
+      // 条件の判定は共有関数だけを使う。停止はすべての公開中の高リスクの定義を崩す。
+      await this.assertHighRiskItemsRemainValid(ctx, {
+        routingEnabled: false,
+        ruleId: null,
+        ruleActive: false,
+        steps: null,
+      });
+    }
     if (enabled) {
       await this.client.query(
         `INSERT INTO org_approval_setting(organization_id, rule_routing_enabled, updated_by, updated_at)

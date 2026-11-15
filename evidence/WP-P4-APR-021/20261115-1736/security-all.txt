@@ -1,0 +1,165 @@
+
+ RUN  v3.2.7 /Users/jp.infra/Dev/SOLVI
+
+ ❯ tests/security/user-directory-consistency.test.ts (10 tests | 10 skipped) 20ms
+   ↓ directory counts on the real RLS transaction > counts all nonterminal states, preserves stopped/multiple-role members and excludes foreign/unassigned work
+   ↓ directory counts on the real RLS transaction > keeps one snapshot through committed assignment/state/binding changes and refreshes on the next request
+   ↓ directory counts on the real RLS transaction > preserves expiration filtering without narrowing the stop count for an expired target
+   ↓ directory counts on the real RLS transaction > uses both organization predicates and RLS for foreign target IDs and mismatched context
+   ↓ directory counts on the real RLS transaction > denies agent actors through the real controller
+   ↓ directory counts on the real RLS transaction > denies requester actors through the real controller
+   ↓ directory counts on the real RLS transaction > denies expired actors through the real controller
+   ↓ directory counts on the real RLS transaction > denies deactivated actors through the real controller
+   ↓ directory counts on the real RLS transaction > rolls back account/session/audit state on a real DB count failure
+   ↓ directory counts on the real RLS transaction > rolls back account/session/audit state on a real DB audit failure
+ ✓ tests/security/user-admin.test.ts (50 tests) 5618ms
+ ✓ tests/security/collaboration-routes.test.ts (37 tests) 4874ms
+ ✓ tests/security/approval-notice.test.ts (45 tests) 4643ms
+   ✓ Migration 0041: 通知の記録の表 (TL-04) > **行が無ければ down → up の往復ができる。0040 から増えるポリシーはちょうど3件(0041 と 0042)**  323ms
+   ✓ Migration 0041: 通知の記録の表 (TL-04) > **行が1件でもあれば down を拒否する(前進修復)**  352ms
+   ✓ 巡回: 組織を1つずつ処理し、失敗を隔離する (指摘2.2) > **2つの組織を1周で処理し、監査と送信の記録をそれぞれの組織に残す**  316ms
+ ✓ tests/security/ticket-filters.test.ts (46 tests) 4265ms
+ ✓ tests/security/assignment-group.test.ts (28 tests) 4096ms
+ ✓ tests/security/approval-delegation.test.ts (48 tests) 3864ms
+   ✓ Migration 0042: 委任の表と、ステップの委任のID (TL-04) > 行が無ければ down → up の往復ができる。分離ポリシーは1件だけ増える  302ms
+stdout | tests/security/auth.test.ts > セッション失効の即時性 (FR-IDM-008 / Gate 1 G1-9) > **ユーザ無効化でセッションが即座に無効になる**
+REVOCATION_LATENCY_SECONDS=0.033
+
+ ✓ tests/security/auth.test.ts (54 tests) 3910ms
+   ✓ 情報の非対称性を作らない > **存在しないユーザと誤パスワードで応答時間が大きく変わらない**  305ms
+ ✓ tests/security/approval-reassign.test.ts (38 tests) 3164ms
+   ✓ Migration 0040: 経路世代の表 (TL-04) > 行が無ければ down → up の往復ができる(最後のMigrationであることを仮定しない)  323ms
+   ✓ Migration 0040: 経路世代の表 (TL-04) > 行が1件でもあれば down を拒否する(前進修復)  373ms
+(node:56388) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/security/approval-routing.test.ts (45 tests) 2552ms
+ ✓ tests/security/approval-dual-control.test.ts (37 tests) 2827ms
+ ✓ tests/security/relation-routes.test.ts (26 tests) 2481ms
+ ✓ tests/security/ticket-routes.test.ts (19 tests) 1740ms
+ ✓ tests/security/object-storage.test.ts (11 tests) 1540ms
+   ✓ 署名付きURLで実際にやり取りできる > **期限切れの署名では取得できない**  1505ms
+ ✓ tests/security/attachment-delete.test.ts (14 tests) 1481ms
+ ✓ tests/security/approval-migration-compat.test.ts (6 tests) 1348ms
+   ✓ 0038: 適用前後の互換(TL-05) > 新しい列にデータが無ければ down → up でき、移行前の行は legacy のまま  315ms
+   ✓ 0038: 適用前後の互換(TL-05) > route が非NULLの行があると down を拒否する(前進修復)  329ms
+ ✓ tests/security/department-profile.test.ts (27 tests) 1177ms
+   ✓ Migration: バックフィル・up/down (TL-05) > **down は3テーブルのいずれかに行があれば拒否し、すべて空なら成功する(up→down→up)**  870ms
+ ✓ tests/security/approval-steps.test.ts (22 tests) 1166ms
+ ✓ tests/security/department-api.test.ts (40 tests) 923ms
+ ✓ tests/security/ticket-list.test.ts (19 tests) 656ms
+ ✓ tests/security/approval-assertion.test.ts (18 tests) 661ms
+ ✓ tests/security/department-profile-concurrency.test.ts (11 tests) 624ms
+ ✓ tests/security/notification.test.ts (29 tests) 593ms
+ ✓ tests/security/ticket-relation.test.ts (24 tests) 628ms
+ ✓ tests/security/approval-rule.test.ts (28 tests) 553ms
+ ✓ tests/security/vertical-slice.test.ts (3 tests) 462ms
+ ✓ tests/security/collaboration.test.ts (32 tests) 566ms
+ ✓ tests/security/ticket-search-sla.test.ts (25 tests) 443ms
+ ✓ tests/security/ticket-service.test.ts (19 tests) 344ms
+ ✓ tests/security/access-review.test.ts (10 tests) 329ms
+ ✓ tests/security/relationship-change.test.ts (11 tests) 322ms
+ ✓ tests/security/department-api-concurrency.test.ts (3 tests) 272ms
+ ✓ tests/security/ticket-concurrency.test.ts (10 tests) 267ms
+ ✓ tests/security/audit-append-only.test.ts (26 tests) 203ms
+ ✓ tests/security/role-binding-expiry.test.ts (17 tests) 238ms
+ ✓ tests/security/attachment-scan.test.ts (8 tests) 150ms
+ ✓ tests/security/session-purge.test.ts (12 tests) 98ms
+ ✓ tests/security/audit-export.test.ts (15 tests) 80ms
+ ✓ tests/security/cross-org.test.ts (18 tests) 95ms
+ ✓ tests/security/audit-anchor-external.test.ts (8 tests) 27ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/security/knowledge-pagination.test.ts [ tests/security/knowledge-pagination.test.ts ]
+Error: Cannot find module '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs' imported from '/Users/jp.infra/Dev/SOLVI/tests/security/knowledge-pagination.test.ts'
+ ❯ tests/security/knowledge-pagination.test.ts:9:1
+      7|   parseKnowledgeListQuery,
+      8| } from '../../services/api/src/modules/knowledge/knowledge-query.js';
+      9| import {
+       | ^
+     10|   assertKnowledgeDatabaseUrls,
+     11|   readKnowledgeFixture,
+
+Caused by: Error: Failed to load url ../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs (resolved id: ../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs) in /Users/jp.infra/Dev/SOLVI/tests/security/knowledge-pagination.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/security/notification-list.test.ts [ tests/security/notification-list.test.ts ]
+Error: Cannot find module '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs' imported from '/Users/jp.infra/Dev/SOLVI/tests/security/notification-list.test.ts'
+ ❯ tests/security/notification-list.test.ts:15:1
+     13|   type NotificationListResponse,
+     14| } from '../../services/api/src/modules/notification/notification.route…
+     15| import { createKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-05…
+       | ^
+     16| import { createCiKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-…
+     17| import {
+
+Caused by: Error: Failed to load url ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs (resolved id: ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs) in /Users/jp.infra/Dev/SOLVI/tests/security/notification-list.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/security/notification-manual-retry.test.ts [ tests/security/notification-manual-retry.test.ts ]
+Error: Cannot find module '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs' imported from '/Users/jp.infra/Dev/SOLVI/tests/security/notification-manual-retry.test.ts'
+ ❯ tests/security/notification-manual-retry.test.ts:27:1
+     25| import type { OutboxRecordLike } from '../../services/api/src/modules/…
+     26| import { TicketService } from '../../services/api/src/modules/ticket/t…
+     27| import { createKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-05…
+       | ^
+     28| import { createCiKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-…
+     29| import {
+
+Caused by: Error: Failed to load url ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs (resolved id: ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs) in /Users/jp.infra/Dev/SOLVI/tests/security/notification-list.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/security/notification-preference.test.ts [ tests/security/notification-preference.test.ts ]
+Error: Cannot find module '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs' imported from '/Users/jp.infra/Dev/SOLVI/tests/security/notification-preference.test.ts'
+ ❯ tests/security/notification-preference.test.ts:21:1
+     19|   type OutboxHandler,
+     20| } from '../../services/api/src/common/outbox/dispatcher.js';
+     21| import { createKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-05…
+       | ^
+     22| import { createCiKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-…
+     23| import {
+
+Caused by: Error: Failed to load url ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs (resolved id: ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs) in /Users/jp.infra/Dev/SOLVI/tests/security/notification-list.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/security/notification-retry.test.ts [ tests/security/notification-retry.test.ts ]
+Error: Cannot find module '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs' imported from '/Users/jp.infra/Dev/SOLVI/tests/security/notification-retry.test.ts'
+ ❯ tests/security/notification-retry.test.ts:20:1
+     18| } from '../../services/api/src/modules/notification/notification.servi…
+     19| import type { OutboxRecordLike } from '../../services/api/src/modules/…
+     20| import { createKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-05…
+       | ^
+     21| import { createCiKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-…
+     22| import type { KnowledgeFixture } from '../../evidence/WP-P3-KNWUI-054/…
+
+Caused by: Error: Failed to load url ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs (resolved id: ../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs) in /Users/jp.infra/Dev/SOLVI/tests/security/notification-list.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/security/user-directory-consistency.test.ts [ tests/security/user-directory-consistency.test.ts ]
+Error: Isolated directory database setup failed
+ ❯ tests/security/user-directory-consistency.test.ts:178:11
+    176|   } catch {
+    177|     // URL parsing and connection failures can include endpoint detail…
+    178|     throw new Error('Isolated directory database setup failed');
+       |           ^
+    179|   }
+    180| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  6 failed | 39 passed (45)
+      Tests  939 passed | 10 skipped (949)
+   Start at  17:51:15
+   Duration  71.31s (transform 625ms, setup 0ms, collect 3.90s, tests 59.30s, environment 3ms, prepare 962ms)
+

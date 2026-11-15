@@ -12,6 +12,11 @@ import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 import { definitionSchema } from './catalog-definition.js';
 import { activeRuleExists } from './approval-rule.service.js';
+import { evaluateHighRiskDefinition, readHighRiskAttribute } from './approval-high-risk.js';
+import {
+  lockApprovalSetting,
+  lockRuleRevisionForShare,
+} from './approval-high-risk-store.js';
 const content = z
   .object({
     title: z.string().trim().min(1).max(200),
@@ -63,6 +68,33 @@ function parse<T extends z.ZodTypeAny>(s: T, v: unknown): z.output<T> {
   return r.data;
 }
 const approversSql = `SELECT DISTINCT u.id,u.display_name AS name FROM app_user u JOIN role_binding rb ON rb.user_id=u.id JOIN role r ON r.id=rb.role_id WHERE rb.organization_id=$1 AND r.code='approver' AND u.status='active' AND rb.valid_from<=clock_timestamp() AND (rb.valid_until IS NULL OR rb.valid_until>clock_timestamp()) ORDER BY name,u.id`;
+/** 高リスクの指定を変えられるのは org_admin だけである(ADR-0024 §4 / ADR-0026 §3)。 */
+const HIGH_RISK_ADMIN_ONLY = '高リスクの指定を変更できるのは組織管理者だけです';
+/** 高リスクの定義の公開を拒否するときの、条件ごとの文言(WP-P4-APR-021 §6.3-1)。 */
+function highRiskPublishMessage(
+  code:
+    | 'attribute_invalid'
+    | 'rule_missing'
+    | 'rule_routing_disabled'
+    | 'rule_unavailable'
+    | 'fixed_approvers_insufficient'
+    | 'fixed_approvers_duplicate',
+): string {
+  switch (code) {
+    case 'rule_missing':
+      return '高リスクの項目には承認ルールを設定してください';
+    case 'rule_routing_disabled':
+      return '組織で承認ルールの使用が有効になっていません。有効にしてから公開してください';
+    case 'rule_unavailable':
+      return '高リスクの項目に設定した承認ルールが有効ではありません';
+    case 'fixed_approvers_insufficient':
+      return '高リスクの項目には、別人の固定承認者を2段以上設定した承認ルールが必要です';
+    case 'fixed_approvers_duplicate':
+      return '高リスクの項目では、固定承認者を段ごとに別人にしてください';
+    case 'attribute_invalid':
+      return '高リスクの指定を確認してください';
+  }
+}
 export class CatalogAdminController {
   constructor(
     private readonly pool: pg.Pool,
@@ -209,6 +241,98 @@ export class CatalogAdminController {
         },
       ]);
   }
+  /**
+   * 委任された編集者が、下書きで高リスクの指定を変えられないことを確かめる
+   * (WP-P4-APR-021 §6.1-2 / ADR-0026 §3)。
+   *
+   * 比較は「省略」と「偽」を同じ値とみなす。直前の版の値が読めない場合は、
+   * 誰にも変えさせない(fail closed。直せるのは org_admin だけ)。
+   */
+  private async assertHighRiskChangeAllowed(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    itemId: string,
+    draftRevision: number,
+    approval: unknown,
+  ) {
+    if (this.administrator(auth)) return;
+    const row = (
+      await c.query<{ definition: unknown }>(
+        'SELECT definition FROM local_catalog_revision WHERE item_id=$1 AND organization_id=$2 AND revision=$3',
+        [itemId, auth.authz.organizationId, draftRevision],
+      )
+    ).rows[0];
+    if (!row) throw Problems.notFound('カタログ項目');
+    const previous = readHighRiskAttribute(
+      (row.definition as { approval?: unknown } | null)?.approval,
+    );
+    const next = readHighRiskAttribute(approval);
+    if (previous === 'invalid' || next === 'invalid')
+      throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
+    if ((previous === 'true') !== (next === 'true')) throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
+  }
+  /**
+   * 高リスクの定義を公開できる条件を確かめる(WP-P4-APR-021 §6.3-1)。
+   *
+   * ロックは「組織の設定の行 → ルールの行」の順で取る(公開の側。ADR-0026 §2)。
+   * 高リスクでない定義では何もしない(既存の公開の挙動を変えない)。
+   */
+  private async assertHighRiskPublish(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    definition: CatalogDefinition,
+  ) {
+    const attribute = readHighRiskAttribute(definition.approval);
+    if (attribute === 'invalid')
+      throw Problems.validation([
+        {
+          field: 'definition.approval.highRisk',
+          message: highRiskPublishMessage('attribute_invalid'),
+        },
+      ]);
+    if (attribute !== 'true') return;
+    // 公開中だった版との比較(監査)より先に、条件を満たすかを確かめる。
+    const setting = await lockApprovalSetting(c, auth.authz.organizationId, 'share');
+    const ruleId = definition.approval?.ruleId;
+    const rule =
+      typeof ruleId === 'string' && ruleId.length > 0
+        ? await lockRuleRevisionForShare(c, auth.authz.organizationId, ruleId)
+        : null;
+    const evaluation = evaluateHighRiskDefinition({
+      approval: definition.approval,
+      ruleRoutingEnabled: setting.enabled,
+      rule: rule ? { active: rule.active, steps: rule.steps } : null,
+    });
+    if (evaluation.highRisk && !evaluation.ok)
+      throw Problems.validation([
+        {
+          field: 'definition.approval.highRisk',
+          message: highRiskPublishMessage(evaluation.code),
+        },
+      ]);
+  }
+  /** 公開中だった版の高リスクの属性(無ければ `missing`)。版が消えていれば 409。 */
+  private async publishedHighRisk(
+    c: pg.PoolClient,
+    auth: AuthenticatedRequest,
+    itemId: string,
+    publishedRevision: number | null,
+  ) {
+    if (publishedRevision === null) return { attribute: 'missing' as const, revision: null };
+    const row = (
+      await c.query<{ definition: unknown }>(
+        'SELECT definition FROM local_catalog_revision WHERE item_id=$1 AND organization_id=$2 AND revision=$3',
+        [itemId, auth.authz.organizationId, publishedRevision],
+      )
+    ).rows[0];
+    if (!row) throw Problems.conflict('公開中だったカタログの版を確認できません');
+    return {
+      attribute: readHighRiskAttribute(
+        (row.definition as { approval?: unknown } | null)?.approval,
+      ),
+      revision: publishedRevision,
+    };
+  }
   private async audit(
     c: pg.PoolClient,
     auth: AuthenticatedRequest,
@@ -316,6 +440,9 @@ export class CatalogAdminController {
     if (!this.administrator(auth)) {
       if (v.definition.ownerId && v.definition.ownerId !== auth.userId)
         throw Problems.forbidden('自分を責任者とする下書きだけ作成できます');
+      // 新規の項目では、委任された編集者は高リスクの指定を真にできない(ADR-0026 §3)。
+      if (v.definition.approval?.highRisk === true)
+        throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
       v.definition.ownerId = auth.userId;
     }
     return this.run(auth, async (c) => {
@@ -384,8 +511,18 @@ export class CatalogAdminController {
     const v = parse(editSchema, value);
     return this.run(auth, async (c) => {
       const i = await this.lock(c, auth, id);
-      if (!this.administrator(auth) && v.definition.ownerId !== auth.userId)
-        throw Problems.forbidden('責任者の変更は管理者が行えます');
+      if (!this.administrator(auth)) {
+        if (v.definition.ownerId !== auth.userId)
+          throw Problems.forbidden('責任者の変更は管理者が行えます');
+        // 直前の版(下書き)と同じ値でなければ保存できない(ADR-0026 §3)。
+        await this.assertHighRiskChangeAllowed(
+          c,
+          auth,
+          id,
+          i.draft_revision,
+          v.definition.approval,
+        );
+      }
       if (i.edit_version !== v.expectedVersion) throw Problems.stale('カタログ');
       await this.references(c, auth, v.definition);
       const revision = i.draft_revision + 1;
@@ -420,10 +557,30 @@ export class CatalogAdminController {
             },
           ]);
         await this.references(c, auth, d);
+        // 高リスクの定義は、条件(ルール・別人の固定承認者が2段以上)を満たすときだけ公開できる。
+        await this.assertHighRiskPublish(c, auth, d);
+        const before = await this.publishedHighRisk(c, auth, id, i.published_revision);
         await c.query(
           'UPDATE local_catalog_item SET version=$2,title=$3,description=$4,definition=$5,published_revision=$2,active=true,edit_version=edit_version+1 WHERE id=$1',
           [id, r.revision, r.title, r.description, d],
         );
+        // 属性の変更は**公開の時点で**、公開中だった版との差として記録する
+        // (ADR-0026 §3。下書きの保存では記録しない)。前後の真偽値と版だけを残す。
+        const beforeValue = before.attribute === 'true';
+        const afterValue = readHighRiskAttribute(d.approval) === 'true';
+        if (beforeValue !== afterValue || before.attribute === 'invalid')
+          await recordAuditEvent(c, {
+            eventType: 'catalog.high_risk_changed',
+            organizationId: auth.authz.organizationId,
+            actorType: 'user',
+            actorId: auth.userId,
+            targetType: 'catalog_item',
+            targetId: id,
+            action: 'catalog.high_risk_changed',
+            outcome: 'success',
+            beforeState: { code: i.code, revision: before.revision, highRisk: beforeValue },
+            afterState: { code: i.code, revision: r.revision, highRisk: afterValue },
+          });
       } else {
         await c.query(
           'UPDATE local_catalog_item SET active=false,edit_version=edit_version+1 WHERE id=$1',

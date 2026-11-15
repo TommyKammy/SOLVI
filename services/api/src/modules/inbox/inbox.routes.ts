@@ -10,6 +10,7 @@ import {
   effectiveGenerationSql,
 } from '../catalog/approval-route-state.js';
 import { effectiveDelegationSql } from '../catalog/approval-delegation.js';
+import { definitelyNotHighRiskSql } from '../catalog/approval-high-risk.js';
 const sourceKinds = ['ticket', 'request_approval', 'change'] as const;
 type SourceKind = (typeof sourceKinds)[number];
 type Deadline = {
@@ -130,6 +131,8 @@ export class InboxController {
       at: '$3',
       authorityType,
     });
+    // 高リスクの申請は、委任による可視性の対象外(ADR-0026 §1 / WP-P4-APR-021 §6.5-3)。
+    const notHighRisk = definitelyNotHighRiskSql('q.snapshot');
     const r = await c.query(
       `SELECT 1
          FROM local_service_request q
@@ -140,7 +143,7 @@ export class InboxController {
           AND a.request_id=q.id AND a.revision=q.revision
           AND a.route_generation=${effectiveGeneration}
         WHERE q.organization_id=$1 AND q.state='pending' AND a.state IN ('pending','expired')
-          AND (a.approver_id=$2 OR ${delegated}) AND q.requester_id<>$2
+          AND (a.approver_id=$2 OR (${delegated} AND ${notHighRisk})) AND q.requester_id<>$2
         LIMIT 1`,
       [auth.authz.organizationId, auth.userId, now],
     );
@@ -281,17 +284,20 @@ export class InboxController {
         at: '$4',
         authorityType,
       });
+      // 高リスクの申請は、委任による可視性の対象外(ADR-0026 §1 / WP-P4-APR-021 §6.5-3)。
+      // 画面側の判定に頼らず、問い合わせの段階で除く。
+      const notHighRisk = definitelyNotHighRiskSql('q.snapshot');
       const rows = (
         await c.query(
           `SELECT q.id,q.version,q.updated_at,q.snapshot->'item'->>'title' AS title,t.number,a.id AS approval_id,a.expires_at,ap.display_name AS delegator_name,
-      (a.approver_id<>$2 AND ${delegated}) AS delegated
+      (a.approver_id<>$2 AND ${delegated} AND ${notHighRisk}) AS delegated
     FROM local_service_request q
     JOIN local_request_revision r ON r.request_id=q.id AND r.organization_id=q.organization_id AND r.revision=q.revision
     JOIN local_request_approval a ON a.id=q.current_approval_id AND a.organization_id=q.organization_id AND a.request_id=q.id AND a.revision=q.revision AND a.snapshot_hash=q.snapshot_hash
       AND a.route_generation=${effectiveGeneration}
     JOIN ticket t ON t.id=q.ticket_id AND t.organization_id=q.organization_id
     JOIN app_user ap ON ap.id=a.approver_id
-    WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND (a.approver_id=$2 OR ${delegated}) AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)
+    WHERE q.organization_id=$1 AND q.state='pending' AND a.state='pending' AND (a.approver_id=$2 OR (${delegated} AND ${notHighRisk})) AND q.requester_id<>$2 AND ($3::uuid IS NULL OR q.id=$3)
       -- 期限を過ぎたステップは承認待ちではない。行が pending のままでも expired でも出さない
       -- (WP-P4-APR-019 §6.4)。
       AND a.expires_at > $4::timestamptz`,
