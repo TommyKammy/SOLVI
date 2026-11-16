@@ -79,9 +79,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function readDate(value: unknown, field: string): string {
   if (typeof value !== 'string' || !DATE_RE.test(value)) {
-    throw Problems.validation([
-      { field, message: '日付は YYYY-MM-DD で指定してください' },
-    ]);
+    throw Problems.validation([{ field, message: '日付は YYYY-MM-DD で指定してください' }]);
   }
   const time = Date.parse(`${value}T00:00:00.000Z`);
   if (Number.isNaN(time)) {
@@ -120,9 +118,7 @@ export function parseRelationshipChangeQuery(value: unknown): RelationshipChange
   }
   const rawPage = record.page ?? '1';
   const page =
-    typeof rawPage === 'string' || typeof rawPage === 'number'
-      ? Number(rawPage)
-      : Number.NaN;
+    typeof rawPage === 'string' || typeof rawPage === 'number' ? Number(rawPage) : Number.NaN;
   if (!Number.isInteger(page) || page < 1 || page > 10_000) {
     throw Problems.validation([{ field: 'page', message: 'ページは1以上で指定してください' }]);
   }
@@ -192,10 +188,7 @@ export class RelationshipChangeService {
     requireRole(ctx, 'org_admin', 'auditor');
   }
 
-  async list(
-    ctx: AuthzContext,
-    input: RelationshipChangeInput,
-  ): Promise<RelationshipChangeResult> {
+  async list(ctx: AuthzContext, input: RelationshipChangeInput): Promise<RelationshipChangeResult> {
     this.requireViewer(ctx);
     const fromTime = new Date(`${input.from}T00:00:00.000Z`);
     const toExclusive = new Date(Date.parse(`${input.to}T00:00:00.000Z`) + 86_400_000);
@@ -280,10 +273,7 @@ export class RelationshipChangeService {
         const before = row.before_state ?? {};
         const after = row.after_state ?? {};
         const managerChanged = changed(before.managerUserId, after.managerUserId);
-        const departmentChanged = changed(
-          before.primaryDepartmentId,
-          after.primaryDepartmentId,
-        );
+        const departmentChanged = changed(before.primaryDepartmentId, after.primaryDepartmentId);
         if (!managerChanged && !departmentChanged) continue;
         items.push({
           eventId: row.event_id,
@@ -297,9 +287,7 @@ export class RelationshipChangeService {
           actor,
           subject: {
             userId: row.subject_user_id,
-            displayName: row.subject_user_id
-              ? (names.get(row.subject_user_id) ?? null)
-              : null,
+            displayName: row.subject_user_id ? (names.get(row.subject_user_id) ?? null) : null,
           },
           before: profileState(row.before_state, names, departmentsById),
           after: profileState(row.after_state, names, departmentsById),

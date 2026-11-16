@@ -94,8 +94,7 @@ export function evaluateHighRiskDefinition(input: {
   const parsed = approvalRuleStepsSchema.safeParse(input.rule.steps);
   if (!parsed.success) return { highRisk: true, ok: false, code: 'rule_unavailable' };
   const fixedApproverIds: string[] = [];
-  for (const step of parsed.data)
-    if (step.type === 'fixed') fixedApproverIds.push(step.approverId);
+  for (const step of parsed.data) if (step.type === 'fixed') fixedApproverIds.push(step.approverId);
   if (fixedApproverIds.length < 2)
     return { highRisk: true, ok: false, code: 'fixed_approvers_insufficient' };
   if (new Set(fixedApproverIds).size !== fixedApproverIds.length)
@@ -164,11 +163,10 @@ export function checkHighRiskRoute(input: {
 
 /** 承認済みのステップから判定した結果の失敗。 */
 export type HighRiskApprovalFailure =
-  | 'unreadable'
-  | 'delegated_decision'
-  | 'insufficient_approvers';
+  'unreadable' | 'delegated_decision' | 'insufficient_approvers';
 
-export type HighRiskApprovalEvaluation = { ok: true } | { ok: false; code: HighRiskApprovalFailure };
+export type HighRiskApprovalEvaluation =
+  { ok: true } | { ok: false; code: HighRiskApprovalFailure };
 
 /**
  * 承認済みのステップから条件を判定する(実行前検証)。
@@ -189,10 +187,7 @@ export function checkHighRiskApprovals(input: {
     return { ok: false, code: 'unreadable' };
   if (!Array.isArray(input.steps)) return { ok: false, code: 'unreadable' };
 
-  const rows = new Map<
-    number,
-    { approverId: string; state: string; decidedBy: string }
-  >();
+  const rows = new Map<number, { approverId: string; state: string; decidedBy: string }>();
   for (const raw of input.steps) {
     if (!isObject(raw)) return { ok: false, code: 'unreadable' };
     const stepNo = raw.stepNo;
@@ -203,7 +198,8 @@ export function checkHighRiskApprovals(input: {
     if (typeof raw.state !== 'string') return { ok: false, code: 'unreadable' };
     let decidedBy: string;
     if (raw.decidedBy === null || raw.decidedBy === undefined) decidedBy = raw.approverId;
-    else if (typeof raw.decidedBy === 'string' && UUID.test(raw.decidedBy)) decidedBy = raw.decidedBy;
+    else if (typeof raw.decidedBy === 'string' && UUID.test(raw.decidedBy))
+      decidedBy = raw.decidedBy;
     else return { ok: false, code: 'unreadable' };
     if (rows.has(stepNo as number)) return { ok: false, code: 'unreadable' };
     rows.set(stepNo as number, { approverId: raw.approverId, state: raw.state, decidedBy });
@@ -224,8 +220,7 @@ export function checkHighRiskApprovals(input: {
     deciders.add(row.decidedBy);
   }
   if (delegated) return { ok: false, code: 'delegated_decision' };
-  if (approvedFixed < 2 || deciders.size < 2)
-    return { ok: false, code: 'insufficient_approvers' };
+  if (approvedFixed < 2 || deciders.size < 2) return { ok: false, code: 'insufficient_approvers' };
   return { ok: true };
 }
 

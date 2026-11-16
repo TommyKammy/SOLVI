@@ -9,11 +9,7 @@
  * `userExpr` / `orgParam` / `atParam` は呼び出し側の固定のSQL式だけを渡す
  * (利用者入力を連結しない)。
  */
-export function activeMembershipSql(
-  userExpr: string,
-  orgParam: string,
-  atParam: string,
-): string {
+export function activeMembershipSql(userExpr: string, orgParam: string, atParam: string): string {
   return `EXISTS (
     SELECT 1 FROM role_binding rb
      WHERE rb.user_id = ${userExpr}
