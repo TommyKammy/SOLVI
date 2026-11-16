@@ -1,12 +1,20 @@
-/** Hooks for local_restore_drill --runtime. Only the new synthetic databases/files. */
+/**
+ * Hooks for local_restore_drill --runtime. Only the new synthetic databases/files.
+ *
+ * Object Storage is SeaweedFS (ADR-0028), one throwaway container for the source and a
+ * separate one for the restore target, so the restored object never shares storage with
+ * the source. The backup of the object is taken through a signed GET and restored through
+ * a signed PUT, exactly as an S3 copy would be.
+ */
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { cp, mkdir, open, readdir, readFile, symlink } from 'node:fs/promises';
+import { cp, mkdir, open, readFile, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hashPassword } from '../packages/shared/dist/auth/password.js';
+import { S3CompatibleStorage } from '../packages/shared/dist/storage/object-storage.js';
 
 export const postgresPassword = randomBytes(24).toString('hex');
 const appPassword = randomBytes(24).toString('hex');
@@ -18,11 +26,17 @@ const apiBase = 'http://127.0.0.1:3301';
 const webBase = 'http://localhost:3300';
 const bytes = Buffer.from('SOLVI same-Mac recovery: harmless synthetic attachment only.\n');
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
+// Same image and arguments as docker-compose.yml `seaweedfs` (digest pinned, AGENTS.md §1.14).
+const storageImage =
+  'chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59';
 const children = [];
 const logs = [];
+const containers = [];
 let attachmentId;
-let sourceObject;
-let restoredObject;
+let storageKey;
+let sourceContainer;
+let restoreContainer;
+let backupObject;
 const envBase = {
   ...process.env,
   NODE_ENV: 'development',
@@ -138,15 +152,75 @@ async function credential(context, database, password) {
   );
 }
 
-async function startApiStorage(cwd, database) {
-  await launch(`${database}-storage`, [join(root, 'tools/dev_object_storage.mjs')], cwd, database);
+function docker(args, failure) {
+  const result = spawnSync('docker', args, {
+    env: {
+      ...process.env,
+      AWS_ACCESS_KEY_ID: envBase.S3_ACCESS_KEY,
+      AWS_SECRET_ACCESS_KEY: envBase.S3_SECRET_KEY,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error || result.status !== 0) throw new Error(failure);
+  return result.stdout.toString().trim();
+}
+
+/** A fresh, empty SeaweedFS for one side of the drill. Credentials are passed by name only. */
+async function startStorage(database) {
+  const name = `solvi-recovery-${database}-${process.pid}-${Date.now()}`;
+  docker(
+    [
+      'run',
+      '-d',
+      '--rm',
+      '--name',
+      name,
+      '-p',
+      '127.0.0.1:19100:8333',
+      '-e',
+      'AWS_ACCESS_KEY_ID',
+      '-e',
+      'AWS_SECRET_ACCESS_KEY',
+      storageImage,
+      'server',
+      '-dir=/data',
+      '-s3',
+      '-master.volumeSizeLimitMB=256',
+    ],
+    'Recovery storage container did not start; is Docker running?',
+  );
+  containers.push(name);
+  await waitFor('storage', `${envBase.S3_ENDPOINT}/healthz`);
+  const buckets = spawnSync(process.execPath, [join(root, 'tools/ensure_buckets.mjs')], {
+    env: envBase,
+    stdio: 'ignore',
+  });
+  assert.equal(buckets.status, 0, 'Recovery storage buckets could not be prepared');
+  return name;
+}
+
+async function stopStorage() {
+  for (const name of containers.splice(0)) {
+    spawnSync('docker', ['rm', '-f', name], { stdio: 'ignore' });
+  }
+}
+
+const storageClient = () =>
+  new S3CompatibleStorage({
+    endpoint: envBase.S3_ENDPOINT,
+    bucket: envBase.S3_BUCKET_ATTACHMENTS,
+    accessKey: envBase.S3_ACCESS_KEY,
+    secretKey: envBase.S3_SECRET_KEY,
+    region: envBase.S3_REGION,
+  });
+
+async function startApi(cwd, database) {
   await launch(
     `${database}-api`,
     [join(root, 'node_modules/tsx/dist/cli.mjs'), join(root, 'services/api/src/main.ts')],
     cwd,
     database,
   );
-  await waitFor('storage', `${envBase.S3_ENDPOINT}/healthz`);
   await waitFor('API', `${apiBase}/readyz`);
 }
 
@@ -174,7 +248,8 @@ export async function prepare(context) {
   );
   const password = randomBytes(24).toString('hex');
   await credential(context, 'synthetic_source', password);
-  await startApiStorage(sourceRoot, 'synthetic_source');
+  sourceContainer = await startStorage('synthetic_source');
+  await startApi(sourceRoot, 'synthetic_source');
   await launch(
     'synthetic-scan',
     [join(root, 'node_modules/tsx/dist/cli.mjs'), join(root, 'tools/dev_scan_attachments.ts')],
@@ -214,28 +289,32 @@ export async function prepare(context) {
   assert.equal(response.status, 200);
   assert.equal(sha256(Buffer.from(await response.arrayBuffer())), sha256(bytes));
   await stopChildren();
-  const storage = join(sourceRoot, '.local/object-storage');
-  const keys = await readdir(storage);
-  assert.equal(keys.length, 1, 'Expected exactly one synthetic object');
-  sourceObject = join(storage, keys[0]);
-  assert.equal(sha256(await readFile(sourceObject)), sha256(bytes));
+  storageKey = context.sql(
+    'synthetic_source',
+    `SELECT storage_key FROM ticket_attachment WHERE id = ${context.quoted(attachmentId)};`,
+  );
+  assert.ok(storageKey, 'Synthetic attachment storage key missing');
+  // Back up the object from the source storage itself (server-side signed GET), not from
+  // the bytes we uploaded, so the drill proves the stored copy is restorable.
+  const stored = await storageClient().getObject(storageKey);
+  assert.equal(sha256(stored), sha256(bytes));
   const backupRoot = join(work, 'object-backup');
-  const restoreStorage = join(restoreRoot, '.local/object-storage');
   await mkdir(backupRoot, { mode: 0o700 });
-  await mkdir(restoreStorage, { recursive: true, mode: 0o700 });
-  const backupObject = join(backupRoot, keys[0]);
-  restoredObject = join(restoreStorage, keys[0]);
-  await cp(sourceObject, backupObject, { errorOnExist: true, force: false });
-  await cp(backupObject, restoredObject, { errorOnExist: true, force: false });
-  assert.notEqual(sourceObject, restoredObject);
+  backupObject = join(backupRoot, 'attachment.bin');
+  await writeFile(backupObject, stored, { flag: 'wx', mode: 0o600 });
+  await stopStorage();
 }
 
 export async function verify(context) {
-  assert.equal(sha256(await readFile(restoredObject)), sha256(bytes));
+  const backup = await readFile(backupObject);
+  assert.equal(sha256(backup), sha256(bytes));
   // Credentials/sessions are excluded from pg_dump; recreate only synthetic auth.
   const password = randomBytes(24).toString('hex');
   await credential(context, 'synthetic_restore', password);
-  await startApiStorage(restoreRoot, 'synthetic_restore');
+  restoreContainer = await startStorage('synthetic_restore');
+  assert.notEqual(sourceContainer, restoreContainer);
+  await storageClient().putObject(storageKey, backup, 'text/plain');
+  await startApi(restoreRoot, 'synthetic_restore');
   const webDir = join(work, 'web');
   await cp(join(root, 'apps/web'), webDir, {
     recursive: true,
@@ -315,7 +394,7 @@ export async function verify(context) {
     restoredTicketAndCompletedRequestReadable: true,
     webHttpRenderContainsTicketAndAttachment: true,
     webDownloadRedirectAndSignedGetBytesMatch: true,
-    sourceAndRestoreObjectPathsDistinct: true,
+    sourceAndRestoreStorageContainersDistinct: true,
     syntheticCredentialsRecreatedAfterRestore: true,
     existingEnvAndStorageUntouched: true,
     limitations: [
@@ -327,5 +406,6 @@ export async function verify(context) {
 
 export async function cleanup() {
   await stopChildren();
+  await stopStorage();
   await Promise.all(logs.map((log) => log.close()));
 }

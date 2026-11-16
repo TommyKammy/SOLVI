@@ -11,7 +11,7 @@ updated: "2026-11-16"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "review"
 story_points: 8
 risk: "medium"
 workstream: "PLAT"
@@ -158,4 +158,16 @@ MinIO には戻せない(イメージが取得できない)。SeaweedFS で問�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| - | - | - | Not started | - | - |
+| 2026-11-16 | Claude | PR #8 | Review | `evidence/WP-P1-PLAT-025/20261116-1350/README.md` | 下記 |
+
+### 2026-11-16 実装(Review 待ち)
+
+**変更ファイル**: `docker-compose.yml`(`minio` → `seaweedfs`、ボリューム `seaweedfsdata`、ポートを 127.0.0.1 に限定、`api`/`worker` の `S3_ENDPOINT`)、`.env.example`(見出し、`S3_CONSOLE_PORT` 削除)、`.github/workflows/ci.yml`(バケット作成を AWS CLI から `ensure_buckets.mjs` へ、監査アンカー用バケットも作成)、`tools/ensure_buckets.mjs`(起動途中は最大60秒待つ、コメント)、`tools/dev_local.mjs`(Docker の確認 → `docker compose up -d --wait seaweedfs` → バケット作成 → 起動)、`tools/local_restore_runtime.mjs`(復元元・復元先ごとに別の SeaweedFS コンテナ、署名付き GET でバックアップし署名付き PUT で復元)、`tools/dev_object_storage.mjs`(削除)、`README.md`、`docs/runbooks/clean-host.md`、02.1、99.7、08.1、MANIFEST。
+
+**Migration**: なし。既存の `solvi_miniodata` ボリュームは使われなくなる(README に削除手順)。ロールバックは PR の revert だが、MinIO のイメージは取得できないため前進修復が前提(§10)。
+
+**検証**: §7 の11項目のうち10項目をローカルで、残る1項目(CI の Object Storage を使う11ファイル)を PR #8 の CI(run 43879969071)で確認し、11項目すべてを満たした。コマンドと結果は Evidence。lint・typecheck・`check:images`・`check:all` 通過。
+
+**セキュリティ影響**: コンテナイメージ(SeaweedFS 4.52、digest 固定)の追加と、ローカルの Object Storage のポートを 127.0.0.1 のみに限定(以前の MinIO は全インターフェイスで待ち受けていた)。本番への影響なし。人間のレビューが必要(AGENTS.md §1.16)。
+
+**未解決事項**: 復元ドリルが PostgreSQL コンテナを停止したまま残す、`workingDirectory` が絶対パスで出る(いずれも既存の挙動で本WPの範囲外)。コード中のコメントの「MinIO」は §5 のとおり未変更。

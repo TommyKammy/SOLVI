@@ -8,7 +8,7 @@
 
 申告 → 担当者の引き受け → 対応 → 公開返信と解決 → 利用者の確認・再開を試せます。
 起動・開発アカウント・制限は [チケット業務の試用手順](docs/runbooks/local-ticket-flow.md) を参照してください。
-`npm run dev:local` で API・Web・開発専用ストレージ・添付検査をまとめて起動します。添付は ClamAV の検査完了後に開けます。`/knowledge` で記事検索、担当者の下書き・レビュー、管理者による組織内公開、返信への記事版引用も試せます。`/catalog` → `/requests` では申請・承認・却下・変更時の再承認・ローカル模擬実行を試せます。模擬結果はPGへ保存し、依頼チケットを解決します（外部変更0件）。`/assets` は手入力の資産登録・検索・状態と利用者の管理・変更履歴を備え、チケット画面と双方向にたどれます。`/assets/imports` では合成CSVの列対応・差分・不正行を確認して正常行だけを確定できます。同じ取込元と外部IDで再取込しても重複せず、省略資産を削除しません。`/changes` とTicket/Asset詳細からは、通常変更の計画→別担当者承認/却下→予定→合成実施結果/PIRを試せます。計画/対象が変われば再承認となり、外部変更は0件です。MinIO の公式配布変更により、以下の旧フルスタック起動には取得できないイメージが含まれます。現在は上記の試用手順を使ってください。
+`npm run dev:local` で API・Web・Object Storage(SeaweedFS、Docker が必要)・添付検査をまとめて起動します。添付は ClamAV の検査完了後に開けます。`/knowledge` で記事検索、担当者の下書き・レビュー、管理者による組織内公開、返信への記事版引用も試せます。`/catalog` → `/requests` では申請・承認・却下・変更時の再承認・ローカル模擬実行を試せます。模擬結果はPGへ保存し、依頼チケットを解決します（外部変更0件）。`/assets` は手入力の資産登録・検索・状態と利用者の管理・変更履歴を備え、チケット画面と双方向にたどれます。`/assets/imports` では合成CSVの列対応・差分・不正行を確認して正常行だけを確定できます。同じ取込元と外部IDで再取込しても重複せず、省略資産を削除しません。`/changes` とTicket/Asset詳細からは、通常変更の計画→別担当者承認/却下→予定→合成実施結果/PIRを試せます。計画/対象が変われば再承認となり、外部変更は0件です。ローカルの Object Storage は、MinIO の OSS 版の配布終了に伴い SeaweedFS に置き換えました([ADR-0028](docs/planning/07_ADR/ADR-0028_Local_Object_Storage_Replacement.md))。以前の環境に `solvi_miniodata` ボリュームが残っている場合は `docker volume rm solvi_miniodata` で削除してください(開発用の合成データのみ)。
 
 ## 入口とフォームの復帰
 
@@ -36,11 +36,12 @@
 npm ci
 cp .env.example .env
 npm run up
+node --env-file=.env tools/ensure_buckets.mjs
 npm run db:migrate
 npm run db:seed
 ```
 
-各サービスのヘルスチェックが通ることを確認する。
+`tools/ensure_buckets.mjs` は Object Storage(SeaweedFS)に添付用と監査アンカー用のバケットを作る。冪等なので何度実行してもよい。各サービスのヘルスチェックが通ることを確認する。
 
 ```bash
 curl -fsS http://localhost:3001/healthz

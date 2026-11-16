@@ -19,8 +19,9 @@ npm ci
 # 3. 環境変数(既定値は入っていない。未設定なら起動時に失敗する)
 cp .env.example .env
 
-# 4. 起動
+# 4. 起動と Object Storage(SeaweedFS)のバケット作成
 npm run up
+node --env-file=.env tools/ensure_buckets.mjs
 
 # 5. スキーマ適用と合成データ
 npm run db:migrate

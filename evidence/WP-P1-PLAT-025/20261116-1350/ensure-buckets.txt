@@ -1,0 +1,12 @@
+== 1st
+  作成 solvi-attachments
+  作成 solvi-audit-anchor
+
+OK: バケットは利用可能です
+rc=0
+== 2nd
+  既存 solvi-attachments
+  既存 solvi-audit-anchor
+
+OK: バケットは利用可能です
+rc=0
