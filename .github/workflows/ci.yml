@@ -80,7 +80,7 @@ jobs:
       DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
       POSTGRES_APP_PASSWORD: ci-only-password
       POSTGRES_EXECUTOR_PASSWORD: ci-only-password
-      # オブジェクトストレージ(MinIO)。資格情報はこのジョブ内だけの使い捨て。
+      # オブジェクトストレージ(SeaweedFS、ADR-0028)。資格情報はこのジョブ内だけの使い捨て。
       S3_ENDPOINT: http://127.0.0.1:9100
       S3_REGION: ap-northeast-1
       S3_BUCKET_ATTACHMENTS: solvi-attachments
@@ -96,22 +96,28 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: オブジェクトストレージ(MinIO)の起動とバケット作成
-        # GitHub Actions の services では起動コマンド(server /data)を渡せないため docker run で起動する。
-        # イメージは docker-compose.yml の minio と同じ digest。
+      - name: オブジェクトストレージ(SeaweedFS)の起動とバケット作成
+        # ADR-0028: ローカル・CI の Object Storage は SeaweedFS(MinIO の OSS 版は配布終了)。
+        # GitHub Actions の services では起動コマンドを渡せないため docker run で起動する。
+        # 資格情報は環境変数で与える(SeaweedFS の S3 は設定ファイルが無いとき AWS_* を使う)。
         env:
-          MINIO_IMAGE: minio/minio:RELEASE.2024-11-07T00-52-20Z@sha256:ac591851803a79aee64bc37f66d77c56b0a4b6e12d9e5356380f4105510f2332
+          SEAWEEDFS_IMAGE: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+          AWS_ACCESS_KEY_ID: ci-only-access
+          AWS_SECRET_ACCESS_KEY: ci-only-secret-key
+          AWS_DEFAULT_REGION: ap-northeast-1
         run: |
-          docker run -d --name minio -p 127.0.0.1:9100:9000 \
-            -e MINIO_ROOT_USER="$S3_ACCESS_KEY" -e MINIO_ROOT_PASSWORD="$S3_SECRET_KEY" \
-            "$MINIO_IMAGE" server /data
+          docker run -d --name seaweedfs -p 127.0.0.1:9100:8333 \
+            -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
+            "$SEAWEEDFS_IMAGE" server -dir=/data -s3 -master.volumeSizeLimitMB=1024
+          aws configure set default.s3.addressing_style path
+          # 起動直後は S3 API が応答しないので、バケット作成が通るまで待つ
           for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:9100/minio/health/ready && break
+            aws --endpoint-url "$S3_ENDPOINT" s3api head-bucket --bucket "$S3_BUCKET_ATTACHMENTS" 2>/dev/null && break
+            aws --endpoint-url "$S3_ENDPOINT" s3 mb "s3://$S3_BUCKET_ATTACHMENTS" 2>/dev/null && break
             sleep 2
           done
-          curl -fsS http://127.0.0.1:9100/minio/health/ready
-          docker exec minio mc alias set local http://127.0.0.1:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
-          docker exec minio mc mb --ignore-existing "local/$S3_BUCKET_ATTACHMENTS"
+          aws --endpoint-url "$S3_ENDPOINT" s3api head-bucket --bucket "$S3_BUCKET_ATTACHMENTS" \
+            || { docker logs seaweedfs | tail -50; exit 1; }
 
       - name: マイグレーション適用
         run: npm run db:migrate
