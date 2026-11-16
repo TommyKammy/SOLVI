@@ -1,0 +1,6 @@
+login 200
+select organization 200
+create attachment 201 {"attachmentId":"01a1e49d-ee14-7000-b8df-ad64c1d5ab75","uploadUrl":"<signed URL omitted>"}
+signed PUT 200
+scan clean true
+signed GET 200 bytes match true content-disposition attachment

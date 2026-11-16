@@ -1,0 +1,142 @@
+ Image chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59 Pulling 
+ 9278959c98be Pulling fs layer 0B
+ 9c7d95b9ba4f Pulling fs layer 0B
+ 4f4fb700ef54 Pulling fs layer 0B
+ 44145dcd76f8 Pulling fs layer 0B
+ 32f67557ca2c Pulling fs layer 0B
+ e26d34505be6 Pulling fs layer 0B
+ 65dfde96f86c Pulling fs layer 0B
+ 92281b973700 Pulling fs layer 0B
+ 9e4301dddd0e Pulling fs layer 0B
+ d3531b7a4f21 Pulling fs layer 0B
+ e71d44a81f58 Pulling fs layer 0B
+ 44145dcd76f8 Download complete 0B
+ 92281b973700 Download complete 0B
+ 65dfde96f86c Downloading 1.049MB
+ 9e4301dddd0e Download complete 0B
+ 9c7d95b9ba4f Download complete 0B
+ 4f4fb700ef54 Download complete 0B
+ 9278959c98be Downloading 1.049MB
+ e71d44a81f58 Downloading 1.049MB
+ 65dfde96f86c Downloading 7.34MB
+ d3531b7a4f21 Downloading 1.049MB
+ 32f67557ca2c Downloading 1.049MB
+ e26d34505be6 Downloading 2.097MB
+ 65dfde96f86c Downloading 10.49MB
+ d3531b7a4f21 Downloading 2.097MB
+ 32f67557ca2c Downloading 3.146MB
+ 9278959c98be Downloading 2.097MB
+ e71d44a81f58 Downloading 2.097MB
+ e26d34505be6 Downloading 5.243MB
+ 65dfde96f86c Download complete 0B
+ d3531b7a4f21 Download complete 0B
+ 32f67557ca2c Downloading 5.243MB
+ 9278959c98be Downloading 4.194MB
+ e71d44a81f58 Download complete 0B
+ d3531b7a4f21 Extracting 1B
+ 9278959c98be Downloading 5.243MB
+ e26d34505be6 Downloading 12.58MB
+ 32f67557ca2c Downloading 8.389MB
+ d3531b7a4f21 Pull complete 0B
+ 32f67557ca2c Downloading 10.49MB
+ 9278959c98be Downloading 7.34MB
+ e26d34505be6 Downloading 19.92MB
+ 9278959c98be Downloading 9.437MB
+ e26d34505be6 Downloading 26.21MB
+ 32f67557ca2c Downloading 12.58MB
+ 32f67557ca2c Downloading 14.68MB
+ 9278959c98be Downloading 13.63MB
+ e26d34505be6 Downloading 32.51MB
+ 32f67557ca2c Downloading 16.78MB
+ 9278959c98be Downloading 17.83MB
+ e26d34505be6 Downloading 37.75MB
+ 32f67557ca2c Downloading 18.87MB
+ 9278959c98be Downloading 22.02MB
+ e26d34505be6 Downloading 42.99MB
+ 32f67557ca2c Downloading 22.02MB
+ 9278959c98be Downloading 26.21MB
+ e26d34505be6 Downloading 47.19MB
+ 32f67557ca2c Downloading 25.17MB
+ 9278959c98be Downloading 30.41MB
+ e26d34505be6 Downloading 52.43MB
+ 9278959c98be Downloading 33.55MB
+ e26d34505be6 Downloading 56.62MB
+ 32f67557ca2c Downloading 28.31MB
+ 32f67557ca2c Downloading 31.46MB
+ 9278959c98be Downloading 37.75MB
+ e26d34505be6 Downloading 60.82MB
+ 32f67557ca2c Downloading 34.6MB
+ 9278959c98be Downloading 41.94MB
+ e26d34505be6 Downloading 66.06MB
+ 32f67557ca2c Downloading 37.75MB
+ 9278959c98be Downloading 46.14MB
+ e26d34505be6 Downloading 70.25MB
+ 9278959c98be Downloading 50.33MB
+ e26d34505be6 Downloading 74.45MB
+ 32f67557ca2c Downloading 40.89MB
+ 9278959c98be Downloading 54.53MB
+ e26d34505be6 Downloading 78.64MB
+ 32f67557ca2c Downloading 44.04MB
+ 9278959c98be Downloading 58.72MB
+ e26d34505be6 Downloading 82.84MB
+ 32f67557ca2c Downloading 47.19MB
+ e26d34505be6 Downloading 87.05MB
+ 32f67557ca2c Downloading 52.43MB
+ 9278959c98be Downloading 61.87MB
+ 9278959c98be Downloading 66.06MB
+ e26d34505be6 Download complete 0B
+ 32f67557ca2c Downloading 59.77MB
+ e26d34505be6 Extracting 1B
+ 32f67557ca2c Downloading 67.11MB
+ 9278959c98be Downloading 70.25MB
+ e26d34505be6 Extracting 1B
+ 9278959c98be Downloading 74.45MB
+ 32f67557ca2c Downloading 74.45MB
+ e26d34505be6 Extracting 1B
+ 9278959c98be Download complete 0B
+ 32f67557ca2c Download complete 0B
+ e26d34505be6 Extracting 1B
+ e26d34505be6 Extracting 1B
+ 65dfde96f86c Extracting 1B
+ e26d34505be6 Pull complete 0B
+ 65dfde96f86c Pull complete 0B
+ 9278959c98be Extracting 1B
+ 9278959c98be Extracting 1B
+ 9278959c98be Extracting 1B
+ 9278959c98be Extracting 1B
+ 9278959c98be Extracting 1B
+ 9278959c98be Extracting 1B
+ 9278959c98be Pull complete 0B
+ 32f67557ca2c Extracting 1B
+ 32f67557ca2c Extracting 1B
+ 32f67557ca2c Extracting 1B
+ 32f67557ca2c Extracting 1B
+ 32f67557ca2c Extracting 1B
+ 32f67557ca2c Extracting 1B
+ 32f67557ca2c Extracting 1B
+ 44145dcd76f8 Pull complete 0B
+ 92281b973700 Pull complete 0B
+ 9e4301dddd0e Pull complete 0B
+ 9c7d95b9ba4f Pull complete 0B
+ 4f4fb700ef54 Pull complete 0B
+ e71d44a81f58 Pull complete 0B
+ 32f67557ca2c Pull complete 0B
+ Image chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59 Pulled 
+ Network solvi-wp025_default Creating 
+ Network solvi-wp025_default Created 
+ Volume solvi-wp025_seaweedfsdata Creating 
+ Volume solvi-wp025_seaweedfsdata Created 
+ Volume solvi-wp025_pgdata Creating 
+ Volume solvi-wp025_pgdata Created 
+ Container solvi-wp025-postgres-1 Creating 
+ Container solvi-wp025-seaweedfs-1 Creating 
+ Container solvi-wp025-postgres-1 Created 
+ Container solvi-wp025-seaweedfs-1 Created 
+ Container solvi-wp025-postgres-1 Starting 
+ Container solvi-wp025-seaweedfs-1 Starting 
+ Container solvi-wp025-postgres-1 Started 
+ Container solvi-wp025-seaweedfs-1 Started 
+ Container solvi-wp025-seaweedfs-1 Waiting 
+ Container solvi-wp025-postgres-1 Waiting 
+ Container solvi-wp025-seaweedfs-1 Healthy 
+ Container solvi-wp025-postgres-1 Healthy 

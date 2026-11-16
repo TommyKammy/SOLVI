@@ -2,15 +2,19 @@
 /**
  * オブジェクトストレージのバケット作成 (WP-P2-SCAN-011)
  *
- * `docker compose up` だけでは MinIO にバケットが存在しない。
+ * `docker compose up` だけではローカルの Object Storage(SeaweedFS、ADR-0028)に
+ * バケットが存在しない。
  * 添付のアップロードは 404 で失敗するが、**エラーの原因が
  * 「バケットが無い」であることは応答から分からない**。
+ *
+ * 起動直後で Object Storage がまだ接続を受け付けないときは、接続できるまで
+ * 最大 STORAGE_WAIT_SECONDS 秒(既定 60)待つ。待っても繋がらなければ失敗する。
  *
  * `migrate.mjs` がスキーマを用意するのと同じ位置づけで、
  * ストレージ側の初期化をここに置く。冪等なので何度実行してもよい。
  *
  * 監査アンカー用のバケットは、本番では Object Lock を有効にする必要がある
- * (ADR-0009)。ローカルの MinIO では有効化しないため、
+ * (ADR-0009)。ローカルの SeaweedFS では有効化しないため、
  * **ローカルで改ざん防止が効いていると誤解しないこと。**
  */
 
@@ -76,11 +80,28 @@ function signedHeaders(method, bucket) {
   };
 }
 
+/** 接続できない(起動途中)間だけ待つ。HTTP の応答が返れば、その内容は呼び出し側で判断する。 */
+async function fetchWhenReachable(url, init) {
+  const waitSeconds = Number(process.env.STORAGE_WAIT_SECONDS ?? 60);
+  const deadline = Date.now() + waitSeconds * 1000;
+  for (;;) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      if (Date.now() >= deadline) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+}
+
 let failed = 0;
 
 for (const bucket of BUCKETS) {
   const head = signedHeaders('HEAD', bucket);
-  const exists = await fetch(head.url, { method: 'HEAD', headers: head.headers }).catch(() => null);
+  const exists = await fetchWhenReachable(head.url, {
+    method: 'HEAD',
+    headers: head.headers,
+  }).catch(() => null);
 
   if (exists?.ok) {
     process.stdout.write(`  既存 ${bucket}\n`);

@@ -1,0 +1,2 @@
+Docker に接続できません。dev:local は Object Storage(SeaweedFS)を Docker で動かすため、Docker を起動してから再実行してください。
+exit=1
