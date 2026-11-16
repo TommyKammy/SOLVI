@@ -158,7 +158,7 @@ MinIO には戻せない(イメージが取得できない)。SeaweedFS で問�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| 2026-11-16 | Claude | branch `wp/WP-P1-PLAT-025` | Review | `evidence/WP-P1-PLAT-025/20261116-1350/README.md` | 下記 |
+| 2026-11-16 | Claude | PR #8 | Review | `evidence/WP-P1-PLAT-025/20261116-1350/README.md` | 下記 |
 
 ### 2026-11-16 実装(Review 待ち)
 
@@ -166,7 +166,7 @@ MinIO には戻せない(イメージが取得できない)。SeaweedFS で問�
 
 **Migration**: なし。既存の `solvi_miniodata` ボリュームは使われなくなる(README に削除手順)。ロールバックは PR の revert だが、MinIO のイメージは取得できないため前進修復が前提(§10)。
 
-**検証**: §7 の11項目のうち10項目をローカルで確認(CI の項目は PR の CI で確認)。コマンドと結果は Evidence。lint・typecheck・`check:images`・`check:all` 通過。
+**検証**: §7 の11項目のうち10項目をローカルで、残る1項目(CI の Object Storage を使う11ファイル)を PR #8 の CI(run 43879969071)で確認し、11項目すべてを満たした。コマンドと結果は Evidence。lint・typecheck・`check:images`・`check:all` 通過。
 
 **セキュリティ影響**: コンテナイメージ(SeaweedFS 4.52、digest 固定)の追加と、ローカルの Object Storage のポートを 127.0.0.1 のみに限定(以前の MinIO は全インターフェイスで待ち受けていた)。本番への影響なし。人間のレビューが必要(AGENTS.md §1.16)。
 

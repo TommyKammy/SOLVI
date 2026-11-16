@@ -17,7 +17,7 @@
 | 1 | キャッシュの無い状態で `docker compose up -d --wait postgres seaweedfs` が成功し healthy になる | 満たす。`chrislusf/seaweedfs:4.52` は未取得の状態から取得し、13秒で両方 healthy | `compose-up.txt` |
 | 2 | `tools/ensure_buckets.mjs` を2回実行すると、1回目は2つ作成、2回目は変更なしで成功 | 満たす | `ensure-buckets.txt` |
 | 3 | Compose の環境で object-storage / attachment-delete / attachment-scan が全件通る | 満たす。3ファイル33件通過(期限切れ署名の拒否を含む) | `storage-tests.txt` |
-| 4 | CI の「DB・認可・監査」で Object Storage を使う11ファイルがすべて通る | PR の CI で確認する | PR を参照 |
+| 4 | CI の「DB・認可・監査」で Object Storage を使う11ファイルがすべて通る | 満たす。PR #8 の CI(run 43879969071、commit `57c81df`)で11ファイルすべて通過。バケット作成は `ensure_buckets.mjs` で2つ作成。ジョブ全体の失敗は既存の18ファイル(使い捨てDB名のガードと欠落 fixture)のみで、main と同じ | CI ログ |
 | 5 | `minio/minio` のイメージ参照が無く `check:images` が通る | 満たす。`git grep minio/minio` は計画文書の説明文のみ、`check:images` 通過 | 下記コマンド |
 | 6 | README と runbooks の手順だけで 1〜3 を再現できる | 満たす。README と `docs/runbooks/clean-host.md` に `node --env-file=.env tools/ensure_buckets.mjs` を追加 | 差分 |
 | 7 | Docker 稼働時、`npm run dev:local` で SeaweedFS が使われ添付をアップロード・ダウンロードできる | 満たす。API 経由で、署名付き PUT 200 → ClamAV clean → 署名付き GET 200、内容一致、`Content-Disposition: attachment` | `dev-local-attachment.txt` |
