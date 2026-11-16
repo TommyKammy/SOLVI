@@ -7,7 +7,7 @@ type: "adr"
 status: "accepted"
 version: "0.2.0"
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-11-16"
 owner: "SOLVI Product Team"
 tags: ["adr"]
 source_of_truth: true
@@ -21,7 +21,7 @@ implementation_status: "not-started"
 **ACCEPTED**(2026-07-27 / Owner: Product Owner + Security Reviewer)
 
 - Supersedes: なし
-- Superseded by: なし
+- Superseded by: 一部。「ローカル開発は MinIO」の部分を [[ADR-0028_Local_Object_Storage_Replacement]] が Supersede(2026-11-16)。その他の決定は有効
 
 ## Context
 
