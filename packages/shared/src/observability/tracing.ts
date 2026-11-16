@@ -3,7 +3,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { trace, context, propagation, SpanStatusCode, type Span } from '@opentelemetry/api';
 
@@ -51,7 +51,7 @@ let metricServer: PrometheusExporter | undefined;
 export function startTracing(options: TracingOptions): void {
   if (sdk) return; // 二重初期化を防ぐ
 
-  const resource = new Resource({
+  const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: options.serviceName,
     [ATTR_SERVICE_VERSION]: options.serviceVersion,
     'deployment.environment.name': options.environment,
@@ -71,7 +71,7 @@ export function startTracing(options: TracingOptions): void {
 
   sdk = new NodeSDK({
     resource,
-    ...(metricServer ? { metricReader: metricServer } : {}),
+    ...(metricServer ? { metricReaders: [metricServer] } : {}),
     ...(options.otlpEndpoint
       ? { traceExporter: new OTLPTraceExporter({ url: `${options.otlpEndpoint}/v1/traces` }) }
       : {}),
