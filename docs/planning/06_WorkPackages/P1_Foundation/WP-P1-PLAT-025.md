@@ -4,15 +4,15 @@ doc_id: "WP-P1-PLAT-025"
 title: "ローカル開発のObject StorageをMinIOからSeaweedFSへ置き換える"
 category: "06_WorkPackages"
 type: "workpackage"
-status: "draft"
-version: "0.1.0"
+status: "baseline"
+version: "0.2.0"
 created: "2026-11-16"
 updated: "2026-11-16"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
 implementation_status: "not-started"
-story_points: 5
+story_points: 8
 risk: "medium"
 workstream: "PLAT"
 phase: "P1"
@@ -26,16 +26,16 @@ requirement_ids: ["NFR-MNT-002", "NFR-SEC-008"]
 | Phase | P1 |
 | Workstream | PLAT |
 | Risk | medium |
-| Story Points | 5 |
+| Story Points | 8 |
 | Suggested Owner | Tech Lead |
 | Parallelizable | Yes(Object Storage に触れる他のWPと同時に進めない) |
 | Gate | Gate 1 |
 
-> `status: draft`。§5 の「要判断」が決まり、利用者が承認したら `baseline` にする。それまで着手しない(AGENTS.md §2)。
+> 2026-11-16 に利用者が §5 の判断(`dev:local` も SeaweedFS へ切り替える)を決め、`baseline` とした。
 
 ## 1. Purpose
 
-[[ADR-0028_Local_Object_Storage_Replacement]] の決定を、ローカル開発の環境へ反映する。MinIO のオープンソース版は配布が終了し、`docker-compose.yml` が固定しているイメージは取得できない。このWPが完了すると、キャッシュの無いマシンでも `docker compose up` でObject Storageを含む環境を作れ、バケットも自動で用意される。
+[[ADR-0028_Local_Object_Storage_Replacement]] の決定を、ローカル開発の環境へ反映する。MinIO のオープンソース版は配布が終了し、`docker-compose.yml` が固定しているイメージは取得できない。このWPが完了すると、キャッシュの無いマシンでも `docker compose up` と `npm run dev:local` のどちらでも、同じ SeaweedFS を Object Storage として使え、バケットも自動で用意される。Node 製の代替ストレージ(`tools/dev_object_storage.mjs`)は無くなる。
 
 CI の「DB・認可・監査」ジョブへの SeaweedFS と ClamAV の追加は、PR #6 で先に行った(ADR-0028 の Verification を兼ねる)。本WPはそれをローカルの手順と揃える。
 
@@ -55,7 +55,10 @@ CI の「DB・認可・監査」ジョブへの SeaweedFS と ClamAV の追加�
 - `.env.example`
 - `.github/workflows/ci.yml`
 - `tools/ensure_buckets.mjs`
-- `tools/dev_local.mjs`、`tools/dev_object_storage.mjs`、`tools/local_restore_runtime.mjs`(§5 の要判断の結果、変更が要る場合のみ)
+- `tools/dev_local.mjs`
+- `tools/dev_object_storage.mjs`(削除)
+- `tools/local_restore_runtime.mjs`
+- `.gitignore`(`.local/object-storage` の扱いを変える場合のみ)
 - `README.md`、`docs/runbooks/`
 - `docs/planning/02_Architecture/02.1_Architecture_Overview.md`
 - `docs/planning/99_Project_Files/99.7_Environment_and_Integration_Inventory.md`
@@ -70,13 +73,12 @@ CI の「DB・認可・監査」ジョブへの SeaweedFS と ClamAV の追加�
 - 過去の WP の Execution Log と `evidence/` に残る「MinIO」の記述。記録は書き換えない。
 - 開発者の `miniodata` ボリュームのデータ移行(合成データのため作り直す)。
 
-### 要判断(baseline 化の前に決める)
+### 決定済みの判断(2026-11-16、利用者)
 
-`npm run dev:local` は、Docker を使わず `tools/dev_object_storage.mjs`(Node 製の、署名付きURLの一部だけを受ける開発専用の代替)を起動している。MinIO が取得できなくなった後の回避策と見られる。ADR-0028 はローカルの Object Storage を SeaweedFS と決めたが、この代替の扱いには触れていない。次のどれにするかを決める。
+`npm run dev:local` は、Docker を使わず `tools/dev_object_storage.mjs`(Node 製の、署名付きURLの一部だけを受ける開発専用の代替)を起動していた。MinIO が取得できなくなった後の回避策と見られる。次の3案から、**案1: `dev:local` も SeaweedFS(Docker)へ切り替え、`dev_object_storage.mjs` を削除する**に決めた。ADR-0028 の「ローカルの Object Storage は SeaweedFS」に一致させ、本番の S3 と違う実装を2つ抱えないため。`dev:local` の利用に Docker が必須になることを受け入れる。
 
-1. `dev:local` も SeaweedFS(Docker)へ切り替え、`dev_object_storage.mjs` を削除する(ADR-0028 に一致。Docker が必須になる)
-2. `dev_object_storage.mjs` を「Docker 無しで試す軽量手段」として残し、正式なローカル環境は `docker compose`(SeaweedFS)とする(差異を 99.7 に記載)
-3. 本WPでは触れず、別WPで扱う
+- 退けた案2: 代替を「Docker 無しの軽量手段」として残す — S3 の挙動を部分的に真似る自前の実装を保守し続けることになり、差異の源が増える。
+- 退けた案3: 本WPでは触れない — `dev:local` だけが MinIO 以前と違う仕組みで動き続ける。
 
 ## 6. Deliverables
 
@@ -84,6 +86,9 @@ CI の「DB・認可・監査」ジョブへの SeaweedFS と ClamAV の追加�
 - バケットの自動作成: `tools/ensure_buckets.mjs` を SeaweedFS で動くようにし、Compose の起動手順に組み込む。CI(`.github/workflows/ci.yml`)のバケット作成も AWS CLI からこのスクリプトへ寄せ、添付用と監査アンカー用の両方を作る。
 - `.env.example`: Object Storage の見出しと既定値(ポート、コンソール用ポートの削除)を更新する。
 - `README.md` と `docs/runbooks/`: MinIO の記述と「取得できないイメージが含まれます」の注意書きを、新しい起動手順に置き換える。既存の `miniodata` ボリュームを破棄する手順を書く。
+- `npm run dev:local`: `tools/dev_local.mjs` が `dev_object_storage.mjs` の代わりに SeaweedFS(Compose の同じサービス)を起動または利用し、`ensure_buckets.mjs` でバケットを用意してから API・Web を起動する。Docker が無い・起動していない場合は、原因が分かる日本語のエラーで止める。
+- `tools/local_restore_runtime.mjs`: 復元先の隔離環境で使う Object Storage を SeaweedFS に切り替える(復元先ごとに別のポート・保存先を使う現在の隔離の性質は保つ)。
+- `tools/dev_object_storage.mjs` を削除する。参照が残っていないことを確かめる。
 - 計画文書: 02.1 の対応表、99.7 の環境一覧(本番 S3 との差異: Object Lock・バージョニング・暗号化の有無)、08.1 の起動コマンドを更新する。
 
 ## 7. Acceptance Criteria
@@ -94,7 +99,11 @@ CI の「DB・認可・監査」ジョブへの SeaweedFS と ClamAV の追加�
 - [ ] CI の「DB・認可・監査」ジョブで、Object Storage を使うテストファイル(object-storage、attachment-delete、attachment-scan、collaboration、collaboration-routes、ticket-relation、relation-routes、ticket-filters、assignment-group、notification、user-admin)がすべて通る
 - [ ] リポジトリ内のイメージ参照に `minio/minio` が残っておらず、`npm run check:images` が通る
 - [ ] `README.md` と `docs/runbooks/` の起動手順に従うだけで、上の3項目を再現できる(手順にない手作業が要らない)
-- [ ] §5 の要判断の結果が本WPと 99.7 に記録されている
+- [ ] Docker が動いているマシンで `npm run dev:local` を実行すると SeaweedFS が使われ、ブラウザから添付をアップロード・ダウンロードできる(ClamAV の検査完了後)
+- [ ] Docker が止まっているマシンで `npm run dev:local` を実行すると、Docker が必要だと分かる日本語のエラーで止まり、API・Web は起動しない
+- [ ] `tools/local_restore_runtime.mjs` による隔離復元で、復元先の添付本体を SeaweedFS から取得でき、内容が元と一致する
+- [ ] `tools/dev_object_storage.mjs` が削除され、`git grep dev_object_storage` がコードと現行の手順書で0件(過去の Evidence を除く)
+- [ ] 99.7 に「ローカルは SeaweedFS(Compose と dev:local の両方)」と、本番 S3 との差異が記載されている
 
 ## 8. Verification and Evidence
 
@@ -122,16 +131,18 @@ MinIO には戻せない(イメージが取得できない)。SeaweedFS で問�
 
 - 読む正本: 本WP、[[ADR-0028_Local_Object_Storage_Replacement]]、[[ADR-0010_S3_Compatible_Attachments]]、[[ADR-0018_Deployment_Baseline]]、[[WP-P1-PLAT-001]]、`tools/ensure_buckets.mjs` の冒頭コメント。
 - 手順:
-  1. §5 の要判断が本WPに記録されていることを確かめる。無ければ着手しない。
+  1. §5 の決定済みの判断(案1)を読む。
   2. PR #6 の CI 設定(SeaweedFS の版・digest・起動引数・環境変数による資格情報)を正として、`docker-compose.yml` の `minio` を置き換える。
   3. `ensure_buckets.mjs` を SeaweedFS で動かし、Compose と CI の両方から使う。
   4. キャッシュを消したうえで §7 を順に確かめ、Evidence を残す。
-  5. 文書(README、runbooks、02.1、99.7、08.1)を更新し、MANIFEST を再生成する。
+  5. `dev_local.mjs` と `local_restore_runtime.mjs` を SeaweedFS に切り替え、`dev_object_storage.mjs` を削除する。
+  6. 文書(README、runbooks、02.1、99.7、08.1)を更新し、MANIFEST を再生成する。
 - やってはいけないこと:
   - `object-storage.ts` の実装を変えて、SeaweedFS の差異を吸収すること(差異が見つかったら止めて報告する)
   - 失敗するテストを skip・削除すること
   - digest を付けずにイメージを参照すること、`latest` を使うこと
   - 過去の Execution Log と Evidence の「MinIO」を書き換えること
+  - `dev_object_storage.mjs` を残したまま、別名で同等の代替を作ること
 - 完了時の報告: 変更ファイル、§7 の各項目の結果と証拠、CI の run ID、未解決事項。
 
 ## 12. Definition of Done
