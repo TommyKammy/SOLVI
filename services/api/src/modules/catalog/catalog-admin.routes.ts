@@ -13,10 +13,7 @@ import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 import { definitionSchema } from './catalog-definition.js';
 import { activeRuleExists } from './approval-rule.service.js';
 import { evaluateHighRiskDefinition, readHighRiskAttribute } from './approval-high-risk.js';
-import {
-  lockApprovalSetting,
-  lockRuleRevisionForShare,
-} from './approval-high-risk-store.js';
+import { lockApprovalSetting, lockRuleRevisionForShare } from './approval-high-risk-store.js';
 const content = z
   .object({
     title: z.string().trim().min(1).max(200),
@@ -327,9 +324,7 @@ export class CatalogAdminController {
     ).rows[0];
     if (!row) throw Problems.conflict('公開中だったカタログの版を確認できません');
     return {
-      attribute: readHighRiskAttribute(
-        (row.definition as { approval?: unknown } | null)?.approval,
-      ),
+      attribute: readHighRiskAttribute((row.definition as { approval?: unknown } | null)?.approval),
       revision: publishedRevision,
     };
   }
@@ -450,8 +445,7 @@ export class CatalogAdminController {
       if (v.definition.ownerId && v.definition.ownerId !== auth.userId)
         throw Problems.forbidden('自分を責任者とする下書きだけ作成できます');
       // 新規の項目では、委任された編集者は高リスクの指定を真にできない(ADR-0026 §3)。
-      if (v.definition.approval?.highRisk === true)
-        throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
+      if (v.definition.approval?.highRisk === true) throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
       v.definition.ownerId = auth.userId;
     }
     return this.run(auth, async (c) => {
