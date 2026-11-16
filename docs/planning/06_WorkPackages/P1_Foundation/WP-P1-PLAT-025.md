@@ -11,7 +11,7 @@ updated: "2026-11-16"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "medium"
 workstream: "PLAT"
@@ -158,7 +158,7 @@ MinIO には戻せない(イメージが取得できない)。SeaweedFS で問�
 
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
-| 2026-11-16 | Claude | PR #8 | Review | `evidence/WP-P1-PLAT-025/20261116-1350/README.md` | 下記 |
+| 2026-11-16 | Claude | PR #8 | Done | `evidence/WP-P1-PLAT-025/20261116-1350/README.md` | 下記 |
 
 ### 2026-11-16 実装(Review 待ち)
 
@@ -171,3 +171,8 @@ MinIO には戻せない(イメージが取得できない)。SeaweedFS で問�
 **セキュリティ影響**: コンテナイメージ(SeaweedFS 4.52、digest 固定)の追加と、ローカルの Object Storage のポートを 127.0.0.1 のみに限定(以前の MinIO は全インターフェイスで待ち受けていた)。本番への影響なし。人間のレビューが必要(AGENTS.md §1.16)。
 
 **未解決事項**: 復元ドリルが PostgreSQL コンテナを停止したまま残す、`workingDirectory` が絶対パスで出る(いずれも既存の挙動で本WPの範囲外)。コード中のコメントの「MinIO」は §5 のとおり未変更。
+
+#### 利用者の承認(2026-11-16)
+
+- **2026-11-16、利用者(人間)が PR #8 をレビューしてマージした**(マージコミット `20a2dd8`)。コンテナイメージの追加とポート設定の変更を含むため人間のレビューが必要な変更(AGENTS.md §1.16)であり、このマージを sign-off とする。
+- §7 の11項目はすべて満たした(ローカル10項目、CI 1項目。`evidence/WP-P1-PLAT-025/20261116-1350/README.md`)。
