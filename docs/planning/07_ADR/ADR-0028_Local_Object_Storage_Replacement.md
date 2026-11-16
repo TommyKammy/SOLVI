@@ -1,26 +1,26 @@
 ---
 project: SOLVI
-doc_id: 'ADR-0028'
-title: 'ローカル開発・CIのS3互換Object StorageをMinIOから置き換える'
-category: '07_ADR'
-type: 'adr'
-status: 'draft'
-version: '0.1.0'
-created: '2026-11-16'
-updated: '2026-11-16'
-owner: 'SOLVI Product Team'
-tags: ['adr', 'object-storage', 'attachments', 'local', 'ci', 'supply-chain']
-source_of_truth: false
-implementation_status: 'not-started'
+doc_id: "ADR-0028"
+title: "ローカル開発・CIのS3互換Object StorageをMinIOから置き換える"
+category: "07_ADR"
+type: "adr"
+status: "accepted"
+version: "1.0.0"
+created: "2026-11-16"
+updated: "2026-11-16"
+owner: "SOLVI Product Team"
+tags: ["adr", "object-storage", "attachments", "local", "ci", "supply-chain"]
+source_of_truth: true
+implementation_status: "not-started"
 ---
 
 # ADR-0028: ローカル開発・CIのS3互換Object StorageをMinIOから置き換える
 
 ## Status
 
-`draft`(2026-11-16 起票)。**利用者(人間)の決定待ち。** 本文書は実装根拠にできない(AGENTS.md §0)。
+`accepted`(2026-11-16 起票、同日に利用者(人間)が承認。方向性と、第一候補を SeaweedFS として下記「Verification」で採否を決める進め方を承認)。
 
-承認されたら、[[ADR-0010_S3_Compatible_Attachments]] の「ローカル開発はMinIOを使う」と、[[ADR-0018_Deployment_Baseline]] の「ローカルは Docker Compose(PostgreSQL + MinIO + 各サービス)」のうち **MinIO の部分だけ**を Supersede する。両ADRのその他の決定(本番は AWS S3、署名付きURL、バージョニング、サーバサイド暗号化、Compose を基準とすること等)は変えない。
+本ADRは、[[ADR-0010_S3_Compatible_Attachments]] の「ローカル開発はMinIOを使う」と、[[ADR-0018_Deployment_Baseline]] の「ローカルは Docker Compose(PostgreSQL + MinIO + 各サービス)」のうち **MinIO の部分だけ**を Supersede する。両ADRのその他の決定(本番は AWS S3、署名付きURL、バージョニング、サーバサイド暗号化、Compose を基準とすること等)は変えない。
 
 ## Context
 
@@ -49,9 +49,9 @@ implementation_status: 'not-started'
 
 ADR-0010 のバージョニングとサーバサイド暗号化は本番バケットの設定であり、ローカルでの再現は必須としない(差異は [[99.7_Environment_and_Integration_Inventory]] で管理する)。
 
-## Decision(案)
+## Decision
 
-**ローカル開発と CI の Object Storage を SeaweedFS(S3 API)に置き換える。** ただし、下記「検証」をすべて満たすことを採用の条件とする。満たさなければ、次点の RustFS で同じ検証を行う。
+**ローカル開発と CI の Object Storage を SeaweedFS(S3 API)に置き換える。** ただし、下記「Verification」をすべて満たすことを採用の条件とする。満たさなければ、次点の RustFS で同じ検証を行う。
 
 - イメージは digest で固定する(AGENTS.md §1.14)。
 - バケットの作成を手作業にせず、Compose と CI の起動手順に含める(現状は MinIO のバケットを手で作っていた)。
@@ -59,12 +59,12 @@ ADR-0010 のバージョニングとサーバサイド暗号化は本番バケ�
 
 ### 候補の比較(2026-11-16 時点)
 
-| 候補               | ライセンス | 保守状況                                                                                     | SOLVI の要件との適合                                                                                   | 評価                       |
-| ------------------ | ---------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------- |
-| **SeaweedFS**      | Apache-2.0 | GitHub で活発(2026-11-16 に push)、Docker Hub `chrislusf/seaweedfs` も同日更新。長い運用実績 | ソースに `response-content-disposition` の処理がある(`weed/s3api`)。単一コンテナで S3 API を起動できる | **第一候補**               |
-| RustFS             | Apache-2.0 | 活発(1.0 GA は 2026-09、Docker Hub `rustfs/rustfs` 1.0.6 は 2026-11-15)                      | MinIO に近い置き換えを目指している。応答ヘッダー上書きの実装はソース上で未確認                         | 次点。1.0 からの日が浅い   |
-| Versity S3 Gateway | Apache-2.0 | 活発(v1.11.0 は 2026-11-10)                                                                  | ローカルディレクトリを S3 として公開する軽量な実装。GET での上書きはソースに処理がある                 | 候補。利用者の規模が小さい |
-| Garage             | AGPL-3.0   | 活発                                                                                         | 応答ヘッダー上書きは機能要望として issue がある(実装状況は未確認)                                      | 不採用寄り                 |
+| 候補 | ライセンス | 保守状況 | SOLVI の要件との適合 | 評価 |
+|---|---|---|---|---|
+| **SeaweedFS** | Apache-2.0 | GitHub で活発(2026-11-16 に push)、Docker Hub `chrislusf/seaweedfs` も同日更新。長い運用実績 | ソースに `response-content-disposition` の処理がある(`weed/s3api`)。単一コンテナで S3 API を起動できる | **第一候補** |
+| RustFS | Apache-2.0 | 活発(1.0 GA は 2026-09、Docker Hub `rustfs/rustfs` 1.0.6 は 2026-11-15) | MinIO に近い置き換えを目指している。応答ヘッダー上書きの実装はソース上で未確認 | 次点。1.0 からの日が浅い |
+| Versity S3 Gateway | Apache-2.0 | 活発(v1.11.0 は 2026-11-10) | ローカルディレクトリを S3 として公開する軽量な実装。GET での上書きはソースに処理がある | 候補。利用者の規模が小さい |
+| Garage | AGPL-3.0 | 活発 | 応答ヘッダー上書きは機能要望として issue がある(実装状況は未確認) | 不採用寄り |
 
 保守状況は Docker Hub と GitHub の API で確認した。機能の対応は**ソースコードの検索で当たりを付けただけ**で、動作は確認していない。採否は下記の検証で決める。
 
@@ -117,5 +117,5 @@ ADR-0010 のバージョニングとサーバサイド暗号化は本番バケ�
 
 ## Follow-up
 
-- 本 ADR の承認後、実装 WP を起票する(Compose・CI・`.env.example`・文書の更新)。PR #6 の MinIO 部分はこの WP で差し替える。ClamAV 部分はそのまま使える。
-- 本 ADR が承認されたら、ADR-0010 と ADR-0018 の Status に「ローカルの MinIO は ADR-0028 が Supersede」と追記する(決定本文は書き換えない)。
+- 実装 WP を起票する(Compose・CI・`.env.example`・文書の更新)。PR #6 の MinIO 部分はこの WP で差し替える。ClamAV 部分はそのまま使える。
+- ADR-0010 と ADR-0018 の Status に「ローカルの MinIO は ADR-0028 が Supersede」と追記した(決定本文は書き換えていない)。

@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 318 |
 | Markdown | 310 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,732,459 bytes |
+| 合計サイズ | 7,732,277 bytes |
 
 ## ファイル一覧
 
@@ -264,7 +264,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P9_Migration/WP-P9-MIG-001.md` | 2851 | `31269f5e476a248f577fee1dbf76cce7fc248965bfe102e1c4f2b61b18174584` |
 | `06_WorkPackages/P9_Migration/WP-P9-OPS-003.md` | 2795 | `ba0d5f4cee187b712a86b1600101da9bd2ffc34856337658d1461501f6572d46` |
 | `06_WorkPackages/P9_Migration/WP-P9-PAR-002.md` | 2746 | `e770e305931119ce830c5f10f279122f0751b5102ddecf15217e0ba3ea0d89db` |
-| `07_ADR/07.0_ADR_Index.md` | 6535 | `23d46cca66eaa8d6b8be99073e8a130a520e3fa224b625194bef12c8ef5e07d7` |
+| `07_ADR/07.0_ADR_Index.md` | 6807 | `fa36d812f3ecfb891cf1992b9f3342ed9dcd95c9de6c55e9c483979f8eef254a` |
 | `07_ADR/ADR-0001_Modular_Monolith_First.md` | 3381 | `fa08e6ec693de5fe82995b0e944504de53dfd88f380cb8c9d45c40ea88229259` |
 | `07_ADR/ADR-0002_TypeScript_Core_and_Python_AI.md` | 2443 | `e5cc4bbfd293d3b30cd0f87aba7607a7b07181f7db3df5f771f31ece70559f66` |
 | `07_ADR/ADR-0003_PostgreSQL_System_of_Record.md` | 3047 | `d9450004d8efc3cf8f341e12db3677e9f36043cb7b88a5c8ec41a5e6a84468cd` |
@@ -274,7 +274,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0007_AI_Advisory_Only.md` | 3134 | `da8219ca23dfad49739a7b4acd04a2dbcf7daf18e7f4dc3b957007ef5d81a6e4` |
 | `07_ADR/ADR-0008_Transactional_Outbox.md` | 2777 | `14871747daec0a16585978c4a44fcc9772f1acfc77ec64051afe50501613a73f` |
 | `07_ADR/ADR-0009_Append_Only_Audit.md` | 3247 | `1f78363c6dd56216e853e37dfae493497a8f959b2beb3efb58f7ab8c87e6fc9d` |
-| `07_ADR/ADR-0010_S3_Compatible_Attachments.md` | 2970 | `c411eca8b8a8b5a9b5d5ac7f0170b97b7ebcfd404b6060d3c898e599cb64c4a8` |
+| `07_ADR/ADR-0010_S3_Compatible_Attachments.md` | 3120 | `e979e8805c77277d8fb612bcda0da8bc2f901fcdb1d6645ba01793adaccbfe80` |
 | `07_ADR/ADR-0011_Postgres_FTS_then_pgvector.md` | 3537 | `6629a02856e093ddf3b5878a567bf6c77b1ab429652f24f5a0caf70bc9bf5cb3` |
 | `07_ADR/ADR-0012_Defer_Temporal.md` | 3131 | `2102c721d02dac54bd371fd25332f57dbcaa9311138b71ab19c640e513a61883` |
 | `07_ADR/ADR-0013_Current_State_Plus_Append_Only_Events.md` | 2750 | `0f647176553e5ad3923dccd8c51ce3c49fde64f6e6fe98e303706fb95a3a6e53` |
@@ -282,7 +282,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0015_Organization_Isolation_and_RLS.md` | 3742 | `6a14af3250b9a05d6fb9b6a816a6d7a456a5474d802809356ee58e8ca9e5b228` |
 | `07_ADR/ADR-0016_Secret_Management.md` | 3420 | `8c4252c85b14c42b8704463f766fac0025c90cefad83924789707b253b0a8232` |
 | `07_ADR/ADR-0017_API_and_Webhook_Contract.md` | 3218 | `80f92a3989d0bdc27ae180fe7dcc8b4fe011230a6e5d84348ee443815efb243d` |
-| `07_ADR/ADR-0018_Deployment_Baseline.md` | 3780 | `4741793dda623a16e0d87754494eac4080bdb74e151584c2252db5c43995c71f` |
+| `07_ADR/ADR-0018_Deployment_Baseline.md` | 3930 | `314b0a1afae5441ba0b6228c7eaa5564270827584de684d6d271e3a639fe941c` |
 | `07_ADR/ADR-0019_Local_Authentication_For_Development.md` | 8086 | `3f6f583a336031f04ab47ea178658cc377da436cf25b6b2fd80c01cf03d9016b` |
 | `07_ADR/ADR-0020_Catalog_Form_Definition_Extensions.md` | 3185 | `beef8e6b59d02328492409060d2c58de1d8c068db78a5cb82ca555301250f817` |
 | `07_ADR/ADR-0021_Catalog_Delegation_And_Fulfillment.md` | 3699 | `978934f8f7b0ffa5ff1e28c0480b7132a8683e24c5fd95e3e711b44f5240b0eb` |
@@ -291,7 +291,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion.md` | 12796 | `6b88e029a7f4427acf60afbdf7ee2233428a5bcb3e344e5c3aa1dca8fc727d50` |
 | `07_ADR/ADR-0025_Approval_Delegation.md` | 12768 | `0bd71dfe25e57e49dc2b823fe0005f4c53a7f0701920edb9abcbd399108fef1a` |
 | `07_ADR/ADR-0026_High_Risk_Approval_Constraints.md` | 8427 | `be058fece58f140da89c111f4d69f60f693ef5bc01edb6e9294ed7f26b204cb9` |
-| `07_ADR/ADR-0028_Local_Object_Storage_Replacement.md` | 10025 | `d57b7a091a42847043b6eccba34bed66db362d0a3ade270d3aa443b6ce0d8341` |
+| `07_ADR/ADR-0028_Local_Object_Storage_Replacement.md` | 9271 | `74326e824af2809ea2b5a7965c189d5295f2eb85c1dd03f52727e9b8c11816cb` |
 | `08_Runbooks/08.10_Audit_Export.md` | 1469 | `bb53a1a948cd80930b2c54fc35fa61cfde15402be7fe1343fe79b323fe93785a` |
 | `08_Runbooks/08.11_Data_Reconciliation.md` | 1469 | `66e555c4385a67399c03768b05450f30a69ae382b54ae23db9b4dfe526ef49ab` |
 | `08_Runbooks/08.12_Security_Incident.md` | 1502 | `073b4046e12371a776cfa1d45ce7f2f3cc9563e2755dfcabc1d8a1398b9743c6` |
