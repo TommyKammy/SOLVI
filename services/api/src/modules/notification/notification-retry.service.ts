@@ -17,7 +17,7 @@ import {
 } from './types.js';
 export type { NotificationRetryStatus, OperationSessionValidator } from './types.js';
 
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 const events = new Set([
   'ticket.created',
   'ticket.transitioned',

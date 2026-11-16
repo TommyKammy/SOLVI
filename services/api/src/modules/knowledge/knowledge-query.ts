@@ -55,7 +55,7 @@ const cursorSchema = z.tuple([
   z.union([z.literal(0), z.literal(1)]),
   z.boolean(),
   z.string().refine(validTimestamp),
-  z.string().uuid(),
+  z.string().guid(),
   z.string().regex(/^[A-Za-z0-9_-]{43}$/),
 ]);
 function invalid(field: string): never {

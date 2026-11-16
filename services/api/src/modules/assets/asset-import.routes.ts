@@ -375,7 +375,7 @@ export class AssetImportsController {
   }
   async detail(auth: AuthenticatedRequest, id: string) {
     this.read(auth);
-    checked(z.string().uuid(), id);
+    checked(z.string().guid(), id);
     return this.run(auth, async (c) => {
       const p = (
         await c.query<PlanRecord>(
@@ -406,7 +406,7 @@ export class AssetImportsController {
   }
   async apply(auth: AuthenticatedRequest, id: string, value: unknown) {
     this.write(auth);
-    checked(z.string().uuid(), id);
+    checked(z.string().guid(), id);
     const input = checked(
       z.object({ planHash: z.string().length(64), confirmed: z.literal(true) }).strict(),
       value,

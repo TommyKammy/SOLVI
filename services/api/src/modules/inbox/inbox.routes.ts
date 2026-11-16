@@ -53,7 +53,7 @@ const querySchema = z
 const readSchema = z
   .object({
     kind: z.enum(sourceKinds),
-    id: z.string().uuid(),
+    id: z.string().guid(),
     eventKey: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();

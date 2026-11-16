@@ -25,7 +25,7 @@ const content = z
   })
   .strict();
 const createSchema = content
-  .extend({ code: z.string().regex(/^[a-z][a-z0-9-]{1,47}$/), creationKey: z.string().uuid() })
+  .extend({ code: z.string().regex(/^[a-z][a-z0-9-]{1,47}$/), creationKey: z.string().guid() })
   .strict();
 const editSchema = content.extend({ expectedVersion: z.number().int().positive() }).strict();
 const publicationSchema = z
@@ -42,7 +42,7 @@ const questionContent = z
     sections: z.array(catalogSectionSchema).max(10).optional(),
   })
   .strict();
-const questionCreate = questionContent.extend({ creationKey: z.string().uuid() }).strict();
+const questionCreate = questionContent.extend({ creationKey: z.string().guid() }).strict();
 const questionEdit = questionContent
   .extend({ expectedVersion: z.number().int().positive() })
   .strict();
@@ -374,7 +374,7 @@ export class CatalogAdminController {
     });
   }
   private async lock(c: pg.PoolClient, auth: AuthenticatedRequest, id: string) {
-    parse(z.string().uuid(), id);
+    parse(z.string().guid(), id);
     const r = (
       await c.query(
         'SELECT * FROM local_catalog_item WHERE id=$1 AND organization_id=$2 FOR UPDATE',
@@ -628,7 +628,7 @@ export class CatalogAdminController {
       let revision = 1;
       const setId = id ?? uuidv7();
       if (id) {
-        parse(z.string().uuid(), id);
+        parse(z.string().guid(), id);
         await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
           `question-set:${auth.authz.organizationId}:${id}`,
         ]);

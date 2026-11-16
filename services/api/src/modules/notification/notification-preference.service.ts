@@ -15,7 +15,7 @@ export const OPTIONAL_TICKET_EMAIL_EVENTS: ReadonlySet<string> = new Set([
   'ticket.reassessed',
 ]);
 type Client = pg.PoolClient | pg.Client;
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 
 /** A platform binding does not constitute membership of the selected organization. */
 export function requireNotificationPreferenceAccess(ctx: AuthzContext): void {

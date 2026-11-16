@@ -27,7 +27,7 @@ const actionSchema = z.object({
   expectedVersion: z.number().int().positive(),
   restoreVersion: z.number().int().positive().optional(),
 });
-const idSchema = z.string().uuid();
+const idSchema = z.string().guid();
 type Article = {
   id: string;
   organization_id: string;

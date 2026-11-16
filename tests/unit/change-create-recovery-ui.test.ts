@@ -171,8 +171,8 @@ describe('new change page and preserved form boundary', () => {
         expect(props.userId).toBe(user);
         expect(props.ticketId).toBe(query.ticketId);
         expect(props.assetId).toBe(query.assetId);
-        expect(z.string().uuid().safeParse(props.creationKey).success).toBe(true);
-        expect(z.string().uuid().safeParse(props.commandKey).success).toBe(true);
+        expect(z.string().guid().safeParse(props.creationKey).success).toBe(true);
+        expect(z.string().guid().safeParse(props.commandKey).success).toBe(true);
         expect(props.creationKey).not.toBe(props.commandKey);
         expect(api.changeFormOptions).toHaveBeenCalledWith(
           new URLSearchParams({
@@ -224,7 +224,7 @@ describe('new change page and preserved form boundary', () => {
   it.each(['ABCDEFAB-CDEF-0000-0000-ABCDEFABCDEF', '00000000-0000-0000-0000-000000000000'])(
     'keeps backend compatible UUID case/version shape %s',
     async (seed) => {
-      expect(z.string().uuid().safeParse(seed).success).toBe(true);
+      expect(z.string().guid().safeParse(seed).success).toBe(true);
       failure();
       const html = await render({ ticketId: seed, assetId: seed });
       expect(new URL(links(html)[0].href, 'https://solvi.local').searchParams.get('ticketId')).toBe(

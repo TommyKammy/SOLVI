@@ -62,7 +62,7 @@ import {
   readHighRiskAttribute,
 } from './approval-high-risk.js';
 
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 const inputSchema = z
   .object({
     reason: z.string().trim().max(2000).optional(),
@@ -71,6 +71,7 @@ const inputSchema = z
     approverId: uuid.optional(),
     values: z
       .record(
+        z.string(),
         z.union([
           z.string().max(2000),
           z.boolean(),
@@ -100,7 +101,11 @@ const decisionSchema = z.object({
 const reassignSchema = z
   .object({
     reason: z
-      .string({ required_error: '再割当の理由を入力してください' })
+      .string({
+        // zod 3 の required_error と同じく、未入力のときだけこの文言にする
+        error: (issue) =>
+          issue.input === undefined ? '再割当の理由を入力してください' : undefined,
+      })
       .trim()
       .min(1, '再割当の理由を入力してください')
       .max(2000, '再割当の理由は2000文字以内で入力してください'),
