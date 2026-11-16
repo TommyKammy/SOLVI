@@ -66,11 +66,28 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U solvi_owner -d solvi"
           --health-interval 5s --health-timeout 3s --health-retries 20
+      # 添付の検疫テスト(attachment-scan)が実スキャナを要求する。無いとスキップせず失敗させる設計。
+      # docker-compose.yml の clamav と同じイメージ。署名DBの読込に時間がかかるため start-period を長く取る。
+      clamav:
+        image: clamav/clamav:1.4.3@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
+        ports: ['127.0.0.1:3310:3310']
+        options: >-
+          --health-cmd clamdcheck.sh
+          --health-interval 15s --health-timeout 10s --health-retries 20
+          --health-start-period 120s
     env:
       DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi
       DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
       POSTGRES_APP_PASSWORD: ci-only-password
       POSTGRES_EXECUTOR_PASSWORD: ci-only-password
+      # オブジェクトストレージ(MinIO)。資格情報はこのジョブ内だけの使い捨て。
+      S3_ENDPOINT: http://127.0.0.1:9100
+      S3_REGION: ap-northeast-1
+      S3_BUCKET_ATTACHMENTS: solvi-attachments
+      S3_ACCESS_KEY: ci-only-access
+      S3_SECRET_KEY: ci-only-secret-key
+      CLAMAV_HOST: 127.0.0.1
+      CLAMAV_PORT: '3310'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,6 +95,23 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+
+      - name: オブジェクトストレージ(MinIO)の起動とバケット作成
+        # GitHub Actions の services では起動コマンド(server /data)を渡せないため docker run で起動する。
+        # イメージは docker-compose.yml の minio と同じ digest。
+        env:
+          MINIO_IMAGE: minio/minio:RELEASE.2024-11-07T00-52-20Z@sha256:ac591851803a79aee64bc37f66d77c56b0a4b6e12d9e5356380f4105510f2332
+        run: |
+          docker run -d --name minio -p 127.0.0.1:9100:9000 \
+            -e MINIO_ROOT_USER="$S3_ACCESS_KEY" -e MINIO_ROOT_PASSWORD="$S3_SECRET_KEY" \
+            "$MINIO_IMAGE" server /data
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:9100/minio/health/ready && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:9100/minio/health/ready
+          docker exec minio mc alias set local http://127.0.0.1:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
+          docker exec minio mc mb --ignore-existing "local/$S3_BUCKET_ATTACHMENTS"
 
       - name: マイグレーション適用
         run: npm run db:migrate
