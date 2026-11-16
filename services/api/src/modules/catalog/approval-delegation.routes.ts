@@ -35,7 +35,7 @@ import { isActiveMember, loadUserFacts } from './approval-resolver.js';
  * 他人の存在や資格を調べられないようにする。
  */
 
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 
 function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
   const r = schema.safeParse(value);

@@ -296,7 +296,7 @@ describe('catalog management detail page', () => {
   it.each(['ABCDEFAB-CDEF-0000-0000-ABCDEFABCDEF', '00000000-0000-0000-0000-000000000000'])(
     'preserves backend compatible UUID %s on retry',
     async (value) => {
-      expect(z.string().uuid().safeParse(value).success).toBe(true);
+      expect(z.string().guid().safeParse(value).success).toBe(true);
       failure();
       expect(links(await render({}, value))[0].href).toBe('/catalog/manage/' + value);
     },
@@ -339,7 +339,7 @@ describe('dedicated catalog management detail transport', () => {
   it.each(['ABCDEFAB-CDEF-0000-0000-ABCDEFABCDEF', '00000000-0000-0000-0000-000000000000'])(
     'allows lexical case/version shape %s',
     async (value) => {
-      expect(z.string().uuid().safeParse(value).success).toBe(true);
+      expect(z.string().guid().safeParse(value).success).toBe(true);
       const fetch = vi.fn().mockResolvedValue(new Response('{}'));
       vi.stubGlobal('fetch', fetch);
       expect((await reader.catalogManagementDetail(value)).ok).toBe(true);

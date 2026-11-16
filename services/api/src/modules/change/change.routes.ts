@@ -7,7 +7,7 @@ import { recordAuditEvent, uuidv7, type AuditEventType } from '../../common/audi
 import { TicketService } from '../ticket/ticket.service.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 const date = z.string().datetime({ offset: true }).nullable().default(null);
 const text = z.string().trim().max(4000).default('');
 const planSchema = z.object({
