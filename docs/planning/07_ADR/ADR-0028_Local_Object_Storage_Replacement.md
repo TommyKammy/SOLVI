@@ -115,6 +115,15 @@ ADR-0010 のバージョニングとサーバサイド暗号化は本番バケ�
 3. Object Storage を使う他のテスト(`collaboration`、`ticket-relation` ほか)が、MinIO の時と同じ結果になる
 4. イメージが digest で固定され、`npm run check:images` が通る
 
+### 検証結果(2026-11-16、SeaweedFS 4.52)
+
+PR #6 の CI(run 43871899428、commit `c8a9285`)で、上記4条件をすべて満たした。**SeaweedFS を採用する。**
+
+1. `object-storage.test.ts` 11件すべて通過
+2. `attachment-delete.test.ts` 14件、`attachment-scan.test.ts` 8件すべて通過
+3. `collaboration`、`collaboration-routes`、`ticket-relation`、`relation-routes`、`ticket-filters`、`assignment-group`、`notification`、`user-admin` も全件通過
+4. `chrislusf/seaweedfs:4.52@sha256:57877e…` で `check:images` 通過
+
 ## Follow-up
 
 - 実装 WP を起票する(Compose・CI・`.env.example`・文書の更新)。PR #6 の MinIO 部分はこの WP で差し替える。ClamAV 部分はそのまま使える。

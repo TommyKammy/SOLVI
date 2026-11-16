@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 318 |
 | Markdown | 310 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,732,277 bytes |
+| 合計サイズ | 7,732,832 bytes |
 
 ## ファイル一覧
 
@@ -291,7 +291,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0024_Approval_Route_Generations_And_High_Risk_Criterion.md` | 12796 | `6b88e029a7f4427acf60afbdf7ee2233428a5bcb3e344e5c3aa1dca8fc727d50` |
 | `07_ADR/ADR-0025_Approval_Delegation.md` | 12768 | `0bd71dfe25e57e49dc2b823fe0005f4c53a7f0701920edb9abcbd399108fef1a` |
 | `07_ADR/ADR-0026_High_Risk_Approval_Constraints.md` | 8427 | `be058fece58f140da89c111f4d69f60f693ef5bc01edb6e9294ed7f26b204cb9` |
-| `07_ADR/ADR-0028_Local_Object_Storage_Replacement.md` | 9271 | `74326e824af2809ea2b5a7965c189d5295f2eb85c1dd03f52727e9b8c11816cb` |
+| `07_ADR/ADR-0028_Local_Object_Storage_Replacement.md` | 9826 | `6f0c03c9efbade5cdc666c0cb5000753452bdc54fbaa4561cb8d3d48f8873e45` |
 | `08_Runbooks/08.10_Audit_Export.md` | 1469 | `bb53a1a948cd80930b2c54fc35fa61cfde15402be7fe1343fe79b323fe93785a` |
 | `08_Runbooks/08.11_Data_Reconciliation.md` | 1469 | `66e555c4385a67399c03768b05450f30a69ae382b54ae23db9b4dfe526ef49ab` |
 | `08_Runbooks/08.12_Security_Incident.md` | 1502 | `073b4046e12371a776cfa1d45ce7f2f3cc9563e2755dfcabc1d8a1398b9743c6` |
