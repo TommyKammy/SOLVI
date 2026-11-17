@@ -92,11 +92,13 @@ function reachableFiles(files) {
 
   // エントリポイント: 各サービスの main、画面(Next.js の app 配下)、tools。
   // 画面は import されずにフレームワークから呼ばれるため、明示的に含める。
+  // middleware.ts も同じ(Next.js が全リクエストの前に呼ぶ。WP-P2-SEC-025)。
   const entries = files
     .filter(
       (f) =>
         /\/src\/main\.ts$/.test(f.path) ||
         f.path.includes('/apps/web/src/app/') ||
+        f.path.endsWith('/apps/web/src/middleware.ts') ||
         (f.path.includes('/tools/') && f.path.endsWith('.mjs')),
     )
     .map((f) => f.path);

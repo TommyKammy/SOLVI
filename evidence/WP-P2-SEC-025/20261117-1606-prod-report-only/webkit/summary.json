@@ -1,0 +1,109 @@
+{
+  "browser": "webkit",
+  "expectMode": "report-only",
+  "success": true,
+  "checks": [
+    {
+      "name": "headers-login",
+      "scripts": 17,
+      "distinctNonces": true
+    },
+    {
+      "name": "login"
+    },
+    {
+      "name": "headers-/portal",
+      "path": "/portal",
+      "status": 200,
+      "nonce": "rdnY+e9b3NnCsbUbGUYQTw==",
+      "scripts": 22,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/ops",
+      "path": "/ops",
+      "status": 200,
+      "nonce": "pkO52jjS8noK6JT4tuNeBQ==",
+      "scripts": 28,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/inbox",
+      "path": "/inbox",
+      "status": 200,
+      "nonce": "5F3z4S5SzNzR+nQG45r8Hg==",
+      "scripts": 17,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/knowledge",
+      "path": "/knowledge",
+      "status": 200,
+      "nonce": "7B/iMmVxhHJxKZpszqiCEg==",
+      "scripts": 17,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "flow /portal"
+    },
+    {
+      "name": "flow /ops"
+    },
+    {
+      "name": "flow /inbox"
+    },
+    {
+      "name": "flow /knowledge"
+    },
+    {
+      "name": "flow /requests"
+    },
+    {
+      "name": "flow knowledge search"
+    },
+    {
+      "name": "flow ticket create"
+    },
+    {
+      "name": "flow ops ticket detail"
+    },
+    {
+      "name": "flow attachment upload",
+      "expect": "fail-closed",
+      "connectSrcSource": null,
+      "putOrigin": "http://127.0.0.1:9100",
+      "sameOrigin": false,
+      "violations": 2,
+      "alert": []
+    },
+    {
+      "name": "iframe refused",
+      "framerOrigin": "http://127.0.0.1:59498"
+    }
+  ],
+  "violations": [],
+  "upload": {
+    "expect": "fail-closed",
+    "connectSrcSource": null,
+    "putOrigin": "http://127.0.0.1:9100",
+    "sameOrigin": false,
+    "violations": 2,
+    "alert": []
+  },
+  "screenshots": [
+    "webkit-requests.png",
+    "webkit-ticket-detail.png",
+    "webkit-attachment-upload.png",
+    "webkit-iframe-refused.png"
+  ],
+  "currentStep": "iframe refused",
+  "iframeViolations": []
+}

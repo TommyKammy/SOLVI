@@ -1,0 +1,114 @@
+{
+  "browser": "webkit",
+  "expectMode": "enforce",
+  "devServer": false,
+  "success": true,
+  "checks": [
+    {
+      "name": "headers-login",
+      "scripts": 17,
+      "distinctNonces": true
+    },
+    {
+      "name": "login"
+    },
+    {
+      "name": "headers-/portal",
+      "path": "/portal",
+      "status": 200,
+      "nonce": "Wp7bnvX+ytHYU4QTyDykmQ==",
+      "scripts": 25,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/ops",
+      "path": "/ops",
+      "status": 200,
+      "nonce": "TOOjORL1xJN7RQ+63zkuVA==",
+      "scripts": 35,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/inbox",
+      "path": "/inbox",
+      "status": 200,
+      "nonce": "+pFbzdz+qXjejZvFzSIAPA==",
+      "scripts": 17,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/knowledge",
+      "path": "/knowledge",
+      "status": 200,
+      "nonce": "nCkXbmtn9WzOaLV590/t1w==",
+      "scripts": 17,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "flow /portal"
+    },
+    {
+      "name": "flow /ops"
+    },
+    {
+      "name": "flow /inbox"
+    },
+    {
+      "name": "flow /knowledge"
+    },
+    {
+      "name": "flow /requests"
+    },
+    {
+      "name": "flow knowledge search"
+    },
+    {
+      "name": "flow ticket create"
+    },
+    {
+      "name": "flow ops ticket detail"
+    },
+    {
+      "name": "flow attachment upload",
+      "expect": "fail-closed",
+      "connectSrcSource": null,
+      "putOrigin": null,
+      "sameOrigin": false,
+      "violations": 1,
+      "alert": [
+        "保存・送信できませんでした\n\n通信に失敗しました。時間をおいて再度お試しください。\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。"
+      ]
+    },
+    {
+      "name": "iframe refused",
+      "framerOrigin": "http://127.0.0.1:60934"
+    }
+  ],
+  "violations": [],
+  "upload": {
+    "expect": "fail-closed",
+    "connectSrcSource": null,
+    "putOrigin": null,
+    "sameOrigin": false,
+    "violations": 1,
+    "alert": [
+      "保存・送信できませんでした\n\n通信に失敗しました。時間をおいて再度お試しください。\n\nこの画面の入力は保持しています。内容を確認して、もう一度送信してください。"
+    ]
+  },
+  "screenshots": [
+    "webkit-requests.png",
+    "webkit-ticket-detail.png",
+    "webkit-attachment-upload.png",
+    "webkit-iframe-refused.png"
+  ],
+  "currentStep": "iframe refused",
+  "iframeViolations": []
+}

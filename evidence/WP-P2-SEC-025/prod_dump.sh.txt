@@ -1,0 +1,22 @@
+#!/bin/zsh
+# Build the web app in the given CSP mode, start the prod stack, dump headers, stop.
+# Usage: prod_dump.sh <report-only|enforce> <outDir>
+set -e
+MODE=$1; OUT=$2
+SCR=/private/tmp/claude-501/-Users-jp-infra--claude-spares-spare-k8LP4R/c5ff9a16-fca9-4a5e-a576-843d25eee7c7/scratchpad
+cd /Users/jp.infra/Dev/SOLVI
+lsof -iTCP:3000,3001 -sTCP:LISTEN -P | awk 'NR>1{print $2}' | xargs -r kill 2>/dev/null || true
+sed -i '' "s/^export const CSP_MODE: CspMode = '[a-z-]*';/export const CSP_MODE: CspMode = '$MODE';/" apps/web/src/lib/security-headers.ts
+(cd apps/web && API_BASE_URL=http://127.0.0.1:3001 WEB_BASE_URL=http://127.0.0.1:3000 node ../../node_modules/next/dist/bin/next build >/dev/null 2>&1)
+zsh $SCR/run_stack.sh > $SCR/prod_stack.log 2>&1 &
+STACK=$!
+for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3000/login && curl -sf -o /dev/null http://127.0.0.1:3001/healthz && break; sleep 1; done
+mkdir -p $OUT
+{
+  echo "# Command: curl -sI http://127.0.0.1:3000/login (CSP_MODE=$MODE, next build && next start)"
+  echo "# Commit: $(git rev-parse --short HEAD) + working tree; Timestamp: $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')"
+  echo "## request 1 (HTTP)"; curl -sI http://127.0.0.1:3000/login
+  echo "## request 2 (HTTP, nonce must differ)"; curl -sI http://127.0.0.1:3000/login
+  echo "## request 3 (X-Forwarded-Proto: https, as behind the ALB)"; curl -sI -H 'x-forwarded-proto: https' http://127.0.0.1:3000/login
+} | grep -viE '^(date|set-cookie|x-powered-by|etag|vary|keep-alive|connection):' > $OUT/headers-$MODE.txt
+echo "dumped $OUT/headers-$MODE.txt"
