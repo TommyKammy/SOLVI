@@ -1,5 +1,6 @@
 import type { AssetDetail } from '../lib/api';
 import { assetFieldChanges } from '../lib/asset-history';
+import { TableRegion } from './TableRegion';
 
 type Revision = AssetDetail['revisions'][number];
 
@@ -22,7 +23,7 @@ export function AssetRevisionChanges({
       <p className="hint">項目の変更はありません。記録理由とこの版の内容を確認してください。</p>
     );
   return (
-    <div className="table-scroll">
+    <TableRegion label="版の変更内容">
       <table className="tickets">
         <caption>
           版{previous.version} → 版{revision.version}：変更した{changes.length}項目
@@ -44,6 +45,6 @@ export function AssetRevisionChanges({
           ))}
         </tbody>
       </table>
-    </div>
+    </TableRegion>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
@@ -19,6 +19,9 @@ function normalizedPath(href: string): string {
   const path = href.split('?')[0] ?? href;
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
+
+/** モバイル用レールの表示条件。CSSの `max-width: 800px` と揃える。 */
+const MOBILE_NAV_QUERY = '(max-width: 800px)';
 
 /** 詳細画面として扱うのは、UUIDまたは数値のIDが続く場合だけ。 */
 const DETAIL_ID =
@@ -125,6 +128,10 @@ export function AppFrame({
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const railItems = useRef(new Map<string, HTMLDivElement>());
+  const railRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wasMobileOpen = useRef(false);
   const current = findCurrent(pathname, searchParams, groups);
 
   useEffect(() => {
@@ -156,6 +163,30 @@ export function AppFrame({
   }, [openGroup]);
 
   useEffect(() => {
+    if (mobileOpen) closeRef.current?.focus();
+    else if (wasMobileOpen.current) toggleRef.current?.focus();
+    wasMobileOpen.current = mobileOpen;
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_NAV_QUERY);
+    const onChange = () => {
+      if (!media.matches) setMobileOpen(false);
+    };
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileOpen(false);
@@ -163,6 +194,25 @@ export function AppFrame({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [mobileOpen]);
+
+  const trapRailFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (!mobileOpen || event.key !== 'Tab') return;
+    const focusable = Array.from(
+      railRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    ).filter((element) => element.getClientRects().length > 0);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -217,7 +267,13 @@ export function AppFrame({
         tabIndex={mobileOpen ? 0 : -1}
         onClick={() => setMobileOpen(false)}
       />
-      <aside className="fs-rail" aria-label="メインメニュー">
+      <aside
+        className="fs-rail"
+        id="solvi-main-navigation"
+        aria-label="メインメニュー"
+        ref={railRef}
+        onKeyDown={trapRailFocus}
+      >
         <Link className="fs-rail-brand" href="/" aria-label="SOLVI ホーム">
           <span aria-hidden="true">S</span>
         </Link>
@@ -225,6 +281,7 @@ export function AppFrame({
           type="button"
           className="fs-rail-close"
           aria-label="メニューを閉じる"
+          ref={closeRef}
           onClick={() => setMobileOpen(false)}
         >
           ×
@@ -303,7 +360,7 @@ export function AppFrame({
         </Link>
       </aside>
 
-      <div className="fs-main">
+      <div className="fs-main" inert={mobileOpen ? true : undefined}>
         <header className="fs-topbar">
           <button
             type="button"
@@ -311,11 +368,12 @@ export function AppFrame({
             aria-expanded={mobileOpen}
             aria-controls="solvi-main-navigation"
             aria-label={mobileOpen ? 'メニューを閉じる' : 'メニューを開く'}
+            ref={toggleRef}
             onClick={() => setMobileOpen((open) => !open)}
           >
             <FreshserviceIcon name="menu" size={20} />
           </button>
-          <div className="fs-breadcrumb" id="solvi-main-navigation">
+          <div className="fs-breadcrumb">
             {current ? (
               <>
                 <Link href={current.group.href}>{current.group.label}</Link>

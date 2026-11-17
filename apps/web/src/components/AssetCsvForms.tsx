@@ -3,6 +3,7 @@ import { useActionState, useState } from 'react';
 import { prepareCsv, applyCsv, type CsvFeedback } from '../app/assets/imports/actions';
 import { FeedbackForm, FormField } from './FeedbackForm';
 import { ContextLink } from './ContextLink';
+import { TableRegion } from './TableRegion';
 import type { FormFeedback } from '../lib/form-state';
 export function AssetCsvForm() {
   const [csv, setCsv] = useState('');
@@ -86,7 +87,7 @@ export function AssetCsvForm() {
           <p>
             未対応の任意列は既存値を保持します。対応列の空欄は値を消します。新規の未対応状態は在庫です。利用者メールは同じ組織の有効な1名に一致する必要があります。
           </p>
-          <div className="table-scroll">
+          <TableRegion label="資産属性とCSV列">
             <table className="tickets">
               <caption className="visually-hidden">資産属性とCSV列</caption>
               <thead>
@@ -134,11 +135,12 @@ export function AssetCsvForm() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableRegion>
           <details>
             <summary>先頭3行のCSV内容を確認する</summary>
-            <div className="table-scroll">
+            <TableRegion label="先頭3行のCSV内容">
               <table className="tickets">
+                <caption className="visually-hidden">先頭3行のCSV内容</caption>
                 <thead>
                   <tr>
                     {inspection.headers.map((h) => (
@@ -158,7 +160,7 @@ export function AssetCsvForm() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableRegion>
           </details>
           <button name="intent" value="preview" disabled={pending}>
             {pending ? '確認しています…' : '取込プレビューを作成する'}

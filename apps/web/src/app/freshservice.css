@@ -16,6 +16,8 @@
   --fs-text-muted: #596b7d;
   --fs-border: #eaeef2;
   --fs-border-strong: #dfe6ee;
+  /* 入力欄・ボタンの境界。白背景に対して3:1以上(WCAG 1.4.11)。 */
+  --fs-control-border: #8490a2;
   --fs-brand: #276cf0;
   --fs-brand-strong: #003fd2;
   --fs-brand-soft: #e8f1ff;
@@ -42,7 +44,7 @@ body.fs-ui {
   background: var(--fs-app-bg);
   color: var(--fs-text);
   font-family: var(--fs-font);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -134,7 +136,7 @@ body.fs-ui .fs-public-brand {
   border-radius: 50%;
   background: var(--fs-brand);
   color: #fff;
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   text-decoration: none;
@@ -240,7 +242,7 @@ body.fs-ui .fs-public-brand {
 .fs-flyout-title {
   margin: 2px 8px 6px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -256,7 +258,7 @@ body.fs-ui .fs-public-brand {
   padding: 8px 10px;
   border-radius: 6px;
   color: var(--fs-text);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 .fs-flyout-list a:hover {
@@ -296,7 +298,7 @@ body.fs-ui .fs-public-brand {
   gap: 6px;
   min-width: 170px;
   color: var(--fs-text);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -327,7 +329,7 @@ body.fs-ui .fs-public-brand {
   gap: 8px;
   padding: 0 12px;
   background: var(--fs-surface);
-  border: 1px solid var(--fs-border);
+  border: 1px solid var(--fs-control-border);
   border-radius: var(--fs-radius-sm);
   color: var(--fs-text-muted);
 }
@@ -363,7 +365,7 @@ body.fs-ui .fs-public-brand {
   background: var(--fs-surface-muted);
   color: var(--fs-text-muted);
   font: inherit;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .fs-topbar-actions {
@@ -380,11 +382,11 @@ body.fs-ui .fs-public-brand {
   height: 36px;
   margin-right: 6px;
   padding: 0 12px;
-  border: 1px solid var(--fs-border-strong);
+  border: 1px solid var(--fs-control-border);
   border-radius: var(--fs-radius-sm);
   background: var(--fs-surface);
   color: var(--fs-text);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -452,7 +454,7 @@ body.fs-ui .fs-public-brand {
   border-radius: 50%;
   background: #d7e8ff;
   color: var(--fs-brand-strong);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .fs-avatar--large {
@@ -488,12 +490,12 @@ body.fs-ui .fs-public-brand {
   min-width: 0;
 }
 .fs-user-popover-head strong {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 .fs-user-popover-head span {
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .fs-user-org {
   display: flex;
@@ -501,7 +503,7 @@ body.fs-ui .fs-public-brand {
   gap: 8px;
   padding: 10px 0;
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   border-bottom: 1px solid var(--fs-border);
 }
 .fs-user-links {
@@ -514,7 +516,7 @@ body.fs-ui .fs-public-brand {
   padding: 7px 8px;
   border-radius: 6px;
   color: var(--fs-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .fs-user-links a:hover {
   background: var(--fs-surface-muted);
@@ -563,7 +565,7 @@ body.fs-ui .shell {
 
 body.fs-ui h1 {
   margin: 0 0 4px;
-  font-size: 20px;
+  font-size: 1.25rem;
   line-height: 28px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -571,14 +573,14 @@ body.fs-ui h1 {
 
 body.fs-ui h2 {
   margin: 24px 0 10px;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 24px;
   font-weight: 600;
 }
 
 body.fs-ui h3 {
   margin: 20px 0 8px;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 20px;
   font-weight: 600;
 }
@@ -590,7 +592,7 @@ body.fs-ui p {
 body.fs-ui .lead {
   margin: 0 0 16px;
   color: var(--fs-text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 body.fs-ui .hint,
@@ -598,13 +600,13 @@ body.fs-ui .field .hint,
 body.fs-ui .state,
 body.fs-ui .comment .meta {
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 body.fs-ui .eyebrow {
   margin: 0 0 4px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -625,7 +627,7 @@ body.fs-ui .page-heading h1 {
 body.fs-ui .record-number {
   display: block;
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -634,7 +636,7 @@ body.fs-ui .record-title {
   display: block;
   margin: 2px 0;
   color: var(--fs-text);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 20px;
 }
@@ -654,7 +656,7 @@ body.fs-ui .field label,
 body.fs-ui .filters label,
 body.fs-ui .filter-group legend {
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -671,12 +673,12 @@ body.fs-ui select {
   width: 100%;
   min-height: 32px;
   padding: 6px 10px;
-  border: 1px solid var(--fs-border-strong);
+  border: 1px solid var(--fs-control-border);
   border-radius: var(--fs-radius-sm);
   background: var(--fs-surface);
   color: var(--fs-text);
   font: inherit;
-  font-size: 14px;
+  font-size: max(1rem, 1em); /* iOSは16px未満の入力で自動ズームする */
 }
 body.fs-ui textarea {
   min-height: 120px;
@@ -699,7 +701,7 @@ body.fs-ui select[aria-invalid='true'] {
 }
 body.fs-ui .field-error {
   color: var(--fs-danger);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -736,7 +738,7 @@ body.fs-ui button {
   background: var(--fs-brand);
   color: #fff;
   font: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   align-self: flex-start;
@@ -753,7 +755,7 @@ body.fs-ui button:disabled {
 body.fs-ui button.secondary {
   background: var(--fs-surface);
   color: var(--fs-text);
-  border-color: var(--fs-border-strong);
+  border-color: var(--fs-control-border);
 }
 body.fs-ui button.secondary:hover:not(:disabled) {
   background: var(--fs-surface-muted);
@@ -779,7 +781,7 @@ body.fs-ui .button-link {
   align-items: center;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--fs-border-strong);
+  border: 1px solid var(--fs-control-border);
   border-radius: var(--fs-radius-sm);
   background: var(--fs-surface);
   color: var(--fs-text);
@@ -829,7 +831,7 @@ body.fs-ui .inbox-empty {
 body.fs-ui .empty h2,
 body.fs-ui .inbox-empty h2 {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 body.fs-ui .error-summary {
@@ -841,7 +843,7 @@ body.fs-ui .error-summary {
 body.fs-ui .error-summary h2 {
   margin: 0 0 6px;
   color: var(--fs-danger);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 body.fs-ui .sla-panel {
@@ -866,7 +868,7 @@ body.fs-ui .inbox-summary p {
   padding: 18px 20px;
   border-right: 1px solid var(--fs-border);
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 body.fs-ui .inbox-summary p:last-child {
   border-right: 0;
@@ -875,7 +877,7 @@ body.fs-ui .inbox-summary strong {
   display: block;
   margin-top: 4px;
   color: var(--fs-text);
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 30px;
   font-weight: 600;
 }
@@ -891,18 +893,18 @@ body.fs-ui .action-card:hover {
 }
 body.fs-ui .action-card .title {
   color: var(--fs-text);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 body.fs-ui .action-card .desc {
   color: var(--fs-text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 body.fs-ui .action-card::after {
   content: '→';
   margin-top: 12px;
   color: var(--fs-brand);
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -979,7 +981,7 @@ body.fs-ui .directory-tabs a {
   padding: 0 12px;
   border-bottom: 2px solid transparent;
   color: var(--fs-text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 body.fs-ui .queue-shortcuts a:hover,
@@ -996,7 +998,7 @@ body.fs-ui .directory-tabs a[aria-current='page'] {
 body.fs-ui .queue-custom-view {
   padding: 0 12px;
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 body.fs-ui .queue-conditions {
   display: flex;
@@ -1014,7 +1016,7 @@ body.fs-ui .queue-conditions a {
   border-radius: var(--fs-radius-pill);
   background: var(--fs-brand-soft);
   color: var(--fs-brand-strong);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 body.fs-ui .queue-conditions a:hover {
@@ -1050,7 +1052,7 @@ body.fs-ui .directory-table th {
   border-bottom: 1px solid var(--fs-border);
   background: var(--fs-surface-muted);
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-align: left;
   white-space: nowrap;
@@ -1062,7 +1064,7 @@ body.fs-ui .directory-table td {
   border-bottom: 1px solid var(--fs-border);
   background: var(--fs-surface);
   color: var(--fs-text);
-  font-size: 14px;
+  font-size: 0.875rem;
   vertical-align: middle;
 }
 body.fs-ui table.tickets tbody tr:last-child td,
@@ -1081,7 +1083,7 @@ body.fs-ui .directory-table caption {
   caption-side: top;
   padding: 10px 12px;
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
   text-align: left;
 }
 
@@ -1096,7 +1098,7 @@ body.fs-ui .queue-results {
   gap: 12px;
   margin: 0 0 12px;
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 body.fs-ui .pagination {
@@ -1130,7 +1132,7 @@ body.fs-ui .pagination {
 .fs-side-nav-heading {
   margin: 0 0 8px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1143,7 +1145,7 @@ body.fs-ui .pagination {
   gap: 8px;
   text-transform: none;
   letter-spacing: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .fs-side-nav-links {
@@ -1158,7 +1160,7 @@ body.fs-ui .pagination {
   padding: 8px 10px;
   border-radius: var(--fs-radius-sm);
   color: var(--fs-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 .fs-side-nav-links a:hover {
@@ -1177,7 +1179,7 @@ body.fs-ui .pagination {
   border-radius: var(--fs-radius-pill);
   background: var(--fs-surface-muted);
   color: var(--fs-text-secondary);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-align: center;
 }
@@ -1185,7 +1187,7 @@ body.fs-ui .pagination {
   display: block;
   padding: 6px 10px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .fs-page-main {
@@ -1215,7 +1217,7 @@ body.fs-ui .fs-knowledge .knowledge-result {
   gap: 12px;
   margin: 0 0 10px;
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 body.fs-ui .fs-knowledge .knowledge-result p {
   margin: 0;
@@ -1232,7 +1234,7 @@ body.fs-ui .fs-knowledge-table th {
   border-bottom: 1px solid var(--fs-border);
   background: var(--fs-surface-muted);
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-align: left;
   white-space: nowrap;
@@ -1241,7 +1243,7 @@ body.fs-ui .fs-knowledge-table td {
   padding: 12px;
   border-bottom: 1px solid var(--fs-border);
   color: var(--fs-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
   vertical-align: top;
 }
 body.fs-ui .fs-knowledge-table tbody tr:last-child td {
@@ -1270,7 +1272,7 @@ body.fs-ui .fs-knowledge-title .hint {
 body.fs-ui .fs-knowledge-date,
 body.fs-ui .fs-knowledge-tags {
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 body.fs-ui .fs-knowledge-table td:nth-child(4),
@@ -1288,7 +1290,7 @@ body.fs-ui .knowledge-state {
   border-radius: 6px;
   background: var(--fs-surface-muted);
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1316,7 +1318,7 @@ body.fs-ui .fs-catalog .catalog-result {
   gap: 12px;
   margin: 0 0 12px;
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .fs-catalog-grid {
@@ -1366,7 +1368,7 @@ body.fs-ui .fs-catalog-card strong {
   flex: 1;
 }
 .fs-catalog-card-body strong {
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 20px;
 }
 .fs-catalog-description {
@@ -1375,11 +1377,11 @@ body.fs-ui .fs-catalog-card strong {
   -webkit-box-orient: vertical;
   overflow: hidden;
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .fs-catalog-target {
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .fs-catalog-card > svg {
   flex: 0 0 auto;
@@ -1403,7 +1405,7 @@ body.fs-ui .fs-catalog-card strong {
 .fs-portal-kicker {
   margin: 0 0 8px;
   color: rgba(255, 255, 255, 0.82);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1411,13 +1413,13 @@ body.fs-ui .fs-catalog-card strong {
 body.fs-ui .fs-portal-hero h1 {
   margin: 0 0 8px;
   color: #fff;
-  font-size: 28px;
+  font-size: 1.75rem;
   line-height: 36px;
 }
 .fs-portal-hero-lead {
   margin: 0 0 20px;
   color: rgba(255, 255, 255, 0.88);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .fs-portal-search {
   display: flex;
@@ -1482,15 +1484,15 @@ body.fs-ui .fs-portal-action-card strong {
   margin-bottom: 4px;
 }
 .fs-portal-action-card strong {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .fs-portal-action-card span:last-child {
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .portal-section-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 1.25rem;
   line-height: 28px;
 }
 
@@ -1506,7 +1508,7 @@ body.fs-ui .fs-portal-action-card strong {
 }
 .fs-admin-section-heading h2 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .fs-admin-section-heading .hint {
   margin: 0;
@@ -1555,11 +1557,11 @@ body.fs-ui a.fs-admin-card:hover {
   min-width: 0;
 }
 .fs-admin-card-body strong {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .fs-admin-card-body span {
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .fs-admin-card > svg {
   flex: 0 0 auto;
@@ -1639,7 +1641,7 @@ body.fs-ui a.fs-admin-card:hover {
 .fs-support-menu-title {
   margin: 6px 10px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1652,7 +1654,7 @@ body.fs-ui a.fs-admin-card:hover {
   padding: 8px 10px;
   border-radius: 6px;
   color: var(--fs-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .fs-support-menu-panel a:hover {
   background: var(--fs-surface-muted);
@@ -1665,7 +1667,7 @@ body.fs-ui a.fs-support-brand {
   align-items: center;
   gap: 10px;
   color: #fff;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-decoration: none;
@@ -1682,12 +1684,12 @@ body.fs-ui a.fs-support-brand:hover {
   border-radius: 50%;
   background: #fff;
   color: var(--fs-brand-strong);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
 }
 body.fs-ui .fs-support-org {
   color: rgba(255, 255, 255, 0.82);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 body.fs-ui a.fs-support-icon-button {
@@ -1748,7 +1750,7 @@ body.fs-ui a.fs-support-icon-button:hover {
 body.fs-ui .support-hero h1 {
   margin: 0 0 28px;
   color: #fff;
-  font-size: 40px;
+  font-size: 2.5rem;
   line-height: 48px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -1767,6 +1769,10 @@ body.fs-ui .support-hero h1 {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   color: var(--fs-text-muted);
 }
+.support-search:focus-within {
+  outline: 3px solid var(--fs-brand);
+  outline-offset: 2px;
+}
 .support-search > svg {
   position: absolute;
   left: 18px;
@@ -1782,7 +1788,7 @@ body.fs-ui .support-hero h1 {
   background: transparent;
   color: var(--fs-text);
   font: inherit;
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 .support-search input:focus {
   outline: none;
@@ -1859,13 +1865,13 @@ body.fs-ui a.support-card:hover {
 }
 .support-card-text strong {
   color: var(--fs-text);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 24px;
   font-weight: 700;
 }
 .support-card-text span {
   color: var(--fs-text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 21px;
 }
 
@@ -1889,7 +1895,7 @@ body.fs-ui a.support-card:hover {
   margin-right: 16px;
   border-bottom: 2px solid transparent;
   color: var(--fs-text);
-  font-size: 14px;
+  font-size: 0.875rem;
   white-space: nowrap;
 }
 .support-tabs a:hover {
@@ -1915,11 +1921,11 @@ body.fs-ui a.support-card:hover {
 }
 .support-panel-heading h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 26px;
 }
 .support-panel-heading > a {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .support-panel-heading .portal-ticket-views {
@@ -1940,7 +1946,7 @@ body.fs-ui a.support-card:hover {
   background: var(--fs-surface);
   border-top: 1px solid var(--fs-border);
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 /* サポートポータル配下のサブ画面 (WP-P2-UIX-033) */
@@ -2037,11 +2043,11 @@ body.fs-ui .fs-support-content > main.shell:not(.fs-knowledge):not(.fs-catalog) 
   align-items: center;
   min-height: 30px;
   padding: 0 10px;
-  border: 1px solid var(--fs-border-strong);
+  border: 1px solid var(--fs-control-border);
   border-radius: var(--fs-radius-sm);
   background: var(--fs-surface);
   color: var(--fs-text);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 .fs-filter-link:hover {
@@ -2065,10 +2071,10 @@ body.fs-ui .fs-support-content > main.shell:not(.fs-knowledge):not(.fs-catalog) 
 }
 .fs-filter-panel-heading h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .fs-filter-panel-heading a {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -2166,11 +2172,11 @@ body.fs-ui .fs-queue-table .state-cell .hint {
   margin: 4px 0 0;
 }
 body.fs-ui .fs-queue-table .sla {
-  font-size: 12px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 body.fs-ui .fs-queue-table td:nth-child(8) {
-  font-size: 12px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -2187,7 +2193,7 @@ body.fs-ui .state {
   border-radius: 6px;
   background: var(--fs-surface-muted);
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2231,7 +2237,7 @@ body.fs-ui .priority-label {
   align-items: center;
   gap: 6px;
   color: var(--fs-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 body.fs-ui .priority-label::before {
@@ -2246,7 +2252,7 @@ body.fs-ui .deadline-label {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 body.fs-ui .deadline-overdue {
@@ -2261,7 +2267,7 @@ body.fs-ui .update-label {
   display: inline-block;
   margin-left: 6px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 body.fs-ui .update-label.unread {
   color: var(--fs-brand-strong);
@@ -2294,11 +2300,11 @@ body.fs-ui .update-label.unread {
   align-items: center;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--fs-border-strong);
+  border: 1px solid var(--fs-control-border);
   border-radius: var(--fs-radius-sm);
   background: var(--fs-surface);
   color: var(--fs-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2322,7 +2328,7 @@ body.fs-ui .update-label.unread {
   padding: 0 12px;
   border-bottom: 2px solid transparent;
   color: var(--fs-text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .fs-ticket-tabs a:hover {
@@ -2346,7 +2352,7 @@ body.fs-ui .update-label.unread {
 
 body.fs-ui .workspace-secondary > h2:first-of-type {
   margin-top: 0;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 body.fs-ui .workspace-grid {
@@ -2458,7 +2464,7 @@ body.fs-ui .overview-metric dt a:focus-visible {
 body.fs-ui .overview-metric dt {
   margin: 0;
   color: var(--fs-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 body.fs-ui .overview-metric dt a {
@@ -2470,7 +2476,7 @@ body.fs-ui .overview-metric dd {
   color: var(--fs-text);
 }
 body.fs-ui .overview-count {
-  font-size: 28px;
+  font-size: 1.75rem;
   line-height: 34px;
   font-weight: 600;
 }
@@ -2533,7 +2539,7 @@ body.fs-ui .fs-dashboard .overview-definitions {
   display: grid;
   gap: 2px;
   margin-bottom: 12px;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
 }
 .fs-donut-heading .hint {
@@ -2580,7 +2586,7 @@ body.fs-ui .fs-dashboard .overview-definitions {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .fs-donut-swatch {
   width: 10px;
@@ -2598,12 +2604,12 @@ body.fs-ui .fs-dashboard .overview-definitions {
 }
 .fs-donut-total {
   fill: var(--fs-text);
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 600;
 }
 .fs-donut-total-label {
   fill: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .fs-donut-empty {
   display: flex;
@@ -2611,7 +2617,7 @@ body.fs-ui .fs-dashboard .overview-definitions {
   align-items: center;
   gap: 8px;
   color: var(--fs-text-muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 body.fs-ui .overview-section-heading {
   display: flex;
@@ -2626,7 +2632,7 @@ body.fs-ui .overview-section-heading h2 {
 body.fs-ui .overview-utilities {
   display: flex;
   gap: 12px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 body.fs-ui .overview-filter {
@@ -2652,7 +2658,7 @@ body.fs-ui .portal-intro {
   border-radius: var(--fs-radius-md);
 }
 body.fs-ui .portal-intro h1 {
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 32px;
 }
 body.fs-ui .portal-search {
@@ -2703,7 +2709,7 @@ body.fs-ui .directory-cta {
   border-radius: var(--fs-radius-sm);
   background: var(--fs-brand);
   color: #fff;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 body.fs-ui .directory-cta:hover {
@@ -2714,7 +2720,7 @@ body.fs-ui .directory-cta:hover {
 body.fs-ui .directory-cta.secondary {
   background: var(--fs-surface);
   color: var(--fs-text);
-  border-color: var(--fs-border-strong);
+  border-color: var(--fs-control-border);
 }
 body.fs-ui .directory-cta.secondary:hover {
   background: var(--fs-surface-muted);
@@ -2756,7 +2762,7 @@ body.fs-ui .directory-empty {
   align-items: center;
   gap: 10px;
   color: var(--fs-text);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -2771,12 +2777,12 @@ body.fs-ui .directory-empty {
   border-radius: 50%;
   background: var(--fs-brand);
   color: #fff;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
 }
 .fs-public-subtitle {
   color: var(--fs-text-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 .fs-public-content {
@@ -2804,7 +2810,7 @@ body.fs-ui .fs-public-content > main form.stack {
 .fs-public-footer {
   padding: 18px 24px;
   color: var(--fs-text-muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   text-align: center;
 }
 
@@ -2854,7 +2860,7 @@ body.fs-ui .fs-public-content > main form.stack {
     grid-template-columns: minmax(0, 1fr);
   }
   body.fs-ui .support-hero h1 {
-    font-size: 32px;
+    font-size: 2rem;
     line-height: 40px;
   }
   .fs-support-org {
@@ -2876,7 +2882,7 @@ body.fs-ui .fs-public-content > main form.stack {
     padding: 28px 20px;
   }
   body.fs-ui .fs-portal-hero h1 {
-    font-size: 24px;
+    font-size: 1.5rem;
     line-height: 32px;
   }
   .fs-portal-action-grid {
@@ -2899,7 +2905,7 @@ body.fs-ui .fs-public-content > main form.stack {
   }
   body.fs-ui .support-hero h1 {
     margin-bottom: 20px;
-    font-size: 28px;
+    font-size: 1.75rem;
     line-height: 36px;
   }
   .support-tabs {
@@ -2909,7 +2915,7 @@ body.fs-ui .fs-public-content > main form.stack {
   .support-tabs a {
     margin-right: 10px;
     padding: 8px 4px;
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
   .support-search {
     height: 52px;
@@ -2919,7 +2925,7 @@ body.fs-ui .fs-public-content > main form.stack {
     left: 14px;
   }
   .support-search input {
-    font-size: 16px;
+    font-size: 1rem;
   }
   body.fs-ui a.support-card {
     min-height: 0;
@@ -2953,12 +2959,19 @@ body.fs-ui .fs-public-content > main form.stack {
     align-items: stretch;
     padding: 14px;
     transform: translateX(-100%);
-    transition: transform 160ms ease;
+    visibility: hidden;
+    transition:
+      transform 160ms ease,
+      visibility 0s linear 160ms;
     box-shadow: var(--fs-shadow-md);
     z-index: 45;
   }
   .fs-app--rail-open .fs-rail {
     transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform 160ms ease,
+      visibility 0s linear 0s;
   }
   .fs-rail-brand {
     margin: 0 0 12px;
@@ -2977,7 +2990,7 @@ body.fs-ui .fs-public-content > main form.stack {
     border-radius: 8px;
     background: transparent;
     color: var(--fs-text-secondary);
-    font-size: 22px;
+    font-size: 1.375rem;
     line-height: 1;
   }
   body.fs-ui .fs-rail-close:hover {
@@ -3004,7 +3017,7 @@ body.fs-ui .fs-public-content > main form.stack {
   }
   .fs-rail-link::after {
     content: attr(aria-label);
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
   }
   .fs-flyout {
@@ -3016,9 +3029,14 @@ body.fs-ui .fs-public-content > main form.stack {
     background: transparent;
     box-shadow: none;
     opacity: 1;
-    visibility: visible;
+    /* Follow the rail: an explicit `visible` here would keep the links of a
+       closed (visibility: hidden) rail in the Tab order. */
+    visibility: inherit;
     pointer-events: auto;
     transform: none;
+  }
+  .fs-rail-item.is-open .fs-flyout {
+    visibility: inherit;
   }
   .fs-flyout::before {
     display: none;
@@ -3035,7 +3053,7 @@ body.fs-ui .fs-public-content > main form.stack {
   }
   .fs-rail-bottom::after {
     content: '自分の設定';
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
   }
   .fs-rail-backdrop {
@@ -3138,5 +3156,45 @@ body.fs-ui .fs-public-content > main form.stack {
   body.fs-ui .form-actions button,
   body.fs-ui form.stack > button {
     width: 100%;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 入力方法と強制カラーモードへの適応                                        */
+/* ------------------------------------------------------------------------- */
+
+@media (forced-colors: active) {
+  body.fs-ui input:focus-visible,
+  body.fs-ui textarea:focus-visible,
+  body.fs-ui select:focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+
+/* WCAG 2.5.5 / 2.5.8: タッチ画面では44px以上、最小でも24px。 */
+@media (pointer: coarse) {
+  body.fs-ui button,
+  body.fs-ui input:not([type='checkbox'], [type='radio']),
+  body.fs-ui select,
+  body.fs-ui textarea,
+  body.fs-ui .button-link,
+  body.fs-ui .directory-cta,
+  body.fs-ui .fs-create-button,
+  body.fs-ui .fs-icon-button,
+  body.fs-ui .fs-rail-link,
+  body.fs-ui .fs-rail-close,
+  .support-search button {
+    min-height: 44px;
+  }
+  body.fs-ui .fs-icon-button,
+  body.fs-ui .fs-rail-link,
+  body.fs-ui .fs-rail-close {
+    min-width: 44px;
+  }
+  body.fs-ui input[type='checkbox'],
+  body.fs-ui input[type='radio'] {
+    width: 24px;
+    height: 24px;
   }
 }

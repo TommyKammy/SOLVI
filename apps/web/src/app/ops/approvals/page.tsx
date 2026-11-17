@@ -28,6 +28,7 @@ import {
   updateApprovalRoutingAction,
 } from './actions';
 import { ReassignForm } from './ReassignForm';
+import { TableRegion } from '../../../components/TableRegion';
 
 export const dynamic = 'force-dynamic';
 
@@ -304,7 +305,7 @@ export default async function ApprovalRulesPage({
             まだ承認ルールがありません。下の「承認ルールを作成」から最初のルールを作成してください。
           </p>
         ) : (
-          <div className="directory-table-wrap">
+          <TableRegion className="directory-table-wrap" label="承認ルールの一覧">
             <table className="directory-table">
               <caption>承認ルールの一覧</caption>
               <thead>
@@ -364,7 +365,7 @@ export default async function ApprovalRulesPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableRegion>
         )}
       </section>
 
@@ -505,7 +506,7 @@ export default async function ApprovalRulesPage({
             ) : history.length === 0 ? (
               <p className="empty">版の履歴を表示できません。</p>
             ) : (
-              <div className="directory-table-wrap">
+              <TableRegion className="directory-table-wrap" label="承認ルールの版の履歴">
                 <table className="directory-table">
                   <caption>承認ルールの版の履歴</caption>
                   <thead>
@@ -532,7 +533,7 @@ export default async function ApprovalRulesPage({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableRegion>
             )}
           </section>
 
@@ -605,7 +606,7 @@ export default async function ApprovalRulesPage({
                       現在の有効な所属で、このルールの経路を解決できない人はいません。
                     </p>
                   ) : (
-                    <div className="directory-table-wrap">
+                    <TableRegion className="directory-table-wrap" label="解決できない人の一覧">
                       <table className="directory-table">
                         <caption>解決できない人の一覧</caption>
                         <thead>
@@ -632,7 +633,7 @@ export default async function ApprovalRulesPage({
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </TableRegion>
                   )}
                   <p>
                     <Link
@@ -788,7 +789,7 @@ export default async function ApprovalRulesPage({
             </p>
             {previewResult.resolved ? (
               previewResult.steps && previewResult.steps.length > 0 ? (
-                <div className="directory-table-wrap">
+                <TableRegion className="directory-table-wrap" label="承認の経路">
                   <table className="directory-table">
                     <caption>承認の経路</caption>
                     <thead>
@@ -814,7 +815,7 @@ export default async function ApprovalRulesPage({
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TableRegion>
               ) : (
                 <p className="empty">承認の段が返りませんでした。設定を確認してください。</p>
               )
@@ -856,7 +857,7 @@ export default async function ApprovalRulesPage({
                 ? `先頭 ${unavailable.length} 件を表示しています。`
                 : ''}
             </p>
-            <div className="directory-table-wrap">
+            <TableRegion className="directory-table-wrap" label="承認者不在の申請">
               <table className="directory-table">
                 <caption>承認者不在の申請</caption>
                 {/* 再割当の欄は操作の列に押し込まず、申請の行の直後に
@@ -911,7 +912,7 @@ export default async function ApprovalRulesPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableRegion>
           </>
         )}
       </section>

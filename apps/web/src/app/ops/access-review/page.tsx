@@ -3,6 +3,8 @@ import { ContextLink } from '../../../components/ContextLink';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
+import { TableRegion } from '../../../components/TableRegion';
+import { formatDate, formatDateTime } from '../../../lib/labels';
 
 /**
  * アクセスレビュー (NFR-SEC-002 / WP-P1-SEC-024)。
@@ -135,7 +137,7 @@ export default async function AccessReviewPage({
         <section>
           <h2>進行中: {open.periodLabel}</h2>
           <p>
-            開始 {new Date(open.openedAt).toLocaleString('ja-JP')} ・ 対象 {open.totalItems} 件 ・{' '}
+            開始 {formatDateTime(open.openedAt)} ・ 対象 {open.totalItems} 件 ・{' '}
             <strong>未判断 {open.pendingItems} 件</strong>
           </p>
           <p className="note">
@@ -145,61 +147,61 @@ export default async function AccessReviewPage({
             。0件という意味ではありません。別の手続きで確認してください。
           </p>
 
-          <table>
-            <caption>レビュー対象</caption>
-            <thead>
-              <tr>
-                <th scope="col">利用者</th>
-                <th scope="col">役割</th>
-                <th scope="col">期限</th>
-                <th scope="col">判断</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.data.items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    {item.displayName}
-                    <br />
-                    <small>{item.email}</small>
-                    {item.userId === session.userId ? <small> ・自分</small> : null}
-                  </td>
-                  <td>{item.roleCode}</td>
-                  <td>
-                    {item.validUntilAtOpen
-                      ? new Date(item.validUntilAtOpen).toLocaleDateString('ja-JP')
-                      : '期限なし'}
-                  </td>
-                  <td>
-                    {item.decision !== 'pending' ? (
-                      <span>
-                        {item.decision === 'keep' ? '残す' : '取り消した'}
-                        {item.selfReviewed ? '(自分で判断)' : ''}
-                        <br />
-                        <small>{item.reason}</small>
-                      </span>
-                    ) : item.alreadyInactive ? (
-                      // 開いた後に別経路で失効したもの。判断は要らない。
-                      <span>既に無効(判断は不要)</span>
-                    ) : (
-                      <form action={decide}>
-                        <input type="hidden" name="reviewId" value={open.id} />
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <label htmlFor={`reason-${item.id}`}>理由</label>
-                        <input id={`reason-${item.id}`} name="reason" required maxLength={500} />
-                        <button type="submit" name="decision" value="keep">
-                          残す
-                        </button>
-                        <button type="submit" name="decision" value="revoke">
-                          取り消す
-                        </button>
-                      </form>
-                    )}
-                  </td>
+          <TableRegion label="レビュー対象">
+            <table>
+              <caption>レビュー対象</caption>
+              <thead>
+                <tr>
+                  <th scope="col">利用者</th>
+                  <th scope="col">役割</th>
+                  <th scope="col">期限</th>
+                  <th scope="col">判断</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {detail.data.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      {item.displayName}
+                      <br />
+                      <small>{item.email}</small>
+                      {item.userId === session.userId ? <small> ・自分</small> : null}
+                    </td>
+                    <td>{item.roleCode}</td>
+                    <td>
+                      {item.validUntilAtOpen ? formatDate(item.validUntilAtOpen) : '期限なし'}
+                    </td>
+                    <td>
+                      {item.decision !== 'pending' ? (
+                        <span>
+                          {item.decision === 'keep' ? '残す' : '取り消した'}
+                          {item.selfReviewed ? '(自分で判断)' : ''}
+                          <br />
+                          <small>{item.reason}</small>
+                        </span>
+                      ) : item.alreadyInactive ? (
+                        // 開いた後に別経路で失効したもの。判断は要らない。
+                        <span>既に無効(判断は不要)</span>
+                      ) : (
+                        <form action={decide}>
+                          <input type="hidden" name="reviewId" value={open.id} />
+                          <input type="hidden" name="itemId" value={item.id} />
+                          <label htmlFor={`reason-${item.id}`}>理由</label>
+                          <input id={`reason-${item.id}`} name="reason" required maxLength={500} />
+                          <button type="submit" name="decision" value="keep">
+                            残す
+                          </button>
+                          <button type="submit" name="decision" value="revoke">
+                            取り消す
+                          </button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableRegion>
 
           <form action={complete}>
             <input type="hidden" name="reviewId" value={open.id} />
@@ -220,29 +222,31 @@ export default async function AccessReviewPage({
         {reviews.filter((r) => r.completedAt !== null).length === 0 ? (
           <p className="empty">完了したレビューはまだありません。</p>
         ) : (
-          <table>
-            <caption>完了したアクセスレビュー</caption>
-            <thead>
-              <tr>
-                <th scope="col">期</th>
-                <th scope="col">開始</th>
-                <th scope="col">完了</th>
-                <th scope="col">対象</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reviews
-                .filter((r) => r.completedAt !== null)
-                .map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.periodLabel}</td>
-                    <td>{new Date(r.openedAt).toLocaleDateString('ja-JP')}</td>
-                    <td>{new Date(r.completedAt as string).toLocaleDateString('ja-JP')}</td>
-                    <td>{r.totalItems} 件</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <TableRegion label="完了したアクセスレビュー">
+            <table>
+              <caption>完了したアクセスレビュー</caption>
+              <thead>
+                <tr>
+                  <th scope="col">期</th>
+                  <th scope="col">開始</th>
+                  <th scope="col">完了</th>
+                  <th scope="col">対象</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews
+                  .filter((r) => r.completedAt !== null)
+                  .map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.periodLabel}</td>
+                      <td>{formatDate(r.openedAt)}</td>
+                      <td>{formatDate(r.completedAt as string)}</td>
+                      <td>{r.totalItems} 件</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </TableRegion>
         )}
       </section>
     </main>

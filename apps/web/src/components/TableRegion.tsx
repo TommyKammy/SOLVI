@@ -1,8 +1,16 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 /** Keep wide tables locally scrollable and reachable by keyboard. */
-export function TableRegion({ label, children }: { label: string; children: ReactNode }) {
+export function TableRegion({
+  label,
+  children,
+  className = 'table-scroll',
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="table-scroll" role="region" aria-label={label} tabIndex={0}>
+    <div className={className} role="region" aria-label={label} tabIndex={0}>
       {children}
     </div>
   );

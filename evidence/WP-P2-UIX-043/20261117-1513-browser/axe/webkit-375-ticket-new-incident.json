@@ -1,0 +1,5 @@
+{
+  "url": "/tickets/new?kind=incident",
+  "finalPath": "/tickets/new",
+  "violations": []
+}

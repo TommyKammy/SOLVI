@@ -33,7 +33,7 @@
 .steps {
   position: sticky;
   top: 80px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .steps p {
@@ -135,7 +135,7 @@
 }
 .details {
   min-width: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 .details summary {

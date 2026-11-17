@@ -1,0 +1,672 @@
+{
+  "scans": [
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "home",
+      "status": 200,
+      "finalPath": "/inbox",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ticket-new-incident",
+      "status": 200,
+      "finalPath": "/tickets/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "knowledge",
+      "status": 200,
+      "finalPath": "/knowledge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-inbox",
+      "status": 200,
+      "finalPath": "/ops",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-access-review",
+      "status": 200,
+      "finalPath": "/ops/access-review",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-approvals",
+      "status": 200,
+      "finalPath": "/ops/approvals",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-approvals-changes",
+      "status": 200,
+      "finalPath": "/ops/approvals/changes",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-users",
+      "status": 200,
+      "finalPath": "/ops/users",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "settings-delegations",
+      "status": 200,
+      "finalPath": "/settings/delegations",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "catalog-manage-new",
+      "status": 200,
+      "finalPath": "/catalog/manage/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "assets-imports-new",
+      "status": 200,
+      "finalPath": "/assets/imports/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ops-ticket-merge",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4/merge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 1440,
+      "page": "ticket-detail-requester",
+      "status": 200,
+      "finalPath": "/tickets/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "home",
+      "status": 200,
+      "finalPath": "/inbox",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ticket-new-incident",
+      "status": 200,
+      "finalPath": "/tickets/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "knowledge",
+      "status": 200,
+      "finalPath": "/knowledge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-inbox",
+      "status": 200,
+      "finalPath": "/ops",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-access-review",
+      "status": 200,
+      "finalPath": "/ops/access-review",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-approvals",
+      "status": 200,
+      "finalPath": "/ops/approvals",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-approvals-changes",
+      "status": 200,
+      "finalPath": "/ops/approvals/changes",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-users",
+      "status": 200,
+      "finalPath": "/ops/users",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "settings-delegations",
+      "status": 200,
+      "finalPath": "/settings/delegations",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "catalog-manage-new",
+      "status": 200,
+      "finalPath": "/catalog/manage/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "assets-imports-new",
+      "status": 200,
+      "finalPath": "/assets/imports/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ops-ticket-merge",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4/merge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "page": "ticket-detail-requester",
+      "status": 200,
+      "finalPath": "/tickets/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "home",
+      "status": 200,
+      "finalPath": "/inbox",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ticket-new-incident",
+      "status": 200,
+      "finalPath": "/tickets/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "knowledge",
+      "status": 200,
+      "finalPath": "/knowledge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-inbox",
+      "status": 200,
+      "finalPath": "/ops",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-access-review",
+      "status": 200,
+      "finalPath": "/ops/access-review",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-approvals",
+      "status": 200,
+      "finalPath": "/ops/approvals",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-approvals-changes",
+      "status": 200,
+      "finalPath": "/ops/approvals/changes",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-users",
+      "status": 200,
+      "finalPath": "/ops/users",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "settings-delegations",
+      "status": 200,
+      "finalPath": "/settings/delegations",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "catalog-manage-new",
+      "status": 200,
+      "finalPath": "/catalog/manage/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "assets-imports-new",
+      "status": 200,
+      "finalPath": "/assets/imports/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ops-ticket-merge",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4/merge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 1440,
+      "page": "ticket-detail-requester",
+      "status": 200,
+      "finalPath": "/tickets/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "home",
+      "status": 200,
+      "finalPath": "/inbox",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ticket-new-incident",
+      "status": 200,
+      "finalPath": "/tickets/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "knowledge",
+      "status": 200,
+      "finalPath": "/knowledge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-inbox",
+      "status": 200,
+      "finalPath": "/ops",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-access-review",
+      "status": 200,
+      "finalPath": "/ops/access-review",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-approvals",
+      "status": 200,
+      "finalPath": "/ops/approvals",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-approvals-changes",
+      "status": 200,
+      "finalPath": "/ops/approvals/changes",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-users",
+      "status": 200,
+      "finalPath": "/ops/users",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "settings-delegations",
+      "status": 200,
+      "finalPath": "/settings/delegations",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "catalog-manage-new",
+      "status": 200,
+      "finalPath": "/catalog/manage/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "assets-imports-new",
+      "status": 200,
+      "finalPath": "/assets/imports/new",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ops-ticket-merge",
+      "status": 200,
+      "finalPath": "/ops/01a1e823-854b-7000-98b7-65bd8774aea4/merge",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "page": "ticket-detail-requester",
+      "status": 200,
+      "finalPath": "/tickets/01a1e823-854b-7000-98b7-65bd8774aea4",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": 0
+    }
+  ],
+  "checks": {
+    "ssrNoInert": {
+      "inertAttr": false,
+      "hasFormControls": true
+    },
+    "noJsForm": {
+      "found": true,
+      "inertInside": false,
+      "controls": 13
+    },
+    "mobileRail": {
+      "closedVisibility": "hidden",
+      "ariaControlsTargetIsRail": true,
+      "tabEntersClosedRail": false,
+      "toggleTargetSize": [
+        44,
+        44
+      ],
+      "openFocus": {
+        "inRail": true,
+        "label": "メニューを閉じる"
+      },
+      "mainInertWhenOpen": true,
+      "afterEscapeFocusIsToggle": true,
+      "mainInertAfterClose": false
+    },
+    "portalSearchFocus": {
+      "outlineStyle": "solid",
+      "outlineWidth": "3px",
+      "outlineColor": "rgb(39, 108, 240)"
+    },
+    "inputFontSizes": [
+      "16px"
+    ],
+    "tables": [
+      {
+        "path": "/ops/approvals/changes",
+        "tables": 0,
+        "withCaption": 0,
+        "inFocusableRegion": 0
+      },
+      {
+        "path": "/ops/users",
+        "tables": 1,
+        "withCaption": 1,
+        "inFocusableRegion": 1
+      },
+      {
+        "path": "/ops/access-review",
+        "tables": 0,
+        "withCaption": 0,
+        "inFocusableRegion": 0
+      },
+      {
+        "path": "/settings/delegations",
+        "tables": 0,
+        "withCaption": 0,
+        "inFocusableRegion": 0
+      }
+    ]
+  },
+  "totals": {
+    "scans": 60,
+    "seriousOrCritical": 0,
+    "anyViolationNodes": 0,
+    "overflow375": [],
+    "redirectedToLogin": []
+  }
+}

@@ -26,14 +26,14 @@
   border-radius: 6px;
   background: var(--fs-brand-soft);
   color: var(--fs-brand-strong);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .note,
 .approver {
   color: var(--fs-text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.7;
 }
 
@@ -46,7 +46,7 @@
 }
 
 .configuration summary {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -102,7 +102,7 @@
 .error {
   margin: 0;
   color: var(--fs-danger);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .actions {

@@ -1,5 +1,5 @@
 import type { ApprovalRuleStep } from '@solvi/shared/catalog';
-import { formatDateTime } from './labels';
+import { formatDateTime, jstToday } from './labels';
 
 /**
  * 承認ルール管理の表示・入力の純関数 (WP-P4-APR-016 段階A)。
@@ -408,7 +408,7 @@ export function parseRelationshipHistoryQuery(
 ): RelationshipHistoryQuery {
   const single = (value: string | string[] | undefined): string =>
     typeof value === 'string' ? value : '';
-  const todayValue = isDate(today) ? today : new Date().toISOString().slice(0, 10);
+  const todayValue = isDate(today) ? today : jstToday();
   const to = isDate(single(params.to)) ? single(params.to) : todayValue;
   const fromRaw = single(params.from);
   const fromDefault = new Date(Date.parse(`${todayValue}T00:00:00.000Z`));

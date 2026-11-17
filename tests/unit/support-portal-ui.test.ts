@@ -139,6 +139,20 @@ describe('support shell preserves existing role-scoped work destinations', () =>
   );
 });
 
+describe('the staff rail keeps one navigation target for the mobile toggle', () => {
+  it('names the rail, not the breadcrumb, with the toggle controls id', () => {
+    const html = frame(session(['agent']), '/ops');
+    expect(html).toMatch(/<aside[^>]*id="solvi-main-navigation"/);
+    expect(html).toMatch(/aria-controls="solvi-main-navigation"/);
+    expect(html).not.toMatch(/class="fs-breadcrumb"[^>]*id="solvi-main-navigation"/);
+  });
+
+  it('does not render the closed rail or main content inert on first paint', () => {
+    const html = frame(session(['agent']), '/ops');
+    expect(html).not.toContain('inert');
+  });
+});
+
 describe('portal action card opens available personal work', () => {
   it.each([
     ['requester', '/requests?view=mine', '申請状況を確認する'],

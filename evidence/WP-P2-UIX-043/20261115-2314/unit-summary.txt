@@ -1,0 +1,10 @@
+Full unit run (npm run test:unit)
+
+ Test Files  4 failed | 110 passed (114)
+      Tests  34 failed | 4668 passed (4702)
+
+Failing files (pre-existing):
+ FAIL  tests/unit/knowledge-list.test.ts [ tests/unit/knowledge-list.test.ts ]
+ FAIL  tests/unit/knowledge-search-page.test.ts
+ FAIL  tests/unit/performance-runtime.test.ts
+ FAIL  tests/unit/performance-search-static-cli.test.ts

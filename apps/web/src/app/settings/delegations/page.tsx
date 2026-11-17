@@ -18,6 +18,7 @@ import {
   jstDateTimeInput,
 } from '../../../lib/approval-delegation';
 import { createDelegationAction, revokeDelegationAction } from './actions';
+import { TableRegion } from '../../../components/TableRegion';
 import { DelegationCreateForm, DelegationRevokeForm } from './DelegationForms';
 
 export const dynamic = 'force-dynamic';
@@ -157,7 +158,7 @@ export default async function DelegationsPage({
         {mine.length === 0 ? (
           <p className="empty">まだ委任していません。下の「委任を作成」から作成できます。</p>
         ) : (
-          <div className="directory-table-wrap">
+          <TableRegion className="directory-table-wrap" label="自分が任せている委任">
             <table className="directory-table">
               <caption>自分が任せている委任</caption>
               <thead>
@@ -182,7 +183,7 @@ export default async function DelegationsPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableRegion>
         )}
 
         <h3 id="delegation-create-title">委任を作成</h3>
@@ -212,7 +213,7 @@ export default async function DelegationsPage({
         {received.length === 0 ? (
           <p className="empty">自分が代理者になっている委任はありません。</p>
         ) : (
-          <div className="directory-table-wrap">
+          <TableRegion className="directory-table-wrap" label="自分が任されている委任">
             <table className="directory-table">
               <caption>自分が任されている委任</caption>
               <thead>
@@ -237,7 +238,7 @@ export default async function DelegationsPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableRegion>
         )}
       </section>
 
@@ -254,7 +255,7 @@ export default async function DelegationsPage({
           {rows.length === 0 ? (
             <p className="empty">この組織には、まだ委任がありません。</p>
           ) : (
-            <div className="directory-table-wrap">
+            <TableRegion className="directory-table-wrap" label="組織のすべての委任">
               <table className="directory-table">
                 <caption>組織のすべての委任</caption>
                 <thead>
@@ -284,7 +285,7 @@ export default async function DelegationsPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableRegion>
           )}
           {others
             .filter((item) => delegationRevocable(item.state))

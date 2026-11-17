@@ -60,6 +60,29 @@ export function formatDateTime(iso: string): string {
   }).format(date);
 }
 
+export function formatDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  }).format(date);
+}
+
+/** サーバのタイムゾーンに関係なく、日本時間の「今日」をYYYY-MM-DDで返す。 */
+export function jstToday(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
 /**
  * 絞り込みの選択肢。
  *

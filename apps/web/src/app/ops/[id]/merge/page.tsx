@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../../lib/api';
 import { stateLabel } from '../../../../lib/labels';
+import { TableRegion } from '../../../../components/TableRegion';
 
 /**
  * 統合の確認画面 (WP-P2-RELUI-012)。
@@ -156,27 +157,32 @@ export default async function MergeTicket({
 
               {/* **この表が確認そのものである。** 番号だけでなく件名と状況を並べ、
                   どちらが残るのかを言葉で書く。 */}
-              <table className="merge-preview">
-                <caption className="visually-hidden">統合前後の問い合わせ</caption>
-                <tbody>
-                  <tr>
-                    <th scope="row">統合される(この画面の問い合わせ)</th>
-                    <td>
-                      {sourceTicket.number} {sourceTicket.subject}
-                      <br />
-                      <span className="state">{stateLabel(sourceTicket.state)}</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">残る(統合先)</th>
-                    <td>
-                      {target.data.number} {target.data.subject}
-                      <br />
-                      <span className="state">{stateLabel(target.data.state)}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <TableRegion
+                className="table-scroll merge-preview-region"
+                label="統合前後の問い合わせ"
+              >
+                <table className="merge-preview">
+                  <caption className="visually-hidden">統合前後の問い合わせ</caption>
+                  <tbody>
+                    <tr>
+                      <th scope="row">統合される(この画面の問い合わせ)</th>
+                      <td>
+                        {sourceTicket.number} {sourceTicket.subject}
+                        <br />
+                        <span className="state">{stateLabel(sourceTicket.state)}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">残る(統合先)</th>
+                      <td>
+                        {target.data.number} {target.data.subject}
+                        <br />
+                        <span className="state">{stateLabel(target.data.state)}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </TableRegion>
 
               {mergeFailed && (
                 <div className="error-summary" role="alert" tabIndex={-1}>

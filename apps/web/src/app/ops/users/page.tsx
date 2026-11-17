@@ -12,6 +12,7 @@ import {
 import { flattenDepartmentTree } from '../departments/department-ui';
 import { UserCreateForm, UserMemberActions } from '../../../components/UserDirectoryForms';
 import { updateDirectoryUser, updateMemberProfile } from './actions';
+import { TableRegion } from '../../../components/TableRegion';
 
 export const dynamic = 'force-dynamic';
 
@@ -364,7 +365,7 @@ export default async function ManageUsers({
               {members.length > 0 && <Link href="/ops/users">条件を解除して全員を表示</Link>}
             </section>
           ) : (
-            <div className="directory-table-wrap">
+            <TableRegion className="directory-table-wrap" label="利用者一覧">
               <table className="directory-table">
                 <caption className="visually-hidden">
                   利用者一覧。名前、メール、部署、上長、役職、役割、状態、対応中の問い合わせ件数を表示します。
@@ -430,7 +431,7 @@ export default async function ManageUsers({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableRegion>
           )}
 
           {view.pageCount > 1 && (
