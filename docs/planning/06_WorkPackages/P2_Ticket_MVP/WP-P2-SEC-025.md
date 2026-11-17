@@ -11,7 +11,7 @@ updated: "2026-11-17"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "security", "csp", "hsts"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 5
 risk: "high"
 workstream: "SEC"
@@ -142,7 +142,7 @@ depends_on: []
 - [x] Migrationなしの明記、切り戻し手順の Runbook 追記
 - [x] 関連ドキュメント(RTM、要求の差し替え)の更新
 - [x] 未解決のCritical/Highがない
-- [ ] Security Reviewer のsign-off
+- [x] Security Reviewer のsign-off
 - [x] Execution Logへ追記
 
 ## 13. Execution Log
@@ -181,3 +181,10 @@ depends_on: []
 - セキュリティ影響: ブラウザ向けの防御を追加(T-27・T-28)。`connect-src` に添付用バケットのパスを1つ加える(ADR-0029)。信頼境界・権限・RLS・監査・Executor境界・Secretは変えない。新しい依存パッケージなし。nonce はログに出さない。違反の記録は署名付きURLを残さない。
 - 未解決事項: HTTPS の本番相当環境(ALB・本物の S3)での確認は未実施。HSTS の max-age の延長は運用で段階的に行う(Runbook §6.4)。Security Reviewer の sign-off(人間のレビュー)待ち。
 - Evidence: `evidence/WP-P2-SEC-025/`(README に一覧)。
+
+#### 利用者の承認(2026-11-17)
+
+- **2026-11-17、利用者(人間)が PR #21(ADR-0029)と PR #22(本WPの実装)をマージした**(main の `bcd7f3a`・`f74f7c3`)。これをセキュリティ関連の変更に対する人間のレビュー(AGENTS.md §1.16、Security Reviewer の sign-off)として扱い、`done` とする。
+- §7 はすべて充足している。Evidence は `evidence/WP-P2-SEC-025/`。両PRの CI は5ジョブすべて成功した。
+- レビュー事項だった「`upgrade-insecure-requests` を HTTPS の応答にだけ付ける」扱いは、PR #22 のマージにより、この形で受け入れられたものとする。
+- 残り: HTTPS の本番相当環境(ALB、本物の S3)での確認と、HSTS の max-age の段階的な延長(Runbook §6.4)は、本番環境の構築時に行う。インライン style の解消と `style-src 'unsafe-inline'` の撤去は、ADR-0027 の Follow-up(別WP)。
