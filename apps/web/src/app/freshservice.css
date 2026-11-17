@@ -3029,9 +3029,14 @@ body.fs-ui .fs-public-content > main form.stack {
     background: transparent;
     box-shadow: none;
     opacity: 1;
-    visibility: visible;
+    /* Follow the rail: an explicit `visible` here would keep the links of a
+       closed (visibility: hidden) rail in the Tab order. */
+    visibility: inherit;
     pointer-events: auto;
     transform: none;
+  }
+  .fs-rail-item.is-open .fs-flyout {
+    visibility: inherit;
   }
   .fs-flyout::before {
     display: none;

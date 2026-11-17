@@ -7,7 +7,7 @@ type: "workpackage"
 status: "baseline"
 version: "0.1.0"
 created: "2026-11-15"
-updated: "2026-11-15"
+updated: "2026-11-17"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui", "accessibility", "regression"]
 source_of_truth: true
@@ -142,11 +142,11 @@ CSP/セキュリティヘッダーは本WPに含めない。
 
 ## 12. Definition of Done
 
-- [ ] §7をすべて満たす
-- [ ] §8のEvidenceを保存した
-- [ ] API/DB変更なしを確認した
-- [ ] WP台帳・RTM・Dependency Map・MANIFESTを更新した
-- [ ] Execution Logへ追記した
+- [x] §7をすべて満たす
+- [x] §8のEvidenceを保存した
+- [x] API/DB変更なしを確認した
+- [x] WP台帳・RTM・Dependency Map・MANIFESTを更新した
+- [x] Execution Logへ追記した
 
 ## 13. Execution Log
 
@@ -172,3 +172,17 @@ CSP/セキュリティヘッダーは本WPに含めない。
 - セキュリティ影響: なし。認可・RLS・監査・APIは変更していない。
 - 未解決: 全体ユニットテストの既知失敗。CSP/HSTS等はADR/WP-Fとして分離。実ブラウザのaxeは合成ログインが401のため未実行。
 - Evidence: `evidence/WP-P2-UIX-043/`。
+
+### 2026-11-17 実画面の axe・スクリーンショット(PR #19)
+
+- 実行環境: Web の本番ビルド、API のローカル認証、使い捨てDB `solvi_wp043_evidence_test`(seed の合成データのみ)。開発用DB `solvi` には接続していない。
+- 401 の原因: `.env` の `SYNTHETIC_ORG` が空で、検査対象のDBに合成ユーザーがいなかった。使い捨てDBに seed を入れ、organizationId を明示してログインした。
+- 結果: 15画面 × Chromium/WebKit × 1440/375px の60スキャンで、axe の違反は0件。375pxの横はみ出しは0、コンソールエラーは0。
+- 見つけた欠陥: 閉じたモバイルレールのリンクに Tab でフォーカスが入っていた(§7 の2番目の基準に反する)。原因は、モバイルの `.fs-flyout` が `visibility: visible` を明示し、`visibility: hidden` のレールを子孫側で上書きしていたこと。
+  - 修正: `freshservice.css` で `visibility: inherit` にした。
+  - 回帰テスト: `tests/unit/ui-contrast-and-focus.test.ts` に検査を追加した。修正前のCSSで失敗し、修正後に成功することを確認した。
+  - 修正後に再ビルドして撮り直した。Tab がレールに入らないこと、開閉時のフォーカス移動と背景の `inert` を確認した。
+- 変更ファイル: `apps/web/src/app/freshservice.css`、`tests/unit/ui-contrast-and-focus.test.ts`、本WP、MANIFEST、`evidence/WP-P2-UIX-043/20261117-1513-browser/`。
+- Migration: なし。セキュリティ影響: なし。
+- 未実施: WebKit のスクリーンショット(axe は WebKit でも実行)、実機の iOS/Android。
+- Evidence: `evidence/WP-P2-UIX-043/20261117-1513-browser/`

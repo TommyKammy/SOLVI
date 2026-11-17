@@ -1,0 +1,193 @@
+// WP-P2-UIX-043: real-screen axe + screenshots + behaviour checks.
+// Usage: node capture.mjs <outDir>   (cwd = repo root)
+import { createRequire } from 'node:module';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const repo = '~/Dev/SOLVI';
+const require = createRequire(join(repo, 'package.json'));
+const pw = require('playwright');
+const CHROME_EXE = '~/Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell';
+const chromium = { launch: (o = {}) => pw.chromium.launch({ ...o, executablePath: CHROME_EXE }) };
+const webkit = pw.webkit;
+const { AxeBuilder } = require('@axe-core/playwright');
+
+const OUT = process.argv[2];
+mkdirSync(join(OUT, 'screens'), { recursive: true });
+mkdirSync(join(OUT, 'axe'), { recursive: true });
+const WEB = 'http://127.0.0.1:3000';
+const API = 'http://127.0.0.1:3001';
+const ORG = '00000000-0000-4000-9000-000000000001';
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+// Synthetic seed password, read from the project's seed file (never printed).
+const PASSWORD = readFileSync(join(repo, 'tools/seed.mjs'), 'utf8').match(/DEV_PASSWORD = '([^']+)'/)[1];
+
+async function login(email) {
+  const r = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password: PASSWORD, organizationId: ORG }),
+  });
+  if (!r.ok) throw new Error(`login ${email}: ${r.status}`);
+  const pair = (r.headers.get('set-cookie') ?? '').split(';')[0];
+  const i = pair.indexOf('=');
+  return { name: pair.slice(0, i), value: pair.slice(i + 1) };
+}
+
+const admin = await login('org_admin@acme.example.test');
+const requester = await login('requester@acme.example.test');
+const cookieHeader = (c) => `${c.name}=${c.value}`;
+
+// A synthetic ticket so detail / merge pages render with data.
+let ticketId = null;
+{
+  const r = await fetch(`${API}/tickets`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: cookieHeader(requester) },
+    body: JSON.stringify({ type: 'incident', kind: 'incident', subject: '合成チケット(WP-P2-UIX-043 検証)', body: '検証用の合成データ', urgency: 'medium', impact: 'medium' }),
+  });
+  const body = await r.json().catch(() => ({}));
+  ticketId = body.id ?? body.ticket?.id ?? null;
+  writeFileSync(join(OUT, 'ticket-create.json'), JSON.stringify({ status: r.status, id: ticketId, error: ticketId ? undefined : body }, null, 2));
+}
+
+const PAGES = [
+  { slug: 'portal', path: '/portal', who: requester },
+  { slug: 'home', path: '/', who: admin },
+  { slug: 'ticket-new-incident', path: '/tickets/new?kind=incident', who: requester },
+  { slug: 'knowledge', path: '/knowledge', who: admin },
+  { slug: 'ops-inbox', path: '/ops', who: admin },
+  { slug: 'ops-access-review', path: '/ops/access-review', who: admin },
+  { slug: 'ops-approvals', path: '/ops/approvals', who: admin },
+  { slug: 'ops-approvals-changes', path: '/ops/approvals/changes', who: admin },
+  { slug: 'ops-users', path: '/ops/users', who: admin },
+  { slug: 'settings-delegations', path: '/settings/delegations', who: admin },
+  { slug: 'catalog-manage-new', path: '/catalog/manage/new', who: admin },
+  { slug: 'assets-imports-new', path: '/assets/imports/new', who: admin },
+];
+if (ticketId) {
+  PAGES.push({ slug: 'ops-ticket-detail', path: `/ops/${ticketId}`, who: admin });
+  PAGES.push({ slug: 'ops-ticket-merge', path: `/ops/${ticketId}/merge`, who: admin });
+  PAGES.push({ slug: 'ticket-detail-requester', path: `/tickets/${ticketId}`, who: requester });
+}
+
+const summary = { scans: [], checks: {} };
+
+for (const [engineName, engine] of [['chromium', chromium], ['webkit', webkit]]) {
+  const browser = await engine.launch();
+  for (const width of [1440, 375]) {
+    for (const p of PAGES) {
+      const ctx = await browser.newContext({ viewport: { width, height: width === 375 ? 812 : 900 }, locale: 'ja-JP' });
+      await ctx.addCookies([{ ...p.who, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' }]);
+      const page = await ctx.newPage();
+      const consoleErrors = [];
+      page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()));
+      const resp = await page.goto(WEB + p.path, { waitUntil: 'networkidle' });
+      const finalPath = new URL(page.url()).pathname;
+      const res = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const name = `${engineName}-${width}-${p.slug}`;
+      writeFileSync(join(OUT, 'axe', `${name}.json`), JSON.stringify({ url: p.path, finalPath, violations: res.violations }, null, 2));
+      if (engineName === 'chromium') await page.screenshot({ path: join(OUT, 'screens', `${name}.png`), fullPage: true });
+      summary.scans.push({
+        engine: engineName, width, page: p.slug, status: resp?.status(), finalPath,
+        violations: res.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
+        horizontalOverflowPx: overflow, consoleErrors: consoleErrors.length,
+      });
+      await ctx.close();
+    }
+  }
+  await browser.close();
+}
+
+// Behaviour checks (chromium).
+const browser = await chromium.launch();
+{
+  // 1. SSR HTML has no inert on the form and contains form controls.
+  const html = await (await fetch(WEB + '/tickets/new?kind=incident', { headers: { cookie: cookieHeader(requester) } })).text();
+  summary.checks.ssrNoInert = { inertAttr: /\sinert(=|\s|>)/.test(html.replace(/<script[\s\S]*?<\/script>/g, '')), hasFormControls: /<(input|textarea|select)\b/.test(html) };
+
+  // 2. JS disabled: form is still operable.
+  const nojs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+  await nojs.addCookies([{ ...requester, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' }]);
+  const np = await nojs.newPage();
+  await np.goto(WEB + '/tickets/new?kind=incident');
+  summary.checks.noJsForm = await np.evaluate(() => {
+    const f = document.querySelector('main form');
+    return { found: !!f, inertInside: !!(f && (f.closest('[inert]') || f.querySelector('[inert]'))), controls: f ? f.querySelectorAll('input,textarea,select,button').length : 0 };
+  });
+  await np.screenshot({ path: join(OUT, 'screens', 'chromium-1440-ticket-new-nojs.png'), fullPage: true });
+  await nojs.close();
+
+  // 3. Mobile rail focus management.
+  const m = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true });
+  await m.addCookies([{ ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' }]);
+  const mp = await m.newPage();
+  await mp.goto(WEB + '/ops', { waitUntil: 'networkidle' });
+  const rail = {};
+  rail.closedVisibility = await mp.evaluate(() => getComputedStyle(document.getElementById('solvi-main-navigation')).visibility);
+  rail.ariaControlsTargetIsRail = await mp.evaluate(() => {
+    const t = document.querySelector('.fs-rail-toggle');
+    const target = document.getElementById(t.getAttribute('aria-controls'));
+    return !!target && target.id === 'solvi-main-navigation';
+  });
+  // Tab through the page: no focus should land inside the closed rail.
+  let enteredRail = false;
+  for (let i = 0; i < 25; i++) {
+    await mp.keyboard.press('Tab');
+    if (await mp.evaluate(() => !!document.activeElement?.closest('#solvi-main-navigation'))) enteredRail = true;
+  }
+  rail.tabEntersClosedRail = enteredRail;
+  rail.toggleTargetSize = await mp.evaluate(() => { const r = document.querySelector('.fs-rail-toggle').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
+  await mp.click('.fs-rail-toggle');
+  await mp.waitForTimeout(300);
+  rail.openFocus = await mp.evaluate(() => ({ inRail: !!document.activeElement?.closest('#solvi-main-navigation'), label: document.activeElement?.getAttribute('aria-label') }));
+  rail.mainInertWhenOpen = await mp.evaluate(() => document.querySelector('.fs-main').hasAttribute('inert'));
+  await mp.screenshot({ path: join(OUT, 'screens', 'chromium-375-mobile-rail-open.png') });
+  await mp.keyboard.press('Escape');
+  await mp.waitForTimeout(300);
+  rail.afterEscapeFocusIsToggle = await mp.evaluate(() => document.activeElement?.classList.contains('fs-rail-toggle'));
+  rail.mainInertAfterClose = await mp.evaluate(() => document.querySelector('.fs-main').hasAttribute('inert'));
+  await mp.screenshot({ path: join(OUT, 'screens', 'chromium-375-mobile-rail-closed.png') });
+  summary.checks.mobileRail = rail;
+  await m.close();
+
+  // 4. Portal search focus ring + control border.
+  const d = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await d.addCookies([{ ...requester, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' }]);
+  const dp = await d.newPage();
+  await dp.goto(WEB + '/portal', { waitUntil: 'networkidle' });
+  await dp.focus('#support-search-input');
+  summary.checks.portalSearchFocus = await dp.evaluate(() => {
+    const s = getComputedStyle(document.querySelector('.support-search'));
+    return { outlineStyle: s.outlineStyle, outlineWidth: s.outlineWidth, outlineColor: s.outlineColor };
+  });
+  await dp.locator('.support-search').screenshot({ path: join(OUT, 'screens', 'chromium-1440-portal-search-focus.png') });
+  // input font size (iOS zoom)
+  await dp.goto(WEB + '/tickets/new?kind=incident', { waitUntil: 'networkidle' });
+  summary.checks.inputFontSizes = await dp.evaluate(() => [...new Set([...document.querySelectorAll('main input:not([type=hidden]), main textarea, main select')].map((e) => getComputedStyle(e).fontSize))]);
+  // 5. Tables: region + caption on every table.
+  const tables = [];
+  for (const path of ['/ops/approvals/changes', '/ops/users', '/ops/access-review', '/settings/delegations']) {
+    await dp.context().clearCookies();
+    await dp.context().addCookies([{ ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' }]);
+    await dp.goto(WEB + path, { waitUntil: 'networkidle' });
+    tables.push({ path, ...(await dp.evaluate(() => {
+      const t = [...document.querySelectorAll('table')];
+      return { tables: t.length, withCaption: t.filter((x) => x.querySelector('caption')).length, inFocusableRegion: t.filter((x) => x.closest('[role=region][tabindex="0"]')).length };
+    })) });
+  }
+  summary.checks.tables = tables;
+  await d.close();
+}
+await browser.close();
+
+summary.totals = {
+  scans: summary.scans.length,
+  seriousOrCritical: summary.scans.reduce((n, s) => n + s.violations.filter((v) => ['serious', 'critical'].includes(v.impact)).reduce((a, v) => a + v.nodes, 0), 0),
+  anyViolationNodes: summary.scans.reduce((n, s) => n + s.violations.reduce((a, v) => a + v.nodes, 0), 0),
+  overflow375: summary.scans.filter((s) => s.width === 375 && s.horizontalOverflowPx > 0).map((s) => `${s.engine}:${s.page}:${s.horizontalOverflowPx}`),
+  redirectedToLogin: summary.scans.filter((s) => s.finalPath.startsWith('/login')).map((s) => `${s.engine}-${s.width}-${s.page}`),
+};
+writeFileSync(join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify({ totals: summary.totals, checks: summary.checks }, null, 2));

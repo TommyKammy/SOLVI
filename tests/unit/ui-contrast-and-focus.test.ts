@@ -39,6 +39,11 @@ describe('freshservice control affordances', () => {
     const mobile = css.match(/@media \(max-width: 800px\)\s*{([\s\S]*?)\n}/)?.[1] ?? '';
     expect(mobile).toMatch(/\.fs-rail\s*{[^}]*visibility:\s*hidden/);
     expect(mobile).toMatch(/\.fs-app--rail-open \.fs-rail\s*{[^}]*visibility:\s*visible/);
+    // Descendants must not force `visible`: it would override the hidden rail
+    // and keep its links focusable (found in the 2026-11-17 browser check).
+    const flyoutRules = [...mobile.matchAll(/([^{}]*\.fs-flyout[^{}]*){([^}]*)}/g)];
+    expect(flyoutRules.length).toBeGreaterThan(0);
+    for (const [, , body] of flyoutRules) expect(body).not.toMatch(/visibility:\s*visible/);
   });
 
   it('uses at least 1rem input text to prevent iOS focus zoom', () => {
