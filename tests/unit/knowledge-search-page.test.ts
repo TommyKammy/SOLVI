@@ -104,7 +104,10 @@ describe('NFR-UX-002/003/004 knowledge list rendering and URL recovery', () => {
       ['q', 'VPN'],
       ['manage', '1'],
     ]);
-    expect([...link(html, '公開された記事を見る').searchParams]).toEqual([['q', 'VPN']]);
+    // WP-P2-UIX-028 §7: 管理から公開記事への切替は左ナビの「すべての記事」(検索条件を解除して /knowledge へ)。
+    const allArticles = link(html, 'すべての記事');
+    expect(allArticles.pathname).toBe('/knowledge');
+    expect([...allArticles.searchParams]).toEqual([]);
     const detail = link(html, '記事 first');
     expect(detail.searchParams.get('manage')).toBe('1');
     expect(detail.searchParams.get('returnTo')).toBe(
@@ -160,7 +163,14 @@ describe('NFR-UX-002/003/004 knowledge list rendering and URL recovery', () => {
     expect(html).toContain('<h1>ナレッジを探す</h1>');
     expect(html).not.toContain('記事を作成・管理する');
     expect(html).not.toContain('新しい記事を書く');
-    expect(html).not.toContain('公開済み');
+    // WP-P2-UIX-028 の左ナビでも、管理への入口は担当者だけに出す。
+    expect(links(html).map((item) => item.text)).not.toContain('ナレッジ管理');
+    expect(links(html).map((item) => item.text)).not.toContain('記事を作成');
+    // WP-P2-UIX-028 §7 で状態列は全員に出る。管理以外の一覧は公開記事だけなので「公開済み」は出てよいが、
+    // 公開前・取り下げ後の状態は依頼者に見せない。
+    expect(html).toContain('<span class="knowledge-state">公開済み</span>');
+    for (const label of ['下書き', 'レビュー待ち', '取り下げ済み'])
+      expect(html).not.toContain(label);
   });
 
   it('leaves session recovery to the shared session path before requesting knowledge', async () => {
