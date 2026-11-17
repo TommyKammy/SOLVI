@@ -7,7 +7,7 @@ type: "manifest"
 status: "accepted"
 version: "0.15.1"
 created: "2026-07-27"
-updated: "2026-11-15"
+updated: "2026-11-17"
 owner: "SOLVI Product Team"
 tags: ["manifest"]
 source_of_truth: true
@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 319 |
-| Markdown | 311 |
+| 対象ファイル | 320 |
+| Markdown | 312 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,748,020 bytes |
+| 合計サイズ | 7,754,123 bytes |
 
 ## ファイル一覧
 
@@ -51,7 +51,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `00_Index/00.3_Project_Map.md` | 11563 | `aa5c849786dd993ebfe4b2b17a8e1dbad924a85ff20697bcddbb76a67ef5d52a` |
 | `00_Index/00.4_Document_Governance.md` | 1008 | `2fbfc21bb99babdde34ee026cd415d5ed7926ce26fed090ad9d99f410d24da6f` |
 | `00_Index/00.5_Glossary.md` | 7544 | `119ef942acc5453c1961397877f89ab944e0fda2719143119052c195fd6b7e44` |
-| `00_Index/00.6_Decision_Register.md` | 2302 | `80fc2fe9a2180726c9aae276dea658592c6c7f930b51707690b931fb826db226` |
+| `00_Index/00.6_Decision_Register.md` | 2974 | `27946483c6b568b3465b0d9f18bbf3c79773f277c698bf816772007f6cf77a47` |
 | `00_Index/00.7_Open_Questions.md` | 5857 | `c99927eb2455766e6623e9edde405e955dcd7f96ec3ae71e1c8e3861bf56818b` |
 | `00_Index/00.8_Status_Dashboard.md` | 11623 | `83521c2275ac4675601df7816250891dcc98bdf488a616a092116c28c7bea832` |
 | `01_Product/01.10_Naming_and_Brand.md` | 1742 | `37275c6a29c345ce554a6fa49711181a228a707234e66b932abaac4cc3c40cc7` |
@@ -90,7 +90,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22305 | `4dfa57d1098c0245603b53516b7a8cac1964f450b0e7679838a363fa2b586dc8` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22345 | `343a6cb394b0db5b84ad660dd21ef0a06fb98609232adc5c353d0cf42e6d51e1` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11638 | `be482a5ea556299884b2f18305aac5cd5b45efcb81df0ecb7d67345ef80d531d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -142,7 +142,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `05_Modules/05.7_Workflow_Orchestration.md` | 1630 | `dda2b5c4c78f8ab737dfb97dcfa58962e3f20a15a86450a188586e275a431404` |
 | `05_Modules/05.8_SOLVI_Run_Executor.md` | 1588 | `c9579abc2e14d7b44f5ac662b23daf7bff65f72d39c6011225c1db36cbd88875` |
 | `05_Modules/05.9_Okta_Connector.md` | 1560 | `d679519010367687d12c7b0c74b77c938c0e717799c7202ff0e15e18ab3ad703` |
-| `06_WorkPackages/06.0_WorkPackage_Register.md` | 20552 | `4f46561fcb6f802f117bd84c43a8fcd7360c87df0defc86206fdd0a0fb0de0d2` |
+| `06_WorkPackages/06.0_WorkPackage_Register.md` | 20711 | `2c4cd943a226ddc8e064e70b375c6e5b6612bfc9c8f43c34f5c39dfdbe97d8aa` |
 | `06_WorkPackages/06.1_Dependency_Map.md` | 6305 | `b598b47a828a9f8ccebbff693e1e42f0654ad13731e33174bc0d8e675a49216f` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
@@ -181,6 +181,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPS-003.md` | 7779 | `8be31195ca616b9470285a081c194d545371196fab3e3243a8decf5110276bb5` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-OPSUI-010.md` | 9283 | `9f3f15ec522600ef01db8c5d56f4c3e3850fa563cf13ed0fae6fdd7c4389c8e6` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PERF-020.md` | 3941 | `37e94d16d277faae0b84db8dbb47eebd70574bb6bddc79241a1090212a2f369c` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-PERF-060.md` | 5232 | `1c946dc0375e8ad856f1f24edf7a6fed6d93025c72679c9b0e7a290d461c6103` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PORTAL-002.md` | 8407 | `380d7fee1b27ac1c3e75ceea376f86252132b19192df8935cd4ec4ca9a51601e` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-PRIO-013.md` | 7396 | `a2f4832c3bc67d9f25390f53d9c050ff875c367fba86d3b6bd4661513bb1dc77` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-REG-023.md` | 12450 | `4a860e835789cb26c976455823cb5bc166ddcdc2b04be137b547800068fa66dd` |
