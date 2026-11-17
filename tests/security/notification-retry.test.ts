@@ -17,10 +17,10 @@ import {
   type NotificationSender,
 } from '../../services/api/src/modules/notification/notification.service.js';
 import type { OutboxRecordLike } from '../../services/api/src/modules/notification/types.js';
-import { createKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs';
-import { createCiKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-054/20261007/ci-knowledge-db.mjs';
-import type { KnowledgeFixture } from '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs';
-import { readKnowledgeFixture } from '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs';
+import { createKnowledgeDatabase } from '../support/knowledge/isolated-knowledge-db.js';
+import { createCiKnowledgeDatabase } from '../support/knowledge/ci-knowledge-db.js';
+import type { KnowledgeFixture } from '../support/knowledge/knowledge-fixture.js';
+import { readKnowledgeFixture } from '../support/knowledge/knowledge-fixture.js';
 
 // Own a new disposable database. Never accept an ordinary development DB URL.
 let runtime:

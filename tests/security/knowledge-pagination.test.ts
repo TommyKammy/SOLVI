@@ -10,12 +10,12 @@ import {
   assertKnowledgeDatabaseUrls,
   readKnowledgeFixture,
   type KnowledgeFixture,
-} from '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs';
+} from '../support/knowledge/knowledge-fixture.js';
 import {
   createCiKnowledgeDatabase,
   KNOWLEDGE_CI_SETUP_HOOK_MS,
   KNOWLEDGE_CI_CLEANUP_HOOK_MS,
-} from '../../evidence/WP-P3-KNWUI-054/20261007/ci-knowledge-db.mjs';
+} from '../support/knowledge/ci-knowledge-db.js';
 
 let admin: pg.Client;
 let pool: pg.Pool;
