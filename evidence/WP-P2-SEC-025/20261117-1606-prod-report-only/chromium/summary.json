@@ -1,0 +1,109 @@
+{
+  "browser": "chromium",
+  "expectMode": "report-only",
+  "success": true,
+  "checks": [
+    {
+      "name": "headers-login",
+      "scripts": 17,
+      "distinctNonces": true
+    },
+    {
+      "name": "login"
+    },
+    {
+      "name": "headers-/portal",
+      "path": "/portal",
+      "status": 200,
+      "nonce": "rj8801yC4djs067c+p5FIw==",
+      "scripts": 20,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/ops",
+      "path": "/ops",
+      "status": 200,
+      "nonce": "Y9Bs8VI0mZTFV5zTpJ0Ztw==",
+      "scripts": 27,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/inbox",
+      "path": "/inbox",
+      "status": 200,
+      "nonce": "9ayYHCpIpxd0Zg4kUZ5mZw==",
+      "scripts": 17,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "headers-/knowledge",
+      "path": "/knowledge",
+      "status": 200,
+      "nonce": "AyJSZSSeXs/LrUE3VuT9tA==",
+      "scripts": 17,
+      "connectSrc": [
+        "'self'"
+      ]
+    },
+    {
+      "name": "flow /portal"
+    },
+    {
+      "name": "flow /ops"
+    },
+    {
+      "name": "flow /inbox"
+    },
+    {
+      "name": "flow /knowledge"
+    },
+    {
+      "name": "flow /requests"
+    },
+    {
+      "name": "flow knowledge search"
+    },
+    {
+      "name": "flow ticket create"
+    },
+    {
+      "name": "flow ops ticket detail"
+    },
+    {
+      "name": "flow attachment upload",
+      "expect": "fail-closed",
+      "connectSrcSource": null,
+      "putOrigin": "http://127.0.0.1:9100",
+      "sameOrigin": false,
+      "violations": 2,
+      "alert": []
+    },
+    {
+      "name": "iframe refused",
+      "framerOrigin": "http://127.0.0.1:59472"
+    }
+  ],
+  "violations": [],
+  "upload": {
+    "expect": "fail-closed",
+    "connectSrcSource": null,
+    "putOrigin": "http://127.0.0.1:9100",
+    "sameOrigin": false,
+    "violations": 2,
+    "alert": []
+  },
+  "screenshots": [
+    "chromium-requests.png",
+    "chromium-ticket-detail.png",
+    "chromium-attachment-upload.png",
+    "chromium-iframe-refused.png"
+  ],
+  "currentStep": "iframe refused",
+  "iframeViolations": []
+}

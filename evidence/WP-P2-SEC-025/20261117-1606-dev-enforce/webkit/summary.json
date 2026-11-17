@@ -1,0 +1,123 @@
+{
+  "browser": "webkit",
+  "expectMode": "enforce",
+  "devServer": true,
+  "success": true,
+  "checks": [
+    {
+      "name": "headers-login",
+      "scripts": 23,
+      "distinctNonces": true
+    },
+    {
+      "name": "login"
+    },
+    {
+      "name": "headers-/portal",
+      "path": "/portal",
+      "status": 200,
+      "nonce": "OOoVjWer4f9QfJ7fw5fJSw==",
+      "scripts": 49,
+      "connectSrc": [
+        "'self'",
+        "http://127.0.0.1:9100/solvi-attachments/"
+      ]
+    },
+    {
+      "name": "headers-/ops",
+      "path": "/ops",
+      "status": 200,
+      "nonce": "X+6oHSCmd3kfpZQ2se15Ww==",
+      "scripts": 76,
+      "connectSrc": [
+        "'self'",
+        "http://127.0.0.1:9100/solvi-attachments/"
+      ]
+    },
+    {
+      "name": "headers-/inbox",
+      "path": "/inbox",
+      "status": 200,
+      "nonce": "cZ7TfmyG6d8qFkOsr9K1qw==",
+      "scripts": 26,
+      "connectSrc": [
+        "'self'",
+        "http://127.0.0.1:9100/solvi-attachments/"
+      ]
+    },
+    {
+      "name": "headers-/knowledge",
+      "path": "/knowledge",
+      "status": 200,
+      "nonce": "Bvc0FMjbio6901m9YRKb1Q==",
+      "scripts": 25,
+      "connectSrc": [
+        "'self'",
+        "http://127.0.0.1:9100/solvi-attachments/"
+      ]
+    },
+    {
+      "name": "flow /portal"
+    },
+    {
+      "name": "flow /ops"
+    },
+    {
+      "name": "flow /inbox"
+    },
+    {
+      "name": "flow /knowledge"
+    },
+    {
+      "name": "flow /requests"
+    },
+    {
+      "name": "flow knowledge search"
+    },
+    {
+      "name": "flow ticket create"
+    },
+    {
+      "name": "flow ops ticket detail"
+    },
+    {
+      "name": "flow attachment upload",
+      "expect": "allowed",
+      "connectSrcSource": "http://127.0.0.1:9100/solvi-attachments/",
+      "putOrigin": "http://127.0.0.1:9100",
+      "sameOrigin": false,
+      "violations": 0,
+      "alert": []
+    },
+    {
+      "name": "other bucket refused",
+      "uploadSource": "http://127.0.0.1:9100/solvi-attachments/",
+      "violations": 1
+    },
+    {
+      "name": "iframe refused",
+      "framerOrigin": "http://127.0.0.1:60835"
+    }
+  ],
+  "violations": [],
+  "upload": {
+    "expect": "allowed",
+    "connectSrcSource": "http://127.0.0.1:9100/solvi-attachments/",
+    "putOrigin": "http://127.0.0.1:9100",
+    "sameOrigin": false,
+    "violations": 0,
+    "alert": []
+  },
+  "screenshots": [
+    "webkit-requests.png",
+    "webkit-ticket-detail.png",
+    "webkit-attachment-upload.png",
+    "webkit-iframe-refused.png"
+  ],
+  "currentStep": "iframe refused",
+  "otherBucketProbe": {
+    "uploadSource": "http://127.0.0.1:9100/solvi-attachments/",
+    "violations": 1
+  },
+  "iframeViolations": []
+}

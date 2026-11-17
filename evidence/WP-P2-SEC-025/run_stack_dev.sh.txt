@@ -1,0 +1,19 @@
+#!/bin/zsh
+# WP-P2-UIX-043 evidence: API (dev, local auth) + Web (production build) against the throwaway DB.
+set -e
+cd /Users/jp.infra/Dev/SOLVI
+set -a; . ./.env; set +a
+DB=solvi_wp043_evidence_test
+export DATABASE_URL=${DATABASE_URL%/solvi}/$DB
+export DATABASE_ADMIN_URL=${DATABASE_ADMIN_URL%/solvi}/$DB
+export OTEL_EXPORTER_OTLP_ENDPOINT=''
+export S3_ENDPOINT=http://127.0.0.1:${S3_PORT:-9100}
+export S3_PUBLIC_ENDPOINT=$S3_ENDPOINT
+NODE_ENV=development node node_modules/tsx/dist/cli.mjs services/api/src/main.ts &
+API=$!
+cd apps/web
+NODE_ENV=development API_BASE_URL=http://127.0.0.1:3001 WEB_BASE_URL=http://127.0.0.1:3000 \
+  node ../../node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port 3000 &
+WEB=$!
+trap "kill $API $WEB 2>/dev/null" EXIT INT TERM
+wait

@@ -1,0 +1,39 @@
+# Command: curl -sI http://127.0.0.1:3000/login (CSP_MODE=enforce, next build && next start)
+# Commit: b9339cb + working tree; Timestamp: 2026-11-17 16:11:33 JST
+## request 1 (HTTP)
+HTTP/1.1 200 OK
+content-security-policy: default-src 'self'; script-src 'self' 'nonce-LqzWN8iCMF23csUXf+0kgw==' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'
+cross-origin-opener-policy: same-origin
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+link: </_next/static/css/7eafabac34b883c9.css>; rel=preload; as="style"; nonce="LqzWN8iCMF23csUXf+0kgw==", </_next/static/css/5a7056f17710e2a2.css>; rel=preload; as="style"; nonce="LqzWN8iCMF23csUXf+0kgw=="
+Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+Content-Type: text/html; charset=utf-8
+
+## request 2 (HTTP, nonce must differ)
+HTTP/1.1 200 OK
+content-security-policy: default-src 'self'; script-src 'self' 'nonce-b1OXUlF/E9dfQ7VyVr9Bbg==' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'
+cross-origin-opener-policy: same-origin
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+link: </_next/static/css/7eafabac34b883c9.css>; rel=preload; as="style"; nonce="b1OXUlF/E9dfQ7VyVr9Bbg==", </_next/static/css/5a7056f17710e2a2.css>; rel=preload; as="style"; nonce="b1OXUlF/E9dfQ7VyVr9Bbg=="
+Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+Content-Type: text/html; charset=utf-8
+
+## request 3 (X-Forwarded-Proto: https, as behind the ALB)
+HTTP/1.1 200 OK
+content-security-policy: default-src 'self'; script-src 'self' 'nonce-HcZy83xmpRkI8RC41m1bng==' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
+cross-origin-opener-policy: same-origin
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+referrer-policy: strict-origin-when-cross-origin
+strict-transport-security: max-age=300
+x-content-type-options: nosniff
+x-frame-options: DENY
+link: </_next/static/css/7eafabac34b883c9.css>; rel=preload; as="style"; nonce="HcZy83xmpRkI8RC41m1bng==", </_next/static/css/5a7056f17710e2a2.css>; rel=preload; as="style"; nonce="HcZy83xmpRkI8RC41m1bng=="
+Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+Content-Type: text/html; charset=utf-8
+
