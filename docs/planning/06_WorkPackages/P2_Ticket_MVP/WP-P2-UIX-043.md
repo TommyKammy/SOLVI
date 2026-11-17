@@ -11,7 +11,7 @@ updated: "2026-11-17"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui", "accessibility", "regression"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "medium"
 workstream: "UIX"
@@ -186,3 +186,10 @@ CSP/セキュリティヘッダーは本WPに含めない。
 - Migration: なし。セキュリティ影響: なし。
 - 未実施: WebKit のスクリーンショット(axe は WebKit でも実行)、実機の iOS/Android。
 - Evidence: `evidence/WP-P2-UIX-043/20261117-1513-browser/`
+
+#### 利用者の承認(2026-11-17)
+
+- **2026-11-17、利用者(人間)が PR #19 をマージした**(main の `0bc4fc1`)。これを本WPの承認として扱い、`done` とする。
+- §7 はすべて充足している。実画面の Evidence は `evidence/WP-P2-UIX-043/20261117-1513-browser/` にある(axe 60スキャンで違反0、閉じたモバイルレールの Tab 順の欠陥の修正を含む)。
+- PR #19 の CI は5ジョブすべて成功した。
+- 残り: WebKit のスクリーンショットと実機での確認は未実施(axe は WebKit でも実行)。CSP などのセキュリティヘッダーは WP-P2-SEC-025、インライン style の解消は ADR-0027 の Follow-up で扱う。
