@@ -13,7 +13,7 @@ import { ApprovalRuleService } from './approval-rule.service.js';
  * `organization_id` などの混入は値を見る前に 400 にする。
  */
 
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 const code = z
   .string()
   .trim()

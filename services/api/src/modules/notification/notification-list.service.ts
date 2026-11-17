@@ -60,7 +60,7 @@ function validTimestamp(value: string): boolean {
   );
 }
 const timestamp = z.string().refine(validTimestamp);
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 const cursorSchema = z.tuple([
   z.literal(1),
   z.union([z.literal(0), z.literal(1)]),

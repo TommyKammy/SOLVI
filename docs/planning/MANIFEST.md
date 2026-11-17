@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 319 |
-| Markdown | 311 |
+| 対象ファイル | 321 |
+| Markdown | 313 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,746,806 bytes |
+| 合計サイズ | 7,772,392 bytes |
 
 ## ファイル一覧
 
@@ -73,7 +73,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `02_Architecture/02.16_Executor_Command_Contract.md` | 7323 | `01cdede8fe573c599ae9b3a521e1b02242a639d2ed7af2a697cc02232ea7255c` |
 | `02_Architecture/02.17_Audit_Event_Catalog.md` | 14057 | `6dc285a8acf899a9b84aa7098909ba1c171f45a4fc40841bc319a38c62b71049` |
 | `02_Architecture/02.18_Organization_Data_Model_and_RLS.md` | 21752 | `9695923769ff17ee0356f72a972935ef4e51310ddcbea28ec378fd901bbec29b` |
-| `02_Architecture/02.1_Architecture_Overview.md` | 6829 | `9a657b74dcc84bdec5987c2fa81b279f4d19d602dfc2a6b216e1e6074cbf73ce` |
+| `02_Architecture/02.1_Architecture_Overview.md` | 6936 | `014f1c60c33d6cfb36218115327de6c0068d4db956f8daa9bb0e9381cbb8b103` |
 | `02_Architecture/02.2_System_Context.md` | 1618 | `dee50b22a0410b93302a4cd272bdb41c7961c9bb648c9929c957179ecce363de` |
 | `02_Architecture/02.3_Container_Architecture.md` | 1652 | `c03baed27fa14a3e4c1ae86c046407d23a349501dab4a0d6efd7ccd809570fe5` |
 | `02_Architecture/02.4_Domain_Architecture.md` | 1635 | `e8d5dee8fa819de259397e0d3a635c5dca9c6b9188d0fcba204d4281a68b21e7` |
@@ -90,7 +90,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22386 | `5d8f2653cbe0e4ec5a62cd8a32c3d3da77d7ba8212d6601fea40e3564849cfc3` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22452 | `846f3fc02e7dc2e9746e9717f2be210ad518080354855143dea05edb5c46e05d` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11757 | `54fc51a5b6aae1ec09672cbfbae5cc4eef13d0fd50d796930feab86ea9ca4c3d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -142,7 +142,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `05_Modules/05.7_Workflow_Orchestration.md` | 1630 | `dda2b5c4c78f8ab737dfb97dcfa58962e3f20a15a86450a188586e275a431404` |
 | `05_Modules/05.8_SOLVI_Run_Executor.md` | 1588 | `c9579abc2e14d7b44f5ac662b23daf7bff65f72d39c6011225c1db36cbd88875` |
 | `05_Modules/05.9_Okta_Connector.md` | 1560 | `d679519010367687d12c7b0c74b77c938c0e717799c7202ff0e15e18ab3ad703` |
-| `06_WorkPackages/06.0_WorkPackage_Register.md` | 20496 | `3f80329377cb8b6584a7e2aae4cd955b50305c48090973ffb07223a7db2a4d23` |
+| `06_WorkPackages/06.0_WorkPackage_Register.md` | 20689 | `4d8f0da14010bd3e04fc0011b30814f35fd32b9c7708f82ef62dc5210f7a3fcf` |
 | `06_WorkPackages/06.1_Dependency_Map.md` | 6305 | `b598b47a828a9f8ccebbff693e1e42f0654ad13731e33174bc0d8e675a49216f` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
@@ -171,6 +171,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-017.md` | 4947 | `66de1c01b95b4f10d66581d3527b7e35f3fde8f5085a46bea4ec4faca8f87f27` |
 | `06_WorkPackages/P1_Foundation/WP-P1-OBS-005.md` | 6702 | `a4882984473e21abaf32ada3a2659c793e4f1a7c1639c22395a2b017bb97b6d3` |
 | `06_WorkPackages/P1_Foundation/WP-P1-PLAT-001.md` | 6018 | `e94af8001f3671cf859a7a1fa75154bba95558f2e1d857304a1402339a88c108` |
+| `06_WorkPackages/P1_Foundation/WP-P1-PLAT-025.md` | 14157 | `92ef3de88ff70af03657a6f992ac1f96b171cebd75c14914b4fa6203572ad902` |
 | `06_WorkPackages/P1_Foundation/WP-P1-SEC-024.md` | 17390 | `65164fab288a8989c2aed6077e0761da54637ac20fb4866bace654ae9d219bfa` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-CLOSE-014.md` | 7874 | `88a9060d7883047a73e846e34baef79ea290df6673c963b91b3645e3a6e8970b` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-COLLAB-004.md` | 8546 | `58758a953a8623c7d423f265472e0eb22f3c44de072189fb638fcb935e672b20` |
@@ -265,7 +266,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P9_Migration/WP-P9-MIG-001.md` | 2851 | `31269f5e476a248f577fee1dbf76cce7fc248965bfe102e1c4f2b61b18174584` |
 | `06_WorkPackages/P9_Migration/WP-P9-OPS-003.md` | 2795 | `ba0d5f4cee187b712a86b1600101da9bd2ffc34856337658d1461501f6572d46` |
 | `06_WorkPackages/P9_Migration/WP-P9-PAR-002.md` | 2746 | `e770e305931119ce830c5f10f279122f0751b5102ddecf15217e0ba3ea0d89db` |
-| `07_ADR/07.0_ADR_Index.md` | 6791 | `f9179a5704c1830d2942df6a37b277c7a09bbd109853e7e91d69c68d0806d6f7` |
+| `07_ADR/07.0_ADR_Index.md` | 7063 | `c3e622965d2890831123effd9cc407cda560cba04d01f80e405253b1f04f0576` |
 | `07_ADR/ADR-0001_Modular_Monolith_First.md` | 3381 | `fa08e6ec693de5fe82995b0e944504de53dfd88f380cb8c9d45c40ea88229259` |
 | `07_ADR/ADR-0002_TypeScript_Core_and_Python_AI.md` | 2443 | `e5cc4bbfd293d3b30cd0f87aba7607a7b07181f7db3df5f771f31ece70559f66` |
 | `07_ADR/ADR-0003_PostgreSQL_System_of_Record.md` | 3047 | `d9450004d8efc3cf8f341e12db3677e9f36043cb7b88a5c8ec41a5e6a84468cd` |
@@ -275,7 +276,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0007_AI_Advisory_Only.md` | 3134 | `da8219ca23dfad49739a7b4acd04a2dbcf7daf18e7f4dc3b957007ef5d81a6e4` |
 | `07_ADR/ADR-0008_Transactional_Outbox.md` | 2777 | `14871747daec0a16585978c4a44fcc9772f1acfc77ec64051afe50501613a73f` |
 | `07_ADR/ADR-0009_Append_Only_Audit.md` | 3247 | `1f78363c6dd56216e853e37dfae493497a8f959b2beb3efb58f7ab8c87e6fc9d` |
-| `07_ADR/ADR-0010_S3_Compatible_Attachments.md` | 2970 | `c411eca8b8a8b5a9b5d5ac7f0170b97b7ebcfd404b6060d3c898e599cb64c4a8` |
+| `07_ADR/ADR-0010_S3_Compatible_Attachments.md` | 3120 | `e979e8805c77277d8fb612bcda0da8bc2f901fcdb1d6645ba01793adaccbfe80` |
 | `07_ADR/ADR-0011_Postgres_FTS_then_pgvector.md` | 3537 | `6629a02856e093ddf3b5878a567bf6c77b1ab429652f24f5a0caf70bc9bf5cb3` |
 | `07_ADR/ADR-0012_Defer_Temporal.md` | 3131 | `2102c721d02dac54bd371fd25332f57dbcaa9311138b71ab19c640e513a61883` |
 | `07_ADR/ADR-0013_Current_State_Plus_Append_Only_Events.md` | 2750 | `0f647176553e5ad3923dccd8c51ce3c49fde64f6e6fe98e303706fb95a3a6e53` |
@@ -283,7 +284,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0015_Organization_Isolation_and_RLS.md` | 3742 | `6a14af3250b9a05d6fb9b6a816a6d7a456a5474d802809356ee58e8ca9e5b228` |
 | `07_ADR/ADR-0016_Secret_Management.md` | 3420 | `8c4252c85b14c42b8704463f766fac0025c90cefad83924789707b253b0a8232` |
 | `07_ADR/ADR-0017_API_and_Webhook_Contract.md` | 3218 | `80f92a3989d0bdc27ae180fe7dcc8b4fe011230a6e5d84348ee443815efb243d` |
-| `07_ADR/ADR-0018_Deployment_Baseline.md` | 3780 | `4741793dda623a16e0d87754494eac4080bdb74e151584c2252db5c43995c71f` |
+| `07_ADR/ADR-0018_Deployment_Baseline.md` | 3930 | `314b0a1afae5441ba0b6228c7eaa5564270827584de684d6d271e3a639fe941c` |
 | `07_ADR/ADR-0019_Local_Authentication_For_Development.md` | 8086 | `3f6f583a336031f04ab47ea178658cc377da436cf25b6b2fd80c01cf03d9016b` |
 | `07_ADR/ADR-0020_Catalog_Form_Definition_Extensions.md` | 3185 | `beef8e6b59d02328492409060d2c58de1d8c068db78a5cb82ca555301250f817` |
 | `07_ADR/ADR-0021_Catalog_Delegation_And_Fulfillment.md` | 3699 | `978934f8f7b0ffa5ff1e28c0480b7132a8683e24c5fd95e3e711b44f5240b0eb` |
@@ -293,11 +294,12 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `07_ADR/ADR-0025_Approval_Delegation.md` | 12768 | `0bd71dfe25e57e49dc2b823fe0005f4c53a7f0701920edb9abcbd399108fef1a` |
 | `07_ADR/ADR-0026_High_Risk_Approval_Constraints.md` | 8427 | `be058fece58f140da89c111f4d69f60f693ef5bc01edb6e9294ed7f26b204cb9` |
 | `07_ADR/ADR-0027_Browser_Security_Headers.md` | 13226 | `506dbdff42831d6a181caf3113703808c4c3c23153752cce07a2e8211ae02889` |
+| `07_ADR/ADR-0028_Local_Object_Storage_Replacement.md` | 9826 | `6f0c03c9efbade5cdc666c0cb5000753452bdc54fbaa4561cb8d3d48f8873e45` |
 | `08_Runbooks/08.10_Audit_Export.md` | 1469 | `bb53a1a948cd80930b2c54fc35fa61cfde15402be7fe1343fe79b323fe93785a` |
 | `08_Runbooks/08.11_Data_Reconciliation.md` | 1469 | `66e555c4385a67399c03768b05450f30a69ae382b54ae23db9b4dfe526ef49ab` |
 | `08_Runbooks/08.12_Security_Incident.md` | 1502 | `073b4046e12371a776cfa1d45ce7f2f3cc9563e2755dfcabc1d8a1398b9743c6` |
 | `08_Runbooks/08.13_Break_Glass_Runbook.md` | 5283 | `0f8da01e703d47125cb30827be78e09797fcf41c650d8e8019d62ecebbe505d0` |
-| `08_Runbooks/08.1_Deployment_Runbook.md` | 10025 | `7d4838623b60ffbff27649f91f1d7b937b9ec933f9b34597d64a48bc304b97d2` |
+| `08_Runbooks/08.1_Deployment_Runbook.md` | 10029 | `08d4916aa4b5871bdccce3dab1c0f155119bf2ac4c80807d42f7d9488080ffd3` |
 | `08_Runbooks/08.2_Backup_and_Restore_Runbook.md` | 6266 | `89de0b30368141562493373bc2c488221882dd8e59673ad3d6a8749e397be15f` |
 | `08_Runbooks/08.3_SOLVI_Incident_Response.md` | 10758 | `0e0b9c4cda3ef99a6d8ad0f6f62773384f26da1126cb23a8721b5ac712749aa5` |
 | `08_Runbooks/08.4_OIDC_Outage_Runbook.md` | 1447 | `debe079fa51ec66b6e7037666a244f980884f31049c360089bc76058c8b2eca8` |
@@ -351,7 +353,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `99_Project_Files/99.4_Decision_Log.md` | 48387 | `c5544ed83b12d8f3881cc4e9625fc182192fdd191a607923e51e778b6bd3dd0b` |
 | `99_Project_Files/99.5_RACI.md` | 1264 | `01cb89afea01760e7ac8bdc2346e5b4dcc9174155942ac30ac62b5528d90fb47` |
 | `99_Project_Files/99.6_Communication_and_Meeting_Cadence.md` | 1559 | `a31a3d6940debb89be254c8274dc5e0be0ca192b598d45817b786abb4347b3b3` |
-| `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 3902 | `9f9e244da211eda16fbd7458b0acfa2503c891675af606a71287cad177806938` |
+| `99_Project_Files/99.7_Environment_and_Integration_Inventory.md` | 4563 | `058e1cba5c5a0ebaa7a7a2faedc8a37226a129ff742baf8f1355b5b2710b62a8` |
 | `99_Project_Files/99.8_Migration_Inventory.md` | 1558 | `33fea831ba9d74e2b1c5e0f5f19ce3e30a6c27dd0f342d5d89b83e8cb8b0a1c2` |
 | `99_Project_Files/99.9_Evidence_and_Audit_Plan.md` | 1534 | `7d8dc20c9683b22038bf8af7c56ed266b5b1b8881fefbe81502647b4eb2948c2` |
 | `AGENTS.md` | 7220 | `9140be18c5a8c80d11af04b922da96e2cf74575a4e570f653a6f39e023bf18be` |

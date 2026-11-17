@@ -27,7 +27,7 @@ export class OperationSessionService {
     input: OperationSessionInput,
     options: { lock?: boolean } = {},
   ): Promise<OperationSessionValidation> {
-    const uuid = z.string().uuid();
+    const uuid = z.string().guid();
     if (
       ![input.sessionId, input.userId, input.organizationId].every(
         (value) => uuid.safeParse(value).success,

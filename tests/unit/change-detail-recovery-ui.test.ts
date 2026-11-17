@@ -348,7 +348,7 @@ describe('change detail page recovery and preserved success', () => {
       expect(commands.map((p) => p.kind)).toEqual(d.availableActions.filter((a) => a !== 'edit'));
       for (const p of commands) {
         expect(p.detail).toEqual(d);
-        expect(z.string().uuid().safeParse(p.commandKey).success).toBe(true);
+        expect(z.string().guid().safeParse(p.commandKey).success).toBe(true);
       }
       if (view === 'review') {
         expect(html).toContain('あなたが指名された承認者');
@@ -405,7 +405,7 @@ describe('change dedicated GET and backend-compatible UUID boundary', () => {
   ])('rejects invalid %j without cookies/fetch', async (input) => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
-    expect(z.string().uuid().safeParse(input).success).toBe(false);
+    expect(z.string().guid().safeParse(input).success).toBe(false);
     expect(await reader.changeDetail(input as string)).toMatchObject({
       ok: false,
       problem: { status: 400 },
@@ -419,7 +419,7 @@ describe('change dedicated GET and backend-compatible UUID boundary', () => {
     'abcdefab-cdef-0000-0000-abcdefabcdef',
     '07400000-0000-ffff-ffff-000000000004',
   ])('keeps backend accepted UUID %s and fixed GET', async (input) => {
-    expect(z.string().uuid().safeParse(input).success).toBe(true);
+    expect(z.string().guid().safeParse(input).success).toBe(true);
     const fetch = vi
       .fn()
       .mockResolvedValue(
