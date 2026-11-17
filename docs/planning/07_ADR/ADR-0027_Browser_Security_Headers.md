@@ -7,7 +7,7 @@ type: "adr"
 status: "accepted"
 version: "1.0.0"
 created: "2026-11-16"
-updated: "2026-11-16"
+updated: "2026-11-17"
 owner: "SOLVI Product Team"
 tags: ["adr", "security", "csp", "hsts", "web"]
 source_of_truth: true
@@ -22,6 +22,7 @@ implementation_status: "not-started"
 
 - Supersedes: なし
 - Superseded by: なし
+- **Amended by: [[ADR-0029_CSP_Attachment_Upload_Origin]]**(2026-11-17。§2 の `connect-src` に、添付用バケットのパスに限ったソースを加える)
 - 2026-11-16 に利用者(人間)が、下書きの判断事項を次のとおり決定した: `form-action` は `'self'` のみで進める / Referrer-Policy は `strict-origin-when-cross-origin` / `apps/api` の `nosniff` は既存の実装を本ADRの決定として追認する / 要求 NFR-SEC-011 と脅威 T-27・T-28 を新設する。同日、ADR全体を `accepted` とした。
 
 ## Context
