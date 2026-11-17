@@ -56,15 +56,19 @@ jobs:
     name: DB・認可・監査
     runs-on: ubuntu-latest
     services:
+      # DB 名について: tests/security の使い捨てDBガードは名前に `test` を要求し、
+      # approval-{routing,rule,reassign,notice,delegation,dual-control} はさらに
+      # wp015/wp018/wp019/wp020/wp021 を要求する。これらを一つの名前で満たす。
+      # user-directory-consistency だけは CI では `solvi` を要求するので、後の手順で別DBを作って流す。
       postgres:
         image: postgres:16.6-alpine@sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef
         env:
-          POSTGRES_DB: solvi
+          POSTGRES_DB: solvi_wp021_wp020_wp019_wp018_wp015_test
           POSTGRES_USER: solvi_owner
           POSTGRES_PASSWORD: ci-only-password
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U solvi_owner -d solvi"
+          --health-cmd "pg_isready -U solvi_owner -d solvi_wp021_wp020_wp019_wp018_wp015_test"
           --health-interval 5s --health-timeout 3s --health-retries 20
       # 添付の検疫テスト(attachment-scan)が実スキャナを要求する。無いとスキップせず失敗させる設計。
       # docker-compose.yml の clamav と同じイメージ。署名DBの読込に時間がかかるため start-period を長く取る。
@@ -76,8 +80,8 @@ jobs:
           --health-interval 15s --health-timeout 10s --health-retries 20
           --health-start-period 120s
     env:
-      DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi
-      DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
+      DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi_wp021_wp020_wp019_wp018_wp015_test
+      DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi_wp021_wp020_wp019_wp018_wp015_test
       POSTGRES_APP_PASSWORD: ci-only-password
       POSTGRES_EXECUTOR_PASSWORD: ci-only-password
       # オブジェクトストレージ(SeaweedFS、ADR-0028)。資格情報はこのジョブ内だけの使い捨て。
@@ -127,7 +131,21 @@ jobs:
         run: npm run check:rls
 
       - name: 越境・認可・監査テスト
-        run: npm run test:security
+        # user-directory-consistency は DB 名 `solvi` を要求するため、次の手順で流す(除外ではなく分離)。
+        run: npm run test:security -- --exclude tests/security/user-directory-consistency.test.ts
+
+      - name: 越境・認可・監査テスト(利用者ディレクトリ整合、DB solvi)
+        # このテストは CI では DB 名 `solvi`(ジョブ内の使い捨て)だけを許す。
+        # 同じサーバーに `solvi` を作りマイグレーションを当ててから、このファイルだけを流す。
+        # 前の手順が失敗してもこのテストは流す(分離したことで実行されなくなるのを防ぐ)。
+        if: ${{ success() || failure() }}
+        env:
+          DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi
+          DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
+        run: |
+          psql "postgres://solvi_owner:ci-only-password@localhost:5432/postgres" -v ON_ERROR_STOP=1 -c 'CREATE DATABASE solvi'
+          npm run db:migrate
+          npx vitest run tests/security/user-directory-consistency.test.ts
 
       - name: マイグレーション down/up 往復
         # 巻き戻せないマイグレーションを本番へ持ち込まない
