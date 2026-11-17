@@ -30,7 +30,7 @@ const fields = [
   { key: 'hostname', label: 'ホスト名' },
   { key: 'vendor', label: 'メーカー・提供元' },
 ];
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 export const assetInputSchema = z.object({
   assetTag: z.string().trim().min(1).max(64),
   name: z.string().trim().min(1).max(160),

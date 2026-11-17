@@ -3,7 +3,8 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { trace, context, propagation, SpanStatusCode, type Span } from '@opentelemetry/api';
 
@@ -51,7 +52,7 @@ let metricServer: PrometheusExporter | undefined;
 export function startTracing(options: TracingOptions): void {
   if (sdk) return; // 二重初期化を防ぐ
 
-  const resource = new Resource({
+  const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: options.serviceName,
     [ATTR_SERVICE_VERSION]: options.serviceVersion,
     'deployment.environment.name': options.environment,
@@ -69,12 +70,21 @@ export function startTracing(options: TracingOptions): void {
     });
   }
 
+  // NodeSDK は、コードで渡さなかった信号(トレース・メトリクス・ログ)を環境変数
+  // OTEL_*_EXPORTER から組み立て、その既定は OTLP(未設定なら localhost:4318)である。
+  // 省略すると「未設定なら送らない」という上の約束が破れ、存在しない宛先へ
+  // 送り続けて失敗する。三つとも必ず明示する。
   sdk = new NodeSDK({
     resource,
-    ...(metricServer ? { metricReader: metricServer } : {}),
+    // メトリクスは Prometheus(pull)だけ。未設定なら MeterProvider を作らない。
+    metricReaders: metricServer ? [metricServer] : [],
+    // トレースは otlpEndpoint があるときだけ送る。無いときもスパンは作り
+    // (ログへ trace id を載せるため)、送らずに捨てる。
     ...(options.otlpEndpoint
       ? { traceExporter: new OTLPTraceExporter({ url: `${options.otlpEndpoint}/v1/traces` }) }
-      : {}),
+      : { spanProcessors: [new NoopSpanProcessor()] }),
+    // ログは Logger(標準出力)が正。OpenTelemetry 経由では送らない。
+    logRecordProcessors: [],
     instrumentations: [
       new HttpInstrumentation({
         // ヘルスチェックは大量に来るうえ、障害解析の役に立たない。

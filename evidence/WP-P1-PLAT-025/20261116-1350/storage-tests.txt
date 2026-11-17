@@ -1,0 +1,7 @@
+ ✓ tests/security/attachment-delete.test.ts (14 tests) 1774ms
+   ✓ 実体を本当に消す > **削除するとオブジェクトストレージから実体が消える**  354ms
+ ✓ tests/security/attachment-scan.test.ts (8 tests) 204ms
+ ✓ tests/security/object-storage.test.ts (11 tests) 1549ms
+   ✓ 署名付きURLで実際にやり取りできる > **期限切れの署名では取得できない**  1506ms
+ Test Files  3 passed (3)
+      Tests  33 passed (33)

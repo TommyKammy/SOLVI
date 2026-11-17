@@ -13,10 +13,7 @@ import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 import { definitionSchema } from './catalog-definition.js';
 import { activeRuleExists } from './approval-rule.service.js';
 import { evaluateHighRiskDefinition, readHighRiskAttribute } from './approval-high-risk.js';
-import {
-  lockApprovalSetting,
-  lockRuleRevisionForShare,
-} from './approval-high-risk-store.js';
+import { lockApprovalSetting, lockRuleRevisionForShare } from './approval-high-risk-store.js';
 const content = z
   .object({
     title: z.string().trim().min(1).max(200),
@@ -28,7 +25,7 @@ const content = z
   })
   .strict();
 const createSchema = content
-  .extend({ code: z.string().regex(/^[a-z][a-z0-9-]{1,47}$/), creationKey: z.string().uuid() })
+  .extend({ code: z.string().regex(/^[a-z][a-z0-9-]{1,47}$/), creationKey: z.string().guid() })
   .strict();
 const editSchema = content.extend({ expectedVersion: z.number().int().positive() }).strict();
 const publicationSchema = z
@@ -45,7 +42,7 @@ const questionContent = z
     sections: z.array(catalogSectionSchema).max(10).optional(),
   })
   .strict();
-const questionCreate = questionContent.extend({ creationKey: z.string().uuid() }).strict();
+const questionCreate = questionContent.extend({ creationKey: z.string().guid() }).strict();
 const questionEdit = questionContent
   .extend({ expectedVersion: z.number().int().positive() })
   .strict();
@@ -327,9 +324,7 @@ export class CatalogAdminController {
     ).rows[0];
     if (!row) throw Problems.conflict('公開中だったカタログの版を確認できません');
     return {
-      attribute: readHighRiskAttribute(
-        (row.definition as { approval?: unknown } | null)?.approval,
-      ),
+      attribute: readHighRiskAttribute((row.definition as { approval?: unknown } | null)?.approval),
       revision: publishedRevision,
     };
   }
@@ -379,7 +374,7 @@ export class CatalogAdminController {
     });
   }
   private async lock(c: pg.PoolClient, auth: AuthenticatedRequest, id: string) {
-    parse(z.string().uuid(), id);
+    parse(z.string().guid(), id);
     const r = (
       await c.query(
         'SELECT * FROM local_catalog_item WHERE id=$1 AND organization_id=$2 FOR UPDATE',
@@ -450,8 +445,7 @@ export class CatalogAdminController {
       if (v.definition.ownerId && v.definition.ownerId !== auth.userId)
         throw Problems.forbidden('自分を責任者とする下書きだけ作成できます');
       // 新規の項目では、委任された編集者は高リスクの指定を真にできない(ADR-0026 §3)。
-      if (v.definition.approval?.highRisk === true)
-        throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
+      if (v.definition.approval?.highRisk === true) throw Problems.forbidden(HIGH_RISK_ADMIN_ONLY);
       v.definition.ownerId = auth.userId;
     }
     return this.run(auth, async (c) => {
@@ -634,7 +628,7 @@ export class CatalogAdminController {
       let revision = 1;
       const setId = id ?? uuidv7();
       if (id) {
-        parse(z.string().uuid(), id);
+        parse(z.string().guid(), id);
         await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
           `question-set:${auth.authz.organizationId}:${id}`,
         ]);

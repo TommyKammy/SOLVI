@@ -1,10 +1,18 @@
 import { z } from 'zod';
 
+/**
+ * zod 3 の `invalid_type_error` / `required_error` と同じ振分けで型エラーの文言を返す。
+ * 未入力(undefined)は `required`、それ以外の型違いは `invalid`。`required` を省くと zod の既定文言になる。
+ */
+function typeErrors(invalid: string, required?: string) {
+  return {
+    error: (issue: { code?: string; input?: unknown }) =>
+      issue.input === undefined ? required : issue.code === 'invalid_type' ? invalid : undefined,
+  };
+}
+
 const keySchema = z
-  .string({
-    required_error: '保存キーを確認してください',
-    invalid_type_error: '保存キーを確認してください',
-  })
+  .string(typeErrors('保存キーを確認してください', '保存キーを確認してください'))
   .regex(
     /^[a-z][a-z0-9_]{0,31}$/,
     '保存キーは英小文字から始まる32文字以内の英小文字・数字・アンダースコアにしてください',
@@ -23,28 +31,25 @@ export function isCatalogDate(value: string): boolean {
   return day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]!;
 }
 const dateSchema = z
-  .string({ invalid_type_error: '日付はYYYY-MM-DDで入力してください' })
+  .string(typeErrors('日付はYYYY-MM-DDで入力してください'))
   .refine(isCatalogDate, '実在する日付をYYYY-MM-DDで入力してください');
 const numberBoundSchema = z
-  .number({ invalid_type_error: '数値の上下限は有限の数値で入力してください' })
+  .number(typeErrors('数値の上下限は有限の数値で入力してください'))
   .finite('数値の上下限は有限の数値で入力してください');
 const textLimitSchema = (max: number) =>
   z
-    .number({
-      required_error: '文字数上限を入力してください',
-      invalid_type_error: '文字数上限は整数で入力してください',
-    })
+    .number(typeErrors('文字数上限は整数で入力してください', '文字数上限を入力してください'))
     .int('文字数上限は整数で入力してください')
     .min(1, '文字数上限は1文字以上にしてください')
     .max(max, `文字数上限は${max}文字以内にしてください`);
 const optionsSchema = z
   .array(
     z
-      .string({ invalid_type_error: '選択肢は文字列で入力してください' })
+      .string(typeErrors('選択肢は文字列で入力してください'))
       .trim()
       .min(1, '空の選択肢は使用できません')
       .max(100, '各選択肢は100文字以内で入力してください'),
-    { invalid_type_error: '選択肢を2〜10候補で設定してください' },
+    typeErrors('選択肢を2〜10候補で設定してください'),
   )
   .min(2, '選択肢は2候補以上にしてください')
   .max(10, '選択肢は10候補以内にしてください')
@@ -52,16 +57,13 @@ const optionsSchema = z
 const common = {
   key: keySchema,
   label: z
-    .string({
-      required_error: '表示名を入力してください',
-      invalid_type_error: '表示名は文字列で入力してください',
-    })
+    .string(typeErrors('表示名は文字列で入力してください', '表示名を入力してください'))
     .trim()
     .min(1, '表示名を入力してください')
     .max(100, '表示名は100文字以内で入力してください'),
-  required: z.boolean({ invalid_type_error: '必須設定を確認してください' }),
+  required: z.boolean(typeErrors('必須設定を確認してください')),
   helpText: z
-    .string({ invalid_type_error: '補足説明は文字列で入力してください' })
+    .string(typeErrors('補足説明は文字列で入力してください'))
     .trim()
     .max(500, '補足説明は500文字以内で入力してください')
     .optional(),
@@ -80,11 +82,7 @@ const common = {
                 .max(100, '表示条件の回答は100文字以内で選んでください'),
               z.boolean(),
             ],
-            {
-              errorMap: () => ({
-                message: '表示条件の回答は選択肢またはチェック状態から選んでください',
-              }),
-            },
+            { error: () => '表示条件の回答は選択肢またはチェック状態から選んでください' },
           ),
         })
         .strict(),
@@ -161,15 +159,15 @@ export const approvalRuleStepSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('fixed'),
       approverId: z
-        .string({ invalid_type_error: '固定承認者を選んでください' })
-        .uuid('固定承認者を選んでください'),
+        .string(typeErrors('固定承認者を選んでください'))
+        .guid('固定承認者を選んでください'),
     })
     .strict(),
   z
     .object({
       type: z.literal('manager'),
       onUnresolved: z.enum(['department_head', 'reject'], {
-        errorMap: () => ({ message: '上長を解決できない場合の扱いを選んでください' }),
+        error: () => '上長を解決できない場合の扱いを選んでください',
       }),
     })
     .strict(),
@@ -181,7 +179,7 @@ export const approvalRuleStepSchema = z.discriminatedUnion('type', [
     .strict(),
 ]);
 export const approvalRuleStepsSchema = z
-  .array(approvalRuleStepSchema, { invalid_type_error: '承認ステップを1〜3段で設定してください' })
+  .array(approvalRuleStepSchema, typeErrors('承認ステップを1〜3段で設定してください'))
   .min(1, '承認ステップを1段以上設定してください')
   .max(3, '承認ステップは3段以内にしてください');
 export type ApprovalRuleStep = z.infer<typeof approvalRuleStepSchema>;
@@ -201,22 +199,13 @@ export const APPROVAL_DELEGATION_START_TOLERANCE_MINUTES = 5;
 export const approvalDelegationCreateSchema = z
   .object({
     delegateId: z
-      .string({
-        required_error: '代理者を選んでください',
-        invalid_type_error: '代理者を選んでください',
-      })
-      .uuid('代理者を選んでください'),
+      .string(typeErrors('代理者を選んでください', '代理者を選んでください'))
+      .guid('代理者を選んでください'),
     startsAt: z
-      .string({
-        required_error: '開始を入力してください',
-        invalid_type_error: '開始を入力してください',
-      })
+      .string(typeErrors('開始を入力してください', '開始を入力してください'))
       .datetime({ offset: true, message: '開始の日時を確認してください' }),
     endsAt: z
-      .string({
-        required_error: '終了を入力してください',
-        invalid_type_error: '終了を入力してください',
-      })
+      .string(typeErrors('終了を入力してください', '終了を入力してください'))
       .datetime({ offset: true, message: '終了の日時を確認してください' }),
   })
   .strict();
@@ -224,10 +213,7 @@ export const approvalDelegationCreateSchema = z
 export const approvalDelegationRevokeSchema = z
   .object({
     reason: z
-      .string({
-        required_error: '取消の理由を入力してください',
-        invalid_type_error: '取消の理由を入力してください',
-      })
+      .string(typeErrors('取消の理由を入力してください', '取消の理由を入力してください'))
       .trim()
       .min(1, '取消の理由を入力してください')
       .max(2000, '取消の理由は2000文字以内で入力してください'),
@@ -241,15 +227,14 @@ export const catalogSectionSchema = z
   .object({
     key: keySchema,
     title: z
-      .string({
-        required_error: 'セクション名を入力してください',
-        invalid_type_error: 'セクション名は文字列で入力してください',
-      })
+      .string(
+        typeErrors('セクション名は文字列で入力してください', 'セクション名を入力してください'),
+      )
       .trim()
       .min(1, 'セクション名を入力してください')
       .max(100, 'セクション名は100文字以内で入力してください'),
     description: z
-      .string({ invalid_type_error: 'セクションの説明は文字列で入力してください' })
+      .string(typeErrors('セクションの説明は文字列で入力してください'))
       .trim()
       .max(500, 'セクションの説明は500文字以内で入力してください')
       .optional(),
@@ -260,14 +245,14 @@ export const catalogDefinitionSchema = z
     mode: z.literal('local_simulation'),
     action: z.literal('simulate.access_grant'),
     targetLabel: z
-      .string({ invalid_type_error: '模擬対象の表示名は文字列で入力してください' })
+      .string(typeErrors('模擬対象の表示名は文字列で入力してください'))
       .trim()
       .min(1, '模擬対象の表示名を入力してください')
       .max(100, '模擬対象の表示名は100文字以内で入力してください'),
     allowedDurations: z
       .array(
         z
-          .number({ invalid_type_error: '利用日数は1〜365の整数で入力してください' })
+          .number(typeErrors('利用日数は1〜365の整数で入力してください'))
           .int('利用日数は整数で入力してください')
           .min(1, '利用日数は1日以上にしてください')
           .max(365, '利用日数は365日以内にしてください'),
@@ -276,16 +261,14 @@ export const catalogDefinitionSchema = z
       .max(10, '利用日数は10候補以内にしてください')
       .refine((values) => new Set(values).size === values.length, '利用日数の候補は重複できません'),
     maxReasonLength: z
-      .number({ invalid_type_error: '理由の文字数上限は整数で入力してください' })
+      .number(typeErrors('理由の文字数上限は整数で入力してください'))
       .int('理由の文字数上限は整数で入力してください')
       .min(1, '理由の文字数上限は1文字以上にしてください')
       .max(2000, '理由の文字数上限は2000文字以内にしてください'),
     requestFields: z
       .object({
-        reason: z.boolean({ invalid_type_error: '理由の表示設定を確認してください' }).optional(),
-        duration: z
-          .boolean({ invalid_type_error: '利用日数の表示設定を確認してください' })
-          .optional(),
+        reason: z.boolean(typeErrors('理由の表示設定を確認してください')).optional(),
+        duration: z.boolean(typeErrors('利用日数の表示設定を確認してください')).optional(),
       })
       .strict()
       .optional(),
@@ -298,17 +281,17 @@ export const catalogDefinitionSchema = z
         // 旧属性(mode / approverId)は省略できる。新しい版は ruleId だけでもよい。
         mode: z.literal('fixed').optional(),
         approverId: z
-          .string({ invalid_type_error: '固定の承認者を選んでください' })
-          .uuid('固定の承認者を選んでください')
+          .string(typeErrors('固定の承認者を選んでください'))
+          .guid('固定の承認者を選んでください')
           .optional(),
         // WP-P4-APR-015: 組織の承認ルールを版属性として結び付ける(ADR-0023 §10)。
         ruleId: z
-          .string({ invalid_type_error: '承認ルールを選んでください' })
-          .uuid('承認ルールを選んでください')
+          .string(typeErrors('承認ルールを選んでください'))
+          .guid('承認ルールを選んでください')
           .optional(),
         // WP-P4-APR-021: 高リスク申請の判定は定義の版属性で行う(ADR-0024 §4)。
         // **省略は「高リスクではない」。** 真偽値以外は 400。変更できるのは org_admin だけである。
-        highRisk: z.boolean({ invalid_type_error: '高リスクの指定を確認してください' }).optional(),
+        highRisk: z.boolean(typeErrors('高リスクの指定を確認してください')).optional(),
       })
       .strict()
       .superRefine((approval, context) => {
@@ -327,7 +310,7 @@ export const catalogDefinitionSchema = z
       })
       .optional(),
     category: z
-      .string({ invalid_type_error: '業務カテゴリは文字列で入力してください' })
+      .string(typeErrors('業務カテゴリは文字列で入力してください'))
       .trim()
       .min(1, '業務カテゴリを入力してください')
       .max(80, '業務カテゴリは80文字以内で入力してください')
@@ -336,10 +319,10 @@ export const catalogDefinitionSchema = z
       .array(catalogSectionSchema)
       .max(10, 'セクションは10件以内にしてください')
       .optional(),
-    ownerId: z.string().uuid('現在有効な同じ組織の責任者を選んでください').optional(),
+    ownerId: z.string().guid('現在有効な同じ組織の責任者を選んでください').optional(),
     fulfillmentGroupId: z
       .string()
-      .uuid('現在有効な同じ組織の処理グループを選んでください')
+      .guid('現在有効な同じ組織の処理グループを選んでください')
       .optional(),
     checklist: z
       .array(

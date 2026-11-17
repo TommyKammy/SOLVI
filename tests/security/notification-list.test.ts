@@ -12,12 +12,12 @@ import {
   NotificationListController,
   type NotificationListResponse,
 } from '../../services/api/src/modules/notification/notification.routes.js';
-import { createKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs';
-import { createCiKnowledgeDatabase } from '../../evidence/WP-P3-KNWUI-054/20261007/ci-knowledge-db.mjs';
+import { createKnowledgeDatabase } from '../support/knowledge/isolated-knowledge-db.js';
+import { createCiKnowledgeDatabase } from '../support/knowledge/ci-knowledge-db.js';
 import {
   readKnowledgeFixture,
   type KnowledgeFixture,
-} from '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs';
+} from '../support/knowledge/knowledge-fixture.js';
 
 // This suite owns a new disposable database. Development DB URLs are never accepted.
 // The immutable WP054 helper's physical label and source proof remain WP054-specific.

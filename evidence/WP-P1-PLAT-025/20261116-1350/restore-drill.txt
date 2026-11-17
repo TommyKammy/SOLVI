@@ -1,0 +1,139 @@
+{
+  "isolatedContainer": "solvi-restore-drill-1794836960830",
+  "image": "postgres:16.6-alpine@sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef",
+  "seconds": 32.43,
+  "backupBytes": 369945,
+  "tables": [
+    {
+      "name": "app_user",
+      "count": 2,
+      "digest": "b74081099fe01803d04cb033605005ef"
+    },
+    {
+      "name": "asset",
+      "count": 1,
+      "digest": "85894dceaefe7ccd0e21f07abe1d20f9"
+    },
+    {
+      "name": "asset_revision",
+      "count": 1,
+      "digest": "f61c3c45c0912e0c969c0a548fe6962e"
+    },
+    {
+      "name": "asset_ticket_event",
+      "count": 1,
+      "digest": "c8b8cb771c6d3d81ae6e25c90249c1b8"
+    },
+    {
+      "name": "asset_ticket_link",
+      "count": 1,
+      "digest": "77d038c4845fae629fab3851a3ad71c7"
+    },
+    {
+      "name": "audit_event",
+      "count": 6,
+      "digest": "ffc790f916f5fa12a5e42696346307d9"
+    },
+    {
+      "name": "local_catalog_item",
+      "count": 1,
+      "digest": "2a981bc2d17b124e308c93426d320c06"
+    },
+    {
+      "name": "local_catalog_revision",
+      "count": 1,
+      "digest": "710d30201e193043a96a5afa88fcb608"
+    },
+    {
+      "name": "local_request_approval",
+      "count": 1,
+      "digest": "64675e35394a0d559b54b5682e55923a"
+    },
+    {
+      "name": "local_request_revision",
+      "count": 1,
+      "digest": "5f856bee6a6a2193ee4fd07df1a4ce7e"
+    },
+    {
+      "name": "local_service_request",
+      "count": 1,
+      "digest": "a1a703ede3a53e8417d17c64861e7d70"
+    },
+    {
+      "name": "local_simulation_receipt",
+      "count": 1,
+      "digest": "68aa63ad9ebe1e4d35500ce68a5a52a8"
+    },
+    {
+      "name": "organization",
+      "count": 2,
+      "digest": "c36b5a6c0aff93ef3a0857b2fbb5a519"
+    },
+    {
+      "name": "role",
+      "count": 1,
+      "digest": "37e51d26f76b7eb1fbf9e2f388cf44f7"
+    },
+    {
+      "name": "role_binding",
+      "count": 1,
+      "digest": "c55e3844e5063511338c2033636913eb"
+    },
+    {
+      "name": "ticket",
+      "count": 3,
+      "digest": "cd37e4566149c5d9e6c9151ca056d3d0"
+    },
+    {
+      "name": "ticket_attachment",
+      "count": 1,
+      "digest": "341056f925f0a2ad3f9d2980980eaf58"
+    },
+    {
+      "name": "ticket_comment",
+      "count": 1,
+      "digest": "2a04db074313c43871d32e5ccd170655"
+    }
+  ],
+  "rls": {
+    "forced": true,
+    "enabled": true
+  },
+  "visibleByOrganization": [
+    2,
+    1
+  ],
+  "unscopedVisible": 0,
+  "appRoleNonSuperuserNoBypass": true,
+  "credentialsAndSessions": 0,
+  "currentBusinessDataUnchanged": true,
+  "runtime": {
+    "web": "http://localhost:3300",
+    "api": "http://127.0.0.1:3301",
+    "postgres": "127.0.0.1:55433",
+    "storage": "http://127.0.0.1:19100",
+    "metrics": "19464",
+    "workingDirectory": "<repo>/.local/recovery/runtime-1794836960827",
+    "syntheticTicketId": "10000000-0000-4000-9000-000000000005",
+    "syntheticRequestId": "10000000-0000-4000-9000-000000000009",
+    "syntheticAttachmentId": "01a1e49e-a968-7000-8fda-49b950d5ebc3",
+    "attachmentBytes": 61,
+    "attachmentSha256": "13d4c481d17f92edf5c1873bf92f08ceccac3d50659073cdb74e46c0627cad47",
+    "clamAvCleanConfirmedBeforeBackup": true,
+    "restoredApiReady": true,
+    "restoredTicketAndCompletedRequestReadable": true,
+    "webHttpRenderContainsTicketAndAttachment": true,
+    "webDownloadRedirectAndSignedGetBytesMatch": true,
+    "sourceAndRestoreStorageContainersDistinct": true,
+    "syntheticCredentialsRecreatedAfterRestore": true,
+    "existingEnvAndStorageUntouched": true,
+    "limitations": [
+      "HTTP rendered Web only; no additional browser UI operation",
+      "Same Mac, synthetic data only; original container/volumes were not a restore target"
+    ]
+  },
+  "limitations": [
+    "Schema and selected synthetic records only",
+    "No other-PC/PITR/KMS/production RPO or RTO validation"
+  ]
+}

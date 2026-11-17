@@ -15,9 +15,7 @@ import { randomUUID } from 'node:crypto';
 import { createLogger, newContext, runWithContext, type Logger } from '@solvi/shared';
 import { approvalRuleStepsSchema, type ApprovalRuleStep } from '@solvi/shared/catalog';
 import { uuidv7 } from '../../services/api/src/common/audit/audit.js';
-import {
-  type ApprovalStepRow,
-} from '../../services/api/src/modules/catalog/approval-state.js';
+import { type ApprovalStepRow } from '../../services/api/src/modules/catalog/approval-state.js';
 import {
   assertApprovalComplete,
   checkApprovalComplete,
@@ -131,12 +129,14 @@ async function expectProblem(
   messageParts: string[] = [],
 ): Promise<Error & { status?: number; errors?: Array<{ field: string; message: string }> }> {
   let caught:
-    | (Error & { status?: number; errors?: Array<{ field: string; message: string }> })
-    | undefined;
+    (Error & { status?: number; errors?: Array<{ field: string; message: string }> }) | undefined;
   try {
     await promise;
   } catch (error) {
-    caught = error as Error & { status?: number; errors?: Array<{ field: string; message: string }> };
+    caught = error as Error & {
+      status?: number;
+      errors?: Array<{ field: string; message: string }>;
+    };
   }
   expect(caught, '拒否されるべき操作が成功した').toBeDefined();
   expect(caught?.status, caught?.message).toBe(status);
@@ -214,14 +214,10 @@ const saveDraft = (
   );
 
 const publish = (person: Person, id: string, expectedVersion: number) =>
-  run(() =>
-    catalogAdmin.publication(person.auth, id, { expectedVersion, state: 'published' }),
-  );
+  run(() => catalogAdmin.publication(person.auth, id, { expectedVersion, state: 'published' }));
 
 const unpublish = (person: Person, id: string, expectedVersion: number) =>
-  run(() =>
-    catalogAdmin.publication(person.auth, id, { expectedVersion, state: 'unpublished' }),
-  );
+  run(() => catalogAdmin.publication(person.auth, id, { expectedVersion, state: 'unpublished' }));
 
 const enableRouting = (enabled = true) =>
   run(() => rules.updateSettings(adminUser.auth, { enabled }));
@@ -232,10 +228,12 @@ const ruleRow = async (id: string) =>
   (await q('SELECT * FROM approval_rule WHERE id=$1', [id])).rows[0];
 const ruleSteps = async (id: string) => {
   const rule = await ruleRow(id);
-  return (await q('SELECT steps FROM approval_rule_revision WHERE rule_id=$1 AND revision=$2', [
-    id,
-    rule.current_revision,
-  ])).rows[0].steps;
+  return (
+    await q('SELECT steps FROM approval_rule_revision WHERE rule_id=$1 AND revision=$2', [
+      id,
+      rule.current_revision,
+    ])
+  ).rows[0].steps;
 };
 
 /**
@@ -487,9 +485,7 @@ async function cleanRulesFor(organizationId: string): Promise<void> {
     throw error;
   } finally {
     await admin
-      .query(
-        'ALTER TABLE approval_rule_revision ENABLE TRIGGER approval_rule_revision_immutable',
-      )
+      .query('ALTER TABLE approval_rule_revision ENABLE TRIGGER approval_rule_revision_immutable')
       .catch(() => undefined);
   }
 }
@@ -519,11 +515,15 @@ async function cleanOrgData(): Promise<void> {
     await admin.query('ROLLBACK').catch(() => undefined);
     throw error;
   }
-  await admin.query('ALTER TABLE approval_delegation DISABLE TRIGGER approval_delegation_guard_delete');
+  await admin.query(
+    'ALTER TABLE approval_delegation DISABLE TRIGGER approval_delegation_guard_delete',
+  );
   try {
     await q('DELETE FROM approval_delegation WHERE organization_id=$1', [org]);
   } finally {
-    await admin.query('ALTER TABLE approval_delegation ENABLE TRIGGER approval_delegation_guard_delete');
+    await admin.query(
+      'ALTER TABLE approval_delegation ENABLE TRIGGER approval_delegation_guard_delete',
+    );
   }
   await q('DELETE FROM notification WHERE organization_id=$1', [org]);
   await q('DELETE FROM outbox_event WHERE organization_id=$1', [org]);
@@ -542,11 +542,15 @@ async function cleanOrgData(): Promise<void> {
   await q('DELETE FROM ticket_relation WHERE organization_id=$1', [org]);
   await q('DELETE FROM ticket WHERE organization_id=$1', [org]);
   await q('DELETE FROM ticket_number_counter WHERE organization_id=$1', [org]);
-  await admin.query('ALTER TABLE local_catalog_revision DISABLE TRIGGER local_catalog_revision_immutable');
+  await admin.query(
+    'ALTER TABLE local_catalog_revision DISABLE TRIGGER local_catalog_revision_immutable',
+  );
   try {
     await q('DELETE FROM local_catalog_revision WHERE organization_id=$1', [org]);
   } finally {
-    await admin.query('ALTER TABLE local_catalog_revision ENABLE TRIGGER local_catalog_revision_immutable');
+    await admin.query(
+      'ALTER TABLE local_catalog_revision ENABLE TRIGGER local_catalog_revision_immutable',
+    );
   }
   await q('DELETE FROM local_catalog_item WHERE organization_id=$1', [org]);
   await cleanRulesFor(org);
@@ -585,10 +589,12 @@ beforeAll(async () => {
     `wp021-${SUFFIX}`,
     'WP021 二重承認 (合成)',
   ]);
-  await q(
-    `INSERT INTO department (id, organization_id, code, name) VALUES ($1,$2,$3,$4)`,
-    [(dept = randomUUID()), org, `wp021-${SUFFIX}`, 'WP021 部署 (合成)'],
-  );
+  await q(`INSERT INTO department (id, organization_id, code, name) VALUES ($1,$2,$3,$4)`, [
+    (dept = randomUUID()),
+    org,
+    `wp021-${SUFFIX}`,
+    'WP021 部署 (合成)',
+  ]);
   adminUser = await makeUser('admin', ['org_admin']);
   editor = await makeUser('editor', ['catalog_editor']);
   requester = await makeUser('requester', ['requester']);
@@ -900,10 +906,11 @@ describe('ルール・設定の変更の拒否 (WP §6.3-2 / §7-5)', () => {
   it('公開中の高リスクの項目があるルールの無効化は 409、項目が無ければ成功する', async () => {
     const { ruleId, itemId } = await highRiskFixture();
     const item = await itemRow(itemId);
-    await expectProblem(run(() => rules.deactivate(adminUser.auth, ruleId)), 409, [
-      'high_risk_definition_blocked',
-      `${item.code}: ${item.title}`,
-    ]);
+    await expectProblem(
+      run(() => rules.deactivate(adminUser.auth, ruleId)),
+      409,
+      ['high_risk_definition_blocked', `${item.code}: ${item.title}`],
+    );
     expect((await ruleRow(ruleId)).active).toBe(true);
 
     // 公開を取り下げると、無効化できる(既存の挙動)。
@@ -920,7 +927,10 @@ describe('ルール・設定の変更の拒否 (WP §6.3-2 / §7-5)', () => {
       'high_risk_definition_blocked',
       `${item.code}: ${item.title}`,
     ]);
-    const setting = await q('SELECT rule_routing_enabled FROM org_approval_setting WHERE organization_id=$1', [org]);
+    const setting = await q(
+      'SELECT rule_routing_enabled FROM org_approval_setting WHERE organization_id=$1',
+      [org],
+    );
     expect(setting.rows[0].rule_routing_enabled).toBe(true);
   });
 
@@ -977,11 +987,16 @@ describe('申請と申請内容の変更 (WP §6.4 / §7-4・§7-6)', () => {
   it('組織でルールの使用が無効な場合の申請は 409(high_risk_route_invalid)', async () => {
     const { itemId } = await highRiskFixture();
     // 公開の API は停止を拒否するため、設定を DB で直接無効にする(fail closed の検査)。
-    await q('UPDATE org_approval_setting SET rule_routing_enabled=false WHERE organization_id=$1', [org]);
+    await q('UPDATE org_approval_setting SET rule_routing_enabled=false WHERE organization_id=$1', [
+      org,
+    ]);
     await expectProblem(createRequest(requester, itemId), 409, ['high_risk_route_invalid']);
     expect(
-      (await q('SELECT count(*)::int AS n FROM local_service_request WHERE organization_id=$1', [org]))
-        .rows[0].n,
+      (
+        await q('SELECT count(*)::int AS n FROM local_service_request WHERE organization_id=$1', [
+          org,
+        ])
+      ).rows[0].n,
     ).toBe(0);
   });
 
@@ -1009,9 +1024,8 @@ describe('申請と申請内容の変更 (WP §6.4 / §7-4・§7-6)', () => {
       await entry.prepare?.();
       await expectProblem(createRequest(requester, itemId), 409);
       expect(
-        (await q('SELECT count(*)::int AS n FROM local_service_request WHERE item_id=$1', [
-          itemId,
-        ])).rows[0].n,
+        (await q('SELECT count(*)::int AS n FROM local_service_request WHERE item_id=$1', [itemId]))
+          .rows[0].n,
       ).toBe(0);
     }
   });
@@ -1068,14 +1082,24 @@ describe('決定と代理の不可 (WP §6.5 / §7-1〜§7-3)', () => {
     await createDelegation(fixedA, delegate.id);
     const stepsBefore = await stepRows(created.id);
     const auditsBefore = (await auditRows(created.id)).length;
-    const noticesBefore = (await q('SELECT count(*)::int AS n FROM local_request_approval_notice WHERE organization_id=$1', [org])).rows[0].n;
+    const noticesBefore = (
+      await q(
+        'SELECT count(*)::int AS n FROM local_request_approval_notice WHERE organization_id=$1',
+        [org],
+      )
+    ).rows[0].n;
     // 委任の無い同じ組織の利用者(fixedC)と同じ応答で、存在を漏らさない。
     await expectProblem(decide(fixedC, created.id, 1), 404, ['申請が見つかりません']);
     await expectProblem(decide(delegate, created.id, 1), 404, ['申請が見つかりません']);
     expect(await stepRows(created.id)).toEqual(stepsBefore);
     expect((await auditRows(created.id)).length).toBe(auditsBefore);
     expect(
-      (await q('SELECT count(*)::int AS n FROM local_request_approval_notice WHERE organization_id=$1', [org])).rows[0].n,
+      (
+        await q(
+          'SELECT count(*)::int AS n FROM local_request_approval_notice WHERE organization_id=$1',
+          [org],
+        )
+      ).rows[0].n,
     ).toBe(noticesBefore);
 
     // 一覧・受信箱・詳細のどれにも出ない(委任による可視性から除く)。
@@ -1288,7 +1312,10 @@ describe('ロール×操作の総当り (WP §8)', () => {
         run(() => rules.revise(auth, ruleId, { expectedRevision: 1, steps: [fixed(fixedA.id)] })),
         403,
       );
-      await expectProblem(run(() => rules.deactivate(auth, ruleId)), 403);
+      await expectProblem(
+        run(() => rules.deactivate(auth, ruleId)),
+        403,
+      );
       await expectProblem(
         run(() =>
           catalogAdmin.publication(auth, itemId, {
@@ -1326,7 +1353,9 @@ describe('ロール×操作の総当り (WP §8)', () => {
     const own = await createDraft(editor, { ruleId });
     await saveDraft(editor, own, { ruleId }, 1, { ownerId: editor.id });
     const admins = await createDraft(adminUser, { ruleId });
-    await expectProblem(saveDraft(editor, admins, { ruleId }, 1), 404, ['カタログ項目が見つかりません']);
+    await expectProblem(saveDraft(editor, admins, { ruleId }, 1), 404, [
+      'カタログ項目が見つかりません',
+    ]);
   });
 
   it('他組織の利用者は、公開中の高リスクの項目を申請できない(404)', async () => {
@@ -1357,7 +1386,9 @@ describe('公開とルール・設定の変更の同時実行 (WP §6.3-3 / §7-
     const blocker = await pool.connect();
     await blocker.query('BEGIN');
     await blocker.query("SELECT set_config('app.current_org',$1,true)", [org]);
-    await blocker.query('SELECT 1 FROM org_approval_setting WHERE organization_id=$1 FOR UPDATE', [org]);
+    await blocker.query('SELECT 1 FROM org_approval_setting WHERE organization_id=$1 FOR UPDATE', [
+      org,
+    ]);
     const publishPromise = publish(adminUser, itemId, 1);
     const otherPromise = operation(itemId, ruleId);
     await new Promise((resolve) => setTimeout(resolve, 120));
@@ -1392,7 +1423,9 @@ describe('公開とルール・設定の変更の同時実行 (WP §6.3-3 / §7-
 
   it('公開 × ルールの版の追加: どちらかが失敗し、条件の崩れた公開状態は残らない', async () => {
     const { itemId, rejected } = await racingPair((_itemId, ruleId) =>
-      run(() => rules.revise(adminUser.auth, ruleId, { expectedRevision: 1, steps: [fixed(fixedA.id)] })),
+      run(() =>
+        rules.revise(adminUser.auth, ruleId, { expectedRevision: 1, steps: [fixed(fixedA.id)] }),
+      ),
     );
     expect(rejected).toBeGreaterThanOrEqual(1);
     await expectInvariant(itemId);

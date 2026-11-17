@@ -495,9 +495,10 @@ describe('委任の状態の表示 (6種類)', () => {
     const html = await renderDelegations();
     const mine = /<section[^>]*id="delegation-mine"[\s\S]*?<\/section>/.exec(html);
     expect(mine, '自分の委任の節が無い').not.toBeNull();
-    const ineligibleRow = /<tr[^>]*data-delegation-id="08200000-0000-4000-8000-000000000007"[\s\S]*?<\/tr>/.exec(
-      mine![0],
-    );
+    const ineligibleRow =
+      /<tr[^>]*data-delegation-id="08200000-0000-4000-8000-000000000007"[\s\S]*?<\/tr>/.exec(
+        mine![0],
+      );
     expect(ineligibleRow, '資格なしの行が無い').not.toBeNull();
     expect(ineligibleRow![0]).toContain('代理者が資格なし');
     expect(ineligibleRow![0]).toContain('代理者が今は承認者の役割を持たないか');

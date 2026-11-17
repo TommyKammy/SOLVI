@@ -1,5 +1,11 @@
-/** 開発用 API / Web を同時に起動する。データや外部接続の設定は変更しない。 */
-import { spawn } from 'node:child_process';
+/**
+ * 開発用 API / Web を同時に起動する。データや外部接続の設定は変更しない。
+ *
+ * Object Storage は docker compose の seaweedfs(ADR-0028)を使う。Docker が必須。
+ * 起動してバケットを用意(tools/ensure_buckets.mjs)してから API・Web を起動する。
+ * コンテナは止めない(データを残すため)。止めるときは `docker compose stop seaweedfs`。
+ */
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
@@ -15,8 +21,34 @@ const env = {
   S3_ENDPOINT: storageEndpoint,
   S3_PUBLIC_ENDPOINT: storageEndpoint,
 };
+
+function run(command, args, failure) {
+  const result = spawnSync(command, args, { cwd: root, env, stdio: 'inherit' });
+  if (result.error || result.status !== 0) {
+    console.error(failure);
+    process.exit(1);
+  }
+}
+const docker = spawnSync('docker', ['info'], { cwd: root, stdio: 'ignore' });
+if (docker.error || docker.status !== 0) {
+  console.error(
+    'Docker に接続できません。dev:local は Object Storage(SeaweedFS)を Docker で動かすため、' +
+      'Docker を起動してから再実行してください。',
+  );
+  process.exit(1);
+}
+run(
+  'docker',
+  ['compose', 'up', '-d', '--wait', 'seaweedfs'],
+  'Object Storage(seaweedfs)を起動できませんでした。`docker compose logs seaweedfs` を確認してください。',
+);
+run(
+  process.execPath,
+  ['tools/ensure_buckets.mjs'],
+  'Object Storage のバケットを用意できませんでした。',
+);
+
 const children = [
-  spawn(process.execPath, ['tools/dev_object_storage.mjs'], { cwd: root, env, stdio: 'inherit' }),
   spawn(
     process.execPath,
     [join(root, 'node_modules/tsx/dist/cli.mjs'), 'tools/dev_scan_attachments.ts'],

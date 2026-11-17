@@ -56,21 +56,43 @@ jobs:
     name: DB・認可・監査
     runs-on: ubuntu-latest
     services:
+      # DB 名について: tests/security の使い捨てDBガードは名前に `test` を要求し、
+      # approval-{routing,rule,reassign,notice,delegation,dual-control} はさらに
+      # wp015/wp018/wp019/wp020/wp021 を要求する。これらを一つの名前で満たす。
+      # user-directory-consistency だけは CI では `solvi` を要求するので、後の手順で別DBを作って流す。
       postgres:
         image: postgres:16.6-alpine@sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef
         env:
-          POSTGRES_DB: solvi
+          POSTGRES_DB: solvi_wp021_wp020_wp019_wp018_wp015_test
           POSTGRES_USER: solvi_owner
           POSTGRES_PASSWORD: ci-only-password
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U solvi_owner -d solvi"
+          --health-cmd "pg_isready -U solvi_owner -d solvi_wp021_wp020_wp019_wp018_wp015_test"
           --health-interval 5s --health-timeout 3s --health-retries 20
+      # 添付の検疫テスト(attachment-scan)が実スキャナを要求する。無いとスキップせず失敗させる設計。
+      # docker-compose.yml の clamav と同じイメージ。署名DBの読込に時間がかかるため start-period を長く取る。
+      clamav:
+        image: clamav/clamav:1.4.3@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
+        ports: ['127.0.0.1:3310:3310']
+        options: >-
+          --health-cmd clamdcheck.sh
+          --health-interval 15s --health-timeout 10s --health-retries 20
+          --health-start-period 120s
     env:
-      DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi
-      DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
+      DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi_wp021_wp020_wp019_wp018_wp015_test
+      DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi_wp021_wp020_wp019_wp018_wp015_test
       POSTGRES_APP_PASSWORD: ci-only-password
       POSTGRES_EXECUTOR_PASSWORD: ci-only-password
+      # オブジェクトストレージ(SeaweedFS、ADR-0028)。資格情報はこのジョブ内だけの使い捨て。
+      S3_ENDPOINT: http://127.0.0.1:9100
+      S3_REGION: ap-northeast-1
+      S3_BUCKET_ATTACHMENTS: solvi-attachments
+      S3_BUCKET_AUDIT_ANCHOR: solvi-audit-anchor
+      S3_ACCESS_KEY: ci-only-access
+      S3_SECRET_KEY: ci-only-secret-key
+      CLAMAV_HOST: 127.0.0.1
+      CLAMAV_PORT: '3310'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,6 +100,25 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+
+      - name: オブジェクトストレージ(SeaweedFS)の起動とバケット作成
+        # ADR-0028: ローカル・CI の Object Storage は SeaweedFS(MinIO の OSS 版は配布終了)。
+        # GitHub Actions の services では起動コマンドを渡せないため docker run で起動する。
+        # 資格情報は環境変数で与える(SeaweedFS の S3 は設定ファイルが無いとき AWS_* を使う)。
+        # イメージ・起動引数は docker-compose.yml の seaweedfs と揃える。
+        # バケットはローカルと同じ tools/ensure_buckets.mjs で作る(添付用と監査アンカー用)。
+        env:
+          SEAWEEDFS_IMAGE: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+        run: |
+          docker run -d --name seaweedfs -p 127.0.0.1:9100:8333 \
+            -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
+            "$SEAWEEDFS_IMAGE" server -dir=/data -s3 -master.volumeSizeLimitMB=1024
+          # 起動直後は S3 API が応答しないので、healthz が通るまで待つ
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:9100/healthz >/dev/null 2>&1 && break
+            sleep 2
+          done
+          node tools/ensure_buckets.mjs || { docker logs seaweedfs | tail -50; exit 1; }
 
       - name: マイグレーション適用
         run: npm run db:migrate
@@ -90,7 +131,21 @@ jobs:
         run: npm run check:rls
 
       - name: 越境・認可・監査テスト
-        run: npm run test:security
+        # user-directory-consistency は DB 名 `solvi` を要求するため、次の手順で流す(除外ではなく分離)。
+        run: npm run test:security -- --exclude tests/security/user-directory-consistency.test.ts
+
+      - name: 越境・認可・監査テスト(利用者ディレクトリ整合、DB solvi)
+        # このテストは CI では DB 名 `solvi`(ジョブ内の使い捨て)だけを許す。
+        # 同じサーバーに `solvi` を作りマイグレーションを当ててから、このファイルだけを流す。
+        # 前の手順が失敗してもこのテストは流す(分離したことで実行されなくなるのを防ぐ)。
+        if: ${{ success() || failure() }}
+        env:
+          DATABASE_ADMIN_URL: postgres://solvi_owner:ci-only-password@localhost:5432/solvi
+          DATABASE_URL: postgres://solvi_app:ci-only-password@localhost:5432/solvi
+        run: |
+          psql "postgres://solvi_owner:ci-only-password@localhost:5432/postgres" -v ON_ERROR_STOP=1 -c 'CREATE DATABASE solvi'
+          npm run db:migrate
+          npx vitest run tests/security/user-directory-consistency.test.ts
 
       - name: マイグレーション down/up 往復
         # 巻き戻せないマイグレーションを本番へ持ち込まない
