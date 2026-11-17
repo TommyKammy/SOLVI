@@ -6,7 +6,7 @@ import { KnowledgeController } from '../../services/api/src/modules/knowledge/kn
 import {
   assertKnowledgeDatabaseUrls,
   seedKnowledgeFixture,
-} from '../../evidence/WP-P3-KNWUI-054/20261007/knowledge-fixture.mjs';
+} from '../support/knowledge/knowledge-fixture.js';
 import {
   assertCiKnowledgeEndpoints,
   assertOwnedCiDatabase,
@@ -15,8 +15,8 @@ import {
   KNOWLEDGE_CI_PREPARATION_MS,
   KNOWLEDGE_CI_SETUP_HOOK_MS,
   KNOWLEDGE_CI_CLEANUP_HOOK_MS,
-} from '../../evidence/WP-P3-KNWUI-054/20261007/ci-knowledge-db.mjs';
-import { validateKnowledgeContainer } from '../../evidence/WP-P3-KNWUI-054/20261007/isolated-knowledge-db.mjs';
+} from '../support/knowledge/ci-knowledge-db.js';
+import { validateKnowledgeContainer } from '../support/knowledge/isolated-knowledge-db.js';
 import {
   buildKnowledgeCountQuery,
   buildKnowledgePageQuery,

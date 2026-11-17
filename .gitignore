@@ -31,6 +31,8 @@ test-results/
 playwright-report/
 # evidence artifacts (large logs are stored externally; only summaries are committed)
 evidence/**/raw/
+# 通知のセキュリティテストが実行のたびに書く記録(WP-P3-KNWUI-059)。フォルダは .gitkeep で用意する
+evidence/WP-P2-NTF*/*/database-lifecycle*.json
 # os / editor
 .DS_Store
 .idea/
