@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLVI 新UIモックアップ</title>
+<style>
+:root{
+  --ink:#1A1D21; --muted:#5C6470; --line:#E4E6EA; --surface:#FFFFFF; --rail:#FAFAFB;
+  --hover:#EFF0F2; --accent:#B9F227; --accent-ink:#3F6B00;
+  --danger:#B83228; --warn:#8A5D00; --ok:#1B7F4B; --btn:#1A1D21; --btn-ink:#FFFFFF;
+  /* 左サイドバー(SOLVI識別色: 薄いブルー) */
+  --side:#EEF4FC; --side-line:#D5E2F4; --side-hover:#DFEAF9; --side-current:#CFE0F7;
+  --side-ink:#16304F; --side-muted:#5A7192; --side-brand:#1F5FC9; --side-hot:#1F5FC9;
+  color-scheme: light;
+}
+:root[data-theme="dark"]{
+  --ink:#E8EAED; --muted:#9AA2AE; --line:#2C3036; --surface:#16181B; --rail:#1C1F23;
+  --hover:#262A30; --accent:#B9F227; --accent-ink:#B9F227;
+  --danger:#F07A6E; --warn:#E3B04B; --ok:#5CCB8F; --btn:#E8EAED; --btn-ink:#16181B;
+  --side:#152233; --side-line:#24354C; --side-hover:#1E3048; --side-current:#243A57;
+  --side-ink:#DCE7F5; --side-muted:#8EA3BF; --side-brand:#5B93F0; --side-hot:#7EAAF5;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;font-size:13px;color:var(--ink);background:var(--surface);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{display:grid;grid-template-columns:256px 1fr;height:100vh}
+
+/* ---- rail ---- */
+.rail{background:var(--side);color:var(--side-ink);border-right:1px solid var(--side-line);display:flex;flex-direction:column;padding:16px 12px;gap:2px;overflow:auto}
+.brand{display:flex;align-items:center;gap:8px;padding:4px 8px 16px}
+.mark{width:20px;height:20px;border-radius:6px;background:var(--side-brand);display:grid;place-items:center}
+.mark i{width:8px;height:8px;border-radius:2px;background:#fff}
+.brand b{font-size:16px}
+.brand span{font-size:12px;color:var(--side-muted)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:7px 8px;border-radius:6px;color:var(--side-ink);background:none;border:0;width:100%;text-align:left}
+.nav:hover{background:var(--side-hover)}
+.nav[aria-current="page"]{background:var(--side-current);font-weight:700}
+.nav .n{font-size:12px;color:var(--side-muted);font-variant-numeric:tabular-nums}
+.nav .n.hot{color:var(--side-hot);font-weight:700}
+.nav .n.bad{color:var(--danger);font-weight:700}
+.rail h6{margin:18px 8px 6px;font-size:12px;font-weight:500;color:var(--side-muted)}
+.rail .spacer{flex:1}
+.theme{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--side-line);border-radius:8px;padding:3px;margin-top:16px}
+.theme button{border:0;background:none;border-radius:6px;padding:6px;font-size:12px;color:var(--side-muted)}
+.theme button[aria-pressed="true"]{background:var(--side-current);color:var(--side-ink);font-weight:700}
+
+/* ---- top bar ---- */
+.main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.top{display:flex;align-items:center;gap:16px;padding:0 32px;height:56px;border-bottom:1px solid var(--line);flex:none}
+.top h1{font-size:14px;margin:0}
+.top .sub{color:var(--muted);font-size:12px}
+.top .grow{flex:1}
+.search{display:flex;align-items:center;gap:8px;width:260px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:6px;color:var(--muted)}
+.search kbd{margin-left:auto;font:inherit;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.btn{background:var(--btn);color:var(--btn-ink);border:0;border-radius:6px;padding:8px 14px;font-weight:700}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn.block{width:100%;padding:11px}
+.scroll{overflow:auto;flex:1}
+.page{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:40px;padding:32px;max-width:1280px}
+.page.single{grid-template-columns:minmax(0,1fr)}
+.view{display:none}.view.on{display:block}
+
+/* ---- home ---- */
+.hello{font-size:24px;margin:0 0 6px}
+.lede{color:var(--muted);margin:0 0 24px}
+.grp{font-size:12px;font-weight:700;margin:20px 0 8px}
+.grp.bad{color:var(--danger)}
+.row{display:grid;grid-template-columns:20px minmax(0,1fr) 180px 110px;align-items:center;gap:12px;padding:10px 12px;border-radius:6px}
+.row:hover{background:var(--hover)}
+.row.flag{background:var(--hover)}
+.row .meta{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .due{text-align:right;font-variant-numeric:tabular-nums}
+.row .due.bad{color:var(--danger)}
+.row .due.warn{color:var(--warn)}
+.id{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:8px}
+.st{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--muted)}
+.st.half{border-color:var(--warn);background:linear-gradient(90deg,var(--warn) 50%,transparent 50%)}
+.st.bad{border:0;background:none;color:var(--danger);font-size:14px;line-height:14px;text-align:center}
+.st.bad::before{content:"!";display:block;width:14px;height:14px;border:1.5px solid var(--danger);border-radius:50%;font-size:10px;font-weight:700;line-height:11px}
+hr{border:0;border-top:1px solid var(--line);margin:24px 0}
+.h2{font-size:13px;font-weight:700;margin:0 0 14px}
+.bar{display:grid;grid-template-columns:180px minmax(0,1fr) 140px;align-items:center;gap:16px;padding:9px 0}
+.track{height:4px;background:var(--hover);border-radius:2px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--ink);border-radius:2px}
+.bar .v{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar .v.warn{color:var(--warn)}
+
+/* ---- side ---- */
+.card{border:1px solid var(--line);border-radius:10px;padding:20px;background:var(--rail)}
+.eyebrow{font-size:12px;font-weight:700;color:var(--accent-ink);margin:0 0 12px}
+.card h3{font-size:16px;margin:0 0 14px;line-height:1.5}
+.kv{display:grid;grid-template-columns:72px 1fr;row-gap:8px;margin:0 0 18px}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.kv dd.ok{color:var(--ok)}
+.note{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.6}
+.feed h4{font-size:13px;margin:28px 0 8px}
+.item{padding:10px 12px;border-radius:6px;line-height:1.6}
+.item:hover,.item.unread{background:var(--hover)}
+.item .s{color:var(--muted)}
+.item .t{font-size:12px;color:var(--muted)}
+
+/* ---- list ---- */
+.toolbar{display:flex;gap:8px;align-items:center;margin:0 0 16px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:none;border-radius:999px;padding:5px 12px;font-size:12px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface);font-weight:700}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:hover{background:var(--hover);cursor:pointer}
+td.subj{white-space:normal;width:40%}
+.pri{display:inline-flex;align-items:center;gap:6px}
+.pri::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.pri.critical::before{background:var(--danger)}.pri.high::before{background:var(--warn)}
+.pill{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--hover)}
+.sla.bad{color:var(--danger);font-weight:700}.sla.warn{color:var(--warn)}
+
+/* ---- detail ---- */
+.crumb{color:var(--muted);margin:0 0 8px}
+.dhead{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+.dhead h2{font-size:22px;margin:0;flex:1;line-height:1.4}
+.msg{display:grid;grid-template-columns:32px 1fr;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--hover);display:grid;place-items:center;font-size:12px;font-weight:700}
+.msg .who{font-weight:700}.msg .who span{font-weight:400;color:var(--muted);margin-left:8px;font-size:12px}
+.msg p{margin:6px 0 0;line-height:1.75}
+.msg.internal{background:linear-gradient(90deg,var(--hover),transparent);border-radius:6px;padding:16px 12px;border:0;margin:8px 0}
+.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 6px;margin-left:8px;color:var(--muted);font-weight:500}
+.reply{border:1px solid var(--line);border-radius:10px;margin-top:20px}
+.reply textarea{width:100%;border:0;background:none;resize:none;padding:14px;font:inherit;color:inherit;min-height:84px;outline:none}
+.reply .bar2{display:flex;gap:8px;justify-content:flex-end;padding:10px;border-top:1px solid var(--line)}
+.ai{border:1px dashed var(--line);border-radius:10px;padding:16px;margin-top:20px}
+.ai .eyebrow{color:var(--muted)}
+.ai ol{margin:8px 0 12px;padding-left:18px;line-height:1.8}
+.props{display:grid;grid-template-columns:96px 1fr;row-gap:12px;margin:0}
+.props dt{color:var(--muted)}.props dd{margin:0}
+.sel{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;margin:-2px -8px;border-radius:6px}
+.sel:hover{background:var(--hover)}
+
+@media (max-width:1100px){.page{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}.rail{display:none}
+  .top{padding:0 16px}.search{display:none}.page{padding:20px 16px}
+  .row{grid-template-columns:20px 1fr 80px}.row .meta{display:none}
+  .bar{grid-template-columns:110px 1fr 70px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="メインナビゲーション">
+    <div class="brand"><span class="mark"><i></i></span><b>SOLVI</b><span>情報システム部</span></div>
+    <button class="nav" data-view="home" aria-current="page">ホーム</button>
+    <button class="nav" data-view="list">業務受信箱 <span class="n hot">5</span></button>
+    <button class="nav" data-view="list">自分の担当 <span class="n">12</span></button>
+    <button class="nav" data-view="home">承認待ち <span class="n hot">1</span></button>
+    <button class="nav" data-view="list">解決期限超過 <span class="n bad">2</span></button>
+
+    <h6>担当グループ</h6>
+    <button class="nav" data-view="list">サービスデスク <span class="n">18</span></button>
+    <button class="nav" data-view="list">アカウント管理 <span class="n">7</span></button>
+    <button class="nav" data-view="list">ネットワーク <span class="n">4</span></button>
+    <button class="nav" data-view="list">端末・資産 <span class="n">9</span></button>
+
+    <h6>ワークスペース</h6>
+    <button class="nav">ナレッジ</button>
+    <button class="nav">サービスカタログ</button>
+    <button class="nav">資産台帳</button>
+    <button class="nav">変更管理</button>
+    <button class="nav">管理</button>
+
+    <div class="spacer"></div>
+    <div class="theme" role="group" aria-label="表示テーマ">
+      <button data-theme="light" aria-pressed="true">ライト</button>
+      <button data-theme="dark" aria-pressed="false">ダーク</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <h1 id="title">ホーム</h1><span class="sub">11月18日 水曜日</span>
+      <span class="grow"></span>
+      <div class="search">⌕ 検索・コマンド <kbd>⌘K</kbd></div>
+      <button class="btn">新規チケット</button>
+    </header>
+
+    <div class="scroll">
+      <!-- ============ HOME ============ -->
+      <section class="view on" id="v-home">
+        <div class="page">
+          <div>
+            <h2 class="hello">山田さん、今日の対応は 6件です</h2>
+            <p class="lede">解決期限超過 2件 ・ 今日が期限 1件 ・ 今週 3件</p>
+
+            <div class="grp bad">解決期限超過</div>
+            <a class="row flag" href="#" data-go="detail"><span class="st bad"></span><span><span class="id">#1042</span>VPNに接続できない(在宅勤務)</span><span class="meta">ネットワーク</span><span class="due bad">2時間超過</span></a>
+            <a class="row" href="#" data-go="detail"><span class="st bad"></span><span><span class="id">#1037</span>経費精算システムにログインできない</span><span class="meta">アカウント管理</span><span class="due bad">11月17日</span></a>
+
+            <div class="grp">今日</div>
+            <a class="row" href="#" data-go="detail"><span class="st half"></span><span><span class="id">#1051</span>新入社員 3名のアカウント発行</span><span class="meta">アカウント管理</span><span class="due warn">17:00</span></a>
+
+            <div class="grp">今週</div>
+            <a class="row" href="#" data-go="detail"><span class="st"></span><span><span class="id">#1055</span>会議室ディスプレイの映像が出ない</span><span class="meta">端末・資産</span><span class="due">11月19日</span></a>
+            <a class="row" href="#" data-go="detail"><span class="st"></span><span><span class="id">#1058</span>共有フォルダのアクセス権追加</span><span class="meta">サービスデスク</span><span class="due">11月20日</span></a>
+            <a class="row" href="#" data-go="detail"><span class="st"></span><span><span class="id">#1060</span>ノートPC入替の日程調整</span><span class="meta">端末・資産</span><span class="due">11月21日</span></a>
+
+            <hr>
+            <p class="h2">担当グループの状況</p>
+            <div class="bar"><span>サービスデスク</span><span class="track"><i style="width:92%"></i></span><span class="v">SLA 92% ・ 未完了 18</span></div>
+            <div class="bar"><span>アカウント管理</span><span class="track"><i style="width:78%"></i></span><span class="v warn">SLA 78% ・ 超過 1</span></div>
+            <div class="bar"><span>ネットワーク</span><span class="track"><i style="width:64%"></i></span><span class="v warn">SLA 64% ・ 超過 1</span></div>
+            <div class="bar"><span>端末・資産</span><span class="track"><i style="width:96%"></i></span><span class="v">SLA 96%</span></div>
+          </div>
+
+          <aside>
+            <div class="card">
+              <p class="eyebrow">あなたの承認待ち</p>
+              <h3>本番DBサーバーのOS更新<br>変更 CHG-0214 ・ 標準変更</h3>
+              <dl class="kv">
+                <dt>申請</dt><dd>鈴木 一郎 ・ 11月16日</dd>
+                <dt>作業日時</dt><dd>11月22日 22:00–24:00</dd>
+                <dt>影響</dt><dd>基幹システム(計画停止)</dd>
+                <dt>リスク</dt><dd class="ok">低 ・ 切り戻し手順あり</dd>
+              </dl>
+              <button class="btn block">内容を確認して承認判断する</button>
+              <p class="note">承認の確定は承認者が行います。実行直前に承認状態を再確認します。</p>
+            </div>
+
+            <div class="feed">
+              <h4>通知</h4>
+              <div class="item unread"><b>佐藤 花子</b> があなたをメンションしました<div class="s">#1042 ・ 回線業者に障害状況を確認済みです</div><div class="t">30分前</div></div>
+              <div class="item"><b>#1051</b> があなたに割り当てられました<div class="s">新入社員 3名のアカウント発行</div><div class="t">2時間前</div></div>
+              <div class="item">解決期限が明日のチケットが 1件あります<div class="s">会議室ディスプレイの映像が出ない</div><div class="t">今朝 9:00</div></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============ LIST ============ -->
+      <section class="view" id="v-list">
+        <div class="page single">
+          <div>
+            <div class="toolbar">
+              <button class="chip" aria-pressed="true">未完了 34</button>
+              <button class="chip" aria-pressed="false">担当者未割当 5</button>
+              <button class="chip" aria-pressed="false">自分の担当 12</button>
+              <button class="chip" aria-pressed="false">確認・対応待ち 6</button>
+              <button class="chip" aria-pressed="false">解決期限超過 2</button>
+              <button class="chip" aria-pressed="false">最優先 1</button>
+              <span style="flex:1"></span>
+              <button class="btn ghost">表示項目</button>
+            </div>
+            <table>
+              <thead><tr><th>番号</th><th>件名</th><th>状態</th><th>優先度</th><th>担当グループ</th><th>担当者</th><th>解決期限</th></tr></thead>
+              <tbody>
+                <tr data-go="detail"><td class="id">#1042</td><td class="subj">VPNに接続できない(在宅勤務)</td><td><span class="pill">対応中</span></td><td><span class="pri critical">最優先</span></td><td>ネットワーク</td><td>山田 健</td><td class="sla bad">2時間超過</td></tr>
+                <tr data-go="detail"><td class="id">#1037</td><td class="subj">経費精算システムにログインできない</td><td><span class="pill">確認・対応待ち</span></td><td><span class="pri high">高</span></td><td>アカウント管理</td><td>山田 健</td><td class="sla bad">11月17日</td></tr>
+                <tr data-go="detail"><td class="id">#1051</td><td class="subj">新入社員 3名のアカウント発行</td><td><span class="pill">担当決定</span></td><td><span class="pri high">高</span></td><td>アカウント管理</td><td>山田 健</td><td class="sla warn">今日 17:00</td></tr>
+                <tr data-go="detail"><td class="id">#1063</td><td class="subj">プリンタ(3F)で印刷が止まる</td><td><span class="pill">受付済み</span></td><td><span class="pri">中</span></td><td>サービスデスク</td><td style="color:var(--muted)">未割当</td><td>11月19日</td></tr>
+                <tr data-go="detail"><td class="id">#1055</td><td class="subj">会議室ディスプレイの映像が出ない</td><td><span class="pill">対応中</span></td><td><span class="pri">中</span></td><td>端末・資産</td><td>山田 健</td><td>11月19日</td></tr>
+                <tr data-go="detail"><td class="id">#1058</td><td class="subj">共有フォルダのアクセス権追加</td><td><span class="pill">受付済み</span></td><td><span class="pri">中</span></td><td>サービスデスク</td><td style="color:var(--muted)">未割当</td><td>11月20日</td></tr>
+                <tr data-go="detail"><td class="id">#1060</td><td class="subj">ノートPC入替の日程調整</td><td><span class="pill">確認・対応待ち</span></td><td><span class="pri">低</span></td><td>端末・資産</td><td>山田 健</td><td>11月21日</td></tr>
+                <tr data-go="detail"><td class="id">#1064</td><td class="subj">Teamsの通知が届かない</td><td><span class="pill">受付済み</span></td><td><span class="pri">低</span></td><td>サービスデスク</td><td style="color:var(--muted)">未割当</td><td>11月22日</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ DETAIL ============ -->
+      <section class="view" id="v-detail">
+        <div class="page">
+          <div>
+            <p class="crumb"><a href="#" data-go="list">業務受信箱</a> / #1042</p>
+            <div class="dhead">
+              <h2>VPNに接続できない(在宅勤務)</h2>
+              <button class="btn ghost">対応待ちにする</button>
+              <button class="btn">解決にする</button>
+            </div>
+
+            <div class="msg"><span class="av">高</span><div><div class="who">高橋 美咲<span>営業部 ・ 今朝 8:42</span></div><p>本日在宅勤務ですが、VPNクライアントで「認証サーバーに接続できません」と表示され接続できません。10時から顧客との打ち合わせがあり、資料が社内にあります。</p></div></div>
+            <div class="msg"><span class="av">山</span><div><div class="who">山田 健<span>ネットワーク ・ 8:55</span></div><p>ご連絡ありがとうございます。同様のお問い合わせが複数あり、現在調査中です。資料はWebメール経由での共有も可能ですので、お急ぎの場合はお知らせください。</p></div></div>
+            <div class="msg internal"><span class="av">佐</span><div><div class="who">佐藤 花子<span class="tag">社内メモ</span><span>9:40</span></div><p>@山田 健 回線業者に障害状況を確認済みです。東日本の認証基盤で障害、復旧見込みは11時頃とのこと。</p></div></div>
+
+            <div class="reply">
+              <textarea placeholder="返信を書く(依頼者に送信されます)"></textarea>
+              <div class="bar2"><button class="btn ghost">社内メモ</button><button class="btn">返信を送る</button></div>
+            </div>
+
+            <div class="ai">
+              <p class="eyebrow">AIによる参考情報(状態は変更しません)</p>
+              関連するナレッジと対応例:
+              <ol>
+                <li>KB-0031 VPN認証エラー時の一時回避手順</li>
+                <li>#0988 同一事象(10月、回線業者側障害)</li>
+              </ol>
+              <button class="btn ghost">引用して返信に挿入</button>
+            </div>
+          </div>
+
+          <aside>
+            <div class="card">
+              <dl class="props">
+                <dt>状態</dt><dd><span class="sel">対応中 ▾</span></dd>
+                <dt>優先度</dt><dd><span class="sel"><span class="pri critical">最優先</span> ▾</span></dd>
+                <dt>解決期限</dt><dd class="sla bad">11月18日 10:00(2時間超過)</dd>
+                <dt>担当グループ</dt><dd><span class="sel">ネットワーク ▾</span></dd>
+                <dt>担当者</dt><dd><span class="sel">山田 健 ▾</span></dd>
+                <dt>依頼者</dt><dd>高橋 美咲(営業部)</dd>
+                <dt>カテゴリ</dt><dd>ネットワーク / VPN</dd>
+                <dt>関連資産</dt><dd>PC-2231(ThinkPad X1)</dd>
+              </dl>
+            </div>
+            <div class="feed">
+              <h4>履歴</h4>
+              <div class="item"><span class="s">9:40</span> 佐藤 花子 が社内メモを追加</div>
+              <div class="item"><span class="s">8:55</span> 状態を「対応中」に変更(山田 健)</div>
+              <div class="item"><span class="s">8:50</span> 担当者を 山田 健 に割当(ルール)</div>
+              <div class="item"><span class="s">8:42</span> 高橋 美咲 が起票</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const titles={home:'ホーム',list:'業務受信箱',detail:'チケット #1042'};
+function show(v,btn){
+  document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+  document.getElementById('title').textContent=titles[v];
+  if(btn){document.querySelectorAll('.nav').forEach(n=>n.removeAttribute('aria-current'));btn.setAttribute('aria-current','page');
+    if(v==='list'){document.getElementById('title').textContent=btn.childNodes[0].textContent.trim()}}
+  document.querySelector('.scroll').scrollTop=0;
+}
+document.querySelectorAll('.nav[data-view]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view,b)));
+document.querySelectorAll('[data-go]').forEach(e=>e.addEventListener('click',ev=>{ev.preventDefault();show(e.dataset.go)}));
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));c.setAttribute('aria-pressed','true')}));
+document.querySelectorAll('.theme button').forEach(b=>b.addEventListener('click',()=>{
+  document.documentElement.dataset.theme=b.dataset.theme;
+  document.querySelectorAll('.theme button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+}));
+</script>
+</body>
+</html>

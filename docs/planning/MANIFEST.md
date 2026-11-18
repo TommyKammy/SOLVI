@@ -5,9 +5,9 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.15.1"
+version: "0.15.2"
 created: "2026-07-27"
-updated: "2026-11-17"
+updated: "2026-11-18"
 owner: "SOLVI Product Team"
 tags: ["manifest"]
 source_of_truth: true
@@ -37,10 +37,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 325 |
-| Markdown | 317 |
-| 画像・SVG | 8 |
-| 合計サイズ | 7,823,194 bytes |
+| 対象ファイル | 329 |
+| Markdown | 320 |
+| 画像・SVG | 9 |
+| 合計サイズ | 7,878,667 bytes |
 
 ## ファイル一覧
 
@@ -90,7 +90,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22668 | `8f7a143f3b45d6d4cb24ab75c27cfdfba43bf5e4102d8d67a30a8bdc3c9a2d68` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 22953 | `2f8236c5f2f4acb9c8b9b2886b5edad86e703a125a198373234feea0f52be883` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11757 | `54fc51a5b6aae1ec09672cbfbae5cc4eef13d0fd50d796930feab86ea9ca4c3d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -142,8 +142,8 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `05_Modules/05.7_Workflow_Orchestration.md` | 1630 | `dda2b5c4c78f8ab737dfb97dcfa58962e3f20a15a86450a188586e275a431404` |
 | `05_Modules/05.8_SOLVI_Run_Executor.md` | 1588 | `c9579abc2e14d7b44f5ac662b23daf7bff65f72d39c6011225c1db36cbd88875` |
 | `05_Modules/05.9_Okta_Connector.md` | 1560 | `d679519010367687d12c7b0c74b77c938c0e717799c7202ff0e15e18ab3ad703` |
-| `06_WorkPackages/06.0_WorkPackage_Register.md` | 21293 | `6df1de9134fa3fa567bdb9fcc9c96877819eb8f9053c2cdffcc957b0c62fd723` |
-| `06_WorkPackages/06.1_Dependency_Map.md` | 6407 | `3b9b09f9dfeec39011dbe9ab628b426b867a94344b5fa9cd987a64a7bb8b404e` |
+| `06_WorkPackages/06.0_WorkPackage_Register.md` | 21982 | `8ae44e18f9bf3c0c20d9c5adbad6869df86017239d0befd08d23804f853c9737` |
+| `06_WorkPackages/06.1_Dependency_Map.md` | 6679 | `e41c19ef8559d50bb048b7a393a9194eacf6a0432358a82d65ffe2b14a2ef6ef` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
 | `06_WorkPackages/06.4_Backlog.md` | 6997 | `6f83536bd37767b749cd27fb306fcd24da61ff7d4166209a5621eb88615ebe25` |
@@ -218,6 +218,9 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-041.md` | 11742 | `a91de5971f4bad892ceeb699cc6d3a7813192e7a7a529816fc435df65a42a9ca` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-042.md` | 9876 | `6fc60cfe3fa90292b46cb05c3ba9d3fd7fc624fe9cf17a6e4d58c513ca4f1781` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-043.md` | 11439 | `6a9fb166ca021d8c8354b80d9e649ff95c416bbc557a834b0009dd2f9243caa6` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-044.md` | 12129 | `396e4be86abc27f7a18899101066c67fd052ab8fbf4721afc3b03790e689ac68` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md` | 7597 | `e267aa918682fd56c921ed10d30a74c7a95628146df49ef48a7a91f1b5946a2b` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md` | 7655 | `fb54b83a7542532e6a730dcf47d0a2246d3db3b70c5d68d4796b9d3ca6ff44eb` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2815 | `119612c14ce1623fedf5c3f1ceccf17c0e9c2ca2f233216458011a0f5a3659d0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNWUI-059.md` | 9688 | `125c2f1c7d1b18f318ed6bbe2159807b08382ceaee5f75c52a967e133d57e238` |
@@ -337,10 +340,10 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `11_UI_UX/11.10_Accessibility_and_Content.md` | 1642 | `1b7e8ad0c02383dd1edb828b46e76675f83c818150cf001e10cc1d5af16d7159` |
 | `11_UI_UX/11.11_UI_State_and_Error_Model.md` | 6232 | `d5c744738981da075831fabacaecb1cd056bebca5f24f0c78b0102e99420cdbb` |
 | `11_UI_UX/11.12_UI_Roadmap_and_Test.md` | 1631 | `fe76e12ceed5f49358219200b2e5fb179239f9c2afe81fa8746e1e9459d4bffa` |
-| `11_UI_UX/11.13_Mockup_Asset_Index.md` | 3345 | `4202041154cb3e037ddd826343658e4248c71ecd78c6db4c614b7675db38c51b` |
+| `11_UI_UX/11.13_Mockup_Asset_Index.md` | 3610 | `552d33eafd78dddd4c7cf6165f6ae179b71b6f6ed8f10a1d67d89bd2ad1a667c` |
 | `11_UI_UX/11.1_UI_Strategy.md` | 1640 | `96b0a6215acaa2d8754d2685b91263f7e57ad0debfaadfc2bbde73d52263c55c` |
 | `11_UI_UX/11.2_Information_Architecture.md` | 4725 | `a1a97e39e22e5088e0b9033c82f3fa16a306de8a7f8dfb275b67bd20c00c54b3` |
-| `11_UI_UX/11.3_Design_System.md` | 1617 | `5d0d8051d0d85de97b1d5493e7ccaa80848d21c8787297c3120947e8b3dcc5d7` |
+| `11_UI_UX/11.3_Design_System.md` | 4283 | `82ee4a18a734be80e5221d75fac43453b188ad8f9312a25bf2b0f8f8bc1eed82` |
 | `11_UI_UX/11.4_User_Portal_Mockup.md` | 1690 | `6fcda3c44d2d5774da8d759d1a56109a5f8f9efbe968de3bb4e92d333873139c` |
 | `11_UI_UX/11.5_Request_Flow.md` | 1542 | `3182d8d3687daabd73883c49f7110c45e3d42820f865d740c6c172ca014a123b` |
 | `11_UI_UX/11.6_Incident_Flow.md` | 1658 | `773c2dfd4dced4624fb32d1058a15ec3665a305153f5bbd9e9b27bbf352e0f0e` |
@@ -370,4 +373,5 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `assets/ui/SOLVI_Admin_Dashboard_v1.png` | 1263410 | `e2adc930bb570cf01c634c89af84d0cfff580418cf7cad8437e7a820b041c952` |
 | `assets/ui/SOLVI_Admin_Settings_v1.png` | 1115712 | `7b4660412e2a34eb0327bf891ea6c0a24bef27006e7b836e44a15c45b5f29bd5` |
 | `assets/ui/SOLVI_Ticket_Management_v1.png` | 1115012 | `2b2b6e98a194390ba4fc0d939df2f6dff4f50fe67405b5c3d9a59bf8abd65058` |
+| `assets/ui/SOLVI_UI_v2_Mockup.html` | 23915 | `e3eb7c4e21536ef07942da9ec891a6ac9f0111d9b8226e4e72ee69b9580b4403` |
 | `assets/ui/SOLVI_User_Portal_Home_v1.png` | 1247438 | `50433411a5d58bb162df6e5daf0da614179f22211e171115d3a578300697058a` |
