@@ -1,0 +1,252 @@
+// WP-P2-UIX-045 evidence fixture: synthetic tickets, approval and empty-state users.
+// Usage: DATABASE_ADMIN_URL=<throwaway test DB> node setup_fixture.mjs <outDir>
+// The DB name must end with _test. No password, token or cookie is written to disk.
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import pg from 'pg';
+
+const repo = '/Users/jp.infra/Dev/SOLVI';
+const API = 'http://127.0.0.1:3101';
+const ORG = '00000000-0000-4000-9000-000000000001';
+const OUT = process.argv[2] ?? join(repo, 'evidence/WP-P2-UIX-045/20261118-1414');
+const databaseUrl = process.env.DATABASE_ADMIN_URL;
+if (!databaseUrl) throw new Error('DATABASE_ADMIN_URL is required');
+if (!new URL(databaseUrl).pathname.endsWith('_test'))
+  throw new Error('evidence fixture refuses a database that is not a *_test database');
+const PASSWORD = readFileSync(join(repo, 'tools/seed.mjs'), 'utf8').match(
+  /DEV_PASSWORD = '([^']+)'/,
+)[1];
+
+mkdirSync(OUT, { recursive: true });
+
+async function api(path, actor, body) {
+  const response = await fetch(API + path, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(actor ? { cookie: `${actor.name}=${actor.value}` } : {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const data = await response.json().catch(() => ({}));
+  return { status: response.status, data };
+}
+
+async function login(email) {
+  const response = await fetch(API + '/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password: PASSWORD, organizationId: ORG }),
+  });
+  if (!response.ok) throw new Error(`login ${email}: ${response.status}`);
+  const pair = (response.headers.get('set-cookie') ?? '').split(';')[0];
+  const index = pair.indexOf('=');
+  return { name: pair.slice(0, index), value: pair.slice(index + 1) };
+}
+
+const admin = await login('org_admin@acme.example.test');
+const requester = await login('requester@acme.example.test');
+const me = await api('/auth/me', admin);
+const adminUserId = me.data.userId;
+
+const db = new pg.Client({ connectionString: databaseUrl });
+await db.connect();
+try {
+  await db.query(
+    `INSERT INTO role_binding (id, user_id, role_id, role_scope, organization_id, source)
+     SELECT $1, u.id, r.id, r.scope, $2, 'seed'
+       FROM app_user u CROSS JOIN role r
+      WHERE u.id = $3 AND r.code = 'approver'
+     ON CONFLICT DO NOTHING`,
+    ['04500000-0000-4000-8000-000000000001', ORG, adminUserId],
+  );
+  const groupRows = (
+    await db.query(
+      `SELECT id, code FROM assignment_group
+        WHERE organization_id=$1 AND code = ANY($2::text[]) ORDER BY code`,
+      [ORG, ['helpdesk', 'infra']],
+    )
+  ).rows;
+  if (groupRows.length < 2) throw new Error(`groups unavailable: ${groupRows.length}`);
+
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).formatToParts(now);
+  const part = (type) => parts.find((entry) => entry.type === type)?.value ?? '';
+  const year = Number(part('year'));
+  const month = Number(part('month'));
+  const day = Number(part('day'));
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(part('weekday'));
+  const jstAt = (dayOffset, hour, minute = 0) =>
+    new Date(Date.UTC(year, month - 1, day + dayOffset, hour - 9, minute));
+  const weekStart = jstAt(0, 0) - weekday * 86_400_000;
+  const weekEnd = weekStart + 7 * 86_400_000;
+
+  const todayDue =
+    now.getTime() < jstAt(0, 16, 30).getTime() ? jstAt(0, 17, 0) : jstAt(0, 23, 30);
+  const specifications = [
+    {
+      key: 'overdue-2h',
+      subject: 'WP45合成: 期限を2時間過ぎたネットワーク障害',
+      impact: 'high',
+      urgency: 'high',
+      due: new Date(now.getTime() - 2 * 3600_000),
+      group: 'infra',
+    },
+    {
+      key: 'overdue-1d',
+      subject: 'WP45合成: 期限を1日過ぎたアカウント申請',
+      impact: 'medium',
+      urgency: 'high',
+      due: new Date(now.getTime() - 26 * 3600_000),
+      group: 'helpdesk',
+    },
+    {
+      key: 'today',
+      subject: 'WP45合成: 今日が期限の端末設定',
+      impact: 'medium',
+      urgency: 'medium',
+      due: todayDue,
+      group: 'helpdesk',
+    },
+    {
+      key: 'week-thu',
+      subject: 'WP45合成: 今週木曜が期限の共有フォルダ申請',
+      impact: 'medium',
+      urgency: 'medium',
+      due: jstAt(1, 15, 0),
+      group: 'infra',
+    },
+    {
+      key: 'week-fri',
+      subject: 'WP45合成: 今週金曜が期限のソフトウェア申請',
+      impact: 'low',
+      urgency: 'low',
+      due: jstAt(2, 11, 0),
+      group: 'helpdesk',
+    },
+    {
+      key: 'later',
+      subject: 'WP45合成: 来週火曜が期限の機器更新相談',
+      impact: 'low',
+      urgency: 'low',
+      due: new Date(weekEnd + 2 * 86_400_000 + 10 * 3600_000),
+      group: 'infra',
+    },
+  ];
+
+  const created = [];
+  for (const specification of specifications) {
+    const result = await api('/tickets', requester, {
+      kind: 'incident',
+      subject: specification.subject,
+      body: 'WP-P2-UIX-045 の表示確認に使う合成データです。実在の人物・組織とは関係ありません。',
+      impact: specification.impact,
+      urgency: specification.urgency,
+    });
+    if (result.status !== 201) throw new Error(`ticket create ${specification.key}: ${result.status}`);
+    const id = result.data.id;
+    const remainingSeconds = Math.floor((specification.due.getTime() - now.getTime()) / 1000);
+    const group = groupRows.find((row) => row.code === specification.group);
+    const updated = await db.query(
+      `UPDATE ticket t
+          SET assignee_id = $2,
+              assignee_group_id = $3,
+              state = 'in_progress',
+              sla_clock_started_at = NULL,
+              sla_elapsed_seconds = GREATEST(0,
+                (SELECT p.resolution_target_minutes * 60 FROM sla_policy p
+                  WHERE p.organization_id = t.organization_id AND p.priority = t.priority) - $4)
+        WHERE t.id = $1 AND t.organization_id = $5
+        RETURNING t.id, t.number, t.priority, t.state, t.sla_elapsed_seconds`,
+      [id, adminUserId, group.id, remainingSeconds, ORG],
+    );
+    created.push({
+      key: specification.key,
+      id,
+      number: updated.rows[0]?.number,
+      priority: updated.rows[0]?.priority,
+      state: updated.rows[0]?.state,
+      group: specification.group,
+      dueAt: specification.due.toISOString(),
+      remainingSeconds,
+    });
+  }
+
+  // Migrations create these items only for organizations that already exist.
+  // The evidence database is migrated before seeding, so install the same
+  // synthetic item here (definition copied from 0027_local_catalog_workflow.sql).
+  await db.query(
+    `INSERT INTO local_catalog_item
+       (id, organization_id, code, version, title, description, definition, active, draft_revision, published_revision)
+     SELECT $1, $2, 'vpn-demo', 1, 'VPN アクセス申請（模擬）',
+            'ローカル検証用。承認手続きを試し、模擬結果を保存します。外部の権限やアカウントは変更しません。',
+            $3::jsonb, true, 1, 1
+      WHERE NOT EXISTS (
+        SELECT 1 FROM local_catalog_item WHERE organization_id=$2 AND code='vpn-demo'
+      )`,
+    [
+      '04500000-0000-4000-8000-000000000002',
+      ORG,
+      JSON.stringify({
+        mode: 'local_simulation',
+        action: 'simulate.access_grant',
+        targetLabel: '検証用 VPN グループ',
+        allowedDurations: [1, 7, 30],
+        maxReasonLength: 2000,
+      }),
+    ],
+  );
+  const catalog = await api('/catalog', requester);
+  if (catalog.status !== 200) throw new Error(`catalog: ${catalog.status}`);
+  const item = catalog.data.items.find(
+    (entry) => entry.id === '04500000-0000-4000-8000-000000000002',
+  );
+  if (!item) throw new Error('vpn-demo item unavailable');
+  const serviceRequest = await api('/service-requests', requester, {
+    itemId: item.id,
+    itemVersion: item.version,
+    reason: 'WP-P2-UIX-045 の承認待ちカードを確認するための合成申請です。',
+    durationDays: 7,
+    approverId: adminUserId,
+    idempotencyKey: randomUUID(),
+  });
+  if (serviceRequest.status !== 201)
+    throw new Error(`service request: ${serviceRequest.status}`);
+
+  const work = await api(
+    '/tickets?state=new&state=assigned&state=in_progress&state=pending&assignment=mine&sort=deadline&limit=50',
+    admin,
+  );
+  const inbox = await api('/inbox', admin);
+  const fixture = {
+    organizationId: ORG,
+    adminUserId,
+    tickets: created,
+    approval: {
+      requestId: serviceRequest.data.id,
+      ticketId: serviceRequest.data.ticketId,
+      status: serviceRequest.status,
+    },
+    visible: {
+      workTotal: work.data.total,
+      workItems: work.data.items?.map((ticket) => ({
+        number: ticket.number,
+        subject: ticket.subject,
+        remainingSeconds: ticket.sla?.remainingSeconds ?? null,
+      })),
+      inboxApprovals: inbox.data.counts?.approval,
+      inboxTickets: inbox.data.counts?.ticket,
+    },
+  };
+  writeFileSync(join(OUT, 'fixture.json'), JSON.stringify(fixture, null, 2));
+  console.log(JSON.stringify(fixture.visible, null, 2));
+} finally {
+  await db.end();
+}

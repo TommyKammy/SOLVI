@@ -1,27 +1,38 @@
+import React from 'react';
 import Link from 'next/link';
+import { InboxOpenForm } from '../../../components/InboxOpenForm';
 import { OperationsGroupSelect } from '../../../components/OperationsGroupSelect';
-import { TableRegion } from '../../../components/TableRegion';
-import { DonutChart } from '../../../components/DonutChart';
 import { api, requireSession } from '../../../lib/api';
-import { formatDateTime, priorityLabel, slaUrgency, stateLabel } from '../../../lib/labels';
+import type { InboxItem, InboxView, TicketView } from '../../../lib/api';
+import { formatDateTime } from '../../../lib/labels';
 import { navigationRoles, withReturnTo } from '../../../lib/navigation';
 import {
-  OPERATIONS_METRICS,
+  HOME_WORK_LIMIT,
+  approvalQueueHref,
+  groupHomeWork,
+  homeWorkQuery,
+  homeWorkQueueHref,
+  inboxDeadlineText,
+  inboxItemHref,
+  isApprovalInboxItem,
   operationsDeadlineQuery,
   operationsHref,
   operationsMetricQuery,
   operationsQueueHref,
   operationsScopeLabel,
-  operationsSlaText,
   parseOperationsGroup,
+  type HomeDueBucket,
+  type HomeWorkGroups,
+  type HomeWorkTicket,
 } from '../../../lib/operations-overview';
 
 export const dynamic = 'force-dynamic';
 
-type TicketResult = Awaited<ReturnType<typeof api.listTickets>>;
+type WorkResult = Awaited<ReturnType<typeof api.listTickets>>;
 type OverviewResult = Awaited<ReturnType<typeof api.ticketOverview>>;
+type InboxResult = Awaited<ReturnType<typeof api.inbox>>;
 
-function unavailableText(result: TicketResult | OverviewResult): string | null {
+function unavailableText(result: WorkResult | OverviewResult): string | null {
   if (result.ok)
     return result.data.scope === 'organization'
       ? null
@@ -33,16 +44,154 @@ function unavailableText(result: TicketResult | OverviewResult): string | null {
   return '取得できませんでした。再読み込みをお試しください。';
 }
 
+function inboxUnavailableText(result: InboxResult): string | null {
+  if (result.ok) return null;
+  if (result.problem.status === 403)
+    return '表示する権限がありません。利用権限を確認してください。';
+  return '取得できませんでした。再読み込みをお試しください。';
+}
+
+const BUCKETS: ReadonlyArray<{ id: HomeDueBucket; label: string }> = [
+  { id: 'overdue', label: '解決期限超過' },
+  { id: 'today', label: '今日' },
+  { id: 'week', label: '今週' },
+];
+
+const EMPTY_GROUPS: HomeWorkGroups = {
+  overdue: [],
+  today: [],
+  week: [],
+  paused: [],
+  later: [],
+  unplanned: [],
+};
+
+function WorkList({
+  id,
+  label,
+  tone,
+  items,
+  returnTo,
+}: {
+  id: string;
+  label: string;
+  tone: HomeDueBucket | 'paused';
+  items: HomeWorkTicket[];
+  returnTo: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section className="home-work-group" aria-labelledby={`home-work-${id}`}>
+      <h3 id={`home-work-${id}`} data-tone={tone}>
+        {label}
+        <span className="home-work-group-count">{items.length}件</span>
+      </h3>
+      <ul className="home-work-list">
+        {items.map(({ ticket, dueLabel }) => (
+          <li key={ticket.id}>
+            <Link
+              className="home-work-row"
+              data-due={tone}
+              href={withReturnTo(`/ops/${encodeURIComponent(ticket.id)}`, returnTo)}
+              prefetch={false}
+            >
+              <span className="home-work-marker" aria-hidden="true" />
+              <span className="home-work-subject">
+                <span className="home-work-number">{ticket.number}</span>
+                <span className="home-work-title">{ticket.subject}</span>
+              </span>
+              <span className="home-work-group-name">
+                {ticket.assigneeGroupName ?? 'グループ未設定'}
+              </span>
+              <span className="home-work-due">{dueLabel}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function GroupBars({
+  counts,
+  group,
+}: {
+  counts: { open: number; breached: number };
+  group: string;
+}) {
+  const share =
+    counts.open > 0 ? Math.min(100, Math.round((counts.breached / counts.open) * 100)) : 0;
+  return (
+    <ul className="home-bars" aria-label="選択中の担当グループの件数">
+      <li className="home-bar">
+        <span className="home-bar-label">
+          <Link href={operationsQueueHref(operationsMetricQuery('open', group))} prefetch={false}>
+            未完了
+          </Link>
+        </span>
+        <span className="home-bar-track" aria-hidden="true">
+          <span className="home-bar-fill" style={{ width: counts.open > 0 ? '100%' : '0%' }} />
+        </span>
+        <span className="home-bar-value">
+          <strong>{counts.open}</strong>件
+        </span>
+      </li>
+      <li className="home-bar" data-tone="danger">
+        <span className="home-bar-label">
+          <Link
+            href={operationsQueueHref(operationsMetricQuery('breached', group))}
+            prefetch={false}
+          >
+            解決期限超過
+          </Link>
+        </span>
+        <span className="home-bar-track" aria-hidden="true">
+          <span className="home-bar-fill" style={{ width: `${share}%` }} />
+        </span>
+        <span className="home-bar-value">
+          <strong>{counts.breached}</strong>件
+          {counts.open > 0 ? <span className="hint">（未完了の{share}%）</span> : null}
+        </span>
+      </li>
+    </ul>
+  );
+}
+
+function NotificationList({ items }: { items: InboxItem[] }) {
+  if (items.length === 0)
+    return <p className="home-empty">新しい通知はありません。業務受信箱で更新を確認できます。</p>;
+  return (
+    <ul className="home-notifications-list">
+      {items.map((item) => (
+        <li key={`${item.kind}:${item.id}`}>
+          {/* 直接遷移すると既読にならない。業務受信箱と同じ action で既読を記録してから移る。 */}
+          <div className="home-notification" data-unread={item.unread || undefined}>
+            <span className="home-notification-title">
+              {item.unread ? <span className="home-unread-label">未読</span> : null}
+              {item.title}
+            </span>
+            <span className="home-notification-meta">
+              {item.number}・{item.stateLabel}・
+              <time dateTime={item.updatedAt}>{formatDateTime(item.updatedAt)}</time>
+            </span>
+            <InboxOpenForm item={item} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default async function OperationsOverview({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}): Promise<React.ReactElement> {
   const session = await requireSession();
   if (!navigationRoles(session).staff)
     return (
-      <main id="main" className="shell operations-overview">
-        <h1>運営状況</h1>
+      <main id="main" className="shell operations-overview fs-home">
+        <h1>ホーム</h1>
         <p className="overview-message" role="alert">
           この画面を表示する権限がありません。
         </p>
@@ -58,16 +207,15 @@ export default async function OperationsOverview({
   const currentHref = error
     ? `/ops/overview${invalidQuery.size ? `?${invalidQuery}` : ''}`
     : operationsHref(group);
-  const metricQueries = OPERATIONS_METRICS.map((metric) => operationsMetricQuery(metric.id, group));
-  const deadlineQuery = operationsDeadlineQuery(group);
-  const chartQuery = operationsMetricQuery('open', group);
-  const chartHref = operationsQueueHref(chartQuery);
-  const [groupList, overview, deadlines, chartTickets] = await Promise.all([
+  const deadlineQuery = homeWorkQuery();
+  const assessedAt = new Date();
+  const [groupList, overview, work, inbox] = await Promise.all([
     api.listGroups(),
     error ? Promise.resolve(null) : api.ticketOverview(group),
-    error ? Promise.resolve(null) : api.listTickets(5, deadlineQuery),
-    error ? Promise.resolve(null) : api.listTickets(50, chartQuery),
+    api.listTickets(HOME_WORK_LIMIT, deadlineQuery),
+    api.inbox(),
   ]);
+
   const groups = groupList.ok ? groupList.data.items.map(({ id, name }) => ({ id, name })) : [];
   const scope = operationsScopeLabel(group, groups);
   const selectedGroup = error ? (rawGroups[0] ?? '') : group;
@@ -75,318 +223,313 @@ export default async function OperationsOverview({
     selectedGroup !== '' &&
     !['mine', 'ungrouped'].includes(selectedGroup) &&
     !groups.some((item) => item.id === selectedGroup);
-  const retrievedAt = new Date().toISOString();
-  const deadlineError = deadlines ? unavailableText(deadlines) : null;
+
   const overviewError = overview ? unavailableText(overview) : '取得できませんでした。';
-  const chartError = chartTickets ? unavailableText(chartTickets) : '取得できませんでした。';
+  const workError = unavailableText(work);
+  const inboxError = inboxUnavailableText(inbox);
+
   const counts = overview?.ok ? overview.data.counts : null;
-  const chartItems = chartTickets?.ok ? chartTickets.data.items : [];
-  const prioritySegments = [
-    {
-      label: '最優先',
-      value: chartItems.filter((t) => t.priority === 'critical').length,
-      color: '#cd2629',
-    },
-    {
-      label: '高',
-      value: chartItems.filter((t) => t.priority === 'high').length,
-      color: '#cf6121',
-    },
-    {
-      label: '中',
-      value: chartItems.filter((t) => t.priority === 'medium').length,
-      color: '#276cf0',
-    },
-    { label: '低', value: chartItems.filter((t) => t.priority === 'low').length, color: '#8e9dac' },
-  ];
-  const stateSegments = [
-    {
-      label: stateLabel('new'),
-      value: chartItems.filter((t) => t.state === 'new').length,
-      color: '#276cf0',
-    },
-    {
-      label: stateLabel('assigned'),
-      value: chartItems.filter((t) => t.state === 'assigned').length,
-      color: '#6aa8ff',
-    },
-    {
-      label: stateLabel('in_progress'),
-      value: chartItems.filter((t) => t.state === 'in_progress').length,
-      color: '#00513f',
-    },
-    {
-      label: stateLabel('pending'),
-      value: chartItems.filter((t) => t.state === 'pending').length,
-      color: '#cf6121',
-    },
-  ];
+  const workOk = work.ok && work.data.scope === 'organization';
+  const workItems: TicketView[] = workOk ? work.data.items : [];
+  const workTotal = workOk ? work.data.total : null;
+  const grouped = workOk ? groupHomeWork(workItems, assessedAt) : EMPTY_GROUPS;
+  const truncated = workTotal !== null && workTotal > workItems.length;
+  const bucketTotal = grouped.overdue.length + grouped.today.length + grouped.week.length;
+  // 見出しの件数は、読み込んだ項目だけから数える。全件数(workTotal)と
+  // 先頭ページの部分集合を混ぜると、未読込の停止中が件数に残る。
+  // 停止中は期限を作らないため、この件数からも除く。
+  const workActiveTotal = workOk ? workItems.length - grouped.paused.length : null;
+
+  const inboxView: InboxView | null = inbox.ok ? inbox.data : null;
+  const approvalItems = (inboxView?.items ?? []).filter(isApprovalInboxItem);
+  const approval = approvalItems[0] ?? null;
+  // counts は全件、items は先頭ページだけ。両者を混同しない。
+  const approvalTotal = inboxView?.counts.approval ?? 0;
+  const approvalPageSize = inboxView?.pageSize ?? 25;
+  const notifications = (inboxView?.items ?? [])
+    .filter((item) => !isApprovalInboxItem(item))
+    .slice(0, 3);
+  const approvalDeadline = approval ? inboxDeadlineText(approval.deadline) : null;
 
   return (
-    <main id="main" className="shell operations-overview fs-dashboard">
-      <header className="overview-heading">
-        <div>
-          <h1>運営状況</h1>
-          <p>現在の問い合わせを把握し、対応する一覧へ進みます。</p>
-        </div>
-        <nav className="overview-utilities" aria-label="運営状況の関連画面">
-          <Link href="/ops">問い合わせの一覧</Link>
-          <Link href="/inbox">業務受信箱</Link>
-        </nav>
+    <main id="main" className="shell operations-overview fs-home">
+      <header className="home-heading">
+        <h1>
+          {workActiveTotal === null ? (
+            '今日の対応'
+          ) : truncated ? (
+            <>
+              期限の近い{workItems.length}件のうち、対応中は{' '}
+              <strong className="home-count">{workActiveTotal}</strong>件です
+            </>
+          ) : (
+            <>
+              今日の対応は <strong className="home-count">{workActiveTotal}</strong>件です
+            </>
+          )}
+        </h1>
+        {workOk && truncated ? (
+          <p className="hint">
+            全{workTotal}件のうち、期限の近い{workItems.length}
+            件だけを読み込み、その中の対応中を数えています。
+            <Link href={homeWorkQueueHref()} prefetch={false}>
+              全件を期限順の一覧で確認する
+            </Link>
+          </p>
+        ) : null}
+        <p className="home-lede">
+          自分に割り当てられた未完了のチケットを、解決期限の近い順に表示します。返答待ちなどSLAの計測が止まっているチケットは、期限の件数に含めません。日時は日本時間（JST）です。
+        </p>
+        {workOk ? (
+          <dl className="home-summary" aria-label="解決期限ごとの件数">
+            {BUCKETS.map((bucket) => (
+              <div key={bucket.id} data-tone={bucket.id}>
+                <dt>{bucket.label}</dt>
+                <dd>{grouped[bucket.id].length}件</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </header>
 
-      <form
-        key={currentHref}
-        action="/ops/overview"
-        method="get"
-        className="overview-filter"
-        aria-label="運営状況の表示範囲"
-      >
-        <div className="field">
-          <label htmlFor="overview-group">担当グループ</label>
-          <OperationsGroupSelect
-            selectedGroup={selectedGroup}
-            groups={groups}
-            missingGroup={missingGroup}
-            invalid={Boolean(error)}
-            describedBy={
-              error ? 'overview-group-error' : missingGroup ? 'overview-group-hint' : undefined
-            }
-          />
-        </div>
-        <button type="submit">範囲を適用</button>
-        <Link href="/ops/overview">範囲を解除</Link>
-      </form>
-      {!groupList.ok && (
-        <p className="overview-notice" role="alert">
-          {groupList.problem.status === 403
-            ? 'グループ名を表示する権限がありません。'
-            : 'グループ名を取得できませんでした。'}
-          指定した範囲は保持しています。<a href={currentHref}>グループ名を再読み込み</a>
-        </p>
-      )}
-      {missingGroup && !error && (
-        <p className="overview-notice" id="overview-group-hint">
-          指定したグループの名称を確認できません。範囲はそのまま保持しています。
-        </p>
-      )}
-
-      {error ? (
-        <section className="overview-message" role="alert">
-          <h2>表示範囲を確認してください</h2>
-          <p id="overview-group-error">{error}</p>
-          <p>指定された値: {rawGroups.map((value) => value || '（空欄）').join(' / ')}</p>
-          <a href="#overview-group">担当グループを選び直す</a>
-        </section>
-      ) : (
-        <>
-          <section className="overview-metrics" aria-labelledby="overview-metrics-title">
-            <div className="overview-section-heading">
-              <h2 id="overview-metrics-title">現在の件数</h2>
-              <p className="hint">
-                表示範囲: <strong>{scope}</strong>
-              </p>
+      <div className="home-layout">
+        <div className="home-main">
+          <section className="home-panel" aria-labelledby="home-work-title">
+            <div className="home-section-head">
+              <h2 id="home-work-title">自分の担当（未完了）</h2>
+              <Link href={homeWorkQueueHref()} prefetch={false}>
+                期限順の一覧を見る
+              </Link>
             </div>
-            {overviewError ? (
-              <p role="alert" className="overview-message overview-metric-error">
-                6項目の件数を表示できません。{overviewError}
+            {workError ? (
+              <div className="home-error" role="alert">
+                <p>自分に割り当てられたチケットを表示できません。{workError}</p>
+                <a href={currentHref}>同じ範囲で再読み込みする</a>
+              </div>
+            ) : workTotal === 0 ? (
+              <p className="home-empty">
+                自分に割り当てられた未完了のチケットはありません。
+                <Link href="/ops">チケットの一覧を見る</Link>
               </p>
-            ) : null}
-            <dl className="overview-counts">
-              {OPERATIONS_METRICS.map((metric, index) => {
-                return (
-                  <div
-                    key={metric.id}
-                    className="overview-metric"
-                    data-metric={metric.id}
-                    data-overdue={
-                      (metric.id === 'breached' && counts !== null && counts.breached > 0) ||
-                      undefined
-                    }
-                  >
-                    <dt>
-                      <Link href={operationsQueueHref(metricQueries[index])} prefetch={false}>
-                        {metric.label}
-                        <span className="visually-hidden">の問い合わせを見る</span>
-                        <span aria-hidden="true"> →</span>
-                      </Link>
-                    </dt>
-                    <dd>
-                      {counts ? (
-                        <>
-                          <strong className="overview-count">{counts[metric.id]}</strong>
-                          <span> 件</span>
-                        </>
-                      ) : (
-                        <span className="hint">未取得</span>
-                      )}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-            <div className="overview-meta">
-              <p className="hint">
-                取得処理完了: <time dateTime={retrievedAt}>{formatDateTime(retrievedAt)}</time>
-                （JST）
-              </p>
-              <a href={currentHref}>運営状況を再読み込み</a>
-            </div>
-            <details className="overview-definitions">
-              <summary>件数とSLAの見方</summary>
-              <p>
-                6項目は同じ時点の問い合わせをまとめて集計した現在件数です。期間実績ではありません。項目間に重複があるため、合計しません。
-              </p>
-              <dl>
-                {OPERATIONS_METRICS.map((metric) => (
-                  <div key={metric.id}>
-                    <dt>{metric.label}</dt>
-                    <dd>{metric.description}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p>
-                SLAは暦時間で計測します。確認・対応待ちは計測を停止し、営業時間・休日は考慮しません。初回応答期限はこの画面の集計に含みません。
-              </p>
-              <p>
-                解決期限超過には、停止前に目標を超過した確認・対応待ちも含みます。目標未設定の問い合わせは超過件数に含みません。
-              </p>
-            </details>
-          </section>
-
-          <section className="fs-dashboard-charts" aria-label="未完了チケットの内訳">
-            {chartError ? (
-              <div className="overview-message" role="alert">
-                <p>内訳を取得できませんでした。{chartError}</p>
-                <a href={currentHref}>内訳を再読み込み</a>
+            ) : workItems.length === 0 ? (
+              <div className="home-error" role="alert">
+                <p>表示するチケットを確認できませんでした。一覧が更新された可能性があります。</p>
+                <a href={currentHref}>再読み込みする</a>
               </div>
             ) : (
               <>
-                <DonutChart
-                  title="優先度の内訳"
-                  caption={`${scope}・未完了の先頭${chartItems.length}件`}
-                  segments={prioritySegments}
-                  emptyLabel="対象のチケットはありません"
-                  href={chartHref}
-                  hrefLabel={`${scope}の未完了の問い合わせ一覧を見る`}
-                />
-                <DonutChart
-                  title="状況の内訳"
-                  caption={`${scope}・未完了の先頭${chartItems.length}件`}
-                  segments={stateSegments}
-                  emptyLabel="対象のチケットはありません"
-                  href={chartHref}
-                  hrefLabel={`${scope}の未完了の問い合わせ一覧を見る`}
-                />
+                {BUCKETS.map((bucket) => (
+                  <WorkList
+                    key={bucket.id}
+                    id={bucket.id}
+                    label={bucket.label}
+                    tone={bucket.id}
+                    items={grouped[bucket.id]}
+                    returnTo={currentHref}
+                  />
+                ))}
+                {grouped.paused.length > 0 ? (
+                  <>
+                    <WorkList
+                      id="paused"
+                      label="計測停止中（SLA停止）"
+                      tone="paused"
+                      items={grouped.paused}
+                      returnTo={currentHref}
+                    />
+                    <p className="hint">
+                      返答待ちなどでSLAの計測が止まっているチケットです。期限は表示せず、期限ごとの件数にも含めていません。
+                    </p>
+                  </>
+                ) : null}
+                {bucketTotal === 0 ? (
+                  <p className="home-empty">
+                    今日・今週が期限のチケットはありません。
+                    <Link href={homeWorkQueueHref()}>期限順の一覧を見る</Link>
+                  </p>
+                ) : null}
+                {truncated ? (
+                  <p className="hint">
+                    期限の早い順に最大{HOME_WORK_LIMIT}
+                    件を表示しています。件数は表示中のものを数えています。
+                  </p>
+                ) : null}
+                {grouped.later.length > 0 || grouped.unplanned.length > 0 ? (
+                  <p className="hint">
+                    {grouped.later.length > 0
+                      ? `今週より後の期限が${grouped.later.length}件`
+                      : null}
+                    {grouped.later.length > 0 && grouped.unplanned.length > 0 ? '、' : null}
+                    {grouped.unplanned.length > 0
+                      ? `解決期限が未設定のものが${grouped.unplanned.length}件`
+                      : null}
+                    あります。期限順の一覧で確認できます。
+                  </p>
+                ) : null}
               </>
             )}
           </section>
 
-          <section className="overview-deadlines" aria-labelledby="overview-deadlines-title">
-            <div className="overview-section-heading">
-              <h2 id="overview-deadlines-title">解決期限の確認</h2>
-              <Link href={operationsQueueHref(deadlineQuery)} prefetch={false}>
-                期限順の一覧を見る
-              </Link>
-            </div>
-            <p className="overview-deadline-scope hint">
-              受付済み・担当決定・対応中を、最も超過した順から表示。停止中の「確認・対応待ち」は含みません。
-            </p>
-            {deadlineError ? (
-              <div className="overview-message" role="alert">
-                <p>{deadlineError}</p>
-                <a href={currentHref}>期限一覧を再読み込み</a>
-              </div>
-            ) : deadlines?.ok && deadlines.data.scope === 'organization' ? (
-              <>
-                <p className="overview-deadline-result" role="status">
-                  対象 {deadlines.data.total}件 · 先頭{deadlines.data.items.length}
-                  件を表示（最大5件）
+          <section className="home-panel" aria-labelledby="home-group-title">
+            <div className="home-section-head">
+              <div>
+                <h2 id="home-group-title">担当グループの状況</h2>
+                <p className="hint">
+                  表示範囲: <strong>{scope}</strong>
                 </p>
-                {deadlines.data.items.length === 0 ? (
-                  <div className="overview-message">
-                    <h3>
-                      {deadlines.data.total > 0
-                        ? '表示する問い合わせを確認できません'
-                        : 'この範囲に対応中の問い合わせはありません'}
-                    </h3>
-                    <p>
-                      {deadlines.data.total > 0
-                        ? '一覧が更新された可能性があります。再読み込みして確認してください。'
-                        : '確認・対応待ちの問い合わせは、上の件数から確認できます。'}
-                    </p>
-                    <Link href={operationsQueueHref(deadlineQuery)}>
-                      問い合わせの一覧を確認する
+              </div>
+              {!error ? (
+                <Link href={operationsQueueHref(operationsDeadlineQuery(group))} prefetch={false}>
+                  期限順の一覧を見る
+                </Link>
+              ) : null}
+            </div>
+            <form
+              key={currentHref}
+              action="/ops/overview"
+              method="get"
+              className="home-group-filter"
+              aria-label="担当グループの状況の表示範囲"
+            >
+              <div className="field">
+                <label htmlFor="overview-group">担当グループ</label>
+                <OperationsGroupSelect
+                  selectedGroup={selectedGroup}
+                  groups={groups}
+                  missingGroup={missingGroup}
+                  invalid={Boolean(error)}
+                  describedBy={
+                    error
+                      ? 'overview-group-error'
+                      : missingGroup
+                        ? 'overview-group-hint'
+                        : undefined
+                  }
+                />
+              </div>
+              <button type="submit">範囲を適用</button>
+              <Link href="/ops/overview">範囲を解除</Link>
+            </form>
+            {!groupList.ok && (
+              <p className="overview-notice" role="alert">
+                {groupList.problem.status === 403
+                  ? 'グループ名を表示する権限がありません。'
+                  : 'グループ名を取得できませんでした。'}
+                指定した範囲は保持しています。<a href={currentHref}>グループ名を再読み込み</a>
+              </p>
+            )}
+            {missingGroup && !error && (
+              <p className="overview-notice" id="overview-group-hint">
+                指定したグループの名称を確認できません。範囲はそのまま保持しています。
+              </p>
+            )}
+            {error ? (
+              <div className="home-error" role="alert">
+                <p id="overview-group-error">{error}</p>
+                <p>指定された値: {rawGroups.map((value) => value || '（空欄）').join(' / ')}</p>
+                <a href="#overview-group">担当グループを選び直す</a>
+              </div>
+            ) : overviewError ? (
+              <div className="home-error" role="alert">
+                <p>担当グループの件数を表示できません。{overviewError}</p>
+                <a href={currentHref}>同じ範囲で再読み込みする</a>
+              </div>
+            ) : counts && counts.open === 0 ? (
+              <p className="home-empty">この範囲に未完了のチケットはありません。</p>
+            ) : counts ? (
+              <GroupBars counts={counts} group={group} />
+            ) : null}
+            <p className="hint">
+              未完了と解決期限超過は重複します。SLA達成率は表示しません。件数は取得時点のものです。
+            </p>
+          </section>
+        </div>
+
+        <aside className="home-aside" aria-label="承認待ちと通知">
+          {inboxError ? (
+            <section className="home-card home-error" role="alert">
+              <h2>承認待ちと通知</h2>
+              <p>{inboxError}</p>
+              <a href={currentHref}>再読み込みする</a>
+            </section>
+          ) : (
+            <>
+              <section className="home-card" aria-labelledby="home-approval-title">
+                <h2 id="home-approval-title">あなたの承認待ち</h2>
+                {approval ? (
+                  <>
+                    <h3>{approval.title}</h3>
+                    <dl className="home-card-meta">
+                      <div>
+                        <dt>番号</dt>
+                        <dd>{approval.number}</dd>
+                      </div>
+                      <div>
+                        <dt>状態</dt>
+                        <dd>{approval.stateLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>対象</dt>
+                        <dd>{approval.scopeLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>更新</dt>
+                        <dd>
+                          <time dateTime={approval.updatedAt}>
+                            {formatDateTime(approval.updatedAt)}
+                          </time>
+                        </dd>
+                      </div>
+                      {approvalDeadline ? (
+                        <div>
+                          <dt>{approval.deadline.label}</dt>
+                          <dd>{approvalDeadline}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    <Link
+                      className="home-action"
+                      href={inboxItemHref(approval.href)}
+                      prefetch={false}
+                    >
+                      内容を確認して承認判断する
                     </Link>
+                    <p className="home-note">
+                      承認の確定は承認者が行います。実行直前に承認状態を再確認します。
+                    </p>
+                    {approvalTotal > 1 ? (
+                      <p className="hint">
+                        ほか{approvalTotal - 1}件の承認待ちがあります。
+                        <Link href={approvalQueueHref()}>業務受信箱で確認する</Link>
+                      </p>
+                    ) : null}
+                  </>
+                ) : approvalTotal > 0 ? (
+                  <div className="home-empty">
+                    <p>
+                      承認待ちが <strong>{approvalTotal}</strong>
+                      件あります。この画面で読み込んだ先頭{approvalPageSize}
+                      件には承認依頼が含まれていません。
+                    </p>
+                    <Link href={approvalQueueHref()}>承認待ちを業務受信箱で確認する</Link>
                   </div>
                 ) : (
-                  <TableRegion label="解決期限の問い合わせ一覧">
-                    <table className="work-table overview-deadline-table">
-                      <caption className="visually-hidden">
-                        {scope}の解決期限確認、対象{deadlines.data.total}件中
-                        {deadlines.data.items.length}件
-                      </caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">問い合わせ</th>
-                          <th scope="col">解決SLA</th>
-                          <th scope="col">状況</th>
-                          <th scope="col">担当</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {deadlines.data.items.map((ticket) => (
-                          <tr key={ticket.id}>
-                            <td className="overview-ticket">
-                              <Link
-                                href={withReturnTo(
-                                  `/ops/${encodeURIComponent(ticket.id)}`,
-                                  currentHref,
-                                )}
-                                prefetch={false}
-                              >
-                                <span className="record-number">
-                                  {ticket.number} · {priorityLabel(ticket.priority)}
-                                </span>
-                                <span className="record-title">{ticket.subject}</span>
-                              </Link>
-                            </td>
-                            <td>
-                              <span
-                                className={`sla sla-${slaUrgency(ticket.sla?.remainingSeconds ?? null)}`}
-                              >
-                                {operationsSlaText(ticket.sla)}
-                              </span>
-                            </td>
-                            <td>
-                              <span className="state" data-state={ticket.state}>
-                                {stateLabel(ticket.state)}
-                              </span>
-                            </td>
-                            <td>
-                              {ticket.assigned
-                                ? (ticket.assigneeName ?? '担当者名未取得')
-                                : '担当者未割当'}
-                              {ticket.assigneeGroupName && (
-                                <span className="overview-group-name hint">
-                                  {ticket.assigneeGroupName}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </TableRegion>
+                  <p className="home-empty">あなたの承認待ちはありません。</p>
                 )}
-                <p className="hint overview-limit">
-                  期限順の一覧では最大50件を確認できます。すべての対象は受付順に切り替えて確認してください。
+              </section>
+
+              <section className="home-notifications" aria-labelledby="home-notifications-title">
+                <h2 id="home-notifications-title">通知</h2>
+                <p className="hint">業務受信箱に届いた更新です。外部への通知送信は行いません。</p>
+                <NotificationList items={notifications} />
+                <p className="hint">
+                  <Link href="/inbox">業務受信箱を見る</Link>
                 </p>
-              </>
-            ) : null}
-          </section>
-        </>
-      )}
+              </section>
+            </>
+          )}
+        </aside>
+      </div>
     </main>
   );
 }

@@ -1,0 +1,365 @@
+// WP-P2-UIX-045: screenshots, axe (both themes), TL-12, empty/error/role states.
+// Usage: node capture.mjs <outDir>   (cwd = repo root, stack from run_stack.sh)
+import { createRequire } from 'node:module';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const repo = '/Users/jp.infra/Dev/SOLVI';
+const require = createRequire(join(repo, 'package.json'));
+const pw = require('playwright');
+const CHROME_EXE =
+  '/Users/jp.infra/Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell';
+const chromium = { launch: (o = {}) => pw.chromium.launch({ ...o, executablePath: CHROME_EXE }) };
+const { AxeBuilder } = require('@axe-core/playwright');
+
+const OUT = process.argv[2];
+mkdirSync(join(OUT, 'screens'), { recursive: true });
+mkdirSync(join(OUT, 'axe'), { recursive: true });
+mkdirSync(join(OUT, 'before'), { recursive: true });
+mkdirSync(join(OUT, 'tl12'), { recursive: true });
+
+const AFTER = 'http://127.0.0.1:3100';
+const API = 'http://127.0.0.1:3101';
+const BEFORE = 'http://127.0.0.1:3102';
+const ERROR_WEB = 'http://127.0.0.1:3104';
+const ORG = '00000000-0000-4000-9000-000000000001';
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+// Synthetic seed password, read from the project's seed file (never printed).
+const PASSWORD = readFileSync(join(repo, 'tools/seed.mjs'), 'utf8').match(
+  /DEV_PASSWORD = '([^']+)'/,
+)[1];
+
+async function login(email) {
+  const response = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password: PASSWORD, organizationId: ORG }),
+  });
+  if (!response.ok) throw new Error(`login ${email}: ${response.status}`);
+  const pair = (response.headers.get('set-cookie') ?? '').split(';')[0];
+  const index = pair.indexOf('=');
+  return { name: pair.slice(0, index), value: pair.slice(index + 1) };
+}
+
+const admin = await login('org_admin@acme.example.test');
+const requester = await login('requester@acme.example.test');
+const agent = await login('agent@acme.example.test');
+const cookieHeader = (cookie) => `${cookie.name}=${cookie.value}`;
+
+const summary = { scans: [], checks: {} };
+
+async function scan({
+  browser,
+  base,
+  theme,
+  width,
+  slug,
+  who,
+  dir = 'screens',
+  axe = true,
+}) {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: 'ja-JP',
+    colorScheme: theme,
+    hasTouch: width === 375,
+  });
+  if (who)
+    await context.addCookies([
+      { ...who, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+    ]);
+  const page = await context.newPage();
+  const consoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(String(error)));
+  const response = await page.goto(`${base}/ops/overview`, { waitUntil: 'networkidle' });
+  const finalPath = new URL(page.url()).pathname;
+  const result = axe ? await new AxeBuilder({ page }).withTags(TAGS).analyze() : null;
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  const name = `${theme}-${width}-${slug}`;
+  if (result)
+    writeFileSync(
+      join(OUT, 'axe', `${name}.json`),
+      JSON.stringify(
+        { theme, width, url: '/ops/overview', base, finalPath, violations: result.violations },
+        null,
+        2,
+      ),
+    );
+  await page.screenshot({ path: join(OUT, dir, `${name}.png`), fullPage: true });
+  const scanResult = {
+    theme,
+    width,
+    slug,
+    base,
+    status: response?.status(),
+    finalPath,
+    themeAttribute: await page.evaluate(() => document.documentElement.dataset.theme),
+    violations: result
+      ? result.violations.map((violation) => ({
+          id: violation.id,
+          impact: violation.impact,
+          nodes: violation.nodes.length,
+        }))
+      : [],
+    horizontalOverflowPx: overflow,
+    consoleErrors,
+  };
+  summary.scans.push(scanResult);
+  await context.close();
+  return scanResult;
+}
+
+// Before: HEAD (WP-P2-UIX-044) production build.
+{
+  const browser = await chromium.launch();
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1440, 375]) {
+      await scan({
+        browser,
+        base: BEFORE,
+        theme,
+        width,
+        slug: 'overview',
+        who: admin,
+        dir: 'before',
+        axe: false,
+      });
+    }
+  }
+  await browser.close();
+}
+
+// After: personal work, group status, approval card, notifications.
+{
+  const browser = await chromium.launch();
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1440, 375]) {
+      await scan({ browser, base: AFTER, theme, width, slug: 'overview', who: admin });
+      await scan({
+        browser,
+        base: AFTER,
+        theme,
+        width,
+        slug: 'overview-requester',
+        who: requester,
+      });
+      await scan({ browser, base: AFTER, theme, width, slug: 'overview-empty', who: agent });
+      await scan({
+        browser,
+        base: ERROR_WEB,
+        theme,
+        width,
+        slug: 'overview-partial-error',
+        who: admin,
+      });
+    }
+  }
+
+  // Behaviour checks on the rendered home in light 1440.
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    colorScheme: 'light',
+  });
+  await context.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const page = await context.newPage();
+  await page.goto(`${AFTER}/ops/overview`, { waitUntil: 'networkidle' });
+  summary.checks.home = await page.evaluate(() => {
+    const text = (selector) =>
+      [...document.querySelectorAll(selector)].map((element) =>
+        element.textContent?.replace(/\s+/g, ' ').trim(),
+      );
+    return {
+      heading: document.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim(),
+      summary: text('.home-summary > div'),
+      groups: text('.home-work-group h3'),
+      groupSections: [...document.querySelectorAll('.home-work-group')].map((section) => ({
+        label: section.querySelector('h3')?.textContent?.replace(/\s+/g, ' ').trim(),
+        rows: [...section.querySelectorAll('.home-work-row')].map((row) => ({
+          href: row.getAttribute('href'),
+          due: row.querySelector('.home-work-due')?.textContent?.trim(),
+          group: row.querySelector('.home-work-group-name')?.textContent?.trim(),
+          subject: row.querySelector('.home-work-title')?.textContent?.trim(),
+          tone: row.getAttribute('data-due'),
+        })),
+      })),
+      approval: {
+        heading: document.querySelector('#home-approval-title')?.textContent?.trim(),
+        title: document.querySelector('.home-card h3')?.textContent?.trim(),
+        link: document.querySelector('.home-action')?.getAttribute('href'),
+        note: document.querySelector('.home-note')?.textContent?.replace(/\s+/g, ' ').trim(),
+        decisionForms: document.querySelectorAll('form[action*="/decisions"]').length,
+      },
+      notifications: {
+        heading: document.querySelector('#home-notifications-title')?.textContent?.trim(),
+        items: [...document.querySelectorAll('.home-notification')].map((item) => ({
+          href: item.getAttribute('href'),
+          unread: item.getAttribute('data-unread'),
+          title: item.querySelector('.home-notification-title')?.textContent?.replace(/\s+/g, ' ').trim(),
+        })),
+      },
+      bars: [...document.querySelectorAll('.home-bar')].map((bar) => ({
+        label: bar.querySelector('.home-bar-label')?.textContent?.trim(),
+        value: bar.querySelector('.home-bar-value')?.textContent?.replace(/\s+/g, ' ').trim(),
+        width: bar.querySelector('.home-bar-fill')?.getAttribute('style'),
+      })),
+      scope: document.querySelector('#home-group-title + .hint, .home-section-head .hint')?.textContent?.replace(/\s+/g, ' ').trim(),
+      groupSelect: !!document.querySelector('#overview-group'),
+    };
+  });
+
+  // Partial failure: only the inbox source fails.
+  await page.goto(`${ERROR_WEB}/ops/overview`, { waitUntil: 'networkidle' });
+  summary.checks.partialFailure = await page.evaluate(() => ({
+    error: document.querySelector('.home-error')?.textContent?.replace(/\s+/g, ' ').trim(),
+    rows: document.querySelectorAll('.home-work-row').length,
+    bars: document.querySelectorAll('.home-bar').length,
+    approvalCard: document.querySelectorAll('.home-card').length,
+  }));
+
+  // Empty personal work, approval and notifications.
+  await page.goto(`${AFTER}/ops/overview`, { waitUntil: 'networkidle' });
+  await context.close();
+  const emptyContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    colorScheme: 'light',
+  });
+  await emptyContext.addCookies([
+    { ...agent, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const emptyPage = await emptyContext.newPage();
+  await emptyPage.goto(`${AFTER}/ops/overview`, { waitUntil: 'networkidle' });
+  summary.checks.empty = await emptyPage.evaluate(() => ({
+    heading: document.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim(),
+    emptyTexts: [...document.querySelectorAll('.home-empty')].map((element) =>
+      element.textContent?.replace(/\s+/g, ' ').trim(),
+    ),
+  }));
+  await emptyContext.close();
+
+  // Requester sees the permission message.
+  const requesterContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    colorScheme: 'light',
+  });
+  await requesterContext.addCookies([
+    { ...requester, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const requesterPage = await requesterContext.newPage();
+  await requesterPage.goto(`${AFTER}/ops/overview`, { waitUntil: 'networkidle' });
+  summary.checks.requester = await requesterPage.evaluate(() => ({
+    heading: document.querySelector('h1')?.textContent?.trim(),
+    alert: document.querySelector('[role="alert"]')?.textContent?.replace(/\s+/g, ' ').trim(),
+    hasWorkRows: document.querySelectorAll('.home-work-row').length,
+  }));
+  await requesterContext.close();
+
+  // CSP/external resources: this change must not add an external stylesheet,
+  // font or script. Check the rendered HTML, not only the browser console.
+  const html = await (
+    await fetch(`${AFTER}/ops/overview`, { headers: { cookie: cookieHeader(admin) } })
+  ).text();
+  summary.checks.externalResources = {
+    externalStylesheets: (html.match(/<link[^>]+rel="stylesheet"[^>]+href="https?:/g) ?? []).length,
+    externalScripts: (html.match(/<script[^>]+src="https?:/g) ?? []).length,
+    fontFace: (html.match(/@font-face/g) ?? []).length,
+    csp: (
+      await fetch(`${AFTER}/ops/overview`, { headers: { cookie: cookieHeader(admin) } })
+    ).headers.get('content-security-policy'),
+  };
+
+  await browser.close();
+}
+
+// TL-12: real login -> home -> overdue row -> ticket detail.
+{
+  const browser = await chromium.launch();
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    colorScheme: 'light',
+  });
+  const page = await context.newPage();
+  const steps = [];
+  const started = Date.now();
+  const step = async (name, path) => {
+    steps.push({ name, url: page.url(), path, elapsedMs: Date.now() - started });
+    await page.screenshot({ path: join(OUT, 'tl12', `${String(steps.length).padStart(2, '0')}-${name}.png`), fullPage: true });
+  };
+  await page.goto(`${AFTER}/login`, { waitUntil: 'networkidle' });
+  await step('login', '/login');
+  await page.fill('#email', 'org_admin@acme.example.test');
+  await page.fill('#password', PASSWORD);
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/inbox', { timeout: 15000 }),
+    page.click('button[type="submit"]'),
+  ]);
+  await page.waitForLoadState('networkidle');
+  await step('after-login-inbox', '/inbox');
+  await page.click('#solvi-main-navigation a[href="/ops/overview"]');
+  await page.waitForURL((url) => url.pathname === '/ops/overview', { timeout: 15000 });
+  await page.waitForLoadState('networkidle');
+  await step('home', '/ops/overview');
+  const overdue = page.locator('a.home-work-row[data-due="overdue"]').first();
+  const overdueRow = {
+    count: await page.locator('a.home-work-row[data-due="overdue"]').count(),
+    href: await overdue.getAttribute('href'),
+    subject: await overdue.locator('.home-work-title').innerText(),
+    due: await overdue.locator('.home-work-due').innerText(),
+  };
+  await overdue.scrollIntoViewIfNeeded();
+  await overdue.screenshot({ path: join(OUT, 'tl12', '04-overdue-row.png') });
+  await Promise.all([
+    page.waitForURL((url) => /^\/ops\/[0-9a-f-]{36}$/.test(url.pathname), { timeout: 15000 }),
+    overdue.click(),
+  ]);
+  await page.waitForLoadState('networkidle');
+  await step('ticket-detail', new URL(page.url()).pathname);
+  const detail = {
+    heading: await page.locator('h1').first().innerText(),
+    url: page.url(),
+    hasNumber: (await page.content()).includes(overdueRow.subject.slice(0, 12)),
+  };
+  summary.checks.tl12 = { steps, overdueRow, detail };
+  await context.close();
+  await browser.close();
+}
+
+summary.totals = {
+  scans: summary.scans.length,
+  seriousOrCritical: summary.scans.reduce(
+    (total, scan) =>
+      total +
+      scan.violations
+        .filter((violation) => ['serious', 'critical'].includes(violation.impact))
+        .reduce((all, violation) => all + violation.nodes, 0),
+    0,
+  ),
+  anyViolationNodes: summary.scans.reduce(
+    (total, scan) => total + scan.violations.reduce((all, violation) => all + violation.nodes, 0),
+    0,
+  ),
+  overflow375: summary.scans
+    .filter((scan) => scan.width === 375 && scan.horizontalOverflowPx > 0)
+    .map((scan) => `${scan.base}:${scan.theme}:${scan.slug}:${scan.horizontalOverflowPx}`),
+  redirectedToLogin: summary.scans
+    .filter((scan) => scan.finalPath.startsWith('/login') && scan.slug !== 'login')
+    .map((scan) => `${scan.theme}-${scan.width}-${scan.slug}`),
+  consoleErrorScans: summary.scans
+    .filter((scan) => scan.consoleErrors.length > 0)
+    .map((scan) => `${scan.theme}-${scan.width}-${scan.slug}`),
+  themeAttributeMismatches: summary.scans
+    .filter((scan) => scan.themeAttribute !== scan.theme)
+    .map((scan) => `${scan.theme}-${scan.width}-${scan.slug}:${scan.themeAttribute}`),
+};
+writeFileSync(join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify({ totals: summary.totals, checks: summary.checks }, null, 2));

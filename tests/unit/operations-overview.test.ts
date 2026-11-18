@@ -1,6 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   OPERATIONS_METRICS,
+  approvalQueueHref,
+  groupHomeWork,
+  homeDueBucket,
+  homeDueContext,
+  homeWorkQuery,
+  homeWorkQueueHref,
+  inboxDeadlineText,
+  inboxItemHref,
+  isApprovalInboxItem,
+  isWorkClockPaused,
   operationsDeadlineQuery,
   operationsHref,
   operationsMetricQuery,
@@ -10,6 +22,7 @@ import {
   parseOperationsGroup,
   parseOperationsOverview,
 } from '../../apps/web/src/lib/operations-overview';
+import type { TicketView } from '../../apps/web/src/lib/api';
 import { safeReturnTo, withReturnTo } from '../../apps/web/src/lib/navigation';
 import { api } from '../../apps/web/src/lib/api';
 
@@ -19,6 +32,21 @@ afterEach(() => vi.unstubAllGlobals());
 
 const groupId = '04000000-0000-4000-8000-000000000001';
 const openStates = ['new', 'assigned', 'in_progress', 'pending'];
+const stylesheet = readFileSync(join(process.cwd(), 'apps/web/src/app/freshservice.css'), 'utf8');
+
+function blockAfter(source: string, start: number): string | null {
+  const open = source.indexOf('{', start);
+  if (open === -1) return null;
+  let depth = 0;
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    else if (source[index] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(open + 1, index);
+    }
+  }
+  return null;
+}
 
 const aggregate = () => ({
   scope: 'organization',
@@ -244,5 +272,241 @@ describe('解決SLAの未設定と期限境界', () => {
   it('超過と残時間を既存の時間表現で区別する', () => {
     expect(operationsSlaText({ remainingSeconds: -3600, breached: true })).toBe('1時間超過');
     expect(operationsSlaText({ remainingSeconds: 7200, breached: false })).toBe('あと2時間');
+  });
+});
+
+const homeTicket = (
+  id: string,
+  remainingSeconds: number | null | undefined,
+  state: string = 'new',
+): TicketView => ({
+  id,
+  number: `#${id}`,
+  kind: 'incident',
+  state,
+  subject: `合成チケット ${id}`,
+  body: '合成データ',
+  impact: 'medium',
+  urgency: 'medium',
+  priority: 'medium',
+  createdAt: '2026-11-18T00:00:00.000Z',
+  resolvedAt: null,
+  assigned: true,
+  assigneeName: '合成 担当者',
+  assigneeGroupName: '合成グループ',
+  ...(remainingSeconds === undefined
+    ? {}
+    : { sla: { remainingSeconds, breached: (remainingSeconds ?? 0) < 0 } }),
+});
+
+// 2026-11-18(水) 14:00 JST。週は 11/15(日) 0:00〜11/22(日) 0:00 JST。
+const wednesday = new Date('2026-11-18T05:00:00.000Z');
+
+describe('UI v2ホームの自分の担当条件', () => {
+  it('未完了・自分の担当・期限順だけを組み立て、グループで絞らない', () => {
+    const query = homeWorkQuery();
+    expect([...query]).toEqual([
+      ['state', 'new'],
+      ['state', 'assigned'],
+      ['state', 'in_progress'],
+      ['state', 'pending'],
+      ['assignment', 'mine'],
+      ['sort', 'deadline'],
+    ]);
+    expect(query.get('group')).toBeNull();
+    expect(query.get('requester')).toBeNull();
+    expect(homeWorkQueueHref()).toBe(`/ops?${query.toString()}`);
+  });
+});
+
+describe('UI v2ホームの日本時間の期限境界', () => {
+  it('日付と週の境界を日本時間で求める', () => {
+    expect(homeDueContext(wednesday)).toEqual({
+      today: '2026-11-18',
+      todayStartMs: Date.parse('2026-11-17T15:00:00.000Z'),
+      tomorrowStartMs: Date.parse('2026-11-18T15:00:00.000Z'),
+      weekStartMs: Date.parse('2026-11-14T15:00:00.000Z'),
+      weekEndMs: Date.parse('2026-11-21T15:00:00.000Z'),
+    });
+  });
+
+  it('日付をまたぐ境界では翌日を今日にしない', () => {
+    const beforeMidnight = new Date('2026-11-18T14:59:59.000Z'); // 水 23:59:59 JST
+    const midnight = new Date('2026-11-18T15:00:00.000Z'); // 木 0:00 JST
+    expect(homeDueBucket(beforeMidnight, beforeMidnight)).toBe('today');
+    expect(homeDueBucket(midnight, beforeMidnight)).toBe('week');
+  });
+
+  it('今週は土曜24:00までで、日曜0:00は翌週にする', () => {
+    const lastSecond = new Date('2026-11-21T14:59:59.000Z'); // 土 23:59:59 JST
+    const sunday = new Date('2026-11-21T15:00:00.000Z'); // 日 0:00 JST
+    expect(homeDueBucket(lastSecond, wednesday)).toBe('week');
+    expect(homeDueBucket(sunday, wednesday)).toBe('later');
+  });
+
+  it('土曜の翌日は同じ週に含めない', () => {
+    const saturday = new Date('2026-11-21T14:00:00.000Z'); // 土 23:00 JST
+    const sunday = new Date('2026-11-21T15:00:00.000Z');
+    expect(homeDueBucket(sunday, saturday)).toBe('later');
+  });
+
+  it('日曜0:00の週は翌週土曜24:00までを今週とする', () => {
+    const sunday = new Date('2026-11-21T15:00:00.000Z'); // 日 0:00 JST
+    expect(homeDueBucket(new Date('2026-11-22T03:00:00.000Z'), sunday)).toBe('today');
+    expect(homeDueBucket(new Date('2026-11-22T15:00:00.000Z'), sunday)).toBe('week');
+    expect(homeDueBucket(new Date('2026-11-28T15:00:00.000Z'), sunday)).toBe('later');
+  });
+
+  it('期限を過ぎたものは今日でも超過にする', () => {
+    expect(homeDueBucket(new Date('2026-11-18T04:59:59.000Z'), wednesday)).toBe('overdue');
+    expect(homeDueBucket(wednesday, wednesday)).toBe('today');
+  });
+});
+
+describe('UI v2ホームの期限別の並べ方', () => {
+  it('APIの期限順を保ち、超過・今日・今週・今週より後・未設定に分ける', () => {
+    const grouped = groupHomeWork(
+      [
+        homeTicket('overdue', -7200),
+        homeTicket('today', 0),
+        homeTicket('week', 25 * 3600),
+        homeTicket('later', 6 * 24 * 3600),
+        homeTicket('unplanned', null),
+        homeTicket('missing', undefined),
+      ],
+      wednesday,
+    );
+    expect(grouped.overdue.map((item) => item.ticket.id)).toEqual(['overdue']);
+    expect(grouped.today.map((item) => item.ticket.id)).toEqual(['today']);
+    expect(grouped.week.map((item) => item.ticket.id)).toEqual(['week']);
+    expect(grouped.later.map((item) => item.ticket.id)).toEqual(['later']);
+    expect(grouped.unplanned.map((item) => item.ticket.id)).toEqual(['unplanned', 'missing']);
+  });
+
+  it('残り時間を日本時間の期限表示へ戻し、超過を文字でも示す', () => {
+    const grouped = groupHomeWork(
+      [homeTicket('overdue', -7200), homeTicket('today', 3 * 3600), homeTicket('week', 25 * 3600)],
+      wednesday,
+    );
+    expect(grouped.overdue[0]?.dueAt?.toISOString()).toBe('2026-11-18T03:00:00.000Z');
+    expect(grouped.overdue[0]?.dueLabel).toContain('2時間超過');
+    expect(grouped.today[0]?.dueLabel).toBe('今日 17:00');
+    expect(grouped.week[0]?.dueLabel).toBe('11月19日(木)');
+  });
+
+  it('残り0秒を前日にせず、今日として扱う', () => {
+    const grouped = groupHomeWork([homeTicket('now', 0)], wednesday);
+    expect(grouped.overdue).toHaveLength(0);
+    expect(grouped.today.map((item) => item.ticket.id)).toEqual(['now']);
+  });
+
+  it('日付をまたぐ1秒を翌日側へ置く', () => {
+    const beforeMidnight = new Date('2026-11-18T14:59:59.000Z');
+    const grouped = groupHomeWork([homeTicket('next-day', 1)], beforeMidnight);
+    expect(grouped.today).toHaveLength(0);
+    expect(grouped.week.map((item) => item.ticket.id)).toEqual(['next-day']);
+  });
+});
+
+describe('UI v2ホームのSLA計測停止', () => {
+  it('pendingは期限を作らず、超過・今日・今週に含めない', () => {
+    const grouped = groupHomeWork(
+      [homeTicket('active', 3 * 3600), homeTicket('paused', 3 * 3600, 'pending')],
+      wednesday,
+    );
+    expect(grouped.overdue).toHaveLength(0);
+    expect(grouped.today.map((item) => item.ticket.id)).toEqual(['active']);
+    expect(grouped.week).toHaveLength(0);
+    expect(grouped.paused.map((item) => item.ticket.id)).toEqual(['paused']);
+    expect(grouped.paused[0]).toMatchObject({ dueAt: null, dueLabel: 'SLA停止' });
+  });
+
+  it('/ops の「SLA停止」と同じく pending だけを停止中として扱う', () => {
+    expect(isWorkClockPaused({ state: 'pending' })).toBe(true);
+    for (const state of ['new', 'assigned', 'in_progress', 'resolved', 'closed'])
+      expect(isWorkClockPaused({ state })).toBe(false);
+  });
+});
+
+describe('UI v2ホームの承認待ちと通知', () => {
+  it('承認待ちはAPIと同じ分類だけを選ぶ', () => {
+    expect(
+      isApprovalInboxItem({ kind: 'request_approval', state: 'pending', waiting: false }),
+    ).toBe(true);
+    expect(isApprovalInboxItem({ kind: 'change', state: 'review', waiting: false })).toBe(true);
+    expect(isApprovalInboxItem({ kind: 'change', state: 'review', waiting: true })).toBe(false);
+    expect(isApprovalInboxItem({ kind: 'change', state: 'scheduled', waiting: false })).toBe(false);
+    expect(isApprovalInboxItem({ kind: 'ticket', state: 'new', waiting: false })).toBe(false);
+  });
+
+  it('承認画面と変更画面だけをリンク先にし、それ以外は受信箱へ戻す', () => {
+    const request = '/requests/01900000-0000-4000-8000-000000000001';
+    const change = '/changes/01900000-0000-4000-8000-000000000002';
+    const ticket = '/ops/01900000-0000-4000-8000-000000000003';
+    expect(inboxItemHref(request)).toBe(request);
+    expect(inboxItemHref(change)).toBe(change);
+    expect(inboxItemHref(ticket)).toBe(ticket);
+    for (const href of ['/ops/1', 'https://example.invalid/', 'javascript:alert(1)', '//evil'])
+      expect(inboxItemHref(href)).toBe('/inbox');
+  });
+
+  it('全件の承認待ちを確認する先は既存の kind=approval の絞り込みにする', () => {
+    expect(approvalQueueHref()).toBe('/inbox?kind=approval');
+  });
+
+  it('承認期限の未設定・計測停止・超過を区別する', () => {
+    expect(
+      inboxDeadlineText({ label: '承認期限', status: 'none', at: null, remainingSeconds: null }),
+    ).toBeNull();
+    expect(
+      inboxDeadlineText({ label: '承認期限', status: 'paused', at: null, remainingSeconds: 60 }),
+    ).toBe('計測停止');
+    expect(
+      inboxDeadlineText({
+        label: '承認期限',
+        status: 'overdue',
+        at: '2026-11-18T05:00:00.000Z',
+        remainingSeconds: -3600,
+      }),
+    ).toContain('1時間超過');
+    expect(
+      inboxDeadlineText({
+        label: '承認期限',
+        status: 'upcoming',
+        at: null,
+        remainingSeconds: 7200,
+      }),
+    ).toBe('あと2時間');
+  });
+});
+
+describe('UI v2ホームの一覧行の折り返し', () => {
+  // 1120px: 1120-256(サイドバー)-64(本文余白)-380(右列)-32(間隔)-40(パネル余白)=348px
+  // 1280px: 508px、1440px: 668px。600px未満の1120/1280は縦積み、1440は4列のまま。
+  it('一覧パネルの幅で行を縦に積み、ビューポート幅では切り替えない', () => {
+    const panel = [...stylesheet.matchAll(/\.home-panel\s*\{([^}]*)\}/g)]
+      .map((match) => match[1] ?? '')
+      .find((body) => body.includes('container-type'));
+    expect(panel).toMatch(/container-type:\s*inline-size/);
+
+    const containers = [...stylesheet.matchAll(/@container\s*\(([^)]*)\)\s*\{/g)]
+      .map((match) => ({
+        condition: match[1] ?? '',
+        body: blockAfter(stylesheet, match.index ?? 0) ?? '',
+      }))
+      .filter(({ body }) => body.includes('.home-work-row'));
+    expect(containers).toHaveLength(1);
+    const [container] = containers;
+    const maxWidth = Number(container!.condition.match(/max-width:\s*(\d+)px/)?.[1]);
+    // 固定幅の列(18+140+170+gap36=364px)に加えて、件名に200px近くを残せる幅で縦に積む。
+    expect(maxWidth).toBeGreaterThanOrEqual(560);
+    expect(container!.body).toMatch(
+      /\.home-work-row\s*\{[^}]*grid-template-columns:\s*16px\s+minmax\(0,\s*1fr\)/,
+    );
+    expect(container!.body).toMatch(/\.home-work-group-name,[\s\S]*?grid-column:\s*2/);
+    expect(container!.body).toMatch(/\.home-work-due\s*\{[^}]*text-align:\s*left/);
+
+    for (const media of stylesheet.matchAll(/@media[^{]+\{/g))
+      expect(blockAfter(stylesheet, media.index ?? 0) ?? '').not.toContain('.home-work-row');
   });
 });

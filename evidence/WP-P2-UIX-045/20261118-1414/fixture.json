@@ -1,0 +1,108 @@
+{
+  "organizationId": "00000000-0000-4000-9000-000000000001",
+  "adminUserId": "00000000-0000-4000-9000-000000000101",
+  "tickets": [
+    {
+      "key": "overdue-2h",
+      "id": "01a1ed16-3898-7000-b6a6-64327a12ccf3",
+      "number": "INC-2026-000001",
+      "priority": "critical",
+      "state": "in_progress",
+      "group": "infra",
+      "dueAt": "2026-11-18T03:16:58.888Z",
+      "remainingSeconds": -7200
+    },
+    {
+      "key": "overdue-1d",
+      "id": "01a1ed16-38a7-7000-9ec2-d63f33f96e07",
+      "number": "INC-2026-000002",
+      "priority": "high",
+      "state": "in_progress",
+      "group": "helpdesk",
+      "dueAt": "2026-11-17T03:16:58.888Z",
+      "remainingSeconds": -93600
+    },
+    {
+      "key": "today",
+      "id": "01a1ed16-38b0-7000-b912-04f9d4781443",
+      "number": "INC-2026-000003",
+      "priority": "medium",
+      "state": "in_progress",
+      "group": "helpdesk",
+      "dueAt": "2026-11-18T08:00:00.000Z",
+      "remainingSeconds": 9781
+    },
+    {
+      "key": "week-thu",
+      "id": "01a1ed16-38b8-7000-bb56-7727619b4365",
+      "number": "INC-2026-000004",
+      "priority": "medium",
+      "state": "in_progress",
+      "group": "infra",
+      "dueAt": "2026-11-19T06:00:00.000Z",
+      "remainingSeconds": 88981
+    },
+    {
+      "key": "week-fri",
+      "id": "01a1ed16-38c1-7000-9f3d-782b669aa080",
+      "number": "INC-2026-000005",
+      "priority": "low",
+      "state": "in_progress",
+      "group": "helpdesk",
+      "dueAt": "2026-11-20T02:00:00.000Z",
+      "remainingSeconds": 160981
+    },
+    {
+      "key": "later",
+      "id": "01a1ed16-38c9-7000-b9dd-dc97d0579de6",
+      "number": "INC-2026-000006",
+      "priority": "low",
+      "state": "in_progress",
+      "group": "infra",
+      "dueAt": "2026-11-24T01:00:00.000Z",
+      "remainingSeconds": 502981
+    }
+  ],
+  "approval": {
+    "requestId": "01a1ed16-38e1-7001-ada5-55a59ad6a0c8",
+    "ticketId": "01a1ed16-38df-7000-8ec7-c64ebe0030f0",
+    "status": 201
+  },
+  "visible": {
+    "workTotal": 6,
+    "workItems": [
+      {
+        "number": "INC-2026-000002",
+        "subject": "WP45合成: 期限を1日過ぎたアカウント申請",
+        "remainingSeconds": -93600
+      },
+      {
+        "number": "INC-2026-000001",
+        "subject": "WP45合成: 期限を2時間過ぎたネットワーク障害",
+        "remainingSeconds": -7200
+      },
+      {
+        "number": "INC-2026-000003",
+        "subject": "WP45合成: 今日が期限の端末設定",
+        "remainingSeconds": 9781
+      },
+      {
+        "number": "INC-2026-000004",
+        "subject": "WP45合成: 今週木曜が期限の共有フォルダ申請",
+        "remainingSeconds": 88981
+      },
+      {
+        "number": "INC-2026-000005",
+        "subject": "WP45合成: 今週金曜が期限のソフトウェア申請",
+        "remainingSeconds": 160981
+      },
+      {
+        "number": "INC-2026-000006",
+        "subject": "WP45合成: 来週火曜が期限の機器更新相談",
+        "remainingSeconds": 502981
+      }
+    ],
+    "inboxApprovals": 1,
+    "inboxTickets": 6
+  }
+}

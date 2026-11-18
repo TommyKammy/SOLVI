@@ -1,0 +1,2 @@
+$ git ls-files ... | xargs npx eslint --max-warnings=0 --no-warn-ignored
+exit=0
