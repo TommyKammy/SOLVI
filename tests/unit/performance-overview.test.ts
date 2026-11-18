@@ -611,7 +611,7 @@ describe('UI v2 home page request budget', () => {
       ticket(4, 6 * 24 * 3600, '来週が期限の合成チケット'),
       ticket(5, null, '期限が未設定の合成チケット'),
     ],
-    total: 7,
+    total: 5,
     scope: 'organization',
     appliedFilter: {},
     nextCursor: null,
@@ -656,11 +656,11 @@ describe('UI v2 home page request budget', () => {
       ['assignment', 'mine'],
       ['sort', 'deadline'],
     ]);
-    expect(html).toContain('今日の対応は <strong class="home-count">7</strong>件です');
     expect(html).toContain('解決期限超過');
     expect(html).toContain('2時間超過');
     expect(html).toContain('今日 17:00');
     expect(html).toContain('11月19日(木)');
+    expect(html).toContain('今日の対応は <strong class="home-count">5</strong>件です');
     expect(html.indexOf('id="home-work-overdue"')).toBeLessThan(
       html.indexOf('id="home-work-today"'),
     );
@@ -690,21 +690,47 @@ describe('UI v2 home page request budget', () => {
     expect(html).not.toContain('あなたの承認待ちはありません');
   });
 
-  it('keeps SLA-paused tickets out of the deadline buckets and the heading count', async () => {
+  it('counts the heading exactly when every assigned ticket is loaded', async () => {
     const paused = { ...ticket(6, 3 * 3600, 'SLAが止まっている合成チケット'), state: 'pending' };
+    const items = [...work.items, paused];
     homeApi.listTickets.mockResolvedValue({
       ok: true,
-      data: { ...work, items: [...work.items, paused], total: work.total + 1 },
+      data: { ...work, items, total: items.length },
     });
     const html = await renderHome();
     expect(html).toContain('id="home-work-paused"');
     expect(html).toContain('計測停止中（SLA停止）');
     expect(html).toContain('SLA停止');
-    // 8件のうち、表示した停止中1件を見出しの件数から除く。
-    expect(html).toContain('今日の対応は <strong class="home-count">7</strong>件です');
+    // 全6件を読み込んでいるため、停止中1件を除いた5件が正確な見出しの件数。
+    expect(html).toContain('今日の対応は <strong class="home-count">5</strong>件です');
+    expect(html).not.toContain('期限の近い50件のうち');
     const pausedTitle = html.indexOf('SLAが止まっている合成チケット');
     expect(pausedTitle).toBeGreaterThan(html.indexOf('id="home-work-paused"'));
     expect(html.indexOf('SLAが止まっている合成チケット', pausedTitle + 1)).toBe(-1);
+  });
+
+  it('counts only the loaded range and links to the full list when truncated', async () => {
+    const items = Array.from({ length: 50 }, (_, index) =>
+      index === 49
+        ? {
+            ...ticket(300 + index, 3 * 3600, 'SLAが止まっている合成チケット'),
+            state: 'pending',
+          }
+        : ticket(300 + index, 6 * 24 * 3600, `期限が先の合成チケット ${index}`),
+    );
+    homeApi.listTickets.mockResolvedValue({
+      ok: true,
+      data: { ...work, items, total: 51 },
+    });
+    const html = await renderHome();
+    // 全51件ではなく、読み込んだ50件のうち停止中1件を除いた49件。
+    expect(html).toContain(
+      '期限の近い50件のうち、対応中は <strong class="home-count">49</strong>件です',
+    );
+    expect(html).not.toContain('今日の対応は <strong class="home-count">');
+    expect(html).toContain('全51件のうち、期限の近い50件だけを読み込み');
+    expect(html).toContain('全件を期限順の一覧で確認する');
+    expect(html).toContain('href="/ops?state=new');
   });
 
   it('records read through the existing inbox action before opening a notification', async () => {

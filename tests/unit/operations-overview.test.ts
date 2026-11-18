@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   OPERATIONS_METRICS,
@@ -30,6 +32,21 @@ afterEach(() => vi.unstubAllGlobals());
 
 const groupId = '04000000-0000-4000-8000-000000000001';
 const openStates = ['new', 'assigned', 'in_progress', 'pending'];
+const stylesheet = readFileSync(join(process.cwd(), 'apps/web/src/app/freshservice.css'), 'utf8');
+
+function blockAfter(source: string, start: number): string | null {
+  const open = source.indexOf('{', start);
+  if (open === -1) return null;
+  let depth = 0;
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    else if (source[index] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(open + 1, index);
+    }
+  }
+  return null;
+}
 
 const aggregate = () => ({
   scope: 'organization',
@@ -460,5 +477,36 @@ describe('UI v2ホームの承認待ちと通知', () => {
         remainingSeconds: 7200,
       }),
     ).toBe('あと2時間');
+  });
+});
+
+describe('UI v2ホームの一覧行の折り返し', () => {
+  // 1120px: 1120-256(サイドバー)-64(本文余白)-380(右列)-32(間隔)-40(パネル余白)=348px
+  // 1280px: 508px、1440px: 668px。600px未満の1120/1280は縦積み、1440は4列のまま。
+  it('一覧パネルの幅で行を縦に積み、ビューポート幅では切り替えない', () => {
+    const panel = [...stylesheet.matchAll(/\.home-panel\s*\{([^}]*)\}/g)]
+      .map((match) => match[1] ?? '')
+      .find((body) => body.includes('container-type'));
+    expect(panel).toMatch(/container-type:\s*inline-size/);
+
+    const containers = [...stylesheet.matchAll(/@container\s*\(([^)]*)\)\s*\{/g)]
+      .map((match) => ({
+        condition: match[1] ?? '',
+        body: blockAfter(stylesheet, match.index ?? 0) ?? '',
+      }))
+      .filter(({ body }) => body.includes('.home-work-row'));
+    expect(containers).toHaveLength(1);
+    const [container] = containers;
+    const maxWidth = Number(container!.condition.match(/max-width:\s*(\d+)px/)?.[1]);
+    // 固定幅の列(18+140+170+gap36=364px)に加えて、件名に200px近くを残せる幅で縦に積む。
+    expect(maxWidth).toBeGreaterThanOrEqual(560);
+    expect(container!.body).toMatch(
+      /\.home-work-row\s*\{[^}]*grid-template-columns:\s*16px\s+minmax\(0,\s*1fr\)/,
+    );
+    expect(container!.body).toMatch(/\.home-work-group-name,[\s\S]*?grid-column:\s*2/);
+    expect(container!.body).toMatch(/\.home-work-due\s*\{[^}]*text-align:\s*left/);
+
+    for (const media of stylesheet.matchAll(/@media[^{]+\{/g))
+      expect(blockAfter(stylesheet, media.index ?? 0) ?? '').not.toContain('.home-work-row');
   });
 });
