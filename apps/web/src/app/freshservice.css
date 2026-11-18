@@ -322,8 +322,11 @@ body.fs-ui .fs-side-link:focus-visible {
   color: var(--danger);
   font-weight: 700;
 }
-/* ホバー・現在地の面でも4.5:1を保つ。色の違いは数字と太さで補う。 */
+/* ホバー・フォーカス・現在地の行では、強調色を含む件数を --side-ink に固定する。
+   これらの面では --side-muted / --side-brand / --danger の一部が4.5:1を下回るため。
+   色の違いは数字と太さで補う。 */
 body.fs-ui .fs-side-link:hover .fs-side-count,
+body.fs-ui .fs-side-link:focus-visible .fs-side-count,
 body.fs-ui .fs-side-link[aria-current='page'] .fs-side-count {
   color: var(--side-ink);
 }

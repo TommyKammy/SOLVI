@@ -208,6 +208,7 @@ Migrationはない。`AppFrame.tsx` / `freshservice.css` / `navigation-groups.ts
 | 2026-11-18 | Claude | - | Draft | `assets/ui/SOLVI_UI_v2_Mockup.html` | Product OwnerよりUI v2(薄いブルーの左サイドバー)の依頼。モックアップを作成し、WP案を起草した。 |
 | 2026-11-18 | Product Owner | - | Baseline | - | 未決事項の決定を反映し、baselineとして承認。 |
 | 2026-11-18 | Codex | - | Review | `evidence/WP-P2-UIX-044/20261118-1310/` | UI v2のシェル・トークン・テーマ切替を実装。§7の検証はすべて成功(axe 20スキャンで違反0)。Product Ownerの承認待ち。 |
+| 2026-11-18 | Codex | - | Review fix | `evidence/WP-P2-UIX-044/20261118-1310/logs/review-fix.txt` | レビュー指摘2件を修正: 「自分の担当」「解決期限超過」のリンクを`operationsMetricQuery`から生成して件数条件(未完了全体)と一致させ、サイドバー件数をホバー・フォーカス・現在地で`--side-ink`にしてコントラスト検査を追加。 |
 
 ### 2026-11-18 実装結果(Review)
 

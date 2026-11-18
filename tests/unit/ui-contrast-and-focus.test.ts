@@ -101,6 +101,38 @@ describe('UI v2 design tokens', () => {
     }
   });
 
+  it.each<Theme>('keeps sidebar count text at 4.5:1 in every row state (%s)', (theme) => {
+    const combinations: Array<[string, string, string]> = [
+      ['side-muted', 'side', '通常行'],
+      ['side-brand', 'side', '通常行の強調'],
+      ['danger', 'side', '通常行の期限超過'],
+      ['side-ink', 'side', 'フォーカス行'],
+      ['side-ink', 'side-hover', 'ホバー行'],
+      ['side-ink', 'side-current', '現在地'],
+    ];
+    for (const [foreground, background, label] of combinations) {
+      const result = contrast(token(foreground)[theme], token(background)[theme]);
+      expect(
+        result,
+        `${theme}: サイドバー件数 ${label} (${foreground}/${background})`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('switches count text to side-ink on hover, focus and the current row', () => {
+    expect(css).toMatch(/\.fs-side-count\s*{[^}]*color:\s*var\(--side-muted\)/);
+    expect(css).toMatch(
+      /\.fs-side-count\[data-tone='brand'\]\s*{[^}]*color:\s*var\(--side-brand\)/,
+    );
+    expect(css).toMatch(/\.fs-side-count\[data-tone='danger'\]\s*{[^}]*color:\s*var\(--danger\)/);
+    const states =
+      css.match(
+        /body\.fs-ui \.fs-side-link:hover \.fs-side-count,[^}]*{[^}]*color:\s*var\(--side-ink\)/,
+      )?.[0] ?? '';
+    expect(states).toContain('body.fs-ui .fs-side-link:focus-visible .fs-side-count');
+    expect(states).toContain("body.fs-ui .fs-side-link[aria-current='page'] .fs-side-count");
+  });
+
   it.each<Theme>(['light', 'dark'])(
     'keeps control borders at 3:1 against the surface (WCAG 1.4.11, %s)',
     (theme) => {

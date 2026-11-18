@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { SessionView } from '../../apps/web/src/lib/api';
 import { buildNavigationGroups, navigationCounts } from '../../apps/web/src/lib/navigation-groups';
 import { isOrgAdmin, navigationRoles } from '../../apps/web/src/lib/navigation';
+import { operationsMetricQuery } from '../../apps/web/src/lib/operations-overview';
 
 const org = '01900000-0000-4000-8000-000000000001';
 
@@ -93,8 +94,8 @@ describe('approval rule navigation', () => {
 describe('UI v2 sidebar counts', () => {
   const agent = [{ roleCode: 'agent', organizationId: org }];
   const requester = [{ roleCode: 'requester', organizationId: org }];
-  const mine = '/ops?assignment=mine&state=assigned&state=in_progress&state=pending';
-  const breached = '/ops?sla=breached&state=new&state=assigned&state=in_progress&state=pending';
+  const mine = '/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=mine';
+  const breached = '/ops?state=new&state=assigned&state=in_progress&state=pending&sla=breached';
 
   it('keeps the role filter: requester gets no admin or staff ticket entries', () => {
     const all = allItems(requester);
@@ -131,6 +132,34 @@ describe('UI v2 sidebar counts', () => {
     expect(
       groupsWithCounts(agent, counts).flatMap((group) => group.items.filter((item) => item.count)),
     ).toHaveLength(3);
+  });
+
+  it('links each count to the same open-state filter that the overview aggregate uses', () => {
+    const counts = navigationCounts(
+      { counts: { ticket: 0, approval: 0, change: 0 } },
+      { counts: { open: 10, unassigned: 4, mine: 7, pending: 2, breached: 1, critical: 0 } },
+    );
+    const ticketItems = groupsWithCounts(agent, counts).find(
+      (group) => group.id === 'tickets',
+    )?.items;
+    const mineItem = ticketItems?.find((item) => item.href === mine);
+    const breachedItem = ticketItems?.find((item) => item.href === breached);
+
+    expect(mineItem?.count).toEqual({ value: 7 });
+    expect(breachedItem?.count).toEqual({ value: 1, tone: 'danger' });
+
+    for (const [metric, item] of [
+      ['mine', mineItem],
+      ['breached', breachedItem],
+    ] as const) {
+      expect(item).toBeDefined();
+      const query = new URLSearchParams(item!.href.split('?')[1]);
+      // 件数の条件は api.ticketOverview の未完了全体(newを含む)。
+      expect(query.getAll('state')).toEqual(['new', 'assigned', 'in_progress', 'pending']);
+      expect(query.toString()).toBe(operationsMetricQuery(metric, '').toString());
+    }
+    expect(new URLSearchParams(mine.split('?')[1]).get('assignment')).toBe('mine');
+    expect(new URLSearchParams(breached.split('?')[1]).get('sla')).toBe('breached');
   });
 
   it('omits every count when both readers fail (never an error or a zero)', () => {

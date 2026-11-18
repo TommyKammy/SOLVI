@@ -1,7 +1,11 @@
 import type { navigationRoles } from './navigation';
 import type { FreshserviceIconName } from '../components/FreshserviceIcon';
 import type { InboxView } from './api';
-import type { OperationsOverviewCounts } from './operations-overview';
+import {
+  operationsMetricQuery,
+  operationsQueueHref,
+  type OperationsOverviewCounts,
+} from './operations-overview';
 
 /** サイドバーに併記する件数。取得できなかった項目は `null` にする。 */
 export type NavigationCounts = {
@@ -73,6 +77,16 @@ export function navigationCounts(
 }
 
 /**
+ * サイドバーの件数と一覧の条件を一致させる。
+ *
+ * `api.ticketOverview` の mine / breached は未完了の全状態(`new`を含む)を数える。
+ * リンクだけ `new` を落とすと件数と一覧が食い違うため、運営状況と同じ
+ * `operationsMetricQuery` から作る。
+ */
+const MINE_HREF = operationsQueueHref(operationsMetricQuery('mine', ''));
+const BREACHED_HREF = operationsQueueHref(operationsMetricQuery('breached', ''));
+
+/**
  * ロールから左サイドバーの項目を組み立てる (WP-P2-UIX-025 / WP-P2-UIX-044)。
  *
  * **表示しないことを認可にしない。** ここは「押しても拒否される入口を並べない」
@@ -101,18 +115,8 @@ export function buildNavigationGroups(
     ...(roles.staff
       ? [
           item('/ops', 'チケット対応'),
-          item(
-            '/ops?assignment=mine&state=assigned&state=in_progress&state=pending',
-            '自分の担当',
-            '/ops',
-            count('mine'),
-          ),
-          item(
-            '/ops?sla=breached&state=new&state=assigned&state=in_progress&state=pending',
-            '解決期限超過',
-            '/ops',
-            count('breached', 'danger'),
-          ),
+          item(MINE_HREF, '自分の担当', '/ops', count('mine')),
+          item(BREACHED_HREF, '解決期限超過', '/ops', count('breached', 'danger')),
         ]
       : []),
     item('/tickets/new', '新規チケット'),
