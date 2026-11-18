@@ -3,7 +3,12 @@
 import React, { createElement, type AnchorHTMLAttributes, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { api, requireSession, type TicketView } from '../../apps/web/src/lib/api';
+import { api, requireSession, type CommentView, type TicketView } from '../../apps/web/src/lib/api';
+import {
+  CommentThread,
+  commentHistoryLabel,
+  publicCommentDirection,
+} from '../../apps/web/src/components/CommentThread';
 import { notFound, redirect } from 'next/navigation';
 
 const jar = vi.hoisted(() => ({ calls: 0 }));
@@ -244,6 +249,60 @@ describe('requester detail recovery page', () => {
       if (state === 'resolved') expect(html).toContain('まだ解決していないと伝える');
     },
   );
+});
+
+describe('comment direction labels in the shared thread and history', () => {
+  const requesterId = '07100000-0000-4000-8000-000000000002';
+  const agentId = '07100000-0000-4000-8000-000000000003';
+  const comment = (overrides: Partial<CommentView>): CommentView => ({
+    id: 'c-1',
+    ticketId: id,
+    authorId: agentId,
+    visibility: 'public',
+    body: '合成のコメント',
+    createdAt: '2026-10-10T02:00:00Z',
+    ...overrides,
+  });
+  const thread = (comments: CommentView[]) =>
+    renderToStaticMarkup(createElement(CommentThread, { comments, currentUserId: requesterId }));
+
+  it.each([
+    [true, '依頼者からのコメント', '依頼者からのコメントを追加'],
+    [false, '依頼者への返信', '依頼者への返信を追加'],
+    [undefined, '公開コメント', '公開コメントを追加'],
+  ] as const)(
+    'uses authorIsRequester=%s for public comments',
+    (flag, threadLabel, historyLabel) => {
+      expect(publicCommentDirection(flag)).toBe(threadLabel);
+      expect(commentHistoryLabel('public', flag)).toBe(historyLabel);
+    },
+  );
+
+  it('does not call a requester-authored public comment a reply in the thread', () => {
+    const html = thread([comment({ authorId: requesterId, authorIsRequester: true })]);
+    expect(html).toContain('依頼者からのコメント');
+    expect(html).not.toContain('依頼者への返信');
+    expect(html).toContain('自分');
+  });
+
+  it('keeps an agent-authored public comment as a reply to the requester', () => {
+    const html = thread([comment({ authorIsRequester: false })]);
+    expect(html).toContain('依頼者への返信');
+    expect(html).not.toContain('依頼者からのコメント');
+    expect(html).toContain('担当者');
+  });
+
+  it('keeps internal notes unchanged and avoids guessing an unknown direction', () => {
+    const internal = thread([comment({ visibility: 'internal', authorIsRequester: true })]);
+    expect(internal).toContain('社内メモ（依頼者には表示されません）');
+    expect(internal).not.toContain('依頼者からのコメント');
+    expect(commentHistoryLabel('internal', true)).toBe('社内メモを追加');
+
+    const unknown = thread([comment({ authorIsRequester: undefined })]);
+    expect(unknown).toContain('公開コメント');
+    expect(unknown).not.toContain('依頼者への返信');
+    expect(unknown).not.toContain('依頼者からのコメント');
+  });
 });
 
 describe('dedicated requester detail GET', () => {

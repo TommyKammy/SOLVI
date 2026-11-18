@@ -4,6 +4,18 @@ import { api, requireSession, type InboxItem } from '../../lib/api';
 import { formatDateTime, formatRemaining } from '../../lib/labels';
 import { InboxOpenForm } from '../../components/InboxOpenForm';
 export const dynamic = 'force-dynamic';
+
+/** UI v2 の共通表で使う種類の表示。APIの識別子は画面へ出さない。 */
+const INBOX_KIND_LABELS: Record<InboxItem['kind'], string> = {
+  ticket: 'チケット',
+  request_approval: '申請承認',
+  change: '変更',
+};
+
+function inboxKindLabel(kind: InboxItem['kind']): string {
+  return INBOX_KIND_LABELS[kind];
+}
+
 function deadlineText(item: InboxItem) {
   const d = item.deadline;
   return d.status === 'none'
@@ -62,7 +74,7 @@ export default async function InboxPage({
     return '/inbox?' + next.toString();
   };
   return (
-    <main id="main" className="shell ops-shell">
+    <main id="main" className="shell ops-shell inbox-page">
       <p className="eyebrow">担当ワークスペース</p>
       <h1>業務受信箱</h1>
       <p className="lead">自分の担当、指名された承認、変更の予定を確認して、次の作業へ進みます。</p>
@@ -152,15 +164,25 @@ export default async function InboxPage({
           )}
         </section>
       ) : (
-        <TableRegion label="業務一覧">
-          <table className="work-table inbox-table">
+        <TableRegion label="業務一覧" className="table-scroll table-scroll--plain">
+          <table className="work-table inbox-table inbox-table--v2">
             <caption>
               表示対象 {d.total} 件中 {d.items.length} 件を表示
             </caption>
+            <colgroup>
+              <col className="inbox-col-number" />
+              <col />
+              <col className="inbox-col-kind" />
+              <col className="inbox-col-state" />
+              <col className="inbox-col-deadline" />
+              <col className="inbox-col-action" />
+            </colgroup>
             <thead>
               <tr>
-                <th scope="col">業務</th>
-                <th scope="col">状況・待ち先</th>
+                <th scope="col">番号</th>
+                <th scope="col">件名</th>
+                <th scope="col">種類</th>
+                <th scope="col">状態</th>
                 <th scope="col">期限</th>
                 <th scope="col">次の対応</th>
               </tr>
@@ -168,15 +190,23 @@ export default async function InboxPage({
             <tbody>
               {d.items.map((item) => (
                 <tr key={item.kind + ':' + item.id}>
+                  <td className="inbox-number">
+                    <span className="cell-clip">{item.number}</span>
+                  </td>
                   <td className="ticket-subject">
-                    <span className="record-number">
-                      {item.number} · {item.scopeLabel}
-                    </span>
                     <strong className="record-title">{item.title}</strong>
                     <span className={`update-label${item.unread ? ' unread' : ''}`}>
                       {item.unread ? '新しい更新' : '既読の更新'}
                     </span>
-                    <span className="hint"> · 更新 {formatDateTime(item.updatedAt)}</span>
+                    <span className="hint">
+                      {' '}
+                      · {item.scopeLabel} · 更新 {formatDateTime(item.updatedAt)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="kind-label" data-kind={item.kind}>
+                      {inboxKindLabel(item.kind)}
+                    </span>
                   </td>
                   <td>
                     <span className="state" data-state={item.state}>
@@ -187,7 +217,7 @@ export default async function InboxPage({
                       <p className="hint">保存済み結果を保持してPIRを追加</p>
                     )}
                   </td>
-                  <td>
+                  <td className="inbox-deadline">
                     <span className={`deadline-label deadline-${item.deadline.status}`}>
                       {deadlineText(item)}
                     </span>
@@ -198,7 +228,7 @@ export default async function InboxPage({
                       </p>
                     )}
                   </td>
-                  <td>
+                  <td className="inbox-action">
                     <InboxOpenForm key={item.eventKey} item={item} />
                   </td>
                 </tr>
@@ -207,7 +237,7 @@ export default async function InboxPage({
           </table>
         </TableRegion>
       )}
-      <nav className="queue-shortcuts" aria-label="受信箱のページ">
+      <nav className="pagination inbox-pagination" aria-label="受信箱のページ">
         {d.page > 1 && <Link href={pageLink(d.page - 1)}>前のページ</Link>}
         {d.page * d.pageSize < d.total && <Link href={pageLink(d.page + 1)}>次のページ</Link>}
       </nav>

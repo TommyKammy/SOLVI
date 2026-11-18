@@ -3673,6 +3673,445 @@ body.fs-ui .home-empty a {
 }
 
 /* ------------------------------------------------------------------------- */
+/* UI v2 チケット一覧・詳細 (WP-P2-UIX-046)                                  */
+/* ------------------------------------------------------------------------- */
+
+/* 一覧の絞り込みボタン。押下状態は aria-pressed で伝える。 */
+.queue-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+body.fs-ui a.queue-metric {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--fs-control-border);
+  border-radius: var(--fs-radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+body.fs-ui a.queue-metric:hover {
+  background: var(--hover);
+  color: var(--ink);
+  text-decoration: none;
+}
+body.fs-ui a.queue-metric[aria-pressed='true'] {
+  border-color: var(--btn);
+  background: var(--btn);
+  color: var(--btn-ink);
+  font-weight: 700;
+}
+.queue-custom-note {
+  margin: -2px 0 12px;
+}
+.queue-custom-note .queue-custom-view {
+  padding: 0 6px 0 0;
+}
+.queue-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+body.fs-ui .queue-filter-link {
+  display: inline-flex;
+}
+.queue-filter-panel {
+  margin: 0 0 12px;
+}
+.queue-filter-panel > summary {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.queue-filter-panel > summary:hover {
+  color: var(--side-brand);
+}
+.queue-filter-panel .filters {
+  margin-bottom: 0;
+}
+
+/* 罫線だけの表。外枠は付けず、横スクロールは TableRegion が持つ。 */
+body.fs-ui .table-scroll.table-scroll--plain {
+  max-width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  /* 固定幅の表が文書全体のスクロール幅へ漏れないようにする。
+     横スクロールはこの領域の中だけで起きる(375pxで実測)。 */
+  contain: paint;
+}
+body.fs-ui .fs-queue-table.fs-queue-table--v2,
+body.fs-ui .inbox-table.inbox-table--v2 {
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: transparent;
+}
+body.fs-ui .fs-queue-table.fs-queue-table--v2 {
+  min-width: 1040px;
+}
+body.fs-ui .inbox-table.inbox-table--v2 {
+  min-width: 940px;
+}
+body.fs-ui table.tickets.fs-queue-table--v2 th,
+body.fs-ui .work-table.inbox-table--v2 th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+body.fs-ui table.tickets.fs-queue-table--v2 td,
+body.fs-ui .work-table.inbox-table--v2 td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  vertical-align: top;
+  white-space: nowrap;
+}
+body.fs-ui table.tickets.fs-queue-table--v2 tbody tr:hover td,
+body.fs-ui .work-table.inbox-table--v2 tbody tr:hover td {
+  background: var(--hover);
+}
+body.fs-ui table.tickets.fs-queue-table--v2 tbody tr:last-child td,
+body.fs-ui .work-table.inbox-table--v2 tbody tr:last-child td {
+  border-bottom: 1px solid var(--line);
+}
+body.fs-ui .fs-queue-table--v2 .ticket-subject,
+body.fs-ui .inbox-table--v2 .ticket-subject {
+  min-width: 0;
+  white-space: normal;
+}
+body.fs-ui table.tickets.fs-queue-table--v2 td.ticket-subject,
+body.fs-ui .work-table.inbox-table--v2 td.ticket-subject {
+  min-width: 0;
+  white-space: normal;
+}
+body.fs-ui .fs-queue-table.fs-queue-table--v2 th {
+  /* 旧UIX-026の列幅(th:nth-child)を打ち消し、colgroupの比率を使う。 */
+  width: auto;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-number {
+  width: 12%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-subject {
+  width: 27%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-state {
+  width: 10%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-priority {
+  width: 7.5%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-group {
+  width: 11%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-assignee {
+  width: 9.5%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-deadline {
+  width: 10.5%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-requester {
+  width: 8%;
+}
+body.fs-ui .fs-queue-table--v2 .queue-col-created {
+  width: 4.5%;
+}
+body.fs-ui .inbox-table--v2 .inbox-col-number {
+  width: 132px;
+}
+body.fs-ui .inbox-table--v2 .inbox-col-kind {
+  width: 100px;
+}
+body.fs-ui .inbox-table--v2 .inbox-col-state {
+  width: 160px;
+}
+body.fs-ui .inbox-table--v2 .inbox-col-deadline {
+  width: 230px;
+}
+body.fs-ui .inbox-table--v2 .inbox-col-action {
+  width: 150px;
+}
+body.fs-ui table.tickets.fs-queue-table--v2 .queue-number,
+body.fs-ui .work-table.inbox-table--v2 .inbox-number {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.fs-ui .cell-clip {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.fs-ui a.queue-subject {
+  display: inline;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+body.fs-ui a.queue-subject:hover .record-title,
+body.fs-ui a.queue-subject:focus-visible .record-title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+body.fs-ui .fs-queue-table--v2 .record-title,
+body.fs-ui .inbox-table--v2 .record-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+body.fs-ui .fs-queue-table--v2 .record-title {
+  display: inline;
+}
+body.fs-ui .fs-queue-table--v2 .record-kind {
+  display: inline-block;
+  margin-top: 0;
+  margin-left: 8px;
+}
+body.fs-ui .record-kind {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+body.fs-ui .queue-group,
+body.fs-ui .queue-requester {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.fs-ui table.tickets.fs-queue-table--v2 .queue-created {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+body.fs-ui .priority-label[data-priority='critical']::before {
+  background: var(--danger);
+}
+body.fs-ui .priority-label[data-priority='high']::before {
+  background: var(--warn);
+}
+body.fs-ui .priority-label[data-priority='medium']::before,
+body.fs-ui .priority-label[data-priority='low']::before {
+  background: var(--muted);
+}
+body.fs-ui .sla-soon {
+  color: var(--warn);
+  font-weight: 600;
+}
+body.fs-ui .sla-paused {
+  color: var(--muted);
+}
+body.fs-ui .kind-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-sm);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+body.fs-ui .inbox-table--v2 .inbox-action form,
+body.fs-ui .inbox-table--v2 .inbox-action button {
+  width: 100%;
+}
+body.fs-ui .inbox-table--v2 .inbox-action button {
+  min-height: 32px;
+  padding: 4px 10px;
+  white-space: normal;
+  text-align: left;
+}
+body.fs-ui .work-table.inbox-table--v2 td.inbox-deadline {
+  white-space: normal;
+}
+body.fs-ui .inbox-table--v2 .deadline-label {
+  display: inline;
+}
+body.fs-ui .inbox-table--v2 .state {
+  max-width: 100%;
+  white-space: normal;
+}
+body.fs-ui .inbox-pagination {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+/* 詳細: 左にやり取り、右に項目と履歴。 */
+body.fs-ui .ticket-workspace-grid {
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 32px;
+}
+body.fs-ui .ticket-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.fs-ui .ticket-side-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  background: var(--surface);
+  box-shadow: none;
+}
+body.fs-ui .ticket-side-card > h2:first-child {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+body.fs-ui .ticket-side-card h2 {
+  font-size: 1rem;
+}
+body.fs-ui .ticket-side-card .empty {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+body.fs-ui .workspace-secondary dl.ticket-properties {
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px 12px;
+  margin: 0;
+}
+body.fs-ui .workspace-secondary dl.ticket-properties dt:not(:first-child) {
+  margin-top: 0;
+}
+body.fs-ui .ticket-properties dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+body.fs-ui .ticket-properties dd {
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+body.fs-ui .ticket-sla {
+  color: var(--ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+body.fs-ui .ticket-sla.breached {
+  color: var(--danger);
+  font-weight: 700;
+}
+.ticket-history {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ticket-history li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ticket-history li:first-child {
+  padding-top: 0;
+}
+.ticket-history li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.ticket-history time {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+.ticket-history-label {
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.ticket-history .hint {
+  display: block;
+  overflow-wrap: anywhere;
+}
+body.fs-ui .ticket-side-card .sla-panel {
+  margin: 16px 0 0;
+}
+body.fs-ui .ticket-side-card .actions-row {
+  margin-bottom: 4px;
+}
+body.fs-ui .ticket-side-card.workspace-disclosure {
+  margin-top: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  background: var(--surface);
+}
+body.fs-ui .ticket-side-card.workspace-disclosure > summary {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+body.fs-ui .comment.internal {
+  border: 1px solid var(--side-line);
+  border-left: 4px solid var(--side-brand);
+  background: var(--panel);
+}
+body.fs-ui .comment.internal .visibility-label {
+  color: var(--side-brand);
+}
+
+@media (max-width: 800px) {
+  body.fs-ui .ticket-workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  body.fs-ui .queue-metrics {
+    gap: 6px;
+  }
+  body.fs-ui a.queue-metric {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+  body.fs-ui .queue-toolbar {
+    align-items: flex-start;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
 /* 入力方法と強制カラーモードへの適応                                        */
 /* ------------------------------------------------------------------------- */
 

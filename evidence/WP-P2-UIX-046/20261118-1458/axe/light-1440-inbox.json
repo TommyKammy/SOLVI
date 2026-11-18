@@ -1,0 +1,8 @@
+{
+  "theme": "light",
+  "width": 1440,
+  "url": "/inbox",
+  "base": "http://127.0.0.1:3100",
+  "finalPath": "/inbox",
+  "violations": []
+}

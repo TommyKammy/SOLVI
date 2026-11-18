@@ -1,0 +1,14 @@
+
+> solvi@0.1.0 test:unit
+> vitest run tests/unit
+
+
+ RUN  v4.1.12 /Users/jp.infra/Dev/SOLVI
+
+
+ Test Files  116 passed (116)
+      Tests  4810 passed | 26 skipped (4836)
+   Start at  15:44:41
+   Duration  46.40s (transform 1.61s, setup 0ms, import 6.49s, tests 25.47s, environment 5ms)
+
+exit=0

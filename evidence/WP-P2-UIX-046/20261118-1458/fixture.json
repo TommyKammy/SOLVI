@@ -1,0 +1,170 @@
+{
+  "organizationId": "00000000-0000-4000-9000-000000000001",
+  "adminUserId": "00000000-0000-4000-9000-000000000101",
+  "tickets": [
+    {
+      "key": "critical-overdue",
+      "id": "01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "number": "INC-2026-000001",
+      "priority": "critical",
+      "state": "in_progress",
+      "group": "infra",
+      "dueOffsetSeconds": -7200,
+      "assignee": "admin"
+    },
+    {
+      "key": "high-soon",
+      "id": "01a1ed3d-9423-7000-8085-fdf590c35c8a",
+      "number": "INC-2026-000002",
+      "priority": "high",
+      "state": "in_progress",
+      "group": "helpdesk",
+      "dueOffsetSeconds": 10800,
+      "assignee": "admin"
+    },
+    {
+      "key": "medium-today",
+      "id": "01a1ed3d-942c-7000-9c46-504325731c8e",
+      "number": "INC-2026-000003",
+      "priority": "medium",
+      "state": "assigned",
+      "group": "helpdesk",
+      "dueOffsetSeconds": 18000,
+      "assignee": "admin"
+    },
+    {
+      "key": "low-week",
+      "id": "01a1ed3d-9436-7000-84bb-2f8f7c40d36c",
+      "number": "INC-2026-000004",
+      "priority": "low",
+      "state": "new",
+      "group": "infra",
+      "dueOffsetSeconds": 259200,
+      "assignee": null
+    },
+    {
+      "key": "waiting",
+      "id": "01a1ed3d-943e-7000-8eec-68e948e7b5a4",
+      "number": "INC-2026-000005",
+      "priority": "high",
+      "state": "pending",
+      "group": "helpdesk",
+      "dueOffsetSeconds": 72000,
+      "assignee": "admin"
+    },
+    {
+      "key": "resolved",
+      "id": "01a1ed3d-9446-7000-b4a7-75d9777f942f",
+      "number": "INC-2026-000006",
+      "priority": "low",
+      "state": "resolved",
+      "group": "helpdesk",
+      "dueOffsetSeconds": 345600,
+      "assignee": "admin"
+    },
+    {
+      "key": "unassigned-critical",
+      "id": "01a1ed3d-944f-7000-9186-b8e973f5a3f1",
+      "number": "INC-2026-000007",
+      "priority": "critical",
+      "state": "new",
+      "group": null,
+      "dueOffsetSeconds": 2400,
+      "assignee": null
+    },
+    {
+      "key": "other-agent",
+      "id": "01a1ed3d-9457-7000-9e57-a93d1536669d",
+      "number": "INC-2026-000008",
+      "priority": "low",
+      "state": "in_progress",
+      "group": "helpdesk",
+      "dueOffsetSeconds": 172800,
+      "assignee": "agent"
+    }
+  ],
+  "conversation": {
+    "ticketId": "01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+    "comments": [
+      {
+        "id": "01a1ed3d-946e-7000-b50f-145df81a79e7",
+        "visibility": "public"
+      },
+      {
+        "id": "01a1ed3d-9480-7000-a700-422c1ca22cb3",
+        "visibility": "internal"
+      },
+      {
+        "id": "01a1ed3d-9493-7000-b9e9-2fc155dd8e24",
+        "visibility": "public"
+      }
+    ]
+  },
+  "change": {
+    "id": "01a1ed3d-94a8-7000-a6b2-9da807cb3972",
+    "number": "CHG-000001",
+    "state": "draft"
+  },
+  "approval": {
+    "requestId": "01a1ed3d-94c0-7000-88d9-968de05c7f9c",
+    "ticketId": "01a1ed3d-94be-7000-9b9c-9516366960c8",
+    "status": 201
+  },
+  "visible": {
+    "ticketTotal": 9,
+    "ticketNumbers": [
+      "REQ-2026-000001",
+      "INC-2026-000008",
+      "INC-2026-000007",
+      "INC-2026-000006",
+      "INC-2026-000005",
+      "INC-2026-000004",
+      "INC-2026-000003",
+      "INC-2026-000002",
+      "INC-2026-000001"
+    ],
+    "inboxCounts": {
+      "ticket": 4,
+      "approval": 1,
+      "change": 1
+    },
+    "inboxKinds": [
+      {
+        "kind": "change",
+        "number": "CHG-000001",
+        "title": "WP46合成: 監視設定の見直し",
+        "state": "draft"
+      },
+      {
+        "kind": "request_approval",
+        "number": "REQ-2026-000001",
+        "title": "WP46 合成アクセス申請",
+        "state": "pending"
+      },
+      {
+        "kind": "ticket",
+        "number": "INC-2026-000001",
+        "title": "WP46合成: VPNに接続できない（在宅勤務）",
+        "state": "in_progress"
+      },
+      {
+        "kind": "ticket",
+        "number": "INC-2026-000003",
+        "title": "WP46合成: 新入社員3名のアカウント発行",
+        "state": "assigned"
+      },
+      {
+        "kind": "ticket",
+        "number": "INC-2026-000002",
+        "title": "WP46合成: 経費精算システムにログインできない",
+        "state": "in_progress"
+      },
+      {
+        "kind": "ticket",
+        "number": "INC-2026-000005",
+        "title": "WP46合成: 共有フォルダのアクセス権追加",
+        "state": "pending"
+      }
+    ]
+  }
+}

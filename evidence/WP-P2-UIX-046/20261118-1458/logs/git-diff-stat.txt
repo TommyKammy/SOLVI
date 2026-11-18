@@ -1,0 +1,10 @@
+ apps/web/src/app/freshservice.css                  | 439 +++++++++++++++++++
+ apps/web/src/app/inbox/page.tsx                    |  54 ++-
+ apps/web/src/app/ops/[id]/page.tsx                 | 307 +++++++++-----
+ apps/web/src/app/ops/page.tsx                      | 465 ++++++++++++---------
+ apps/web/src/components/CommentThread.tsx          |   5 +-
+ .../06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md |  72 +++-
+ docs/planning/MANIFEST.md                          |   6 +-
+ tests/unit/table-regions.test.ts                   |  39 ++
+ 8 files changed, 1043 insertions(+), 344 deletions(-)
+exit=0
