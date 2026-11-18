@@ -2099,7 +2099,7 @@ body.fs-ui .fs-support--subpage a.fs-support-brand:hover {
 }
 .fs-support--subpage .fs-support-brand-mark {
   background: var(--fs-brand);
-  color: #fff;
+  color: var(--surface);
 }
 body.fs-ui .fs-support--subpage .fs-support-org {
   color: var(--fs-text-muted);
@@ -2838,16 +2838,17 @@ body.fs-ui .directory-cta {
   justify-content: center;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--fs-brand);
+  border: 1px solid var(--btn);
   border-radius: var(--fs-radius-sm);
-  background: var(--fs-brand);
-  color: #fff;
+  background: var(--btn);
+  color: var(--btn-ink);
   font-size: 0.875rem;
   font-weight: 500;
 }
 body.fs-ui .directory-cta:hover {
-  background: var(--fs-brand-strong);
-  border-color: var(--fs-brand-strong);
+  background: color-mix(in srgb, var(--btn) 85%, var(--surface));
+  border-color: color-mix(in srgb, var(--btn) 85%, var(--surface));
+  color: var(--btn-ink);
   text-decoration: none;
 }
 body.fs-ui .directory-cta.secondary {
@@ -2909,7 +2910,7 @@ body.fs-ui .directory-empty {
   place-items: center;
   border-radius: 50%;
   background: var(--fs-brand);
-  color: #fff;
+  color: var(--surface);
   font-size: 0.9375rem;
   font-weight: 700;
 }
