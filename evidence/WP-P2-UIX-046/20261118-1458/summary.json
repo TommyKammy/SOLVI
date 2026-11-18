@@ -1,0 +1,1018 @@
+{
+  "scans": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 846,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops?assignment=unassigned&state=new",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 846,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3102",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1118,
+        "scrollWidth": 1118,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 341,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops?assignment=unassigned&state=new",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 341,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3102",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 341,
+        "scrollWidth": 827,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 846,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops?assignment=unassigned&state=new",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 846,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3102",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1118,
+        "scrollWidth": 1118,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 341,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops?assignment=unassigned&state=new",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 341,
+        "scrollWidth": 880,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3102",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 341,
+        "scrollWidth": 827,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3102",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1120,
+        "scrollWidth": 1120,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1120,
+        "scrollWidth": 1120,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ライト",
+        "担当者未割当"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3100",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1120,
+        "scrollWidth": 1120,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト",
+        "担当者未割当"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3100",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 343,
+        "scrollWidth": 940,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ライト"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1120,
+        "scrollWidth": 1120,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1120,
+        "scrollWidth": 1120,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ダーク",
+        "担当者未割当"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3100",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 1120,
+        "scrollWidth": 1120,
+        "scrollsLocally": false
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "ops",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "ops-filter",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "status": 200,
+      "finalPath": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク",
+        "担当者未割当"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "inbox",
+      "base": "http://127.0.0.1:3100",
+      "path": "/inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": {
+        "clientWidth": 343,
+        "scrollWidth": 940,
+        "scrollsLocally": true
+      },
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "slug": "ticket-detail",
+      "base": "http://127.0.0.1:3100",
+      "path": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "status": 200,
+      "finalPath": "/ops/01a1ed3d-9414-7000-b4d5-4fae3c6a0675",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "table": null,
+      "pressed": [
+        "ダーク"
+      ],
+      "consoleErrors": []
+    }
+  ],
+  "checks": {
+    "ops": {
+      "heading": "問い合わせの一覧",
+      "chips": [
+        {
+          "text": "未完了",
+          "pressed": "false",
+          "role": "button",
+          "href": "/ops?state=new&state=assigned&state=in_progress&state=pending"
+        },
+        {
+          "text": "担当者未割当",
+          "pressed": "false",
+          "role": "button",
+          "href": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=unassigned"
+        },
+        {
+          "text": "自分の担当",
+          "pressed": "false",
+          "role": "button",
+          "href": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=mine"
+        },
+        {
+          "text": "確認・対応待ち",
+          "pressed": "false",
+          "role": "button",
+          "href": "/ops?state=pending"
+        },
+        {
+          "text": "解決期限超過",
+          "pressed": "false",
+          "role": "button",
+          "href": "/ops?state=new&state=assigned&state=in_progress&state=pending&sla=breached"
+        },
+        {
+          "text": "最優先",
+          "pressed": "false",
+          "role": "button",
+          "href": "/ops?state=new&state=assigned&state=in_progress&state=pending&priority=critical"
+        }
+      ],
+      "headers": [
+        "番号",
+        "件名",
+        "状態",
+        "優先度",
+        "担当グループ",
+        "担当者",
+        "解決期限",
+        "依頼者",
+        "受付日"
+      ],
+      "rows": 9,
+      "priorities": [
+        {
+          "text": "低",
+          "priority": "low"
+        },
+        {
+          "text": "低",
+          "priority": "low"
+        },
+        {
+          "text": "最優先",
+          "priority": "critical"
+        },
+        {
+          "text": "低",
+          "priority": "low"
+        },
+        {
+          "text": "高",
+          "priority": "high"
+        },
+        {
+          "text": "低",
+          "priority": "low"
+        },
+        {
+          "text": "中",
+          "priority": "medium"
+        },
+        {
+          "text": "高",
+          "priority": "high"
+        },
+        {
+          "text": "最優先",
+          "priority": "critical"
+        }
+      ],
+      "deadlineTexts": [
+        {
+          "text": "6日23時間",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "2日",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "40分",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "4日",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "SLA停止",
+          "className": "sla sla-paused"
+        },
+        {
+          "text": "3日",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "5時間",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "3時間",
+          "className": "sla sla-ok"
+        },
+        {
+          "text": "解決期限超過、2時間超過",
+          "className": "sla sla-breached"
+        }
+      ]
+    },
+    "opsFilter": {
+      "url": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+      "pressed": [
+        "担当者未割当"
+      ],
+      "unpressed": [
+        "未完了",
+        "自分の担当",
+        "確認・対応待ち",
+        "解決期限超過",
+        "最優先"
+      ],
+      "rows": 3,
+      "assignees": [
+        "担当者未割当",
+        "担当者未割当",
+        "担当者未割当"
+      ],
+      "conditions": [
+        "担当: 未割当 ×",
+        "状況: 受付済み ×",
+        "状況: 担当決定 ×",
+        "状況: 対応中 ×",
+        "状況: 確認・対応待ち ×"
+      ]
+    },
+    "inbox": {
+      "headers": [
+        "番号",
+        "件名",
+        "種類",
+        "状態",
+        "期限",
+        "次の対応"
+      ],
+      "tables": 1,
+      "rows": 6,
+      "kinds": [
+        {
+          "text": "変更",
+          "kind": "change"
+        },
+        {
+          "text": "申請承認",
+          "kind": "request_approval"
+        },
+        {
+          "text": "チケット",
+          "kind": "ticket"
+        },
+        {
+          "text": "チケット",
+          "kind": "ticket"
+        },
+        {
+          "text": "チケット",
+          "kind": "ticket"
+        },
+        {
+          "text": "チケット",
+          "kind": "ticket"
+        }
+      ],
+      "kindSet": [
+        "変更",
+        "申請承認",
+        "チケット"
+      ],
+      "openForms": 6
+    },
+    "detail": {
+      "heading": "WP46合成: VPNに接続できない（在宅勤務）",
+      "properties": [
+        "状態",
+        "優先度",
+        "解決期限",
+        "担当グループ",
+        "担当者",
+        "依頼者",
+        "受付日時",
+        "関連資産"
+      ],
+      "historyCount": 4,
+      "historyNewestFirst": true,
+      "historyLabels": [
+        "依頼者への返信を追加",
+        "社内メモを追加",
+        "依頼者への返信を追加",
+        "起票"
+      ],
+      "internalNotes": [
+        {
+          "label": "社内メモ（依頼者には表示されません）",
+          "background": "rgb(250, 250, 251)"
+        }
+      ],
+      "comments": 3,
+      "routing": {
+        "form": 7,
+        "submitButtons": [
+          "依頼者の返信を待つ",
+          "外部の対応を待つ",
+          "取り消す",
+          "振り先を変える",
+          "見直す",
+          "関連付ける"
+        ],
+        "groupSelect": true,
+        "groupOptions": [
+          "どのグループにも振らない",
+          "インフラ担当(1人)",
+          "ヘルプデスク(1人)"
+        ],
+        "freeTextInputs": [
+          "reason",
+          "targetTicketNumber",
+          "q"
+        ]
+      },
+      "reply": {
+        "textarea": true,
+        "publicChoice": true,
+        "internalChoice": true
+      }
+    },
+    "externalResources": {
+      "externalStylesheets": 0,
+      "externalScripts": 0,
+      "fontFace": 0,
+      "csp": "default-src 'self'; script-src 'self' 'nonce-uRIRl6xXbmJuZugPwT8YwA==' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+    },
+    "tl12": {
+      "steps": [
+        {
+          "name": "login",
+          "url": "http://127.0.0.1:3100/login",
+          "path": "/login",
+          "elapsedMs": 544
+        },
+        {
+          "name": "after-login-inbox",
+          "url": "http://127.0.0.1:3100/inbox",
+          "path": "/inbox",
+          "elapsedMs": 790
+        },
+        {
+          "name": "ticket-list",
+          "url": "http://127.0.0.1:3100/ops",
+          "path": "/ops",
+          "elapsedMs": 929
+        },
+        {
+          "name": "filtered-list",
+          "url": "http://127.0.0.1:3100/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=unassigned",
+          "path": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=unassigned",
+          "elapsedMs": 1102
+        },
+        {
+          "name": "ticket-detail",
+          "url": "http://127.0.0.1:3100/ops/01a1ed3d-94be-7000-9b9c-9516366960c8?returnTo=%2Fops%3Fstate%3Dnew%26state%3Dassigned%26state%3Din_progress%26state%3Dpending%26assignment%3Dunassigned",
+          "path": "/ops/01a1ed3d-94be-7000-9b9c-9516366960c8?returnTo=%2Fops%3Fstate%3Dnew%26state%3Dassigned%26state%3Din_progress%26state%3Dpending%26assignment%3Dunassigned",
+          "elapsedMs": 1232
+        },
+        {
+          "name": "reply-sent",
+          "url": "http://127.0.0.1:3100/ops/01a1ed3d-94be-7000-9b9c-9516366960c8?returnTo=%2Fops%3Fstate%3Dnew%26state%3Dassigned%26state%3Din_progress%26state%3Dpending%26assignment%3Dunassigned",
+          "path": "/ops/01a1ed3d-94be-7000-9b9c-9516366960c8?returnTo=%2Fops%3Fstate%3Dnew%26state%3Dassigned%26state%3Din_progress%26state%3Dpending%26assignment%3Dunassigned",
+          "elapsedMs": 1433
+        }
+      ],
+      "chipState": {
+        "before": "false",
+        "href": "/ops?state=new&state=assigned&state=in_progress&state=pending&assignment=unassigned",
+        "after": "true"
+      },
+      "detail": {
+        "subject": "WP46 合成アクセス申請",
+        "detailHref": "/ops/01a1ed3d-94be-7000-9b9c-9516366960c8?returnTo=%2Fops%3Fstate%3Dnew%26state%3Dassigned%26state%3Din_progress%26state%3Dpending%26assignment%3Dunassigned",
+        "url": "http://127.0.0.1:3100/ops/01a1ed3d-94be-7000-9b9c-9516366960c8?returnTo=%2Fops%3Fstate%3Dnew%26state%3Dassigned%26state%3Din_progress%26state%3Dpending%26assignment%3Dunassigned",
+        "success": "返信を保存しました。",
+        "beforeCommentCount": 7,
+        "afterCommentCount": 8,
+        "beforeHistoryCount": 8,
+        "afterHistoryCount": 9
+      }
+    }
+  },
+  "totals": {
+    "scans": 32,
+    "seriousOrCritical": 0,
+    "anyViolationNodes": 0,
+    "overflow375": [],
+    "afterTableLocalScroll": [
+      {
+        "slug": "ops",
+        "theme": "light",
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      {
+        "slug": "ops-filter",
+        "theme": "light",
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      {
+        "slug": "inbox",
+        "theme": "light",
+        "clientWidth": 343,
+        "scrollWidth": 940,
+        "scrollsLocally": true
+      },
+      {
+        "slug": "ops",
+        "theme": "dark",
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      {
+        "slug": "ops-filter",
+        "theme": "dark",
+        "clientWidth": 343,
+        "scrollWidth": 1040,
+        "scrollsLocally": true
+      },
+      {
+        "slug": "inbox",
+        "theme": "dark",
+        "clientWidth": 343,
+        "scrollWidth": 940,
+        "scrollsLocally": true
+      }
+    ],
+    "redirectedToLogin": [],
+    "consoleErrorScans": [],
+    "themeAttributeMismatches": []
+  }
+}

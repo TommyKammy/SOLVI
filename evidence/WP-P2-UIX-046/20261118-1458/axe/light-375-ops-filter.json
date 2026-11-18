@@ -1,0 +1,8 @@
+{
+  "theme": "light",
+  "width": 375,
+  "url": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+  "base": "http://127.0.0.1:3100",
+  "finalPath": "/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending",
+  "violations": []
+}

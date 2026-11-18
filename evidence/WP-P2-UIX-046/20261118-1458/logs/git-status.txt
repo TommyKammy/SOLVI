@@ -1,0 +1,9 @@
+ M apps/web/src/app/freshservice.css
+ M apps/web/src/app/inbox/page.tsx
+ M apps/web/src/app/ops/[id]/page.tsx
+ M apps/web/src/app/ops/page.tsx
+ M apps/web/src/components/CommentThread.tsx
+ M docs/planning/06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md
+ M docs/planning/MANIFEST.md
+ M tests/unit/table-regions.test.ts
+?? evidence/WP-P2-UIX-046/

@@ -1,0 +1,82 @@
+   ▲ Next.js 15.5.29
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 4.5s
+   Linting and checking validity of types ...
+
+ ⚠ The Next.js plugin was not detected in your ESLint configuration. See https://nextjs.org/docs/app/api-reference/config/eslint#migrating-existing-config
+   Collecting page data ...
+   Generating static pages (0/14) ...
+   Generating static pages (3/14) 
+   Generating static pages (6/14) 
+   Generating static pages (10/14) 
+ ✓ Generating static pages (14/14)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                      161 B         103 kB
+├ ƒ /_not-found                            161 B         103 kB
+├ ƒ /api/draft-scope                       161 B         103 kB
+├ ƒ /api/glpi/[...path]                    161 B         103 kB
+├ ƒ /api/tickets/[id]/attachments          161 B         103 kB
+├ ƒ /assets                              1.23 kB         107 kB
+├ ƒ /assets/[id]                         1.11 kB         107 kB
+├ ƒ /assets/[id]/edit                    2.23 kB         112 kB
+├ ƒ /assets/imports                      1.13 kB         107 kB
+├ ƒ /assets/imports/[id]                 4.49 kB         115 kB
+├ ƒ /assets/imports/[id]/errors            161 B         103 kB
+├ ƒ /assets/imports/new                  2.89 kB         113 kB
+├ ƒ /assets/new                          2.23 kB         112 kB
+├ ƒ /attachments/[id]                      161 B         103 kB
+├ ƒ /catalog                               181 B         106 kB
+├ ƒ /catalog/[itemId]                      186 B         148 kB
+├ ƒ /catalog/manage                      1.13 kB         107 kB
+├ ƒ /catalog/manage/[id]                   187 B         156 kB
+├ ƒ /catalog/manage/new                    187 B         156 kB
+├ ƒ /catalog/manage/question-sets        1.53 kB         112 kB
+├ ƒ /changes                             1.23 kB         107 kB
+├ ƒ /changes/[id]                          177 B         115 kB
+├ ƒ /changes/[id]/edit                     182 B         115 kB
+├ ƒ /changes/new                           182 B         115 kB
+├ ƒ /glpi                                3.25 kB         106 kB
+├ ƒ /healthz                               161 B         103 kB
+├ ƒ /inbox                                 807 B         111 kB
+├ ƒ /knowledge                             181 B         106 kB
+├ ƒ /knowledge/[id]                        180 B         113 kB
+├ ƒ /knowledge/new                         184 B         113 kB
+├ ƒ /login                                 161 B         103 kB
+├ ƒ /logout                                161 B         103 kB
+├ ƒ /ops                                 1.12 kB         107 kB
+├ ƒ /ops/[id]                            3.62 kB         122 kB
+├ ƒ /ops/[id]/merge                      1.13 kB         107 kB
+├ ƒ /ops/access-review                   1.13 kB         107 kB
+├ ƒ /ops/admin                             181 B         106 kB
+├ ƒ /ops/approvals                       1.13 kB         111 kB
+├ ƒ /ops/approvals/changes                 181 B         106 kB
+├ ƒ /ops/departments                       181 B         106 kB
+├ ƒ /ops/groups                          1.13 kB         107 kB
+├ ƒ /ops/groups/[id]                     1.41 kB         108 kB
+├ ƒ /ops/notifications                   2.67 kB         109 kB
+├ ƒ /ops/overview                          736 B         107 kB
+├ ƒ /ops/users                            3.5 kB         114 kB
+├ ƒ /portal                                165 B         106 kB
+├ ƒ /requests                            1.13 kB         107 kB
+├ ƒ /requests/[id]                       1.26 kB         149 kB
+├ ƒ /select-organization                   161 B         103 kB
+├ ƒ /settings/delegations                1.78 kB         112 kB
+├ ƒ /settings/notifications              1.31 kB         112 kB
+├ ƒ /tickets/[id]                          973 B         119 kB
+├ ƒ /tickets/[id]/citations/[commentId]  1.13 kB         107 kB
+├ ƒ /tickets/new                         1.99 kB         116 kB
+└ ƒ /unavailable                           161 B         103 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/1225-ea446a58abb48c77.js      46.6 kB
+  ├ chunks/cf30d888-b13fcffb3e03b313.js  54.2 kB
+  └ other shared chunks (total)          1.97 kB
+
+
+ƒ Middleware                               33 kB
+
+ƒ  (Dynamic)  server-rendered on demand
+

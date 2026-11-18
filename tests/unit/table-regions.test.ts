@@ -29,3 +29,42 @@ describe('every table keeps its header context and keyboard scroll region', () =
     },
   );
 });
+
+// WP-P2-UIX-046: the queue and inbox share one ruled table, and the queue's
+// filter buttons use the same OPERATIONS_METRICS queries as the home counts.
+describe('UI v2 ticket list and detail', () => {
+  const web = (path: string) => readFileSync(join(process.cwd(), 'apps/web/src', path), 'utf8');
+
+  it('uses the OPERATIONS_METRICS queries and exposes the pressed state', () => {
+    const ops = web('app/ops/page.tsx');
+    expect(ops).toContain('OPERATIONS_METRICS.map');
+    expect(ops).toContain('operationsMetricQuery(metric.id, metricGroup)');
+    expect(ops).toContain('aria-pressed={activeMetric === metric.id}');
+    for (const heading of ['番号', '件名', '状態', '優先度', '担当グループ', '担当者', '解決期限'])
+      expect(ops).toContain(`>${heading}<`);
+  });
+
+  it('keeps the inbox in one table with the shared columns and kind labels', () => {
+    const inbox = web('app/inbox/page.tsx');
+    expect((inbox.match(/<table\b/g) ?? []).length).toBe(1);
+    expect(inbox).toContain('<TableRegion');
+    for (const heading of ['番号', '件名', '種類', '状態', '期限'])
+      expect(inbox).toContain(`>${heading}<`);
+    expect(inbox).toContain("ticket: 'チケット'");
+    expect(inbox).toContain("request_approval: '申請承認'");
+    expect(inbox).toContain("change: '変更'");
+  });
+
+  it('keeps the submit-style routing form on the right and labels internal notes', () => {
+    const detail = web('app/ops/[id]/page.tsx');
+    expect(detail).toContain('<TicketRoutingForm');
+    expect(detail).toContain('ticket-history');
+    expect(detail).toContain('ticket-side');
+    const thread = web('components/CommentThread.tsx');
+    expect(thread).toContain('社内メモ（依頼者には表示されません）');
+    expect(thread).toContain("'comment internal'");
+    const routing = web('components/TicketRoutingForm.tsx');
+    expect(routing).toContain('type="submit"');
+    expect(routing).toContain('groups.map');
+  });
+});

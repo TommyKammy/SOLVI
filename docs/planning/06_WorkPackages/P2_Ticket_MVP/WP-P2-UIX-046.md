@@ -5,13 +5,13 @@ title: "UI v2のチケット一覧・詳細"
 category: "06_WorkPackages"
 type: "workpackage"
 status: "baseline"
-version: "0.1.0"
+version: "0.2.0"
 created: "2026-11-18"
 updated: "2026-11-18"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "review"
 story_points: 8
 risk: "medium"
 workstream: "UIX"
@@ -88,18 +88,18 @@ depends_on: ["WP-P2-UIX-044", "WP-P2-UIX-026"]
 
 ## 7. Acceptance Criteria
 
-- [ ] `/ops` の絞り込みボタンは、既存の `OPERATIONS_METRICS` の項目と同じクエリを使う。押した状態は `aria-pressed` で伝わる。
-- [ ] 一覧の表は、番号・件名・状態・優先度・担当グループ・担当者・解決期限を出す。状態と優先度の表示名は `labels.ts` に従う。
-- [ ] 優先度は色の点と文字の両方で、解決期限超過は色と文字の両方で伝える。
-- [ ] 表は `TableRegion` を通し、狭い幅では横スクロールで読める。ページ全体は横にスクロールしない。
-- [ ] 詳細のスレッドで、社内メモが返信と見た目で区別され、「社内メモ」の文字も付く。
-- [ ] 返信欄から、従来どおり返信・社内メモ・解決を送れる。送信後の表示と、競合時のエラー表示が変わらない。
-- [ ] 右側の項目一覧に既存の `TicketRoutingForm` を置き、従来どおり送信ボタンで状態・優先度・担当グループ・担当者を変えられる(権限がある場合だけ)。押してすぐ保存する形にはしない。選べる値は既存APIの返す候補だけで、自由入力にしない。
-- [ ] 履歴は既存の取得結果を新しい順に出す。
-- [ ] `/inbox` も同じ表の見た目になる。列は番号・件名・種類・状態・期限を共通にし、種類(チケット・申請承認・変更)はラベルで示す。種類が違っても一つの表で並べる。
-- [ ] 既存のUIX-026の受け入れ条件が引き続き満たされる。
-- [ ] `npm run typecheck`、`npm run lint`、`npm run check:all`、§4のテストが通る。
-- [ ] axeで `/ops`、`/inbox`、チケット詳細を両テーマで検査し、serious/criticalの違反がない。
+- [x] `/ops` の絞り込みボタンは、既存の `OPERATIONS_METRICS` の項目と同じクエリを使う。押した状態は `aria-pressed` で伝わる。
+- [x] 一覧の表は、番号・件名・状態・優先度・担当グループ・担当者・解決期限を出す。状態と優先度の表示名は `labels.ts` に従う。
+- [x] 優先度は色の点と文字の両方で、解決期限超過は色と文字の両方で伝える。
+- [x] 表は `TableRegion` を通し、狭い幅では横スクロールで読める。ページ全体は横にスクロールしない。
+- [x] 詳細のスレッドで、社内メモが返信と見た目で区別され、「社内メモ」の文字も付く。
+- [x] 返信欄から、従来どおり返信・社内メモ・解決を送れる。送信後の表示と、競合時のエラー表示が変わらない。
+- [x] 右側の項目一覧に既存の `TicketRoutingForm` を置き、従来どおり送信ボタンで状態・優先度・担当グループ・担当者を変えられる(権限がある場合だけ)。押してすぐ保存する形にはしない。選べる値は既存APIの返す候補だけで、自由入力にしない。
+- [x] 履歴は既存の取得結果を新しい順に出す。
+- [x] `/inbox` も同じ表の見た目になる。列は番号・件名・種類・状態・期限を共通にし、種類(チケット・申請承認・変更)はラベルで示す。種類が違っても一つの表で並べる。
+- [x] 既存のUIX-026の受け入れ条件が引き続き満たされる。
+- [x] `npm run typecheck`、`npm run lint`、`npm run check:all`、§4のテストが通る。
+- [x] axeで `/ops`、`/inbox`、チケット詳細を両テーマで検査し、serious/criticalの違反がない。
 
 ## 8. Verification and Evidence
 
@@ -129,11 +129,11 @@ AIの参考情報欄と「表示項目」ボタンは作らないこと。新規
 
 ## 12. Definition of Done
 
-- [ ] §7をすべて満たす
-- [ ] §8のテストが通り、Evidenceを保存した
-- [ ] 関連ドキュメントを更新した
+- [x] §7をすべて満たす
+- [x] §8のテストが通り、Evidenceを保存した
+- [x] 関連ドキュメントを更新した
 - [ ] Product Ownerの承認を得た
-- [ ] Execution Logへ結果を追記した
+- [x] Execution Logへ結果を追記した
 
 ## 13. Execution Log
 
@@ -141,6 +141,42 @@ AIの参考情報欄と「表示項目」ボタンは作らないこと。新規
 |---|---|---|---|---|---|
 | 2026-11-18 | Claude | - | Draft | `assets/ui/SOLVI_UI_v2_Mockup.html` | UI v2のWP案として起草した。 |
 | 2026-11-18 | Product Owner | - | Baseline | - | 未決事項の決定を反映し、baselineとして承認。 |
+| 2026-11-18 | OpenCode | - | Review | `evidence/WP-P2-UIX-046/20261118-1458/` | UI v2の一覧・受信箱・詳細を実装。API/DB/認可/監査は変更なし。 |
+
+### 2026-11-18 の実行結果
+
+- 変更ファイル:
+  - `apps/web/src/app/ops/page.tsx`
+  - `apps/web/src/app/ops/[id]/page.tsx`
+  - `apps/web/src/app/inbox/page.tsx`
+  - `apps/web/src/components/CommentThread.tsx`
+  - `apps/web/src/app/freshservice.css`
+  - `tests/unit/table-regions.test.ts`
+  - `docs/planning/06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md`
+  - `docs/planning/MANIFEST.md`
+  - `evidence/WP-P2-UIX-046/20261118-1458/`
+- Migration: なし。DB・API・認可・監査・状態機械の変更なし。
+- 実装:
+  - `/ops`: `OPERATIONS_METRICS` の6ボタン(`role="button"` + `aria-pressed`)。クエリは `operationsMetricQuery` と同一。罫線だけの表(番号・件名・状態・優先度・担当グループ・担当者・解決期限・依頼者・受付日)。優先度は色の点と文字、期限超過は `--danger` と「◯◯超過」で表示。
+  - `/inbox`: チケット・申請承認・変更を1つの表に統合。列は番号・件名・種類・状態・期限・次の対応。種類は「チケット」「申請承認」「変更」のラベル。既存の `InboxOpenForm` は維持。
+  - `/ops/[id]`: 左にやり取り・返信・添付、右にプロパティ・履歴・操作・担当グループ変更・優先度/影響・関連。社内メモは背景色と左罫線、「社内メモ（依頼者には表示されません）」の文字で区別。履歴は取得済みの起票・解決・コメント・添付を新しい順に表示。`TicketRoutingForm` は送信ボタン式のまま、候補はAPIの `availableGroups` だけ。
+- 検証:
+  - `npm run typecheck` 成功(`logs/typecheck.txt`)
+  - `npm run lint` は追跡外の `.claude/worktrees/*/apps/web/next-env.d.ts` 3件のみ失敗(`logs/lint-full.txt`)。追跡ファイルだけのlintは成功(`logs/lint-tracked-files.txt`)。変更ファイルのlintも成功(`logs/lint-changed-files.txt`)。
+  - `npm run check:all` 成功(`logs/check-all.txt`)
+  - `npx vitest run tests/unit/ticket-detail-recovery-ui.test.ts tests/unit/table-regions.test.ts tests/unit/navigation-ui.test.ts tests/unit/ui-contrast-and-focus.test.ts` 99件成功(`logs/vitest-targeted.txt`)
+  - `npm run test:unit` 116ファイル / 4810成功・26 skip(`logs/test-unit.txt`)
+  - axe(`wcag2a/2aa/21a/21aa/22aa`): 変更前後32スキャン、違反0。serious/critical 0。両テーマ・1440/375(`axe/`)
+  - 375px: ページ全体の横スクロール0。表だけが横スクロール(`summary.json` の `afterTableLocalScroll`: `/ops` 343→1040、`/inbox` 343→940)。
+  - TL-12: ログイン→`/inbox`→`/ops`→「担当者未割当」(`aria-pressed=false`→`true`)→詳細→返信送信「返信を保存しました。」(`summary.json` の `checks.tl12`、`tl12/`)。
+- セキュリティ影響: 表示層のみ。新しいAPI呼び出し・自由入力・ID入力・外部CSS/フォント/CSP緩和なし。Evidenceは合成データのみで、パスワード・Cookieは保存していない。
+- 未解決事項:
+  - 詳細の「カテゴリ」は既存APIが返さないため表示していない。項目追加はAPI変更になるため別WPとする。
+  - 「関連資産」はプロパティから既存の「関連する問い合わせ・資産・変更」へ移動するリンクにした。資産の直接一覧は同節の `TicketAssetPanel` にある。
+  - `npm run lint` の3件は `.claude/worktrees` 由来。`.claude` をlint対象外にする変更はAllowed Paths外のため未実施。
+  - `docs/planning/06.0_WorkPackage_Register.md` / `06.1_Dependency_Map.md` / `03.18_Requirements_Traceability_Matrix.md` は既に本WPを参照しており、変更不要だった。
+- Rollback: Migrationなし。§4の画面・CSS・テストをUIX-045完了時点へ戻す。
+
 
 ## 14. 決定事項(2026-11-18 Product Owner)
 

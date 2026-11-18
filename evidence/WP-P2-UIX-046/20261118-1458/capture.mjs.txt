@@ -1,0 +1,456 @@
+// WP-P2-UIX-046: before/after screenshots, filter state, axe (both themes), TL-12.
+// Usage: node capture.mjs <outDir>   (cwd = repo root; stack from run_stack.sh)
+import { createRequire } from 'node:module';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const repo = '/Users/jp.infra/Dev/SOLVI';
+const require = createRequire(join(repo, 'package.json'));
+const pw = require('playwright');
+const CHROME_EXE =
+  '/Users/jp.infra/Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell';
+const chromium = { launch: (o = {}) => pw.chromium.launch({ ...o, executablePath: CHROME_EXE }) };
+const { AxeBuilder } = require('@axe-core/playwright');
+
+const OUT = process.argv[2];
+const fixture = JSON.parse(readFileSync(join(OUT, 'fixture.json'), 'utf8'));
+const TICKET_ID = fixture.conversation.ticketId;
+mkdirSync(join(OUT, 'screens'), { recursive: true });
+mkdirSync(join(OUT, 'axe'), { recursive: true });
+mkdirSync(join(OUT, 'before'), { recursive: true });
+mkdirSync(join(OUT, 'tl12'), { recursive: true });
+
+const AFTER = 'http://127.0.0.1:3100';
+const API = 'http://127.0.0.1:3101';
+const BEFORE = 'http://127.0.0.1:3102';
+const ORG = fixture.organizationId;
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+// Synthetic seed password, read from the project's seed file (never printed).
+const PASSWORD = readFileSync(join(repo, 'tools/seed.mjs'), 'utf8').match(
+  /DEV_PASSWORD = '([^']+)'/,
+)[1];
+
+async function login(email) {
+  const response = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password: PASSWORD, organizationId: ORG }),
+  });
+  if (!response.ok) throw new Error(`login ${email}: ${response.status}`);
+  const pair = (response.headers.get('set-cookie') ?? '').split(';')[0];
+  const index = pair.indexOf('=');
+  return { name: pair.slice(0, index), value: pair.slice(index + 1) };
+}
+
+const admin = await login('org_admin@acme.example.test');
+const cookieHeader = (cookie) => `${cookie.name}=${cookie.value}`;
+
+const summary = { scans: [], checks: {} };
+const FILTER_PATH =
+  '/ops?assignment=unassigned&state=new&state=assigned&state=in_progress&state=pending';
+
+async function scan({ browser, base, theme, width, slug, path, dir, axe = true }) {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: 'ja-JP',
+    colorScheme: theme,
+    hasTouch: width === 375,
+  });
+  await context.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const page = await context.newPage();
+  const consoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(String(error)));
+  const response = await page.goto(`${base}${path}`, { waitUntil: 'networkidle' });
+  const finalPath = new URL(page.url()).pathname + new URL(page.url()).search;
+  const result = axe ? await new AxeBuilder({ page }).withTags(TAGS).analyze() : null;
+  const layout = await page.evaluate(() => {
+    const region = document.querySelector('.table-scroll');
+    return {
+      horizontalOverflowPx:
+        document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      table: region
+        ? {
+            clientWidth: region.clientWidth,
+            scrollWidth: region.scrollWidth,
+            scrollsLocally: region.scrollWidth > region.clientWidth,
+          }
+        : null,
+      pressed: [...document.querySelectorAll('[aria-pressed="true"]')].map((element) =>
+        element.textContent?.replace(/\s+/g, ' ').trim(),
+      ),
+    };
+  });
+  const name = `${theme}-${width}-${slug}`;
+  if (result)
+    writeFileSync(
+      join(OUT, 'axe', `${name}.json`),
+      JSON.stringify(
+        { theme, width, url: path, base, finalPath, violations: result.violations },
+        null,
+        2,
+      ),
+    );
+  await page.screenshot({ path: join(OUT, dir, `${name}.png`), fullPage: true });
+  const scanResult = {
+    theme,
+    width,
+    slug,
+    base,
+    path,
+    status: response?.status(),
+    finalPath,
+    themeAttribute: await page.evaluate(() => document.documentElement.dataset.theme),
+    violations: result
+      ? result.violations.map((violation) => ({
+          id: violation.id,
+          impact: violation.impact,
+          nodes: violation.nodes.length,
+        }))
+      : [],
+    horizontalOverflowPx: layout.horizontalOverflowPx,
+    table: layout.table,
+    pressed: layout.pressed,
+    consoleErrors,
+  };
+  summary.scans.push(scanResult);
+  await context.close();
+  return scanResult;
+}
+
+// Before: HEAD (WP-P2-UIX-045) production build.
+{
+  const browser = await chromium.launch();
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1440, 375]) {
+      await scan({
+        browser,
+        base: BEFORE,
+        theme,
+        width,
+        slug: 'ops',
+        path: '/ops',
+        dir: 'before',
+      });
+      await scan({
+        browser,
+        base: BEFORE,
+        theme,
+        width,
+        slug: 'ops-filter',
+        path: '/ops?assignment=unassigned&state=new',
+        dir: 'before',
+      });
+      await scan({
+        browser,
+        base: BEFORE,
+        theme,
+        width,
+        slug: 'inbox',
+        path: '/inbox',
+        dir: 'before',
+      });
+      await scan({
+        browser,
+        base: BEFORE,
+        theme,
+        width,
+        slug: 'ticket-detail',
+        path: `/ops/${TICKET_ID}`,
+        dir: 'before',
+      });
+    }
+  }
+  await browser.close();
+}
+
+// After: filter chips, ruled queue table, shared inbox table, side properties/history.
+{
+  const browser = await chromium.launch();
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1440, 375]) {
+      await scan({ browser, base: AFTER, theme, width, slug: 'ops', path: '/ops', dir: 'screens' });
+      await scan({
+        browser,
+        base: AFTER,
+        theme,
+        width,
+        slug: 'ops-filter',
+        path: FILTER_PATH,
+        dir: 'screens',
+      });
+      await scan({
+        browser,
+        base: AFTER,
+        theme,
+        width,
+        slug: 'inbox',
+        path: '/inbox',
+        dir: 'screens',
+      });
+      await scan({
+        browser,
+        base: AFTER,
+        theme,
+        width,
+        slug: 'ticket-detail',
+        path: `/ops/${TICKET_ID}`,
+        dir: 'screens',
+      });
+    }
+  }
+
+  // Behaviour checks on the rendered pages in light 1440.
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    colorScheme: 'light',
+  });
+  await context.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const page = await context.newPage();
+  await page.goto(`${AFTER}/ops`, { waitUntil: 'networkidle' });
+  summary.checks.ops = await page.evaluate(() => ({
+    heading: document.querySelector('h1')?.textContent?.trim(),
+    chips: [...document.querySelectorAll('.queue-metric')].map((chip) => ({
+      text: chip.textContent?.replace(/\s+/g, ' ').trim(),
+      pressed: chip.getAttribute('aria-pressed'),
+      role: chip.getAttribute('role'),
+      href: chip.getAttribute('href'),
+    })),
+    headers: [...document.querySelectorAll('.fs-queue-table--v2 thead th')].map((th) =>
+      th.textContent?.trim(),
+    ),
+    rows: document.querySelectorAll('.fs-queue-table--v2 tbody tr').length,
+    priorities: [...document.querySelectorAll('.fs-queue-table--v2 .priority-label')].map(
+      (label) => ({
+        text: label.textContent?.trim(),
+        priority: label.getAttribute('data-priority'),
+      }),
+    ),
+    deadlineTexts: [...document.querySelectorAll('.fs-queue-table--v2 .sla')].map((sla) => ({
+      text: sla.textContent?.replace(/\s+/g, ' ').trim(),
+      className: sla.className,
+    })),
+  }));
+
+  await page.goto(`${AFTER}${FILTER_PATH}`, { waitUntil: 'networkidle' });
+  summary.checks.opsFilter = await page.evaluate(() => ({
+    url: location.pathname + location.search,
+    pressed: [...document.querySelectorAll('.queue-metric[aria-pressed="true"]')].map((chip) =>
+      chip.textContent?.replace(/\s+/g, ' ').trim(),
+    ),
+    unpressed: [...document.querySelectorAll('.queue-metric[aria-pressed="false"]')].map((chip) =>
+      chip.textContent?.replace(/\s+/g, ' ').trim(),
+    ),
+    rows: document.querySelectorAll('.fs-queue-table--v2 tbody tr').length,
+    assignees: [...document.querySelectorAll('.fs-queue-table--v2 tbody tr td:nth-child(6)')].map(
+      (cell) => cell.textContent?.replace(/\s+/g, ' ').trim(),
+    ),
+    conditions: [...document.querySelectorAll('.queue-conditions a')].map((link) =>
+      link.textContent?.replace(/\s+/g, ' ').trim(),
+    ),
+  }));
+
+  await page.goto(`${AFTER}/inbox`, { waitUntil: 'networkidle' });
+  summary.checks.inbox = await page.evaluate(() => ({
+    headers: [...document.querySelectorAll('.inbox-table--v2 thead th')].map((th) =>
+      th.textContent?.trim(),
+    ),
+    tables: document.querySelectorAll('table').length,
+    rows: document.querySelectorAll('.inbox-table--v2 tbody tr').length,
+    kinds: [...document.querySelectorAll('.inbox-table--v2 .kind-label')].map((label) => ({
+      text: label.textContent?.trim(),
+      kind: label.getAttribute('data-kind'),
+    })),
+    kindSet: [...new Set([...document.querySelectorAll('.inbox-table--v2 .kind-label')].map(
+      (label) => label.textContent?.trim(),
+    ))],
+    openForms: document.querySelectorAll('.inbox-table--v2 form').length,
+  }));
+
+  await page.goto(`${AFTER}/ops/${TICKET_ID}`, { waitUntil: 'networkidle' });
+  summary.checks.detail = await page.evaluate(() => {
+    const history = [...document.querySelectorAll('.ticket-history li')];
+    return {
+      heading: document.querySelector('h1')?.textContent?.trim(),
+      properties: [...document.querySelectorAll('.ticket-properties dt')].map((dt) =>
+        dt.textContent?.trim(),
+      ),
+      historyCount: history.length,
+      historyNewestFirst: history.every((item, index) => {
+        if (index === 0) return true;
+        const previous = history[index - 1]?.querySelector('time')?.getAttribute('datetime') ?? '';
+        const current = item.querySelector('time')?.getAttribute('datetime') ?? '';
+        return previous >= current;
+      }),
+      historyLabels: history.map((item) =>
+        item.querySelector('.ticket-history-label')?.textContent?.trim(),
+      ),
+      internalNotes: [...document.querySelectorAll('.comment.internal')].map((note) => ({
+        label: note.querySelector('.visibility-label')?.textContent?.trim(),
+        background: getComputedStyle(note).backgroundColor,
+      })),
+      comments: document.querySelectorAll('.comments .comment').length,
+      routing: {
+        form: document.querySelectorAll('.ticket-side form').length,
+        submitButtons: [...document.querySelectorAll('.ticket-side button[type="submit"]')].map(
+          (button) => button.textContent?.trim(),
+        ),
+        groupSelect: document.querySelector('#group-select') !== null,
+        groupOptions: [...document.querySelectorAll('#group-select option')].map((option) =>
+          option.textContent?.trim(),
+        ),
+        freeTextInputs: [...document.querySelectorAll('.ticket-side input[type="text"]')].map(
+          (input) => input.getAttribute('name'),
+        ),
+      },
+      reply: {
+        textarea: document.querySelector('#reply-body') !== null,
+        publicChoice: document.querySelector('#reply-public') !== null,
+        internalChoice: document.querySelector('#reply-internal') !== null,
+      },
+    };
+  });
+
+  // CSP/external resources: this change must not add an external stylesheet,
+  // font or script. Check the rendered HTML and response header.
+  const response = await fetch(`${AFTER}/ops`, { headers: { cookie: cookieHeader(admin) } });
+  const html = await response.text();
+  summary.checks.externalResources = {
+    externalStylesheets: (html.match(/<link[^>]+rel="stylesheet"[^>]+href="https?:/g) ?? []).length,
+    externalScripts: (html.match(/<script[^>]+src="https?:/g) ?? []).length,
+    fontFace: (html.match(/@font-face/g) ?? []).length,
+    csp: response.headers.get('content-security-policy'),
+  };
+
+  await context.close();
+  await browser.close();
+}
+
+// TL-12: real login -> inbox -> list filter -> ticket detail -> reply send.
+{
+  const browser = await chromium.launch();
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    colorScheme: 'light',
+  });
+  const page = await context.newPage();
+  const steps = [];
+  const started = Date.now();
+  const step = async (name) => {
+    steps.push({
+      name,
+      url: page.url(),
+      path: new URL(page.url()).pathname + new URL(page.url()).search,
+      elapsedMs: Date.now() - started,
+    });
+    await page.screenshot({
+      path: join(OUT, 'tl12', `${String(steps.length).padStart(2, '0')}-${name}.png`),
+      fullPage: true,
+    });
+  };
+  await page.goto(`${AFTER}/login`, { waitUntil: 'networkidle' });
+  await step('login');
+  await page.fill('#email', 'org_admin@acme.example.test');
+  await page.fill('#password', PASSWORD);
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/inbox', { timeout: 15000 }),
+    page.click('button[type="submit"]'),
+  ]);
+  await page.waitForLoadState('networkidle');
+  await step('after-login-inbox');
+  await page.click('#solvi-main-navigation a[href="/ops"]');
+  await page.waitForURL((url) => url.pathname === '/ops', { timeout: 15000 });
+  await page.waitForLoadState('networkidle');
+  await step('ticket-list');
+  const chip = page.locator('.queue-metric', { hasText: '担当者未割当' });
+  const chipState = {
+    before: await chip.getAttribute('aria-pressed'),
+    href: await chip.getAttribute('href'),
+  };
+  await chip.click();
+  await page.waitForURL((url) => url.searchParams.get('assignment') === 'unassigned', {
+    timeout: 15000,
+  });
+  await page.waitForLoadState('networkidle');
+  chipState.after = await chip.getAttribute('aria-pressed');
+  await step('filtered-list');
+  const firstSubject = page.locator('.queue-subject').first();
+  const subject = await firstSubject.innerText();
+  const detailHref = await firstSubject.getAttribute('href');
+  await Promise.all([
+    page.waitForURL((url) => /^\/ops\/[0-9a-f-]{36}$/.test(url.pathname), { timeout: 15000 }),
+    firstSubject.click(),
+  ]);
+  await page.waitForLoadState('networkidle');
+  await step('ticket-detail');
+  const beforeCommentCount = await page.locator('.comments .comment').count();
+  const beforeHistoryCount = await page.locator('.ticket-history li').count();
+  await page.fill(
+    '#reply-body',
+    'WP-P2-UIX-046 のTL-12で送信する合成の返信です。実在の人物・組織とは関係ありません。',
+  );
+  await page.click('button[type="submit"][name="outcome"][value="reply"]');
+  await page.waitForSelector('text=返信を保存しました。', { timeout: 15000 });
+  await page.waitForLoadState('networkidle');
+  await step('reply-sent');
+  const detail = {
+    subject,
+    detailHref,
+    url: page.url(),
+    success: await page.locator('text=返信を保存しました。').first().innerText(),
+    beforeCommentCount,
+    afterCommentCount: await page.locator('.comments .comment').count(),
+    beforeHistoryCount,
+    afterHistoryCount: await page.locator('.ticket-history li').count(),
+  };
+  summary.checks.tl12 = { steps, chipState, detail };
+  await context.close();
+  await browser.close();
+}
+
+summary.totals = {
+  scans: summary.scans.length,
+  seriousOrCritical: summary.scans.reduce(
+    (total, scan) =>
+      total +
+      scan.violations
+        .filter((violation) => ['serious', 'critical'].includes(violation.impact))
+        .reduce((all, violation) => all + violation.nodes, 0),
+    0,
+  ),
+  anyViolationNodes: summary.scans.reduce(
+    (total, scan) => total + scan.violations.reduce((all, violation) => all + violation.nodes, 0),
+    0,
+  ),
+  overflow375: summary.scans
+    .filter((scan) => scan.width === 375 && scan.horizontalOverflowPx > 0)
+    .map((scan) => `${scan.base}:${scan.theme}:${scan.slug}:${scan.horizontalOverflowPx}`),
+  afterTableLocalScroll: summary.scans
+    .filter((scan) => scan.base === AFTER && scan.width === 375 && scan.table)
+    .map((scan) => ({
+      slug: scan.slug,
+      theme: scan.theme,
+      clientWidth: scan.table.clientWidth,
+      scrollWidth: scan.table.scrollWidth,
+      scrollsLocally: scan.table.scrollsLocally,
+    })),
+  redirectedToLogin: summary.scans
+    .filter((scan) => scan.finalPath.startsWith('/login') && scan.slug !== 'login')
+    .map((scan) => `${scan.theme}-${scan.width}-${scan.slug}`),
+  consoleErrorScans: summary.scans
+    .filter((scan) => scan.consoleErrors.length > 0)
+    .map((scan) => `${scan.theme}-${scan.width}-${scan.slug}`),
+  themeAttributeMismatches: summary.scans
+    .filter((scan) => scan.themeAttribute !== scan.theme)
+    .map((scan) => `${scan.theme}-${scan.width}-${scan.slug}:${scan.themeAttribute}`),
+};
+writeFileSync(join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify({ totals: summary.totals, checks: summary.checks }, null, 2));

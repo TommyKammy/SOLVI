@@ -5,7 +5,13 @@ import { ContextLink } from '../../../components/ContextLink';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { api, requireSession } from '../../../lib/api';
+import {
+  api,
+  requireSession,
+  type AttachmentView,
+  type CommentView,
+  type WorkspaceView,
+} from '../../../lib/api';
 import { CommentThread } from '../../../components/CommentThread';
 import { ReplyForm } from '../../../components/ReplyForm';
 import { AttachmentList } from '../../../components/AttachmentList';
@@ -27,7 +33,7 @@ import {
 } from '../../../lib/labels';
 
 /**
- * 担当者の作業画面 (WP-P2-OPSUI-010)。
+ * 担当者の作業画面 (WP-P2-OPSUI-010 / WP-P2-UIX-046)。
  *
  * **実行できない操作をボタンとして出さない。** 押してからエラーを見せるのは、
  * 利用者に「何が正しいのか」を試行錯誤で探させることになる。
@@ -35,6 +41,10 @@ import {
  *
  * ただし**表示しないことを防御にしない**。APIは直接叩けるため、
  * 不正な遷移はサービス層が必ず拒否する。ここは使いやすさのための工夫である。
+ *
+ * UI v2では、左にやり取りと返信、右に項目と履歴を置いた。
+ * 操作の種類・順序は変えていない。担当グループの変更は従来どおり送信ボタン式で、
+ * 選べる値はAPIが返した候補だけである。
  */
 
 export const dynamic = 'force-dynamic';
@@ -61,6 +71,49 @@ function failWith(
     redirect(withReturnTo(`/ops/${ticketId}?stale=1`, returnTo));
   const detail = problem.detail ?? problem.title;
   redirect(withReturnTo(`/ops/${ticketId}?actionError=${encodeURIComponent(detail)}`, returnTo));
+}
+
+type HistoryEntry = { key: string; at: string; label: string; detail?: string };
+
+/**
+ * 履歴は**すでに取得している結果だけ**から作る。
+ * 状態遷移の監査ログを取るAPIはこの画面に無く、追加するとAPI変更になる。
+ * 起票・解決・コメント・添付を新しい順に並べ、本文は繰り返さない。
+ */
+function ticketHistory(
+  ticket: WorkspaceView['ticket'],
+  comments: CommentView[],
+  attachments: AttachmentView[],
+  currentUserId: string,
+): HistoryEntry[] {
+  const actor = (authorId: string, isRequester?: boolean) =>
+    authorId === currentUserId ? '自分' : isRequester ? '依頼者' : '担当者';
+  const entries: HistoryEntry[] = [
+    { key: 'created', at: ticket.createdAt, label: '起票', detail: ticket.number },
+    ...(ticket.resolvedAt
+      ? [
+          {
+            key: 'resolved',
+            at: ticket.resolvedAt,
+            label: '解決',
+            detail: '依頼者の確認待ち',
+          },
+        ]
+      : []),
+    ...comments.map((comment) => ({
+      key: `comment:${comment.id}`,
+      at: comment.createdAt,
+      label: comment.visibility === 'internal' ? '社内メモを追加' : '依頼者への返信を追加',
+      detail: actor(comment.authorId, comment.authorIsRequester),
+    })),
+    ...attachments.map((attachment) => ({
+      key: `attachment:${attachment.id}`,
+      at: attachment.createdAt,
+      label: '添付ファイルを追加',
+      detail: `${attachment.fileName}（${actor(attachment.uploadedBy)}）`,
+    })),
+  ];
+  return entries.sort((left, right) => right.at.localeCompare(left.at));
 }
 
 export default async function OpsWorkspace({
@@ -184,9 +237,10 @@ export default async function OpsWorkspace({
 
   const isMine = ticket.assigneeId === session.userId;
   const currentGroup = availableGroups.find((g) => g.id === ticket.assigneeGroupId);
+  const history = ticketHistory(ticket, comments, attachments, session.userId);
 
   return (
-    <main id="main" className="shell ticket-workspace">
+    <main id="main" className="shell ticket-workspace ticket-workspace--v2">
       <HashOpenDetails />
       <p>
         <ContextLink back href="/ops">
@@ -262,7 +316,7 @@ export default async function OpsWorkspace({
 
       <TicketWaitNotice ticket={ticket} />
 
-      <div className="workspace-grid">
+      <div className="workspace-grid ticket-workspace-grid">
         <section className="workspace-primary" id="ticket-detail" aria-label="問い合わせと会話">
           <h2>依頼内容</h2>
           <div className="body-text">{ticket.body}</div>
@@ -290,97 +344,137 @@ export default async function OpsWorkspace({
             <AttachmentForm ticketId={id} canChooseVisibility />
           </details>
         </section>
-        <aside className="workspace-secondary" aria-label="状況と担当の操作">
-          <h2 id="ticket-properties">プロパティ</h2>
-          <dl className="detail">
-            <dt>状況</dt>
-            <dd>
-              <span className="state" data-state={ticket.state}>
-                {stateLabel(ticket.state)}
-              </span>
-            </dd>
-            <dt>担当</dt>
-            <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
 
-            <dt>依頼者</dt>
-            <dd>
-              {/* **IDを出さない。** 読めない値を見せても意味が無い。
-              「他の問い合わせ」への導線としてだけ使う (FR-TKT-006)。 */}
-              <Link href={`/ops?requester=${encodeURIComponent(ticket.requesterId)}`}>
-                この依頼者の他の問い合わせ
-              </Link>
-            </dd>
+        <aside className="workspace-secondary ticket-side" aria-label="状況と担当の操作">
+          <section className="ticket-side-card" aria-labelledby="ticket-properties">
+            <h2 id="ticket-properties">プロパティ</h2>
+            <dl className="detail ticket-properties">
+              <dt>状態</dt>
+              <dd>
+                <span className="state" data-state={ticket.state}>
+                  {stateLabel(ticket.state)}
+                </span>
+              </dd>
 
-            <dt>担当グループ</dt>
-            <dd>
-              {/* **グループと個人は別の軸である。** グループはキュー、個人は
-              いま手を動かしている人。両方が入りうるし、片方だけでもよい。 */}
-              {currentGroup ? currentGroup.name : 'どのグループにも振られていません'}
-            </dd>
-            <dt>受付日時</dt>
-            <dd>{formatDateTime(ticket.createdAt)}</dd>
-          </dl>
+              <dt>優先度</dt>
+              <dd>
+                <span className="priority-label" data-priority={ticket.priority}>
+                  {priorityLabel(ticket.priority)}
+                </span>
+                {priorityIsDerived && <span className="hint"> 影響度と緊急度から算出</span>}
+              </dd>
 
-          <h2>操作</h2>
+              <dt>解決期限</dt>
+              <dd>
+                <span className={sla.resolutionBreached ? 'ticket-sla breached' : 'ticket-sla'}>
+                  {formatRemaining(sla.remainingSeconds)}
+                </span>
+              </dd>
 
-          {unresolvedChildren.length > 0 && (
-            // **止めない。知らせるだけ。** 子が別チームの担当で長期化することがあり、
-            // 解決を拒否すると運用が詰まる。判断は人に残す(WP-P2-REL-009 §6)。
-            <div className="notice" role="note">
-              <h3 style={{ marginTop: 0 }}>まだ対応中の子の問い合わせがあります</h3>
-              <ul style={{ marginBottom: 0 }}>
-                {unresolvedChildren.map((child) => (
-                  <li key={child.ticketId}>
-                    <ContextLink href={`/ops/${child.ticketId}`}>
-                      {child.number} {child.subject}
-                    </ContextLink>{' '}
-                    — {stateLabel(child.state)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+              <dt>担当グループ</dt>
+              <dd>
+                {/* **グループと個人は別の軸である。** グループはキュー、個人は
+                いま手を動かしている人。両方が入りうるし、片方だけでもよい。 */}
+                {currentGroup ? currentGroup.name : 'どのグループにも振られていません'}
+              </dd>
 
-          <div className="actions-row">
-            {(!isMine || ticket.state === 'new') &&
-              !['closed', 'cancelled', 'merged'].includes(ticket.state) && (
-                <form action={takeOwnership}>
-                  <button type="submit">自分が引き受ける</button>
-                </form>
-              )}
-            {availableActions.length === 0 ? (
-              <p className="empty" style={{ margin: 0 }}>
-                この状況で行える操作はありません。
-              </p>
-            ) : (
-              availableActions
-                .filter((action) => !['resolve', 'assign'].includes(action.reason))
-                .map((action) => (
-                  <form key={`${action.to}:${action.reason}`} action={runTransition}>
-                    <input type="hidden" name="to" value={action.to} />
-                    <input type="hidden" name="reason" value={action.reason} />
-                    {/* 見ていた版。送り返して、その間の変更を検出する。 */}
-                    <input type="hidden" name="expectedVersion" value={ticket.version} />
-                    <button type="submit" className="secondary">
-                      {action.label}
-                    </button>
-                  </form>
-                ))
+              <dt>担当者</dt>
+              <dd>{ticket.assigneeId ? (isMine ? '自分' : '他の担当者') : '未割当'}</dd>
+
+              <dt>依頼者</dt>
+              <dd>
+                {/* **IDを出さない。** 読めない値を見せても意味が無い。
+                「他の問い合わせ」への導線としてだけ使う (FR-TKT-006)。 */}
+                <Link href={`/ops?requester=${encodeURIComponent(ticket.requesterId)}`}>
+                  この依頼者の他の問い合わせ
+                </Link>
+              </dd>
+
+              <dt>受付日時</dt>
+              <dd>{formatDateTime(ticket.createdAt)}</dd>
+
+              <dt>関連資産</dt>
+              <dd>
+                <a href="#ticket-relations">関連する資産・変更を確認</a>
+              </dd>
+            </dl>
+          </section>
+
+          <section className="ticket-side-card" aria-labelledby="ticket-history-title">
+            <h2 id="ticket-history-title">履歴</h2>
+            <ol className="ticket-history">
+              {history.map((entry) => (
+                <li key={entry.key}>
+                  <time dateTime={entry.at}>{formatDateTime(entry.at)}</time>
+                  <span className="ticket-history-label">{entry.label}</span>
+                  {entry.detail && <span className="hint">{entry.detail}</span>}
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="ticket-side-card" aria-labelledby="ticket-actions-title">
+            <h2 id="ticket-actions-title">操作</h2>
+
+            {unresolvedChildren.length > 0 && (
+              // **止めない。知らせるだけ。** 子が別チームの担当で長期化することがあり、
+              // 解決を拒否すると運用が詰まる。判断は人に残す(WP-P2-REL-009 §6)。
+              <div className="notice" role="note">
+                <h3 style={{ marginTop: 0 }}>まだ対応中の子の問い合わせがあります</h3>
+                <ul style={{ marginBottom: 0 }}>
+                  {unresolvedChildren.map((child) => (
+                    <li key={child.ticketId}>
+                      <ContextLink href={`/ops/${child.ticketId}`}>
+                        {child.number} {child.subject}
+                      </ContextLink>{' '}
+                      — {stateLabel(child.state)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </div>
 
-          {/* 期限 (FR-TKT-008)。**操作の手前に置く。**
-          何をするか決める前に、いつまでかを知っている必要がある。 */}
-          <div className={sla.resolutionBreached ? 'sla-panel breached' : 'sla-panel'}>
-            <strong>解決の期限: {formatRemaining(sla.remainingSeconds)}</strong>
-            <p className="hint" style={{ margin: '0.25rem 0 0' }}>
-              {sla.responseBreached ? '初回応答の目標を超えています。' : '初回応答の目標内です。'}{' '}
-              超過しても操作は止まりません。目標は計測のための値です。
-            </p>
-          </div>
+            <div className="actions-row">
+              {(!isMine || ticket.state === 'new') &&
+                !['closed', 'cancelled', 'merged'].includes(ticket.state) && (
+                  <form action={takeOwnership}>
+                    <button type="submit">自分が引き受ける</button>
+                  </form>
+                )}
+              {availableActions.length === 0 ? (
+                <p className="empty" style={{ margin: 0 }}>
+                  この状況で行える操作はありません。
+                </p>
+              ) : (
+                availableActions
+                  .filter((action) => !['resolve', 'assign'].includes(action.reason))
+                  .map((action) => (
+                    <form key={`${action.to}:${action.reason}`} action={runTransition}>
+                      <input type="hidden" name="to" value={action.to} />
+                      <input type="hidden" name="reason" value={action.reason} />
+                      {/* 見ていた版。送り返して、その間の変更を検出する。 */}
+                      <input type="hidden" name="expectedVersion" value={ticket.version} />
+                      <button type="submit" className="secondary">
+                        {action.label}
+                      </button>
+                    </form>
+                  ))
+              )}
+            </div>
 
-          <details className="workspace-disclosure" open={typeof query.groupError === 'string'}>
-            <summary>担当グループを変更</summary>
+            {/* 期限 (FR-TKT-008)。**操作の手前に置く。**
+            何をするか決める前に、いつまでかを知っている必要がある。 */}
+            <div className={sla.resolutionBreached ? 'sla-panel breached' : 'sla-panel'}>
+              <strong>解決の期限: {formatRemaining(sla.remainingSeconds)}</strong>
+              <p className="hint" style={{ margin: '0.25rem 0 0' }}>
+                {sla.responseBreached ? '初回応答の目標を超えています。' : '初回応答の目標内です。'}{' '}
+                超過しても操作は止まりません。目標は計測のための値です。
+              </p>
+            </div>
+          </section>
+
+          <section className="ticket-side-card" aria-labelledby="ticket-routing-title">
+            <h2 id="ticket-routing-title">担当グループを変更</h2>
             {/*
         **グループ割当は状態を動かさない。** キューに入っただけのチケットを
         「担当者が決まった」ことにすると、実際には誰も見ていないのに
@@ -398,19 +492,22 @@ export default async function OpsWorkspace({
               groupId={ticket.assigneeGroupId ?? ''}
               groups={availableGroups}
             />
-          </details>
-          <h2>優先度と影響</h2>
-          <AssessmentForm
-            impact={ticket.impact}
-            urgency={ticket.urgency}
-            priority={ticket.priority}
-            priorityIsDerived={priorityIsDerived}
-            action={reassess.bind(null, id)}
-            expectedVersion={ticket.version}
-            errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
-          />
+          </section>
 
-          <details className="workspace-disclosure" id="ticket-relations">
+          <section className="ticket-side-card" aria-labelledby="ticket-assessment-title">
+            <h2 id="ticket-assessment-title">優先度と影響</h2>
+            <AssessmentForm
+              impact={ticket.impact}
+              urgency={ticket.urgency}
+              priority={ticket.priority}
+              priorityIsDerived={priorityIsDerived}
+              action={reassess.bind(null, id)}
+              expectedVersion={ticket.version}
+              errorMessage={typeof query.assessError === 'string' ? query.assessError : undefined}
+            />
+          </section>
+
+          <details className="workspace-disclosure ticket-side-card" id="ticket-relations">
             <summary>関連する問い合わせ・資産・変更</summary>
             <h2>関連する問い合わせ</h2>
             <RelationList relations={relationItems} canUnlink unlinkAction={removeRelation} />

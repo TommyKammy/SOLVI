@@ -31,9 +31,10 @@ export function CommentThread({
           <li key={comment.id} className={internal ? 'comment internal' : 'comment'}>
             <div className="meta">
               {/* 公開範囲を必ず文言で書く。色や罫線だけだと、
-                  色覚特性のある利用者と白黒印刷で区別が消える。 */}
+                  色覚特性のある利用者と白黒印刷で区別が消える。
+                  UI v2では社内で使う言葉に合わせて「社内メモ」と表示する。 */}
               <span className="visibility-label">
-                {internal ? '内部メモ(依頼者には表示されません)' : '公開コメント'}
+                {internal ? '社内メモ（依頼者には表示されません）' : '依頼者への返信'}
               </span>
               <span>
                 {comment.authorId === currentUserId

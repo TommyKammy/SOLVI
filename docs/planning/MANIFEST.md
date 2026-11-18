@@ -5,7 +5,7 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.15.4"
+version: "0.15.5"
 created: "2026-07-27"
 updated: "2026-11-18"
 owner: "SOLVI Product Team"
@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 329 |
 | Markdown | 320 |
 | 画像・SVG | 8 |
-| 合計サイズ | 7,895,094 bytes |
+| 合計サイズ | 7,899,068 bytes |
 
 ## ファイル一覧
 
@@ -220,7 +220,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-043.md` | 11439 | `6a9fb166ca021d8c8354b80d9e649ff95c416bbc557a834b0009dd2f9243caa6` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-044.md` | 23820 | `07de608c22c745a459db101069717357d6531abeec671b77dcfc0ac51781dd40` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md` | 12333 | `d79734fc3ed3756420edd3f27721a8523758410c535d5f84103546464f9bf834` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md` | 7655 | `fb54b83a7542532e6a730dcf47d0a2246d3db3b70c5d68d4796b9d3ca6ff44eb` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md` | 11629 | `5b13408b3203bdaa7adc75e34da809e4f1f72917d43a7c2c08bd64e2477a9cef` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2815 | `119612c14ce1623fedf5c3f1ceccf17c0e9c2ca2f233216458011a0f5a3659d0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNWUI-059.md` | 9688 | `125c2f1c7d1b18f318ed6bbe2159807b08382ceaee5f75c52a967e133d57e238` |
