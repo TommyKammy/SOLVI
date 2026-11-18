@@ -11,7 +11,7 @@ updated: "2026-11-18"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "medium"
 workstream: "UIX"
@@ -132,7 +132,7 @@ AIの参考情報欄と「表示項目」ボタンは作らないこと。新規
 - [x] §7をすべて満たす
 - [x] §8のテストが通り、Evidenceを保存した
 - [x] 関連ドキュメントを更新した
-- [ ] Product Ownerの承認を得た
+- [x] Product Ownerの承認を得た
 - [x] Execution Logへ結果を追記した
 
 ## 13. Execution Log
@@ -178,6 +178,12 @@ AIの参考情報欄と「表示項目」ボタンは作らないこと。新規
   - `docs/planning/06.0_WorkPackage_Register.md` / `06.1_Dependency_Map.md` / `03.18_Requirements_Traceability_Matrix.md` は既に本WPを参照しており、変更不要だった。
 - Rollback: Migrationなし。§4の画面・CSS・テストをUIX-045完了時点へ戻す。
 
+#### 利用者の承認(2026-11-18)
+
+- **2026-11-18、利用者(Product Owner)が PR #27(本WPの実装)をマージした**(main の `70960d6`)。これをProduct Ownerの承認として扱い、`done` とする。
+- 先行して PR #24(UI v2のWPと [[11.3_Design_System]] のbaseline、`80c883b`)と PR #28(npm audit の期限付き例外、`f1eb703`)がマージされている。
+- §7 は、Execution Log に記した範囲と未解決事項を含めて、PRのマージにより受け入れられたものとする。
+- 残り: 詳細の「カテゴリ」表示(APIの変更が必要)は別WPで扱う。
 
 ## 14. 決定事項(2026-11-18 Product Owner)
 

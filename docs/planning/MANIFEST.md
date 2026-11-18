@@ -40,7 +40,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | 対象ファイル | 329 |
 | Markdown | 320 |
 | 画像・SVG | 9 |
-| 合計サイズ | 7,900,380 bytes |
+| 合計サイズ | 7,902,565 bytes |
 
 ## ファイル一覧
 
@@ -218,9 +218,9 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-041.md` | 11742 | `a91de5971f4bad892ceeb699cc6d3a7813192e7a7a529816fc435df65a42a9ca` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-042.md` | 9876 | `6fc60cfe3fa90292b46cb05c3ba9d3fd7fc624fe9cf17a6e4d58c513ca4f1781` |
 | `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-043.md` | 11439 | `6a9fb166ca021d8c8354b80d9e649ff95c416bbc557a834b0009dd2f9243caa6` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-044.md` | 24228 | `1c088e6151ea310b2cea2b3f810dbdeae7e0e3d384e5f4b7684f975a8b4f1d1a` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md` | 12901 | `cb0e9e05f572ac0268495228116e53dff3abe927b742963c8e1a94049de1a66d` |
-| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md` | 11965 | `635c024bc191ed216cffd0631045082102645aa0c228d8c856ae79c29697e44a` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-044.md` | 25053 | `db1f117a89e9257961fb424d1138594cfbbb4e0386335310c8adad9990418cb4` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md` | 13651 | `337c91fd89eda93c9e86758a51f5a5e6edfd1e4fdb4480020a2b030b30f4e758` |
+| `06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-046.md` | 12575 | `e953c9e8a239919a01d1ebb9bdf288f2905f3ec1df6f8fcbb11110e851b1562e` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-AI-004.md` | 2815 | `119612c14ce1623fedf5c3f1ceccf17c0e9c2ca2f233216458011a0f5a3659d0` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNW-001.md` | 2741 | `f001d2c24099e5178b4220ccc516568ca35531cff896bf6094dbda64c2881942` |
 | `06_WorkPackages/P3_Knowledge/WP-P3-KNWUI-059.md` | 9688 | `125c2f1c7d1b18f318ed6bbe2159807b08382ceaee5f75c52a967e133d57e238` |
