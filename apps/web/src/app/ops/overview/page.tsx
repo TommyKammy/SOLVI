@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { InboxOpenForm } from '../../../components/InboxOpenForm';
 import { OperationsGroupSelect } from '../../../components/OperationsGroupSelect';
 import { api, requireSession } from '../../../lib/api';
 import type { InboxItem, InboxView, TicketView } from '../../../lib/api';
@@ -7,6 +8,7 @@ import { formatDateTime } from '../../../lib/labels';
 import { navigationRoles, withReturnTo } from '../../../lib/navigation';
 import {
   HOME_WORK_LIMIT,
+  approvalQueueHref,
   groupHomeWork,
   homeWorkQuery,
   homeWorkQueueHref,
@@ -59,24 +61,28 @@ const EMPTY_GROUPS: HomeWorkGroups = {
   overdue: [],
   today: [],
   week: [],
+  paused: [],
   later: [],
   unplanned: [],
 };
 
 function WorkList({
-  bucket,
+  id,
+  label,
+  tone,
   items,
   returnTo,
 }: {
-  bucket: HomeDueBucket;
+  id: string;
+  label: string;
+  tone: HomeDueBucket | 'paused';
   items: HomeWorkTicket[];
   returnTo: string;
 }) {
   if (items.length === 0) return null;
-  const label = BUCKETS.find((entry) => entry.id === bucket)?.label ?? bucket;
   return (
-    <section className="home-work-group" aria-labelledby={`home-work-${bucket}`}>
-      <h3 id={`home-work-${bucket}`} data-tone={bucket}>
+    <section className="home-work-group" aria-labelledby={`home-work-${id}`}>
+      <h3 id={`home-work-${id}`} data-tone={tone}>
         {label}
         <span className="home-work-group-count">{items.length}件</span>
       </h3>
@@ -85,7 +91,7 @@ function WorkList({
           <li key={ticket.id}>
             <Link
               className="home-work-row"
-              data-due={bucket}
+              data-due={tone}
               href={withReturnTo(`/ops/${encodeURIComponent(ticket.id)}`, returnTo)}
               prefetch={false}
             >
@@ -158,12 +164,8 @@ function NotificationList({ items }: { items: InboxItem[] }) {
     <ul className="home-notifications-list">
       {items.map((item) => (
         <li key={`${item.kind}:${item.id}`}>
-          <Link
-            className="home-notification"
-            data-unread={item.unread || undefined}
-            href={inboxItemHref(item.href)}
-            prefetch={false}
-          >
+          {/* 直接遷移すると既読にならない。業務受信箱と同じ action で既読を記録してから移る。 */}
+          <div className="home-notification" data-unread={item.unread || undefined}>
             <span className="home-notification-title">
               {item.unread ? <span className="home-unread-label">未読</span> : null}
               {item.title}
@@ -172,7 +174,8 @@ function NotificationList({ items }: { items: InboxItem[] }) {
               {item.number}・{item.stateLabel}・
               <time dateTime={item.updatedAt}>{formatDateTime(item.updatedAt)}</time>
             </span>
-          </Link>
+            <InboxOpenForm item={item} />
+          </div>
         </li>
       ))}
     </ul>
@@ -232,11 +235,16 @@ export default async function OperationsOverview({
   const grouped = workOk ? groupHomeWork(workItems, assessedAt) : EMPTY_GROUPS;
   const truncated = workTotal !== null && workTotal > workItems.length;
   const bucketTotal = grouped.overdue.length + grouped.today.length + grouped.week.length;
+  // 停止中は期限を作らないため、見出しの「対応する件数」からも除く。
+  const workActiveTotal =
+    workTotal === null ? null : Math.max(0, workTotal - grouped.paused.length);
 
   const inboxView: InboxView | null = inbox.ok ? inbox.data : null;
   const approvalItems = (inboxView?.items ?? []).filter(isApprovalInboxItem);
   const approval = approvalItems[0] ?? null;
-  const approvalTotal = inboxView?.counts.approval ?? approvalItems.length;
+  // counts は全件、items は先頭ページだけ。両者を混同しない。
+  const approvalTotal = inboxView?.counts.approval ?? 0;
+  const approvalPageSize = inboxView?.pageSize ?? 25;
   const notifications = (inboxView?.items ?? [])
     .filter((item) => !isApprovalInboxItem(item))
     .slice(0, 3);
@@ -246,16 +254,16 @@ export default async function OperationsOverview({
     <main id="main" className="shell operations-overview fs-home">
       <header className="home-heading">
         <h1>
-          {workTotal === null ? (
+          {workActiveTotal === null ? (
             '今日の対応'
           ) : (
             <>
-              今日の対応は <strong className="home-count">{workTotal}</strong>件です
+              今日の対応は <strong className="home-count">{workActiveTotal}</strong>件です
             </>
           )}
         </h1>
         <p className="home-lede">
-          自分に割り当てられた未完了のチケットを、解決期限の近い順に表示します。日時は日本時間（JST）です。
+          自分に割り当てられた未完了のチケットを、解決期限の近い順に表示します。返答待ちなどSLAの計測が止まっているチケットは、期限の件数に含めません。日時は日本時間（JST）です。
         </p>
         {workOk ? (
           <dl className="home-summary" aria-label="解決期限ごとの件数">
@@ -298,11 +306,27 @@ export default async function OperationsOverview({
                 {BUCKETS.map((bucket) => (
                   <WorkList
                     key={bucket.id}
-                    bucket={bucket.id}
+                    id={bucket.id}
+                    label={bucket.label}
+                    tone={bucket.id}
                     items={grouped[bucket.id]}
                     returnTo={currentHref}
                   />
                 ))}
+                {grouped.paused.length > 0 ? (
+                  <>
+                    <WorkList
+                      id="paused"
+                      label="計測停止中（SLA停止）"
+                      tone="paused"
+                      items={grouped.paused}
+                      returnTo={currentHref}
+                    />
+                    <p className="hint">
+                      返答待ちなどでSLAの計測が止まっているチケットです。期限は表示せず、期限ごとの件数にも含めていません。
+                    </p>
+                  </>
+                ) : null}
                 {bucketTotal === 0 ? (
                   <p className="home-empty">
                     今日・今週が期限のチケットはありません。
@@ -461,10 +485,19 @@ export default async function OperationsOverview({
                     {approvalTotal > 1 ? (
                       <p className="hint">
                         ほか{approvalTotal - 1}件の承認待ちがあります。
-                        <Link href="/inbox?kind=approval">業務受信箱で確認する</Link>
+                        <Link href={approvalQueueHref()}>業務受信箱で確認する</Link>
                       </p>
                     ) : null}
                   </>
+                ) : approvalTotal > 0 ? (
+                  <div className="home-empty">
+                    <p>
+                      承認待ちが <strong>{approvalTotal}</strong>
+                      件あります。この画面で読み込んだ先頭{approvalPageSize}
+                      件には承認依頼が含まれていません。
+                    </p>
+                    <Link href={approvalQueueHref()}>承認待ちを業務受信箱で確認する</Link>
+                  </div>
                 ) : (
                   <p className="home-empty">あなたの承認待ちはありません。</p>
                 )}

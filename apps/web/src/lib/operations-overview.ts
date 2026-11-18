@@ -243,7 +243,8 @@ export function formatJstTime(date: Date): string {
 
 export interface HomeWorkTicket {
   ticket: TicketView;
-  dueAt: Date;
+  /** 計測停止中は期限を計算しないため null。 */
+  dueAt: Date | null;
   dueLabel: string;
 }
 
@@ -251,10 +252,23 @@ export interface HomeWorkGroups {
   overdue: HomeWorkTicket[];
   today: HomeWorkTicket[];
   week: HomeWorkTicket[];
+  /**
+   * SLAの計測が止まっているチケット。`remainingSeconds` は停止した時点の
+   * 残り時間なので、now に足して期限を作らない。
+   */
+  paused: HomeWorkTicket[];
   /** 今週より後。一覧には出さないが、見出しの件数との差を説明する。 */
   later: HomeWorkTicket[];
   /** 解決期限が未設定。並べ替えの対象外なので一覧に出さない。 */
   unplanned: HomeWorkTicket[];
+}
+
+/**
+ * SLAの計測が止まっているか。`/ops` の一覧が「SLA停止」を出す条件と同じ
+ * (`ticket.state === 'pending'`)。ここで別の条件を足さない。
+ */
+export function isWorkClockPaused(ticket: Pick<TicketView, 'state'>): boolean {
+  return ticket.state === 'pending';
 }
 
 function homeDueLabel(bucket: HomeDueBucket, dueAt: Date, remainingSeconds: number): string {
@@ -268,6 +282,7 @@ function homeDueLabel(bucket: HomeDueBucket, dueAt: Date, remainingSeconds: numb
  * 一覧APIの並び(期限の早い順)を保ったまま、日本時間の期限で分ける。
  * `remainingSeconds` はAPIが返した時点の残りなので、同じ `now` を基準に
  * 期限時刻へ戻す。秒未満のずれは表示の境界に影響しない。
+ * **計測停止中のチケットは期限を作らず、別に分ける。**
  */
 export function groupHomeWork(tickets: readonly TicketView[], now: Date): HomeWorkGroups {
   const context = homeDueContext(now);
@@ -275,13 +290,19 @@ export function groupHomeWork(tickets: readonly TicketView[], now: Date): HomeWo
     overdue: [],
     today: [],
     week: [],
+    paused: [],
     later: [],
     unplanned: [],
   };
   for (const ticket of tickets) {
+    // 停止中は残り時間が固定されており、now に足すと期限が毎回ずれる。
+    if (isWorkClockPaused(ticket)) {
+      groups.paused.push({ ticket, dueAt: null, dueLabel: 'SLA停止' });
+      continue;
+    }
     const remaining = ticket.sla?.remainingSeconds;
     if (remaining === undefined || remaining === null) {
-      groups.unplanned.push({ ticket, dueAt: now, dueLabel: '期限未設定' });
+      groups.unplanned.push({ ticket, dueAt: null, dueLabel: '期限未設定' });
       continue;
     }
     const dueAt = new Date(now.getTime() + remaining * 1000);
@@ -312,6 +333,14 @@ export function inboxItemHref(href: string): string {
   )
     ? href
     : '/inbox';
+}
+
+/**
+ * 承認待ちだけに絞った業務受信箱。`/inbox` が受け付ける既存の `kind` を使う。
+ * 承認の確定はこのリンク先でも承認者が行う。
+ */
+export function approvalQueueHref(): string {
+  return '/inbox?kind=approval';
 }
 
 /** 承認期限の表示。計測停止と未設定を区別する。 */

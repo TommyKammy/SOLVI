@@ -41,6 +41,7 @@ const homeSession = vi.hoisted(() => ({
     ],
   },
 }));
+const inboxOpenCalls = vi.hoisted(() => [] as Array<Record<string, unknown>>);
 
 vi.mock('../../apps/web/src/lib/api', () => ({
   api: homeApi,
@@ -63,6 +64,32 @@ vi.mock('../../apps/web/src/components/OperationsGroupSelect', async () => {
         { id: 'overview-group', name: 'group', defaultValue: props.selectedGroup },
         ReactModule.createElement('option', { value: '' }, '組織全体'),
       ),
+  };
+});
+vi.mock('../../apps/web/src/components/InboxOpenForm', async () => {
+  const ReactModule = await import('react');
+  return {
+    InboxOpenForm: (props: {
+      item: { kind: string; id: string; eventKey: string; nextAction: string };
+    }) => {
+      inboxOpenCalls.push(props.item);
+      return ReactModule.createElement(
+        'form',
+        { 'data-inbox-open': 'true' },
+        ReactModule.createElement('input', {
+          type: 'hidden',
+          name: 'kind',
+          value: props.item.kind,
+        }),
+        ReactModule.createElement('input', { type: 'hidden', name: 'id', value: props.item.id }),
+        ReactModule.createElement('input', {
+          type: 'hidden',
+          name: 'eventKey',
+          value: props.item.eventKey,
+        }),
+        ReactModule.createElement('button', { type: 'submit' }, props.item.nextAction),
+      );
+    },
   };
 });
 
@@ -604,6 +631,7 @@ describe('UI v2 home page request budget', () => {
       .mockResolvedValue({ ok: true, data: { scope: 'organization', counts: homeCounts } });
     homeApi.listTickets.mockReset().mockResolvedValue({ ok: true, data: work });
     homeApi.inbox.mockReset().mockResolvedValue({ ok: true, data: inbox });
+    inboxOpenCalls.length = 0;
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-11-18T05:00:00.000Z'));
   });
@@ -643,6 +671,53 @@ describe('UI v2 home page request budget', () => {
     expect(html).toContain('承認の確定は承認者が行います');
     expect(html).not.toContain('/decisions');
     expect(html).toContain('合成の通知');
+  });
+
+  it('does not say there are no approvals when the total exceeds the loaded page', async () => {
+    homeApi.inbox.mockResolvedValue({
+      ok: true,
+      data: {
+        ...inbox,
+        items: [notification],
+        total: 1,
+        unread: 1,
+        counts: { ticket: 1, approval: 2, change: 0 },
+      },
+    });
+    const html = await renderHome();
+    expect(html).toContain('承認待ちが <strong>2</strong>件あります');
+    expect(html).toContain('href="/inbox?kind=approval"');
+    expect(html).not.toContain('あなたの承認待ちはありません');
+  });
+
+  it('keeps SLA-paused tickets out of the deadline buckets and the heading count', async () => {
+    const paused = { ...ticket(6, 3 * 3600, 'SLAが止まっている合成チケット'), state: 'pending' };
+    homeApi.listTickets.mockResolvedValue({
+      ok: true,
+      data: { ...work, items: [...work.items, paused], total: work.total + 1 },
+    });
+    const html = await renderHome();
+    expect(html).toContain('id="home-work-paused"');
+    expect(html).toContain('計測停止中（SLA停止）');
+    expect(html).toContain('SLA停止');
+    // 8件のうち、表示した停止中1件を見出しの件数から除く。
+    expect(html).toContain('今日の対応は <strong class="home-count">7</strong>件です');
+    const pausedTitle = html.indexOf('SLAが止まっている合成チケット');
+    expect(pausedTitle).toBeGreaterThan(html.indexOf('id="home-work-paused"'));
+    expect(html.indexOf('SLAが止まっている合成チケット', pausedTitle + 1)).toBe(-1);
+  });
+
+  it('records read through the existing inbox action before opening a notification', async () => {
+    const html = await renderHome();
+    expect(inboxOpenCalls).toHaveLength(1);
+    expect(inboxOpenCalls[0]).toMatchObject({
+      kind: 'ticket',
+      id: notification.id,
+      eventKey: notification.eventKey,
+    });
+    expect(html).toContain('data-inbox-open="true"');
+    expect(html).toContain(`value="${notification.eventKey}"`);
+    expect(html).not.toContain(`href="${notification.href}"`);
   });
 
   it('keeps each section visible when one source fails', async () => {

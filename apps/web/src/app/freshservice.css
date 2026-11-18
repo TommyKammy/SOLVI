@@ -3353,6 +3353,9 @@ body.fs-ui .fs-public-content > main form.stack {
 .home-work-group h3[data-tone='today'] {
   color: var(--warn);
 }
+.home-work-group h3[data-tone='paused'] {
+  color: var(--muted);
+}
 .home-work-group-count {
   color: var(--muted);
   font-weight: 500;
@@ -3586,6 +3589,9 @@ body.fs-ui .home-empty a {
 .home-notification-meta {
   color: var(--muted);
   font-size: 0.75rem;
+}
+.home-notification form {
+  margin-top: 4px;
 }
 
 .home-empty {
