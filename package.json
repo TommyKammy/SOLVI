@@ -32,6 +32,7 @@
     "check:requirements": "python3 tools/check_requirements.py",
     "check:paths": "node tools/check_allowed_paths.mjs",
     "check:images": "node tools/check_image_pinning.mjs",
+    "check:audit": "node tools/check_npm_audit.mjs",
     "check:all": "npm run check:paths && npm run check:architecture && npm run check:images && npm run check:skips && npm run check:unwired && npm run check:traceability && npm run check:workpackages",
     "up": "docker compose up -d --wait",
     "down": "docker compose down -v",

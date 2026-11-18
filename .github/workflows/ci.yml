@@ -168,7 +168,9 @@ jobs:
       - run: npm ci
 
       - name: 依存の脆弱性(Critical/High で失敗)
-        run: npm audit --audit-level=high
+        # 本番依存は例外なし。開発依存のみ、期限付きの例外を
+        # tools/check_npm_audit.mjs の DEV_EXCEPTIONS に理由とともに記録する。
+        run: npm run check:audit
 
       - name: lockfile が最新であること
         # package.json だけ更新して lockfile を置き去りにすると、
