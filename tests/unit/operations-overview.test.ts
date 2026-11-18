@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   OPERATIONS_METRICS,
+  approvalQueueHref,
   groupHomeWork,
   homeDueBucket,
   homeDueContext,
@@ -9,6 +10,7 @@ import {
   inboxDeadlineText,
   inboxItemHref,
   isApprovalInboxItem,
+  isWorkClockPaused,
   operationsDeadlineQuery,
   operationsHref,
   operationsMetricQuery,
@@ -256,11 +258,15 @@ describe('解決SLAの未設定と期限境界', () => {
   });
 });
 
-const homeTicket = (id: string, remainingSeconds: number | null | undefined): TicketView => ({
+const homeTicket = (
+  id: string,
+  remainingSeconds: number | null | undefined,
+  state: string = 'new',
+): TicketView => ({
   id,
   number: `#${id}`,
   kind: 'incident',
-  state: 'new',
+  state,
   subject: `合成チケット ${id}`,
   body: '合成データ',
   impact: 'medium',
@@ -365,7 +371,7 @@ describe('UI v2ホームの期限別の並べ方', () => {
       [homeTicket('overdue', -7200), homeTicket('today', 3 * 3600), homeTicket('week', 25 * 3600)],
       wednesday,
     );
-    expect(grouped.overdue[0]?.dueAt.toISOString()).toBe('2026-11-18T03:00:00.000Z');
+    expect(grouped.overdue[0]?.dueAt?.toISOString()).toBe('2026-11-18T03:00:00.000Z');
     expect(grouped.overdue[0]?.dueLabel).toContain('2時間超過');
     expect(grouped.today[0]?.dueLabel).toBe('今日 17:00');
     expect(grouped.week[0]?.dueLabel).toBe('11月19日(木)');
@@ -382,6 +388,26 @@ describe('UI v2ホームの期限別の並べ方', () => {
     const grouped = groupHomeWork([homeTicket('next-day', 1)], beforeMidnight);
     expect(grouped.today).toHaveLength(0);
     expect(grouped.week.map((item) => item.ticket.id)).toEqual(['next-day']);
+  });
+});
+
+describe('UI v2ホームのSLA計測停止', () => {
+  it('pendingは期限を作らず、超過・今日・今週に含めない', () => {
+    const grouped = groupHomeWork(
+      [homeTicket('active', 3 * 3600), homeTicket('paused', 3 * 3600, 'pending')],
+      wednesday,
+    );
+    expect(grouped.overdue).toHaveLength(0);
+    expect(grouped.today.map((item) => item.ticket.id)).toEqual(['active']);
+    expect(grouped.week).toHaveLength(0);
+    expect(grouped.paused.map((item) => item.ticket.id)).toEqual(['paused']);
+    expect(grouped.paused[0]).toMatchObject({ dueAt: null, dueLabel: 'SLA停止' });
+  });
+
+  it('/ops の「SLA停止」と同じく pending だけを停止中として扱う', () => {
+    expect(isWorkClockPaused({ state: 'pending' })).toBe(true);
+    for (const state of ['new', 'assigned', 'in_progress', 'resolved', 'closed'])
+      expect(isWorkClockPaused({ state })).toBe(false);
   });
 });
 
@@ -405,6 +431,10 @@ describe('UI v2ホームの承認待ちと通知', () => {
     expect(inboxItemHref(ticket)).toBe(ticket);
     for (const href of ['/ops/1', 'https://example.invalid/', 'javascript:alert(1)', '//evil'])
       expect(inboxItemHref(href)).toBe('/inbox');
+  });
+
+  it('全件の承認待ちを確認する先は既存の kind=approval の絞り込みにする', () => {
+    expect(approvalQueueHref()).toBe('/inbox?kind=approval');
   });
 
   it('承認期限の未設定・計測停止・超過を区別する', () => {

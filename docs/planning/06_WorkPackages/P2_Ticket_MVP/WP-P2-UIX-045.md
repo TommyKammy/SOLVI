@@ -139,6 +139,7 @@ Migrationはない。`ops/overview/page.tsx` と関連CSSをUIX-044完了時点�
 | 2026-11-18 | Claude | - | Draft | `assets/ui/SOLVI_UI_v2_Mockup.html` | UI v2のWP案として起草した。 |
 | 2026-11-18 | Product Owner | - | Baseline | - | 未決事項の決定を反映し、baselineとして承認。 |
 | 2026-11-18 | Codex | - | Review | `evidence/WP-P2-UIX-045/20261118-1414/` | UI v2ホームを実装。§7の12項目を満たし、axe serious/critical 0。Product Owner承認待ち。 |
+| 2026-11-18 | Codex | - | Review fix | `evidence/WP-P2-UIX-045/20261118-1414/logs/review-fix.txt` | レビュー指摘3件(承認待ちの全件数、SLA計測停止中、通知の既読)を修正。API呼び出しは4回のまま。 |
 
 ### 実装記録 (2026-11-18 / Codex)
 
