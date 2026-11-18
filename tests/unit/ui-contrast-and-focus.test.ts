@@ -142,6 +142,26 @@ describe('UI v2 design tokens', () => {
     },
   );
 
+  it.each<Theme>(['light', 'dark'])(
+    'keeps text on brand- and button-filled controls at 4.5:1 (WCAG 1.4.3, %s)',
+    (theme) => {
+      expect(contrast(token('btn-ink')[theme], token('btn')[theme])).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(token('surface')[theme], token('side-brand')[theme])).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    },
+  );
+
+  it('does not pair a brand-filled background with fixed white text', () => {
+    const brandFilled =
+      css.match(/{[^}]*background:\s*var\(--fs-brand(?:-strong)?\);[^}]*}/g) ?? [];
+    expect(brandFilled.length).toBeGreaterThan(0);
+    for (const rule of brandFilled) expect(rule).not.toMatch(/color:\s*#fff/i);
+    expect(css).toMatch(
+      /\.directory-cta\s*{[^}]*background:\s*var\(--btn\);[^}]*color:\s*var\(--btn-ink\)/,
+    );
+  });
+
   it('uses the side tokens for the 256px sidebar instead of the old 64px rail', () => {
     expect(css).toMatch(/\.fs-rail\s*{[^}]*width:\s*256px/);
     expect(css).toMatch(/\.fs-rail\s*{[^}]*background:\s*var\(--side\)/);
