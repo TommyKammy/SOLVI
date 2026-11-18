@@ -11,7 +11,7 @@ updated: "2026-11-18"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui"]
 source_of_truth: true
-implementation_status: "review"
+implementation_status: "done"
 story_points: 8
 risk: "medium"
 workstream: "UIX"
@@ -193,13 +193,13 @@ Migrationはない。`AppFrame.tsx` / `freshservice.css` / `navigation-groups.ts
 
 ## 12. Definition of Done
 
-- [ ] §7 Acceptance Criteriaをすべて満たす
-- [ ] §8のテストが通り、Evidenceを保存した
-- [ ] Migrationがない(表示層だけ)ことを確認した
-- [ ] 関連ドキュメント(WP台帳、RTM、Dependency Map、Mockup Asset Index、MANIFEST)を更新した
-- [ ] 未解決のCritical/Highがない
-- [ ] Product Ownerの承認を得た
-- [ ] Execution Logへ結果を追記した
+- [x] §7 Acceptance Criteriaをすべて満たす
+- [x] §8のテストが通り、Evidenceを保存した
+- [x] Migrationがない(表示層だけ)ことを確認した
+- [x] 関連ドキュメント(WP台帳、RTM、Dependency Map、Mockup Asset Index、MANIFEST)を更新した
+- [x] 未解決のCritical/Highがない
+- [x] Product Ownerの承認を得た
+- [x] Execution Logへ結果を追記した
 
 ## 13. Execution Log
 
@@ -335,6 +335,13 @@ node capture.mjs evidence/WP-P2-UIX-044/20261118-1310
 - `before/` — UIX-043時点の変更前画面(ライトのみ)。
 - `logs/` — typecheck / lint / check:all / vitest / test:unit の出力。
 - `capture.mjs.txt` / `run_stack.sh` — 実行スクリプトの複製。
+
+#### 利用者の承認(2026-11-18)
+
+- **2026-11-18、利用者(Product Owner)が PR #25(本WPの実装)をマージした**(main の `79ea3cd`)。これをProduct Ownerの承認として扱い、`done` とする。
+- 先行して PR #24(UI v2のWPと [[11.3_Design_System]] のbaseline、`80c883b`)と PR #28(npm audit の期限付き例外、`f1eb703`)がマージされている。
+- §7 は、Execution Log に記した範囲と未解決事項を含めて、PRのマージにより受け入れられたものとする。
+- 残り: requester向けのポータル(`/portal` など `SupportFrame` の画面)は旧シェルのまま。新シェルとテーマ切替を広げるかは別WPで判断する。`fs-rail` のクラス名の整理、各画面のCSS Modulesに残る固定色のトークン化も後続WPで扱う。
 
 ## 14. 決定事項(2026-11-18 Product Owner)
 
