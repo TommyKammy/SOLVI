@@ -1,0 +1,9 @@
+ M apps/web/src/app/freshservice.css
+ M apps/web/src/app/ops/overview/page.tsx
+ D apps/web/src/components/DonutChart.tsx
+ M apps/web/src/lib/operations-overview.ts
+ M docs/planning/06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md
+ M docs/planning/MANIFEST.md
+ M tests/unit/operations-overview.test.ts
+ M tests/unit/performance-overview.test.ts
+?? evidence/WP-P2-UIX-045/

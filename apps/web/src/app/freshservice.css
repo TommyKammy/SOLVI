@@ -3231,6 +3231,425 @@ body.fs-ui .fs-public-content > main form.stack {
 }
 
 /* ------------------------------------------------------------------------- */
+/* UI v2 ホーム (WP-P2-UIX-045)                                              */
+/* ------------------------------------------------------------------------- */
+
+.fs-home {
+  display: grid;
+  align-content: start;
+  gap: 24px;
+}
+
+.home-heading {
+  display: grid;
+  gap: 8px;
+}
+.home-heading h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+.home-count {
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.home-lede {
+  margin: 0;
+  color: var(--muted);
+}
+.home-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.home-summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.home-summary dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.home-summary dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.home-summary [data-tone='overdue'] dd {
+  color: var(--danger);
+}
+.home-summary [data-tone='today'] dd {
+  color: var(--warn);
+}
+
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 32px;
+  align-items: start;
+}
+.home-main,
+.home-aside {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.home-panel,
+.home-card,
+.home-notifications {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: none;
+}
+.home-card {
+  background: var(--panel);
+}
+.home-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.home-section-head h2,
+.home-card h2,
+.home-notifications h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.home-section-head > div .hint {
+  margin: 4px 0 0;
+}
+.home-card h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.home-work-group {
+  margin-top: 18px;
+}
+.home-work-group:first-of-type {
+  margin-top: 4px;
+}
+.home-work-group h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.home-work-group h3[data-tone='overdue'] {
+  color: var(--danger);
+}
+.home-work-group h3[data-tone='today'] {
+  color: var(--warn);
+}
+.home-work-group-count {
+  color: var(--muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.home-work-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-work-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 140px 170px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
+}
+body.fs-ui .home-work-list a.home-work-row,
+body.fs-ui .home-notifications-list a.home-notification {
+  text-decoration: none;
+}
+.home-work-row:hover {
+  background: var(--hover);
+  color: var(--ink);
+  text-decoration: none;
+}
+.home-work-marker {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+}
+.home-work-row[data-due='overdue'] .home-work-marker {
+  border-color: var(--danger);
+}
+.home-work-row[data-due='overdue'] .home-work-marker::after {
+  content: '!';
+  position: absolute;
+  inset: -2px;
+  display: grid;
+  place-items: center;
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.home-work-row[data-due='today'] .home-work-marker {
+  border-color: var(--warn);
+  background: linear-gradient(90deg, var(--warn) 50%, transparent 50%);
+}
+.home-work-number {
+  margin-right: 8px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.home-work-title {
+  color: var(--ink);
+  font-weight: 500;
+}
+.home-work-group-name {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-work-due {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.home-work-row[data-due='overdue'] .home-work-due {
+  color: var(--danger);
+  font-weight: 700;
+}
+.home-work-row[data-due='today'] .home-work-due {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.home-group-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 12px 0;
+}
+.home-group-filter .field {
+  min-width: 180px;
+}
+.home-group-filter select {
+  max-width: 100%;
+}
+.home-bars {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home-bar {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 170px;
+  align-items: center;
+  gap: 12px;
+}
+.home-bar-label {
+  font-weight: 500;
+}
+.home-bar-track {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--hover);
+}
+.home-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ink);
+}
+.home-bar[data-tone='danger'] .home-bar-fill {
+  background: var(--danger);
+}
+.home-bar-value {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.home-bar-value strong {
+  color: var(--ink);
+}
+.home-bar[data-tone='danger'] .home-bar-value strong {
+  color: var(--danger);
+}
+.home-bar-value .hint {
+  margin-left: 4px;
+}
+
+.home-card-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.home-card-meta > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+}
+.home-card-meta dt {
+  color: var(--muted);
+}
+.home-card-meta dd {
+  margin: 0;
+}
+body.fs-ui a.home-action,
+body.fs-ui a.home-action:hover {
+  color: var(--btn-ink);
+}
+.home-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--fs-radius-sm);
+  background: var(--btn);
+  font-weight: 700;
+  text-align: center;
+}
+.home-action:hover {
+  background: color-mix(in srgb, var(--btn) 86%, var(--surface));
+  text-decoration: none;
+}
+/* WCAG 2.5.8: 12pxの補足リンクをそのままにしない。 */
+body.fs-ui .home-section-head a,
+body.fs-ui .home-card .hint a,
+body.fs-ui .home-notifications .hint a,
+body.fs-ui .home-empty a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+.home-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.home-notifications h2 {
+  margin-bottom: 4px;
+}
+.home-notifications-list {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home-notification {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
+}
+.home-notification:hover {
+  background: var(--hover);
+  color: var(--ink);
+  text-decoration: none;
+}
+.home-notification[data-unread='true'] {
+  background: var(--hover);
+}
+.home-notification-title {
+  font-weight: 500;
+}
+.home-notification-title .home-unread-label {
+  margin-right: 8px;
+}
+.home-unread-label {
+  color: var(--side-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.home-notification-meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.home-empty {
+  margin: 12px 0 0;
+  padding: 20px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+.home-empty a {
+  margin-left: 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.home-error {
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--surface));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  color: var(--ink);
+}
+.home-error p {
+  margin: 0 0 6px;
+}
+.home-error a {
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.home-error.home-card {
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+@media (max-width: 1100px) {
+  .home-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-work-row {
+    grid-template-columns: 16px minmax(0, 1fr);
+    row-gap: 4px;
+  }
+  .home-work-group-name,
+  .home-work-due {
+    grid-column: 2;
+  }
+  .home-work-due {
+    text-align: left;
+  }
+  .home-bar {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+  .home-bar-value {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
 /* 入力方法と強制カラーモードへの適応                                        */
 /* ------------------------------------------------------------------------- */
 

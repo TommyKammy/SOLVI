@@ -1,0 +1,183 @@
+{
+  "totals": {
+    "scans": 20,
+    "seriousOrCritical": 0,
+    "anyViolationNodes": 0,
+    "overflow375": [],
+    "redirectedToLogin": [],
+    "consoleErrorScans": [],
+    "themeAttributeMismatches": []
+  },
+  "checks": {
+    "home": {
+      "heading": "今日の対応は 6件です",
+      "summary": [
+        "解決期限超過2件",
+        "今日1件",
+        "今週2件"
+      ],
+      "groups": [
+        "解決期限超過2件",
+        "今日1件",
+        "今週2件"
+      ],
+      "groupSections": [
+        {
+          "label": "解決期限超過2件",
+          "rows": [
+            {
+              "href": "/ops/01a1ed16-38a7-7000-9ec2-d63f33f96e07?returnTo=%2Fops%2Foverview",
+              "due": "1日2時間超過",
+              "group": "ヘルプデスク",
+              "subject": "WP45合成: 期限を1日過ぎたアカウント申請",
+              "tone": "overdue"
+            },
+            {
+              "href": "/ops/01a1ed16-3898-7000-b6a6-64327a12ccf3?returnTo=%2Fops%2Foverview",
+              "due": "2時間超過",
+              "group": "インフラ担当",
+              "subject": "WP45合成: 期限を2時間過ぎたネットワーク障害",
+              "tone": "overdue"
+            }
+          ]
+        },
+        {
+          "label": "今日1件",
+          "rows": [
+            {
+              "href": "/ops/01a1ed16-38b0-7000-b912-04f9d4781443?returnTo=%2Fops%2Foverview",
+              "due": "今日 17:11",
+              "group": "ヘルプデスク",
+              "subject": "WP45合成: 今日が期限の端末設定",
+              "tone": "today"
+            }
+          ]
+        },
+        {
+          "label": "今週2件",
+          "rows": [
+            {
+              "href": "/ops/01a1ed16-38b8-7000-bb56-7727619b4365?returnTo=%2Fops%2Foverview",
+              "due": "11月19日(木)",
+              "group": "インフラ担当",
+              "subject": "WP45合成: 今週木曜が期限の共有フォルダ申請",
+              "tone": "week"
+            },
+            {
+              "href": "/ops/01a1ed16-38c1-7000-9f3d-782b669aa080?returnTo=%2Fops%2Foverview",
+              "due": "11月20日(金)",
+              "group": "ヘルプデスク",
+              "subject": "WP45合成: 今週金曜が期限のソフトウェア申請",
+              "tone": "week"
+            }
+          ]
+        }
+      ],
+      "approval": {
+        "heading": "あなたの承認待ち",
+        "title": "VPN アクセス申請（模擬）",
+        "link": "/requests/01a1ed16-38e1-7001-ada5-55a59ad6a0c8",
+        "note": "承認の確定は承認者が行います。実行直前に承認状態を再確認します。",
+        "decisionForms": 0
+      },
+      "notifications": {
+        "heading": "通知",
+        "items": [
+          {
+            "href": "/ops/01a1ed16-38c9-7000-b9dd-dc97d0579de6",
+            "unread": "true",
+            "title": "未読WP45合成: 来週火曜が期限の機器更新相談"
+          },
+          {
+            "href": "/ops/01a1ed16-38c1-7000-9f3d-782b669aa080",
+            "unread": "true",
+            "title": "未読WP45合成: 今週金曜が期限のソフトウェア申請"
+          },
+          {
+            "href": "/ops/01a1ed16-38b8-7000-bb56-7727619b4365",
+            "unread": "true",
+            "title": "未読WP45合成: 今週木曜が期限の共有フォルダ申請"
+          }
+        ]
+      },
+      "bars": [
+        {
+          "label": "未完了",
+          "value": "7件",
+          "width": "width:100%"
+        },
+        {
+          "label": "解決期限超過",
+          "value": "2件（未完了の29%）",
+          "width": "width:29%"
+        }
+      ],
+      "scope": "表示範囲: 組織全体",
+      "groupSelect": true
+    },
+    "partialFailure": {
+      "error": "承認待ちと通知取得できませんでした。再読み込みをお試しください。再読み込みする",
+      "rows": 5,
+      "bars": 2,
+      "approvalCard": 1
+    },
+    "empty": {
+      "heading": "今日の対応は 0件です",
+      "emptyTexts": [
+        "自分に割り当てられた未完了のチケットはありません。チケットの一覧を見る",
+        "あなたの承認待ちはありません。",
+        "新しい通知はありません。業務受信箱で更新を確認できます。"
+      ]
+    },
+    "requester": {
+      "heading": "ホーム",
+      "alert": "この画面を表示する権限がありません。",
+      "hasWorkRows": 0
+    },
+    "externalResources": {
+      "externalStylesheets": 0,
+      "externalScripts": 0,
+      "fontFace": 0,
+      "csp": "default-src 'self'; script-src 'self' 'nonce-DPicKZHuMBmUZ6Mp5AJgaA==' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+    },
+    "tl12": {
+      "steps": [
+        {
+          "name": "login",
+          "url": "http://127.0.0.1:3100/login",
+          "path": "/login",
+          "elapsedMs": 544
+        },
+        {
+          "name": "after-login-inbox",
+          "url": "http://127.0.0.1:3100/inbox",
+          "path": "/inbox",
+          "elapsedMs": 773
+        },
+        {
+          "name": "home",
+          "url": "http://127.0.0.1:3100/ops/overview",
+          "path": "/ops/overview",
+          "elapsedMs": 921
+        },
+        {
+          "name": "ticket-detail",
+          "url": "http://127.0.0.1:3100/ops/01a1ed16-38a7-7000-9ec2-d63f33f96e07?returnTo=%2Fops%2Foverview",
+          "path": "/ops/01a1ed16-38a7-7000-9ec2-d63f33f96e07",
+          "elapsedMs": 1170
+        }
+      ],
+      "overdueRow": {
+        "count": 2,
+        "href": "/ops/01a1ed16-38a7-7000-9ec2-d63f33f96e07?returnTo=%2Fops%2Foverview",
+        "subject": "WP45合成: 期限を1日過ぎたアカウント申請",
+        "due": "1日2時間超過"
+      },
+      "detail": {
+        "heading": "WP45合成: 期限を1日過ぎたアカウント申請",
+        "url": "http://127.0.0.1:3100/ops/01a1ed16-38a7-7000-9ec2-d63f33f96e07?returnTo=%2Fops%2Foverview",
+        "hasNumber": true
+      }
+    }
+  }
+}

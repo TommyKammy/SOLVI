@@ -1,0 +1,2 @@
+$ npx eslint --max-warnings=0 --no-warn-ignored <changed files>
+exit=0

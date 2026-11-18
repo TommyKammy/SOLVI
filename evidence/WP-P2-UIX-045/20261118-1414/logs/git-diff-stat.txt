@@ -1,0 +1,9 @@
+ apps/web/src/app/freshservice.css                  | 419 ++++++++++++
+ apps/web/src/app/ops/overview/page.tsx             | 711 ++++++++++++---------
+ apps/web/src/components/DonutChart.tsx             | 137 ----
+ apps/web/src/lib/operations-overview.ts            | 212 +++++-
+ .../06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md | 126 +++-
+ docs/planning/MANIFEST.md                          |   8 +-
+ tests/unit/operations-overview.test.ts             | 186 ++++++
+ tests/unit/performance-overview.test.ts            | 270 +++++++-
+ 8 files changed, 1597 insertions(+), 472 deletions(-)

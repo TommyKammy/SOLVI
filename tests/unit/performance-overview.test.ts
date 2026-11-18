@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import React, { createElement, type AnchorHTMLAttributes } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { format } from 'node:url';
+import type { LinkProps } from 'next/link';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildListQuery } from '../../services/api/src/modules/ticket/ticket-query.js';
 import { buildTicketOverviewQuery } from '../../services/api/src/modules/ticket/overview-query.js';
 import type { AuthzContext } from '../../services/api/src/common/authz/authz.js';
@@ -18,6 +22,55 @@ import {
   type OverviewEdgeCase,
   type OverviewRuntime,
 } from '../../tools/performance/overview-analysis.mjs';
+
+const homeApi = vi.hoisted(() => ({
+  listGroups: vi.fn(),
+  ticketOverview: vi.fn(),
+  listTickets: vi.fn(),
+  inbox: vi.fn(),
+}));
+const homeSession = vi.hoisted(() => ({
+  current: {
+    userId: '04300000-0000-4000-8000-000000000010',
+    organizationId: '04300000-0000-4000-8000-000000000001',
+    roles: [
+      {
+        roleCode: 'agent',
+        organizationId: '04300000-0000-4000-8000-000000000001',
+      },
+    ],
+  },
+}));
+
+vi.mock('../../apps/web/src/lib/api', () => ({
+  api: homeApi,
+  requireSession: vi.fn(async () => homeSession.current),
+}));
+vi.mock('next/link', () => ({
+  default: ({
+    href,
+    prefetch: _prefetch,
+    ...props
+  }: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & LinkProps) =>
+    createElement('a', { ...props, href: typeof href === 'string' ? href : format(href) }),
+}));
+vi.mock('../../apps/web/src/components/OperationsGroupSelect', async () => {
+  const ReactModule = await import('react');
+  return {
+    OperationsGroupSelect: (props: { selectedGroup: string }) =>
+      ReactModule.createElement(
+        'select',
+        { id: 'overview-group', name: 'group', defaultValue: props.selectedGroup },
+        ReactModule.createElement('option', { value: '' }, '組織全体'),
+      ),
+  };
+});
+
+const { default: OperationsOverview } = await vi.importActual<{
+  default: (props: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+  }) => Promise<React.ReactNode>;
+}>('../../apps/web/src/app/ops/overview/page');
 
 const uuid = (n: number) => `04300000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const zero: OverviewCounts = {
@@ -445,5 +498,220 @@ describe('overview comparison harness', () => {
       await runOverviewAnalysis({ runtime: aborted.runtime, fixture, signal: AbortSignal.abort() }),
     ).toMatchObject({ completed: false, failureCode: 'OVERVIEW_ANALYSIS_ABORTED', cases: [] });
     expect(aborted.query).not.toHaveBeenCalled();
+  });
+});
+
+// WP-P2-UIX-045: the home page must not add data API calls while replacing
+// the overview's counts/deadlines/charts with personal work, approval, and status.
+describe('UI v2 home page request budget', () => {
+  const orgId = uuid(1);
+  const agent = {
+    userId: uuid(10),
+    organizationId: orgId,
+    roles: [{ roleCode: 'agent', organizationId: orgId }],
+  };
+  const homeCounts = { open: 6, unassigned: 1, mine: 4, pending: 1, breached: 2, critical: 1 };
+  const ticket = (n: number, remainingSeconds: number | null, subject: string) => ({
+    id: uuid(100 + n),
+    number: `#10${n}`,
+    kind: 'incident',
+    state: 'new',
+    subject,
+    body: '合成データ',
+    impact: 'medium',
+    urgency: 'medium',
+    priority: 'medium',
+    createdAt: '2026-11-18T00:00:00.000Z',
+    resolvedAt: null,
+    assigned: true,
+    assigneeName: '合成 担当者',
+    assigneeGroupName: '合成グループ',
+    ...(remainingSeconds === null
+      ? {}
+      : { sla: { remainingSeconds, breached: remainingSeconds < 0 } }),
+  });
+  const approval = {
+    kind: 'request_approval',
+    id: uuid(201),
+    number: 'REQ-201',
+    title: '合成の承認依頼',
+    state: 'pending',
+    stateLabel: '自分への承認依頼',
+    scopeLabel: '指名された承認者',
+    nextAction: '申請を確認して承認・却下する',
+    href: `/requests/${uuid(201)}`,
+    waiting: false,
+    eventKey: 'a'.repeat(64),
+    updatedAt: '2026-11-18T04:00:00.000Z',
+    unread: false,
+    deadline: {
+      label: '承認期限',
+      status: 'upcoming',
+      at: '2026-11-19T05:00:00.000Z',
+      remainingSeconds: 86400,
+    },
+  };
+  const notification = {
+    ...approval,
+    kind: 'ticket',
+    id: uuid(202),
+    number: 'INC-202',
+    title: '合成の通知',
+    state: 'new',
+    stateLabel: '受付済み',
+    scopeLabel: '自分の担当',
+    nextAction: '対応・返信を確認する',
+    href: `/ops/${uuid(202)}`,
+    unread: true,
+    deadline: { label: '初回応答SLA', status: 'none', at: null, remainingSeconds: null },
+  };
+  const inbox = {
+    items: [approval, notification],
+    total: 2,
+    unread: 1,
+    page: 1,
+    pageSize: 25,
+    asOf: '2026-11-18T05:00:00.000Z',
+    canIncludeUnassigned: true,
+    counts: { ticket: 1, approval: 1, change: 0 },
+    appliedFilter: { kind: 'all', q: '', unread: '0', unassigned: '0', page: 1 },
+  };
+  const work = {
+    items: [
+      ticket(1, -7200, '期限を過ぎた合成チケット'),
+      ticket(2, 3 * 3600, '今日が期限の合成チケット'),
+      ticket(3, 25 * 3600, '今週が期限の合成チケット'),
+      ticket(4, 6 * 24 * 3600, '来週が期限の合成チケット'),
+      ticket(5, null, '期限が未設定の合成チケット'),
+    ],
+    total: 7,
+    scope: 'organization',
+    appliedFilter: {},
+    nextCursor: null,
+  };
+
+  const renderHome = async () =>
+    renderToStaticMarkup(await OperationsOverview({ searchParams: Promise.resolve({}) }));
+
+  beforeEach(() => {
+    homeSession.current = agent;
+    homeApi.listGroups.mockReset().mockResolvedValue({
+      ok: true,
+      data: { items: [{ id: uuid(20), name: '合成グループ' }] },
+    });
+    homeApi.ticketOverview
+      .mockReset()
+      .mockResolvedValue({ ok: true, data: { scope: 'organization', counts: homeCounts } });
+    homeApi.listTickets.mockReset().mockResolvedValue({ ok: true, data: work });
+    homeApi.inbox.mockReset().mockResolvedValue({ ok: true, data: inbox });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-18T05:00:00.000Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it('keeps four data calls and renders the three deadline groups in JST order', async () => {
+    const html = await renderHome();
+    expect(
+      [homeApi.listGroups, homeApi.ticketOverview, homeApi.listTickets, homeApi.inbox].map(
+        (fn) => fn.mock.calls.length,
+      ),
+    ).toEqual([1, 1, 1, 1]);
+    expect(homeApi.listTickets.mock.calls[0]?.[0]).toBe(50);
+    expect([...(homeApi.listTickets.mock.calls[0]?.[1] as URLSearchParams)]).toEqual([
+      ['state', 'new'],
+      ['state', 'assigned'],
+      ['state', 'in_progress'],
+      ['state', 'pending'],
+      ['assignment', 'mine'],
+      ['sort', 'deadline'],
+    ]);
+    expect(html).toContain('今日の対応は <strong class="home-count">7</strong>件です');
+    expect(html).toContain('解決期限超過');
+    expect(html).toContain('2時間超過');
+    expect(html).toContain('今日 17:00');
+    expect(html).toContain('11月19日(木)');
+    expect(html.indexOf('id="home-work-overdue"')).toBeLessThan(
+      html.indexOf('id="home-work-today"'),
+    );
+    expect(html.indexOf('id="home-work-today"')).toBeLessThan(html.indexOf('id="home-work-week"'));
+    expect(html).toContain(`/ops/${uuid(101)}`);
+    expect(html).toContain('内容を確認して承認判断する');
+    expect(html).toContain(`href="/requests/${uuid(201)}"`);
+    expect(html).toContain('承認の確定は承認者が行います');
+    expect(html).not.toContain('/decisions');
+    expect(html).toContain('合成の通知');
+  });
+
+  it('keeps each section visible when one source fails', async () => {
+    homeApi.listTickets.mockResolvedValue({
+      ok: false,
+      problem: { status: 503, title: '合成の失敗' },
+    });
+    const workFailed = await renderHome();
+    expect(workFailed).toContain('自分に割り当てられたチケットを表示できません');
+    expect(workFailed).toContain('合成の承認依頼');
+    expect(workFailed).toContain('解決期限超過');
+
+    homeApi.listTickets.mockResolvedValue({ ok: true, data: work });
+    homeApi.ticketOverview.mockResolvedValue({
+      ok: false,
+      problem: { status: 503, title: '合成の失敗' },
+    });
+    const overviewFailed = await renderHome();
+    expect(overviewFailed).toContain('担当グループの件数を表示できません');
+    expect(overviewFailed).toContain('期限を過ぎた合成チケット');
+
+    homeApi.ticketOverview.mockResolvedValue({
+      ok: true,
+      data: { scope: 'organization', counts: homeCounts },
+    });
+    homeApi.inbox.mockResolvedValue({ ok: false, problem: { status: 503, title: '合成の失敗' } });
+    const inboxFailed = await renderHome();
+    expect(inboxFailed).toContain('承認待ちと通知');
+    expect(inboxFailed).toContain('取得できませんでした。再読み込みをお試しください。');
+    expect(inboxFailed).toContain('期限を過ぎた合成チケット');
+  });
+
+  it('shows an empty state for each empty section', async () => {
+    homeApi.ticketOverview.mockResolvedValue({
+      ok: true,
+      data: { scope: 'organization', counts: { ...homeCounts, open: 0, breached: 0 } },
+    });
+    homeApi.listTickets.mockResolvedValue({
+      ok: true,
+      data: { ...work, items: [], total: 0 },
+    });
+    homeApi.inbox.mockResolvedValue({
+      ok: true,
+      data: {
+        ...inbox,
+        items: [],
+        total: 0,
+        unread: 0,
+        counts: { ticket: 0, approval: 0, change: 0 },
+      },
+    });
+    const html = await renderHome();
+    expect(html).toContain('自分に割り当てられた未完了のチケットはありません');
+    expect(html).toContain('あなたの承認待ちはありません');
+    expect(html).toContain('新しい通知はありません');
+    expect(html).toContain('この範囲に未完了のチケットはありません');
+  });
+
+  it('does not load any home data for a non-staff user', async () => {
+    homeSession.current = {
+      userId: uuid(11),
+      organizationId: orgId,
+      roles: [{ roleCode: 'requester', organizationId: orgId }],
+    };
+    const html = await renderHome();
+    expect(html).toContain('この画面を表示する権限がありません');
+    expect(homeApi.listGroups).not.toHaveBeenCalled();
+    expect(homeApi.ticketOverview).not.toHaveBeenCalled();
+    expect(homeApi.listTickets).not.toHaveBeenCalled();
+    expect(homeApi.inbox).not.toHaveBeenCalled();
   });
 });

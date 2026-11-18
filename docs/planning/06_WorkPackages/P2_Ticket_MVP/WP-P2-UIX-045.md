@@ -5,13 +5,13 @@ title: "UI v2のホーム(今日の対応・承認待ち・担当グループの
 category: "06_WorkPackages"
 type: "workpackage"
 status: "baseline"
-version: "0.1.0"
+version: "0.2.0"
 created: "2026-11-18"
 updated: "2026-11-18"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "review"
 story_points: 5
 risk: "low"
 workstream: "UIX"
@@ -85,20 +85,18 @@ UIX-044のシェルとトークンが完了していること。
 - 読み込み中・空・権限なし・取得失敗の表示([[11.11_UI_State_and_Error_Model]] に従う)
 - Evidence(両テーマ、1440×900と375×812)
 
-## 7. Acceptance Criteria
-
-- [ ] 新しいホームは `/ops/overview` を置き換える(パスと着地先は変えない)。`/ops/overview` を開くと、見出しに自分の担当の未完了件数と、期限ごとの件数(解決期限超過・今日・今週)が出る。
-- [ ] 一覧は、自分の担当の未完了チケットを解決期限の早い順に並べ、「解決期限超過/今日/今週」に分ける。区切りは日本時間で、「今週」は日曜0:00〜土曜24:00とする(今日より後で今週中のもの)。各行に番号・件名・担当グループ・期限が出て、行からチケット詳細へ移れる。
-- [ ] 期限超過の行は `--danger`、今日が期限の行は `--warn` で表す。色だけに頼らず、文字(「2時間超過」など)でも伝える。
-- [ ] 担当グループの状況は、既存の `api.ticketOverview` の値(未完了・解決期限超過)を使う。既存の担当グループ切替(`OperationsGroupSelect`)は残す。
-- [ ] 承認待ちカードは、`api.inbox` の `request_approval` / `change` 項目から1件を出す。ボタンは既存の承認画面へ移るリンクにし、ホームでは承認を確定しない。カードに「承認の確定は承認者が行います」と書く。
-- [ ] 承認待ちがないとき、通知がないとき、チケットがないときに、それぞれ空の表示が出る。
-- [ ] 取得に失敗した部分だけがエラー表示になり、ほかの部分は表示される。
-- [ ] ページのAPI呼び出し数が、変更前より増えない(`performance-overview` テストで確認)。
-- [ ] staff以外が開いたときは、従来どおり権限がない旨を出す。
-- [ ] 一覧の見出しと区切りは、スクリーンリーダーで「解決期限超過」「今日」「今週」と読み上げられる。
-- [ ] `npm run typecheck`、`npm run lint`、`npm run check:all`、§4のテストが通る。
-- [ ] axeで `/ops/overview` を両テーマで検査し、serious/criticalの違反がない。
+- [x] 新しいホームは `/ops/overview` を置き換える(パスと着地先は変えない)。`/ops/overview` を開くと、見出しに自分の担当の未完了件数と、期限ごとの件数(解決期限超過・今日・今週)が出る。
+- [x] 一覧は、自分の担当の未完了チケットを解決期限の早い順に並べ、「解決期限超過/今日/今週」に分ける。区切りは日本時間で、「今週」は日曜0:00〜土曜24:00とする(今日より後で今週中のもの)。各行に番号・件名・担当グループ・期限が出て、行からチケット詳細へ移れる。
+- [x] 期限超過の行は `--danger`、今日が期限の行は `--warn` で表す。色だけに頼らず、文字(「2時間超過」など)でも伝える。
+- [x] 担当グループの状況は、既存の `api.ticketOverview` の値(未完了・解決期限超過)を使う。既存の担当グループ切替(`OperationsGroupSelect`)は残す。
+- [x] 承認待ちカードは、`api.inbox` の `request_approval` / `change` 項目から1件を出す。ボタンは既存の承認画面へ移るリンクにし、ホームでは承認を確定しない。カードに「承認の確定は承認者が行います」と書く。
+- [x] 承認待ちがないとき、通知がないとき、チケットがないときに、それぞれ空の表示が出る。
+- [x] 取得に失敗した部分だけがエラー表示になり、ほかの部分は表示される。
+- [x] ページのAPI呼び出し数が、変更前より増えない(`performance-overview` テストで確認)。
+- [x] staff以外が開いたときは、従来どおり権限がない旨を出す。
+- [x] 一覧の見出しと区切りは、スクリーンリーダーで「解決期限超過」「今日」「今週」と読み上げられる。
+- [x] `npm run typecheck`、`npm run lint`、`npm run check:all`、§4のテストが通る。
+- [x] axeで `/ops/overview` を両テーマで検査し、serious/criticalの違反がない。
 
 ## 8. Verification and Evidence
 
@@ -128,11 +126,11 @@ Migrationはない。`ops/overview/page.tsx` と関連CSSをUIX-044完了時点�
 
 ## 12. Definition of Done
 
-- [ ] §7をすべて満たす
-- [ ] §8のテストが通り、Evidenceを保存した
-- [ ] 関連ドキュメントを更新した
+- [x] §7をすべて満たす
+- [x] §8のテストが通り、Evidenceを保存した
+- [x] 関連ドキュメントを更新した
 - [ ] Product Ownerの承認を得た
-- [ ] Execution Logへ結果を追記した
+- [x] Execution Logへ結果を追記した
 
 ## 13. Execution Log
 
@@ -140,6 +138,94 @@ Migrationはない。`ops/overview/page.tsx` と関連CSSをUIX-044完了時点�
 |---|---|---|---|---|---|
 | 2026-11-18 | Claude | - | Draft | `assets/ui/SOLVI_UI_v2_Mockup.html` | UI v2のWP案として起草した。 |
 | 2026-11-18 | Product Owner | - | Baseline | - | 未決事項の決定を反映し、baselineとして承認。 |
+| 2026-11-18 | Codex | - | Review | `evidence/WP-P2-UIX-045/20261118-1414/` | UI v2ホームを実装。§7の12項目を満たし、axe serious/critical 0。Product Owner承認待ち。 |
+
+### 実装記録 (2026-11-18 / Codex)
+
+**変更ファイル**
+
+- `apps/web/src/app/ops/overview/page.tsx` — ホームへ置き換え(見出し・期限別一覧・担当グループの横棒・承認待ち・通知・空/失敗/権限なし)
+- `apps/web/src/lib/operations-overview.ts` — 自分の担当のAPI条件、日本時間の日付/週境界、期限別の分類、承認待ちの分類とリンク検証
+- `apps/web/src/app/freshservice.css` — ホームの表示だけを追加(トークン参照。影なし・1pxの線)
+- `apps/web/src/components/DonutChart.tsx` — 削除(§14によりホームからドーナツを外したため、参照元が無くなった)
+- `tests/unit/operations-overview.test.ts` — 日本時間の境界、分類、承認待ちの分類・リンク検証
+- `tests/unit/performance-overview.test.ts` — ホームのAPI呼び出し4回、部分失敗、空、権限なし
+- `evidence/WP-P2-UIX-045/20261118-1414/` — 変更前後、axe、TL-12、検証ログ
+- `docs/planning/06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-045.md` — 本記録と status
+- `docs/planning/MANIFEST.md` — 再生成
+
+**Migration**
+
+なし。DB・API・集計・認可・監査は変更していない。
+
+**検証コマンドと結果**
+
+```text
+npm run typecheck
+→ 成功
+
+npm run lint
+→ 失敗(既知の3件のみ: .claude/worktrees/*/apps/web/next-env.d.ts の triple-slash-reference)
+
+git ls-files ... | xargs npx eslint --max-warnings=0 --no-warn-ignored
+→ 成功
+
+npm run check:all
+→ 成功
+
+npx vitest run tests/unit/operations-overview.test.ts tests/unit/performance-overview.test.ts tests/unit/navigation-ui.test.ts tests/unit/ui-contrast-and-focus.test.ts
+→ 4ファイル / 101件成功
+
+npm run test:unit
+→ 116ファイル / 4807件成功・26件skip
+
+next build (変更後の一時コピー)
+→ 成功
+```
+
+ブラウザ検証は `evidence/WP-P2-UIX-045/20261118-1414/README.md` を参照。
+変更後16スキャン(1440×900 / 375×812 × ライト/ダーク × 通常/空/部分失敗/権限なし)と
+変更前4スキャンで、axe serious/critical 0、375pxの横はみ出し0、コンソールエラー0。
+
+**§7 Acceptance Criteria の充足**
+
+| 基準 | 証拠 |
+|---|---|
+| `/ops/overview` の置き換えと見出しの件数 | `summary.json` の `checks.home.heading` = 「今日の対応は 6件です」、件数3つ |
+| 期限の早い順と3区切り、日本時間の週 | ブラウザの行順、`tests/unit/operations-overview.test.ts` の境界テスト |
+| 超過 `--danger` / 今日 `--warn`、文字でも表示 | `data-due` と「1日2時間超過」「今日 17:11」、axe違反0 |
+| 担当グループの状況と切替 | `checks.home.bars`、`groupSelect: true` |
+| 承認待ちカードと確定しないリンク | `checks.home.approval`、`decisionForms: 0` |
+| 3つの空表示 | `checks.empty.emptyTexts` |
+| 部分失敗 | `checks.partialFailure`(行5・横棒2を維持) |
+| API呼び出し4回 | `tests/unit/performance-overview.test.ts` |
+| staff以外 | `checks.requester` |
+| 見出しの読み上げ | `h3`「解決期限超過」「今日」「今週」と `aria-labelledby` |
+| typecheck / lint / check:all / テスト | 上記と `logs/` |
+| axe両テーマ serious/critical 0 | `summary.json` の `totals` |
+
+**セキュリティ影響**
+
+表示層のみ。承認の確定・状態変更・監査書込みの経路は追加していない。
+承認待ちカードは `api.inbox` の結果だけを使い、リンク先は
+`/ops` `/requests` `/changes` のUUIDだけに限定した。AIは関与しない。
+新規依存・外部フォント・外部CSS・CDNの読込みは無い。CSPは変更していない。
+Evidenceは合成データのみで、パスワード・トークン・Cookieを保存していない。
+開発用DB `solvi` には接続していない。
+
+**未解決事項**
+
+- 左サイドバーのラベルは「運営状況」のまま。`apps/web/src/lib/navigation-groups.ts` は
+  §4 Allowed Paths の外のため変更していない。
+- `tools/e2e/operations_overview_flow.mjs` は旧ホームの `.overview-*` を前提にしており、
+  §4の外なので更新していない。別WPでの追随が必要。
+- 見出しの個人名は `SessionView` に表示名が無いため出していない(API呼び出しを増やさないため)。
+- 「通知」は `api.inbox` の業務更新を使う。`api.notifications` を足すとページのAPI呼び出しが
+  5回になるため使っていない。
+
+**Evidence**
+
+`evidence/WP-P2-UIX-045/20261118-1414/`
 
 ## 14. 決定事項(2026-11-18 Product Owner)
 
