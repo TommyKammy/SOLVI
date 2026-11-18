@@ -22,7 +22,13 @@ import {
 } from '../../apps/web/src/lib/notification-list';
 
 vi.mock('../../apps/web/src/lib/api', () => ({
-  api: { me: vi.fn(), notifications: vi.fn(), myOrganizations: vi.fn() },
+  api: {
+    me: vi.fn(),
+    notifications: vi.fn(),
+    myOrganizations: vi.fn(),
+    inbox: vi.fn(),
+    ticketOverview: vi.fn(),
+  },
 }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ getAll: () => [] }) }));
 vi.mock('../../apps/web/src/components/DraftSessionBoundary', () => ({
@@ -113,6 +119,13 @@ beforeEach(() => {
       ok: true,
       data: { organizations: [{ id: org, code: 'synthetic', name: 'Synthetic' }], selected: org },
     });
+  // WP-P2-UIX-044: the shell may read counts, but a failure must only hide them.
+  vi.mocked(api.inbox)
+    .mockReset()
+    .mockResolvedValue({ ok: false, problem: { status: 503, title: 'private' } });
+  vi.mocked(api.ticketOverview)
+    .mockReset()
+    .mockResolvedValue({ ok: false, problem: { status: 503, title: 'private' } });
 });
 afterEach(() => vi.unstubAllGlobals());
 

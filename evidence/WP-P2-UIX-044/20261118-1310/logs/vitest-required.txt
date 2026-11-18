@@ -1,0 +1,9 @@
+
+ RUN  v4.1.12 /Users/jp.infra/Dev/SOLVI
+
+
+ Test Files  4 passed (4)
+      Tests  119 passed (119)
+   Start at  13:45:02
+   Duration  820ms (transform 140ms, setup 0ms, import 206ms, tests 89ms, environment 0ms)
+

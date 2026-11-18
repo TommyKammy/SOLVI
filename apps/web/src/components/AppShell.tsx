@@ -1,13 +1,50 @@
 import { api } from '../lib/api';
 import { formScope } from '../lib/form-scope';
 import { navigationRoles } from '../lib/navigation';
-import { buildNavigationGroups } from '../lib/navigation-groups';
+import {
+  buildNavigationGroups,
+  navigationCounts,
+  type NavigationCounts,
+} from '../lib/navigation-groups';
 import { AppFrame } from './AppFrame';
 import { DraftSessionBoundary } from './DraftSessionBoundary';
 import { OfflineNotice } from './OfflineNotice';
 
+type Roles = ReturnType<typeof navigationRoles>;
+
 /**
- * FreshserviceのエージェントUIを参考にした共通シェル (WP-P2-UIX-025)。
+ * サイドバーの件数だけを取る。件数の出所は `api.inbox` と
+ * `api.ticketOverview` の2つに限り、1画面あたりの追加呼び出しを2回以内にする。
+ * 片方が失敗しても、もう片方の件数は出す(表示をエラーにしない)。
+ */
+async function loadNavigationCounts(roles: Roles): Promise<NavigationCounts | undefined> {
+  const [inboxResult, overviewResult] = await Promise.allSettled([
+    roles.inbox ? api.inbox() : Promise.resolve(null),
+    roles.staff ? api.ticketOverview() : Promise.resolve(null),
+  ]);
+  const inbox = inboxResult.status === 'fulfilled' ? inboxResult.value : null;
+  const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
+  return navigationCounts(
+    inbox?.ok ? inbox.data : undefined,
+    overview?.ok ? overview.data : undefined,
+  );
+}
+
+/** 上部バーに出す日付。サーバーで作り、ハイドレーションの食い違いを避ける。 */
+function todayLabel(): string {
+  const parts = new Intl.DateTimeFormat('ja-JP', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+    timeZone: 'Asia/Tokyo',
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return `${value('month')}月${value('day')}日 ${value('weekday')}`;
+}
+
+/**
+ * UI v2の共通シェル (WP-P2-UIX-044)。
  *
  * ルート・API・認可は変えない。ここが決めるのは「どの入口を、どの順で、
  * どの見た目で出すか」だけである。表示する項目はロールで絞り、
@@ -46,8 +83,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   }
   const currentOrganization = organizations.find((organization) => organization.id === selected);
   const landing = roles.staff ? '/ops/overview' : roles.auditor ? '/changes' : '/portal';
+  const counts = await loadNavigationCounts(roles);
 
-  const groups = buildNavigationGroups(roles, landing);
+  const groups = buildNavigationGroups(roles, landing, counts);
 
   return (
     <div className="fs-private">
@@ -58,6 +96,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         staff={roles.staff}
         organizationName={currentOrganization?.name ?? null}
         canSwitchOrganization={organizations.length > 1}
+        todayLabel={todayLabel()}
       >
         {children}
       </AppFrame>

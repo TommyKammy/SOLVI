@@ -1,11 +1,28 @@
 import type { navigationRoles } from './navigation';
 import type { FreshserviceIconName } from '../components/FreshserviceIcon';
+import type { InboxView } from './api';
+import {
+  operationsMetricQuery,
+  operationsQueueHref,
+  type OperationsOverviewCounts,
+} from './operations-overview';
+
+/** サイドバーに併記する件数。取得できなかった項目は `null` にする。 */
+export type NavigationCounts = {
+  inbox: number | null;
+  mine: number | null;
+  breached: number | null;
+};
+
+export type NavigationCountTone = 'brand' | 'danger';
 
 export type RailItem = {
   href: string;
   label: string;
   /** 検索パラメータ付きのリンクでも、現在地判定に使うパス。 */
   matchPath?: string;
+  /** 取得できたときだけ付く件数。失敗時はプロパティ自体を持たない。 */
+  count?: { value: number; tone?: NavigationCountTone };
 };
 
 export type RailGroup = {
@@ -16,27 +33,92 @@ export type RailGroup = {
   items: RailItem[];
 };
 
-function item(href: string, label: string, matchPath?: string): RailItem {
-  return { href, label, ...(matchPath ? { matchPath } : {}) };
+function item(
+  href: string,
+  label: string,
+  matchPath?: string,
+  count?: RailItem['count'],
+): RailItem {
+  return {
+    href,
+    label,
+    ...(matchPath ? { matchPath } : {}),
+    ...(count ? { count } : {}),
+  };
+}
+
+function validCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
 /**
- * ロールから左レールの項目を組み立てる (WP-P2-UIX-025)。
+ * APIの応答から、サイドバーに出す件数だけを取り出す。
+ *
+ * 件数の出所は `api.inbox` と `api.ticketOverview` の2つに限る。
+ * どちらかが失敗しても、もう一方の件数は出す。両方とも失敗したら
+ * `undefined` を返し、呼び出し側は件数を出さない(エラーにもしない)。
+ */
+export function navigationCounts(
+  inbox: Pick<InboxView, 'counts'> | null | undefined,
+  overview: Pick<OperationsOverviewCounts, 'counts'> | null | undefined,
+): NavigationCounts | undefined {
+  const inboxCount =
+    inbox &&
+    validCount(inbox.counts?.ticket) &&
+    validCount(inbox.counts?.approval) &&
+    validCount(inbox.counts?.change)
+      ? inbox.counts.ticket + inbox.counts.approval + inbox.counts.change
+      : null;
+  const mine = overview && validCount(overview.counts?.mine) ? overview.counts.mine : null;
+  const breached =
+    overview && validCount(overview.counts?.breached) ? overview.counts.breached : null;
+  if (inboxCount === null && mine === null && breached === null) return undefined;
+  return { inbox: inboxCount, mine, breached };
+}
+
+/**
+ * サイドバーの件数と一覧の条件を一致させる。
+ *
+ * `api.ticketOverview` の mine / breached は未完了の全状態(`new`を含む)を数える。
+ * リンクだけ `new` を落とすと件数と一覧が食い違うため、運営状況と同じ
+ * `operationsMetricQuery` から作る。
+ */
+const MINE_HREF = operationsQueueHref(operationsMetricQuery('mine', ''));
+const BREACHED_HREF = operationsQueueHref(operationsMetricQuery('breached', ''));
+
+/**
+ * ロールから左サイドバーの項目を組み立てる (WP-P2-UIX-025 / WP-P2-UIX-044)。
  *
  * **表示しないことを認可にしない。** ここは「押しても拒否される入口を並べない」
  * ための整理であり、API側の認可は別に残る。
+ * 担当グループごとの件数は、グループ数ぶんのAPI呼び出しが増えるため出さない
+ * (WP-P2-UIX-044 §14)。
  */
 export function buildNavigationGroups(
   roles: ReturnType<typeof navigationRoles>,
   landing: string,
+  counts?: NavigationCounts,
 ): RailGroup[] {
+  const count = (key: keyof NavigationCounts, tone?: NavigationCountTone) => {
+    const value = counts?.[key];
+    if (!validCount(value)) return undefined;
+    // 0件を赤や強調色にしない。0は異常ではない。
+    return { value, ...(tone && value > 0 ? { tone } : {}) };
+  };
+
   const dashboardItems: RailItem[] = roles.staff
     ? [item('/ops/overview', '運営状況')]
     : [item('/portal', '利用者ポータル')];
 
   const ticketItems: RailItem[] = [
-    ...(roles.inbox ? [item('/inbox', '業務受信箱')] : []),
-    ...(roles.staff ? [item('/ops', 'チケット対応')] : []),
+    ...(roles.inbox ? [item('/inbox', '業務受信箱', undefined, count('inbox', 'brand'))] : []),
+    ...(roles.staff
+      ? [
+          item('/ops', 'チケット対応'),
+          item(MINE_HREF, '自分の担当', '/ops', count('mine')),
+          item(BREACHED_HREF, '解決期限超過', '/ops', count('breached', 'danger')),
+        ]
+      : []),
     item('/tickets/new', '新規チケット'),
   ];
 

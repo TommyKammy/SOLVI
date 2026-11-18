@@ -24,6 +24,8 @@ vi.mock('../../apps/web/src/lib/api', () => ({
     saveNotificationPreference: vi.fn(),
     myOrganizations: vi.fn(),
     notifications: vi.fn(),
+    inbox: vi.fn(),
+    ticketOverview: vi.fn(),
   },
 }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ getAll: () => [] }) }));

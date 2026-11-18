@@ -5,13 +5,13 @@ title: "UI v2のアプリシェルとデザイントークン(薄いブルーの
 category: "06_WorkPackages"
 type: "workpackage"
 status: "baseline"
-version: "0.1.0"
+version: "0.2.0"
 created: "2026-11-18"
 updated: "2026-11-18"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p2", "ui"]
 source_of_truth: true
-implementation_status: "not-started"
+implementation_status: "review"
 story_points: 8
 risk: "medium"
 workstream: "UIX"
@@ -207,6 +207,134 @@ Migrationはない。`AppFrame.tsx` / `freshservice.css` / `navigation-groups.ts
 |---|---|---|---|---|---|
 | 2026-11-18 | Claude | - | Draft | `assets/ui/SOLVI_UI_v2_Mockup.html` | Product OwnerよりUI v2(薄いブルーの左サイドバー)の依頼。モックアップを作成し、WP案を起草した。 |
 | 2026-11-18 | Product Owner | - | Baseline | - | 未決事項の決定を反映し、baselineとして承認。 |
+| 2026-11-18 | Codex | - | Review | `evidence/WP-P2-UIX-044/20261118-1310/` | UI v2のシェル・トークン・テーマ切替を実装。§7の検証はすべて成功(axe 20スキャンで違反0)。Product Ownerの承認待ち。 |
+| 2026-11-18 | Codex | - | Review fix | `evidence/WP-P2-UIX-044/20261118-1310/logs/review-fix.txt` | レビュー指摘2件を修正: 「自分の担当」「解決期限超過」のリンクを`operationsMetricQuery`から生成して件数条件(未完了全体)と一致させ、サイドバー件数をホバー・フォーカス・現在地で`--side-ink`にしてコントラスト検査を追加。 |
+
+### 2026-11-18 実装結果(Review)
+
+#### 変更ファイル
+
+- `apps/web/src/app/layout.tsx` — テーマ初期化スクリプトを追加。CSPのnonceをリクエストヘッダーから読み、nonceが無いときはスクリプトを出さない。
+- `apps/web/src/app/globals.css` — 既存のグローバル色トークンをUI v2のトークンへ委譲(本文・補足・境界・アクセント・状態色)。ダークテーマで固定色が残らないようにした。
+- `apps/web/src/app/freshservice.css` — 11.3 §4のトークンを`light-dark()`で定義(ライト/ダーク)。256px左サイドバー・56px上部バー・テーマ切替のスタイルを追加し、64pxアイコンレールとフライアウトのスタイルを削除。影を廃止し、角丸を6/8/10pxに統一。
+- `apps/web/src/components/AppShell.tsx` — `api.inbox`と`api.ticketOverview`から件数を取得(1画面あたり最大2回、`Promise.allSettled`で失敗を握りつぶさず件数だけ省略)。上部バーの日付をサーバーで生成。
+- `apps/web/src/components/AppFrame.tsx` — 256pxテキストサイドバー+56px上部バーへ変更。`aria-current`、Tab到達性、モバイル開閉(UIX-030のフォーカス移動・`inert`・Escape)を維持。`state`の重複クエリでも現在地判定できるよう修正。
+- `apps/web/src/components/ThemeToggle.tsx`(新規) — OS設定を初期値にし、選択を`localStorage`へ保存。読み書き失敗時も表示を壊さない。サーバー保存なし。
+- `apps/web/src/lib/navigation-groups.ts` — ロール別絞り込みを維持したまま、`自分の担当`・`解決期限超過`の項目と件数を追加。件数は`api.inbox`と`api.ticketOverview`だけから取り、担当グループ別の件数は出さない。
+- `tests/unit/navigation-ui.test.ts` — 件数・ロール絞り込み・失敗時の非表示・0件の非強調を追加。
+- `tests/unit/ui-contrast-and-focus.test.ts` — 11.3 §4の全トークン値、両テーマのコントラスト、`light-dark()`の定義、56px/256px、モバイルの非表示、CSP nonce、テーマ保存を検査。
+- `tests/unit/notification-preference-ui.test.ts` / `tests/unit/notification-list-ui.test.ts` — シェルが件数APIを呼ぶためのモックを追加(件数失敗時も既存の通知表示が壊れないこと)。
+- `docs/planning/06_WorkPackages/P2_Ticket_MVP/WP-P2-UIX-044.md` — 本ログ。`implementation_status: review`。
+- `docs/planning/MANIFEST.md` — 本WPの更新に伴うハッシュ再生成。
+- `evidence/WP-P2-UIX-044/20261118-1310/` — 実画面のスクリーンショット、axe、検証ログ、コントラスト一覧。
+
+#### Migration
+
+- なし。DBスキーマ・API・認可・RLS・監査・Outbox・Worker・Executor・AIは変更していない。
+- ロールバック: `AppFrame.tsx` / `freshservice.css` / `navigation-groups.ts` / `globals.css` をUIX-043完了時点に戻し、`ThemeToggle.tsx`を削除して`layout.tsx`の参照とテーマ初期化スクリプトを外す。DB・APIへの影響はない。
+
+#### 実行した検証コマンドと結果
+
+```text
+npm run typecheck
+  -> 成功(全workspace)
+
+npm run lint
+  -> 失敗: 3 errors。すべて `.claude/worktrees/*/apps/web/next-env.d.ts`(git管理外の
+     ローカルworktree)の triple-slash-reference。本WPの変更ファイルではない。
+     `git ls-files` の追跡対象だけを `eslint --max-warnings=0 --no-warn-ignored` で
+     検査すると成功(証拠: logs/lint-tracked-files.txt)。
+
+npm run check:all
+  -> 成功(Allowed Paths / Architecture / Images / Skips / Unwired / Traceability / WorkPackages)
+
+npx vitest run tests/unit/navigation-ui.test.ts tests/unit/ui-contrast-and-focus.test.ts \
+  tests/unit/notification-preference-ui.test.ts tests/unit/notification-list-ui.test.ts
+  -> 4ファイル成功
+
+npx vitest run tests/unit/support-portal-ui.test.ts
+  -> 成功(既存のサポートポータル回帰)
+
+npm run test:unit
+  -> 116ファイル成功 / 4790 passed / 26 skipped
+```
+
+ブラウザ検証(本番ビルド、使い捨てDB `solvi_wp044_evidence_test`):
+
+```text
+node capture.mjs evidence/WP-P2-UIX-044/20261118-1310
+  -> 20スキャン(5画面 × 2幅 × 2テーマ)
+     axe serious/critical: 0
+     axe 違反ノード合計: 0
+     375pxの横はみ出し: 0
+     コンソールエラー: 0
+     ログインへの意図しないリダイレクト: 0
+```
+
+#### §7 Acceptance Criteriaの充足
+
+- [x] 256pxサイドバー+56px上部バー。64pxレール/フライアウトなし。
+  - 実測: `sidebarWidth: 256`, `topbarHeight: 56`, `flyoutPresent: false`。`screens/light-1440-inbox.png`。
+- [x] サイドバーの背景・境界・現在地・文字色が `--side-*` と一致(両テーマ)。
+  - 実測: ライト `rgb(238, 244, 252)` = `#EEF4FC`。ダークは `screens/dark-1440-inbox.png`。`ui-contrast-and-focus`で両テーマの値を検査。
+- [x] ロールで絞る。requesterに管理・チケット対応を出さず、agent以上にチケット対応・資産・変更を出す。
+  - `tests/unit/navigation-ui.test.ts` と既存の承認ルール・監査メニューの検査が成功。
+- [x] 現在地に`aria-current="page"`。全項目にTabで到達。
+  - デスクトップ: 26/26リンクに到達。クエリ付きの「自分の担当」でも現在地が一致(`queryCurrent`)。
+  - モバイル: 開いた状態でも26/26リンクに到達(`openKeyboard`)。
+- [x] 業務受信箱・自分の担当・解決期限超過の件数。`api.inbox`と`api.ticketOverview`だけ。追加呼び出しは最大2回。失敗時は件数を出さずエラーにしない。
+  - 実測: 業務受信箱7件、自分の担当7件、解決期限超過0件。0件は強調しない。
+  - 失敗時の非表示は`navigation-ui`の「両方失敗」「片方失敗」テストで確認。
+- [x] 上部バーに現在地・操作中の組織・検索・新規チケット・通知・ユーザーメニュー。検索はstaff `/ops?q=`、requester `/knowledge?q=`。
+  - 実測: `searchAction: "/ops"`, `newTicketHref: "/tickets/new"`, `notificationHref: "/settings/notifications"`, 組織名と日付を表示。
+- [x] テーマ切替がシェルとトークンを使う部分に効く。初期値はOS。ブラウザ保存。読み書き失敗でも壊れない。
+  - 実測: クリックで`data-theme=dark`・`localStorage=solvi-theme=dark`、再読込後もダーク。`localStorage`を例外にしても切替と表示が継続。
+- [x] インライン初期化はCSP nonce付き。CSPを緩めない。
+  - 実測: レスポンスの`script-src`は `'self' 'nonce-…' 'strict-dynamic'`。HTMLのインラインスクリプトと同一nonce。
+- [x] 本文・補足・サイドバー文字が両テーマで4.5:1以上。
+  - `tests/unit/ui-contrast-and-focus.test.ts` と `contrast.md`。axeのcolor-contrast違反0。
+- [x] 800px以下で初期状態は閉じ、メニューボタンで開閉。開いた状態でも全リンクにキーボード到達。
+  - 実測: 閉`visibility: hidden`、Tabで閉じたサイドバーに入らない、開くと閉じるボタンへフォーカス、背景`inert`、Escapeで開閉ボタンへ復帰。801pxでは表示。
+- [x] ログイン・組織選択・ログアウト・組織切り替えが従来どおり。
+  - `/login` 200、複数組織の合成agentで`/select-organization` 200。ログアウトフォームと組織切替リンクは既存のまま。
+- [x] 既存の全ルートが表示できる。
+  - `/inbox`, `/ops`, `/ops/overview`, `/portal`, `/knowledge`, `/catalog`, `/requests`, `/assets`,
+    `/changes`, `/settings/notifications`, `/ops/admin`, `/ops/users`, `/ops/groups`,
+    `/ops/notifications`, `/ops/access-review`, `/ops/approvals`, `/ops/approvals/changes`,
+    `/ops/departments`, `/select-organization`, `/login` がすべて200(`summary.json`の`routes`)。
+- [x] `npm run typecheck`、`npm run check:all`、§4のテストが通る。
+  - `npm run lint`だけは上記のgit管理外worktreeで失敗。追跡対象のlintは成功。
+- [x] axeでログイン・`/inbox`・`/ops`・チケット詳細の4画面を両テーマで検査し、serious/critical 0。
+  - `/portal`も加えた5画面 × 2幅 × 2テーマ = 20スキャンで違反0。
+- [x] API・DB・Migrationの変更がない。
+  - `git status`の変更は表示層・テスト・ドキュメント・Evidenceのみ。
+
+#### セキュリティ影響
+
+- 表示層のみ。API認可・RLS・監査・Secretの扱いは変更していない。
+- CSPはWP-P2-SEC-025の強制モードを維持。外部フォント・外部CSS・CDN・新規npm依存を追加していない。インラインスクリプトはnonce付きで、nonceが無い場合は出力しない。
+- テーマ設定は`localStorage`の表示上の好みだけ。個人情報・トークン・Cookieは保存しない。
+- Evidenceは合成データのみ。実データ・実PII・Cookie・トークン・パスワードを含まない。開発用DB `solvi` には接続していない。
+
+#### 未解決事項
+
+- **サポートポータル(`/portal`などrequesterの画面)は`SupportFrame`のまま**。WP §4のAllowed Pathsに`SupportFrame.tsx`が無く、依頼者向けセルフサービスシェルを別WPの範囲と解釈した。§7の「ログイン後の全画面」を文字どおり全画面(ポータル含む)と読む場合は、`SupportFrame`の256pxサイドバー化を別WPまたは本WPのスコープ拡張として判断してほしい。
+- **サイドバーのクラス名`fs-rail`を残している**。`tests/unit/support-portal-ui.test.ts`が`class="fs-rail"`の有無を検査しており、同ファイルは§4のAllowed Paths外のため変更していない。見た目・挙動は256pxのテキストサイドバーで、64pxレールとフライアウトは存在しない。クラス名の整理は別WPで行う。
+- **変更前のEvidence**: `/inbox` はHEAD時点の旧シェルを一時ディレクトリでビルドして撮り直した(`before/light-1440-inbox.png`, `before/light-375-inbox.png`)。`/ops`・チケット詳細・`/portal` はUIX-043の実画面を流用した。旧シェルにはダークテーマが無いため、ダークの変更前は無い。
+- ダークテーマは§14の決定どおり、まずシェルとトークンを使う部分に適用した。各画面のCSS Modulesに残る固定色は後続WPで置き換える。今回、`globals.css`の共通トークンはUI v2へ委譲したため、多くの既存画面も追従する。
+- `npm run lint`の3エラーはgit管理外の`.claude/worktrees`に起因する環境要因。追跡対象のlintは成功している。
+
+#### Evidence
+
+`evidence/WP-P2-UIX-044/20261118-1310/`
+
+- `screens/` — 20スキャン(5画面 × 2幅 × 2テーマ)+ モバイルサイドバー開。
+- `axe/` — 画面ごとのaxe JSON(すべて違反0)。
+- `summary.json` — スキャン結果、シェル実測、キーボード、テーマ、CSP、全ルート。
+- `contrast.md` — 11.3 §4の文字色/背景色のコントラスト比。
+- `before/` — UIX-043時点の変更前画面(ライトのみ)。
+- `logs/` — typecheck / lint / check:all / vitest / test:unit の出力。
+- `capture.mjs.txt` / `run_stack.sh` — 実行スクリプトの複製。
 
 ## 14. 決定事項(2026-11-18 Product Owner)
 
