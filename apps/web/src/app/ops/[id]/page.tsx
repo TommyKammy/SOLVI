@@ -110,7 +110,7 @@ function ticketHistory(
       key: `attachment:${attachment.id}`,
       at: attachment.createdAt,
       label: '添付ファイルを追加',
-      detail: `${attachment.fileName}（${actor(attachment.uploadedBy)}）`,
+      detail: `${attachment.fileName}（${actor(attachment.uploadedBy, attachment.uploadedBy === ticket.requesterId)}）`,
     })),
   ];
   return entries.sort((left, right) => right.at.localeCompare(left.at));
