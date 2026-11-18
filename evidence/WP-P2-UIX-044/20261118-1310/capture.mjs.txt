@@ -1,0 +1,458 @@
+// WP-P2-UIX-044: UI v2 shell screenshots, axe (both themes) and behaviour checks.
+// Usage: node capture.mjs <outDir>   (cwd = repo root)
+import { createRequire } from 'node:module';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const repo = '/Users/jp.infra/Dev/SOLVI';
+const require = createRequire(join(repo, 'package.json'));
+const pw = require('playwright');
+const CHROME_EXE =
+  '/Users/jp.infra/Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell';
+const chromium = { launch: (o = {}) => pw.chromium.launch({ ...o, executablePath: CHROME_EXE }) };
+const { AxeBuilder } = require('@axe-core/playwright');
+
+const OUT = process.argv[2];
+mkdirSync(join(OUT, 'screens'), { recursive: true });
+mkdirSync(join(OUT, 'axe'), { recursive: true });
+const WEB = 'http://127.0.0.1:3100';
+const API = 'http://127.0.0.1:3101';
+const ORG = '00000000-0000-4000-9000-000000000001';
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+// Synthetic seed password, read from the project's seed file (never printed).
+const PASSWORD = readFileSync(join(repo, 'tools/seed.mjs'), 'utf8').match(/DEV_PASSWORD = '([^']+)'/)[1];
+
+async function login(email) {
+  const r = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password: PASSWORD, organizationId: ORG }),
+  });
+  if (!r.ok) throw new Error(`login ${email}: ${r.status}`);
+  const pair = (r.headers.get('set-cookie') ?? '').split(';')[0];
+  const i = pair.indexOf('=');
+  return { name: pair.slice(0, i), value: pair.slice(i + 1) };
+}
+
+const admin = await login('org_admin@acme.example.test');
+const requester = await login('requester@acme.example.test');
+// The seed's dual-org agent is the intended user for the organization switcher.
+const dualOrgAgent = await login('agent@acme.example.test');
+const cookieHeader = (c) => `${c.name}=${c.value}`;
+
+async function json(path, cookie, options = {}) {
+  const r = await fetch(API + path, {
+    ...options,
+    headers: {
+      'content-type': 'application/json',
+      ...(cookie ? { cookie: cookieHeader(cookie) } : {}),
+      ...(options.headers ?? {}),
+    },
+  });
+  const body = await r.json().catch(() => ({}));
+  return { status: r.status, body };
+}
+
+const me = await json('/auth/me', admin);
+const adminUserId = me.body.userId ?? me.body.id ?? null;
+
+// A synthetic ticket so the queue and detail screens render with data.
+let ticketId = null;
+{
+  const created = await json('/tickets', requester, {
+    method: 'POST',
+    body: JSON.stringify({
+      type: 'incident',
+      kind: 'incident',
+      subject: '合成チケット(WP-P2-UIX-044 検証)',
+      body: '検証用の合成データ',
+      urgency: 'medium',
+      impact: 'medium',
+    }),
+  });
+  ticketId = created.body.id ?? created.body.ticket?.id ?? null;
+  let assigned = null;
+  if (ticketId && adminUserId) {
+    assigned = await json(`/tickets/${ticketId}/assignee`, admin, {
+      method: 'POST',
+      body: JSON.stringify({ assigneeId: adminUserId }),
+    });
+  }
+  writeFileSync(
+    join(OUT, 'ticket-create.json'),
+    JSON.stringify(
+      {
+        createStatus: created.status,
+        ticketId,
+        assignStatus: assigned?.status ?? null,
+        assigneeId: assigned?.body?.assigneeId ?? null,
+        error: ticketId ? undefined : created.body,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+const PAGES = [
+  { slug: 'login', path: '/login', who: null },
+  { slug: 'inbox', path: '/inbox', who: admin },
+  { slug: 'ops', path: '/ops', who: admin },
+  ...(ticketId ? [{ slug: 'ticket-detail', path: `/ops/${ticketId}`, who: admin }] : []),
+  { slug: 'portal', path: '/portal', who: requester },
+];
+const THEMES = ['light', 'dark'];
+
+const summary = { scans: [], checks: {} };
+
+for (const theme of THEMES) {
+  const browser = await chromium.launch();
+  for (const width of [1440, 375]) {
+    for (const p of PAGES) {
+      const ctx = await browser.newContext({
+        viewport: { width, height: width === 375 ? 812 : 900 },
+        locale: 'ja-JP',
+        colorScheme: theme,
+      });
+      if (p.who) {
+        await ctx.addCookies([
+          { ...p.who, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+        ]);
+      }
+      const page = await ctx.newPage();
+      const consoleErrors = [];
+      page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()));
+      page.on('pageerror', (e) => consoleErrors.push(String(e)));
+      const resp = await page.goto(WEB + p.path, { waitUntil: 'networkidle' });
+      const finalPath = new URL(page.url()).pathname;
+      const res = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      const name = `${theme}-${width}-${p.slug}`;
+      writeFileSync(
+        join(OUT, 'axe', `${name}.json`),
+        JSON.stringify({ theme, width, url: p.path, finalPath, violations: res.violations }, null, 2),
+      );
+      await page.screenshot({ path: join(OUT, 'screens', `${name}.png`), fullPage: true });
+      summary.scans.push({
+        theme,
+        width,
+        page: p.slug,
+        status: resp?.status(),
+        finalPath,
+        themeAttribute: await page.evaluate(() => document.documentElement.dataset.theme),
+        violations: res.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
+        horizontalOverflowPx: overflow,
+        consoleErrors,
+      });
+      await ctx.close();
+    }
+  }
+  await browser.close();
+}
+
+// Behaviour checks (chromium, light unless stated).
+const browser = await chromium.launch();
+try {
+  const ctx = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    colorScheme: 'light',
+  });
+  await ctx.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(WEB + '/inbox', { waitUntil: 'networkidle' });
+
+  summary.checks.shell = await page.evaluate(() => {
+    const sidebar = document.querySelector('#solvi-main-navigation');
+    const topbar = document.querySelector('.fs-topbar');
+    const current = [...document.querySelectorAll('#solvi-main-navigation [aria-current="page"]')];
+    const counts = [...document.querySelectorAll('.fs-side-count')].map((el) => ({
+      label: el.closest('a')?.querySelector('.fs-side-label')?.textContent,
+      value: el.textContent,
+      tone: el.getAttribute('data-tone'),
+    }));
+    const r = sidebar?.getBoundingClientRect();
+    const t = topbar?.getBoundingClientRect();
+    return {
+      sidebarWidth: r ? Math.round(r.width) : null,
+      topbarHeight: t ? Math.round(t.height) : null,
+      flyoutPresent: !!document.querySelector('.fs-flyout'),
+      sidebarBackground: sidebar ? getComputedStyle(sidebar).backgroundColor : null,
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
+      currentLabels: current.map((el) => el.textContent),
+      counts,
+      topbarText: topbar?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      searchAction: document.querySelector('.fs-global-search')?.getAttribute('action'),
+      newTicketHref: document.querySelector('.fs-create-button')?.getAttribute('href'),
+      notificationHref: document.querySelector('.fs-topbar-actions a[aria-label="通知設定"]')?.getAttribute('href'),
+    };
+  });
+
+  // Every sidebar link must be reachable with Tab.
+  const sidebarHrefs = await page.evaluate(() =>
+    [...document.querySelectorAll('#solvi-main-navigation a[href]')].map((a) => a.getAttribute('href')),
+  );
+  const tabbed = [];
+  for (let i = 0; i < 80; i++) {
+    await page.keyboard.press('Tab');
+    const href = await page.evaluate(() => document.activeElement?.closest('#solvi-main-navigation')
+      ? document.activeElement.getAttribute('href')
+      : null);
+    if (href) tabbed.push(href);
+    if (new Set(tabbed).size >= sidebarHrefs.length) break;
+  }
+  summary.checks.keyboard = {
+    sidebarLinks: sidebarHrefs.length,
+    reached: new Set(tabbed).size,
+    missing: sidebarHrefs.filter((href) => !tabbed.includes(href)),
+  };
+
+  // Repeated query keys (`state` three times) must still mark the right item.
+  await page.goto(
+    WEB + '/ops?assignment=mine&state=assigned&state=in_progress&state=pending',
+    { waitUntil: 'networkidle' },
+  );
+  summary.checks.queryCurrent = await page.evaluate(() => ({
+    label: document.querySelector('#solvi-main-navigation [aria-current="page"]')?.textContent,
+    breadcrumb: document.querySelector('.fs-breadcrumb [aria-current="page"]')?.textContent,
+  }));
+  await page.goto(WEB + '/inbox', { waitUntil: 'networkidle' });
+
+  // Theme toggle: OS light -> dark -> persisted on reload.
+  await page.click('.fs-theme button:nth-child(2)');
+  const afterClick = await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    stored: (() => {
+      try {
+        return localStorage.getItem('solvi-theme');
+      } catch {
+        return 'unreadable';
+      }
+    })(),
+    bodyBackground: getComputedStyle(document.body).backgroundColor,
+  }));
+  await page.reload({ waitUntil: 'networkidle' });
+  const afterReload = await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    pressed: document.querySelector('.fs-theme button[aria-pressed="true"]')?.textContent,
+  }));
+  summary.checks.themeToggle = { afterClick, afterReload, consoleErrors: errors };
+  await ctx.close();
+
+  // Storage blocked: display must still work, and the toggle must still switch.
+  const blocked = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'light' });
+  await blocked.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('storage blocked');
+      },
+    });
+  });
+  await blocked.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const bp = await blocked.newPage();
+  const blockedErrors = [];
+  bp.on('pageerror', (e) => blockedErrors.push(String(e)));
+  await bp.goto(WEB + '/ops', { waitUntil: 'networkidle' });
+  const blockedBefore = await bp.evaluate(() => document.documentElement.dataset.theme);
+  await bp.click('.fs-theme button:nth-child(2)');
+  const blockedAfter = await bp.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    bodyBackground: getComputedStyle(document.body).backgroundColor,
+    visible: !!document.querySelector('#solvi-main-navigation'),
+  }));
+  summary.checks.storageBlocked = { before: blockedBefore, after: blockedAfter, pageErrors: blockedErrors };
+  await blocked.close();
+
+  // Mobile sidebar: closed on first paint, opens with the menu button, Escape closes.
+  const mobile = await browser.newContext({
+    viewport: { width: 375, height: 812 },
+    hasTouch: true,
+    colorScheme: 'light',
+  });
+  await mobile.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const mp = await mobile.newPage();
+  await mp.goto(WEB + '/ops', { waitUntil: 'networkidle' });
+  const rail = {};
+  rail.closedVisibility = await mp.evaluate(
+    () => getComputedStyle(document.getElementById('solvi-main-navigation')).visibility,
+  );
+  rail.toggleTarget = await mp.evaluate(() => {
+    const r = document.querySelector('.fs-side-toggle')?.getBoundingClientRect();
+    return r ? [Math.round(r.width), Math.round(r.height)] : null;
+  });
+  let entered = false;
+  for (let i = 0; i < 30; i++) {
+    await mp.keyboard.press('Tab');
+    if (await mp.evaluate(() => !!document.activeElement?.closest('#solvi-main-navigation'))) entered = true;
+  }
+  rail.tabEntersClosedSidebar = entered;
+  // The skip link becomes visible when focused during the Tab walk; blur it so it
+  // does not intercept the pointer click on the menu button.
+  await mp.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
+  await mp.click('.fs-side-toggle');
+  await mp.waitForTimeout(250);
+  rail.openFocus = await mp.evaluate(() => ({
+    inSidebar: !!document.activeElement?.closest('#solvi-main-navigation'),
+    label: document.activeElement?.getAttribute('aria-label'),
+  }));
+  rail.mainInertWhenOpen = await mp.evaluate(() => document.querySelector('.fs-main')?.hasAttribute('inert'));
+  rail.backdrop = await mp.evaluate(() => {
+    const b = document.querySelector('.fs-sidebar-backdrop');
+    if (!b) return null;
+    const s = getComputedStyle(b);
+    const r = b.getBoundingClientRect();
+    return {
+      display: s.display,
+      background: s.backgroundColor,
+      rect: [Math.round(r.width), Math.round(r.height)],
+    };
+  });
+  rail.sidebarWidth = await mp.evaluate(() => {
+    const r = document.getElementById('solvi-main-navigation')?.getBoundingClientRect();
+    return r ? Math.round(r.width) : null;
+  });
+  // Every link must also be reachable while the drawer is open.
+  const openHrefs = await mp.evaluate(() =>
+    [...document.querySelectorAll('#solvi-main-navigation a[href]')].map((a) => a.getAttribute('href')),
+  );
+  const openTabbed = [];
+  for (let i = 0; i < 80; i++) {
+    await mp.keyboard.press('Tab');
+    const href = await mp.evaluate(() =>
+      document.activeElement?.closest('#solvi-main-navigation')
+        ? document.activeElement.getAttribute('href')
+        : null,
+    );
+    if (href) openTabbed.push(href);
+    if (new Set(openTabbed).size >= openHrefs.length) break;
+  }
+  rail.openKeyboard = {
+    sidebarLinks: openHrefs.length,
+    reached: new Set(openTabbed).size,
+    missing: openHrefs.filter((href) => !openTabbed.includes(href)),
+  };
+  await mp.evaluate(() => {
+    const menu = document.querySelector('.fs-side-menu');
+    if (menu) menu.scrollTop = 0;
+    document.querySelector('.fs-side-close')?.focus();
+  });
+  await mp.screenshot({ path: join(OUT, 'screens', 'mobile-sidebar-open.png') });
+  await mp.keyboard.press('Escape');
+  await mp.waitForTimeout(250);
+  rail.afterEscapeFocusIsToggle = await mp.evaluate(() =>
+    document.activeElement?.classList.contains('fs-side-toggle'),
+  );
+  rail.mainInertAfterClose = await mp.evaluate(() => document.querySelector('.fs-main')?.hasAttribute('inert'));
+  rail.closedVisibilityAfterEscape = await mp.evaluate(
+    () => getComputedStyle(document.getElementById('solvi-main-navigation')).visibility,
+  );
+  summary.checks.mobile = rail;
+  await mobile.close();
+
+  // 800px boundary and the old shell must not exist.
+  const boundary = await browser.newContext({ viewport: { width: 801, height: 900 }, colorScheme: 'light' });
+  await boundary.addCookies([
+    { ...admin, domain: '127.0.0.1', path: '/', httpOnly: true, secure: false, sameSite: 'Lax' },
+  ]);
+  const bpp = await boundary.newPage();
+  await bpp.goto(WEB + '/ops', { waitUntil: 'networkidle' });
+  summary.checks.boundary801 = await bpp.evaluate(() => ({
+    visibility: getComputedStyle(document.getElementById('solvi-main-navigation')).visibility,
+    mainMarginLeft: getComputedStyle(document.querySelector('.fs-main')).marginLeft,
+  }));
+  await boundary.close();
+
+  // CSP: the inline theme script carries the response nonce and script-src stays strict.
+  const loginPage = await fetch(WEB + '/login');
+  const html = await loginPage.text();
+  const csp = loginPage.headers.get('content-security-policy') ?? '';
+  const nonce = csp.match(/'nonce-([^']+)'/)?.[1] ?? null;
+  const inlineScript = html.match(/<script nonce="([^"]+)"[^>]*>\(function\(\)\{try\{var t=localStorage/);
+  summary.checks.csp = {
+    headerPresent: csp.length > 0,
+    nonceInHeader: !!nonce,
+    nonceOnThemeScript: !!inlineScript,
+    sameNonce: !!nonce && inlineScript?.[1] === nonce,
+    scriptSrc: csp.split(';').map((s) => s.trim()).find((s) => s.startsWith('script-src')) ?? null,
+    externalScriptTags: (html.match(/<script[^>]+src=/g) ?? []).length,
+  };
+
+  // Every existing route still renders (WP §7). Redirects are not followed.
+  const ROUTES = [
+    '/inbox',
+    '/ops',
+    '/ops/overview',
+    '/portal',
+    '/knowledge',
+    '/catalog',
+    '/requests',
+    '/assets',
+    '/changes',
+    '/settings/notifications',
+    '/ops/admin',
+    '/ops/users',
+    '/ops/groups',
+    '/ops/notifications',
+    '/ops/access-review',
+    '/ops/approvals',
+    '/ops/approvals/changes',
+    '/ops/departments',
+    '/select-organization',
+    '/login',
+  ];
+  const routes = [];
+  for (const path of ROUTES) {
+    const who =
+      path === '/login' ? null : path === '/select-organization' ? dualOrgAgent : admin;
+    const r = await fetch(WEB + path, {
+      redirect: 'manual',
+      headers: who ? { cookie: cookieHeader(who) } : {},
+    });
+    routes.push({ path, status: r.status, location: r.headers.get('location') ?? undefined });
+  }
+  summary.checks.routes = routes;
+  await ctx.close();
+} finally {
+  await browser.close();
+}
+
+summary.totals = {
+  scans: summary.scans.length,
+  seriousOrCritical: summary.scans.reduce(
+    (n, s) =>
+      n +
+      s.violations
+        .filter((v) => ['serious', 'critical'].includes(v.impact))
+        .reduce((a, v) => a + v.nodes, 0),
+    0,
+  ),
+  anyViolationNodes: summary.scans.reduce(
+    (n, s) => n + s.violations.reduce((a, v) => a + v.nodes, 0),
+    0,
+  ),
+  overflow375: summary.scans
+    .filter((s) => s.width === 375 && s.horizontalOverflowPx > 0)
+    .map((s) => `${s.theme}:${s.page}:${s.horizontalOverflowPx}`),
+  redirectedToLogin: summary.scans
+    .filter((s) => s.finalPath.startsWith('/login') && s.page !== 'login')
+    .map((s) => `${s.theme}-${s.width}-${s.page}`),
+  consoleErrorScans: summary.scans
+    .filter((s) => s.consoleErrors.length > 0)
+    .map((s) => `${s.theme}-${s.width}-${s.page}`),
+  themeAttributeMismatches: summary.scans
+    .filter((s) => s.themeAttribute !== s.theme)
+    .map((s) => `${s.theme}-${s.width}-${s.page}:${s.themeAttribute}`),
+};
+writeFileSync(join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify({ totals: summary.totals, checks: summary.checks }, null, 2));

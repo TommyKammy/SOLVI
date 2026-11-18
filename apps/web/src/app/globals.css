@@ -10,26 +10,26 @@
  */
 
 :root {
-  --bg: #f5f6f8;
+  --bg: var(--panel);
   --surface: #ffffff;
-  --surface-muted: #f0f2f5;
-  --surface-hover: #eaeef4;
-  --border: #dce0e6;
-  --control-border: #8490a2;
-  --surface-subtle: #f8f9fb;
-  --text-muted: #596273;
-  --text: #202938;
-  --accent: #3454ad;
-  --accent-bg: #edf1fb;
-  --accent-hover: #28448f;
+  --surface-muted: var(--panel);
+  --surface-hover: var(--hover);
+  --border: var(--line);
+  --control-border: var(--fs-control-border);
+  --surface-subtle: var(--panel);
+  --text-muted: var(--muted);
+  --text: var(--ink);
+  --accent: var(--side-brand);
+  --accent-bg: var(--fs-brand-soft);
+  --accent-hover: var(--side-brand);
   --danger: #a12e37;
-  --danger-bg: #fff1f2;
-  --warning: #805413;
-  --warning-bg: #fff5df;
-  --success: #21634c;
-  --success-bg: #edf7f0;
-  --internal: #665188;
-  --internal-bg: #f5f1fa;
+  --danger-bg: var(--fs-danger-soft);
+  --warning: var(--warn);
+  --warning-bg: var(--fs-warning-soft);
+  --success: var(--ok);
+  --success-bg: var(--fs-success-soft);
+  --internal: var(--side-brand);
+  --internal-bg: var(--fs-brand-soft);
   --radius: 8px;
   --space-1: 4px;
   --space-2: 8px;

@@ -1,0 +1,28 @@
+
+> solvi@0.1.0 typecheck
+> npm run typecheck --workspaces --if-present
+
+
+> @solvi/connectors@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/shared@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/api@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/worker@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/executor@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @solvi/web@0.1.0 typecheck
+> tsc --noEmit
+

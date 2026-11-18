@@ -1,0 +1,420 @@
+{
+  "scans": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "page": "login",
+      "status": 200,
+      "finalPath": "/login",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "page": "inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "page": "ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "page": "ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1ecf4-2571-7000-a765-ecee6e01aca1",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "page": "login",
+      "status": 200,
+      "finalPath": "/login",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "page": "inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "page": "ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "page": "ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1ecf4-2571-7000-a765-ecee6e01aca1",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "themeAttribute": "light",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "page": "login",
+      "status": 200,
+      "finalPath": "/login",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "page": "inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "page": "ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "page": "ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1ecf4-2571-7000-a765-ecee6e01aca1",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "page": "login",
+      "status": 200,
+      "finalPath": "/login",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "page": "inbox",
+      "status": 200,
+      "finalPath": "/inbox",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "page": "ops",
+      "status": 200,
+      "finalPath": "/ops",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "page": "ticket-detail",
+      "status": 200,
+      "finalPath": "/ops/01a1ecf4-2571-7000-a765-ecee6e01aca1",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "page": "portal",
+      "status": 200,
+      "finalPath": "/portal",
+      "themeAttribute": "dark",
+      "violations": [],
+      "horizontalOverflowPx": 0,
+      "consoleErrors": []
+    }
+  ],
+  "checks": {
+    "shell": {
+      "sidebarWidth": 256,
+      "topbarHeight": 56,
+      "flyoutPresent": false,
+      "sidebarBackground": "rgb(238, 244, 252)",
+      "bodyBackground": "rgb(255, 255, 255)",
+      "currentLabels": [
+        "業務受信箱11"
+      ],
+      "counts": [
+        {
+          "label": "業務受信箱",
+          "value": "11",
+          "tone": "brand"
+        },
+        {
+          "label": "自分の担当",
+          "value": "11",
+          "tone": null
+        },
+        {
+          "label": "解決期限超過",
+          "value": "0",
+          "tone": null
+        }
+      ],
+      "topbarText": "チケット業務受信箱サンプル株式会社11月18日 水曜日検索⌘K新規チケットSOLVI アカウントサンプル株式会社サンプル株式会社自分の通知設定承認の委任ログアウト",
+      "searchAction": "/ops",
+      "newTicketHref": "/tickets/new",
+      "notificationHref": "/settings/notifications"
+    },
+    "keyboard": {
+      "sidebarLinks": 26,
+      "reached": 26,
+      "missing": []
+    },
+    "queryCurrent": {
+      "label": "自分の担当11",
+      "breadcrumb": "自分の担当"
+    },
+    "themeToggle": {
+      "afterClick": {
+        "theme": "dark",
+        "stored": "dark",
+        "bodyBackground": "rgb(22, 24, 27)"
+      },
+      "afterReload": {
+        "theme": "dark",
+        "pressed": "ダーク"
+      },
+      "consoleErrors": []
+    },
+    "storageBlocked": {
+      "before": "light",
+      "after": {
+        "theme": "dark",
+        "bodyBackground": "rgb(22, 24, 27)",
+        "visible": true
+      },
+      "pageErrors": []
+    },
+    "mobile": {
+      "closedVisibility": "hidden",
+      "toggleTarget": [
+        44,
+        44
+      ],
+      "tabEntersClosedSidebar": false,
+      "openFocus": {
+        "inSidebar": true,
+        "label": "メニューを閉じる"
+      },
+      "mainInertWhenOpen": true,
+      "backdrop": {
+        "display": "block",
+        "background": "color(srgb 0.227686 0.237804 0.251294)",
+        "rect": [
+          375,
+          812
+        ]
+      },
+      "sidebarWidth": 256,
+      "openKeyboard": {
+        "sidebarLinks": 26,
+        "reached": 26,
+        "missing": []
+      },
+      "afterEscapeFocusIsToggle": true,
+      "mainInertAfterClose": false,
+      "closedVisibilityAfterEscape": "hidden"
+    },
+    "boundary801": {
+      "visibility": "visible",
+      "mainMarginLeft": "256px"
+    },
+    "csp": {
+      "headerPresent": true,
+      "nonceInHeader": true,
+      "nonceOnThemeScript": true,
+      "sameNonce": true,
+      "scriptSrc": "script-src 'self' 'nonce-ASVWdU4ij8sECr7/r7CJfA==' 'strict-dynamic'",
+      "externalScriptTags": 9
+    },
+    "routes": [
+      {
+        "path": "/inbox",
+        "status": 200
+      },
+      {
+        "path": "/ops",
+        "status": 200
+      },
+      {
+        "path": "/ops/overview",
+        "status": 200
+      },
+      {
+        "path": "/portal",
+        "status": 200
+      },
+      {
+        "path": "/knowledge",
+        "status": 200
+      },
+      {
+        "path": "/catalog",
+        "status": 200
+      },
+      {
+        "path": "/requests",
+        "status": 200
+      },
+      {
+        "path": "/assets",
+        "status": 200
+      },
+      {
+        "path": "/changes",
+        "status": 200
+      },
+      {
+        "path": "/settings/notifications",
+        "status": 200
+      },
+      {
+        "path": "/ops/admin",
+        "status": 200
+      },
+      {
+        "path": "/ops/users",
+        "status": 200
+      },
+      {
+        "path": "/ops/groups",
+        "status": 200
+      },
+      {
+        "path": "/ops/notifications",
+        "status": 200
+      },
+      {
+        "path": "/ops/access-review",
+        "status": 200
+      },
+      {
+        "path": "/ops/approvals",
+        "status": 200
+      },
+      {
+        "path": "/ops/approvals/changes",
+        "status": 200
+      },
+      {
+        "path": "/ops/departments",
+        "status": 200
+      },
+      {
+        "path": "/select-organization",
+        "status": 200
+      },
+      {
+        "path": "/login",
+        "status": 200
+      }
+    ]
+  },
+  "totals": {
+    "scans": 20,
+    "seriousOrCritical": 0,
+    "anyViolationNodes": 0,
+    "overflow375": [],
+    "redirectedToLogin": [],
+    "consoleErrorScans": [],
+    "themeAttributeMismatches": []
+  }
+}
