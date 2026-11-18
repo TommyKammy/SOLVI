@@ -3257,6 +3257,9 @@ body.fs-ui .fs-public-content > main form.stack {
   margin: 0;
   color: var(--muted);
 }
+.home-heading .hint {
+  margin: 0;
+}
 .home-summary {
   display: flex;
   flex-wrap: wrap;
@@ -3309,6 +3312,10 @@ body.fs-ui .fs-public-content > main form.stack {
 }
 .home-card {
   background: var(--panel);
+}
+/* 一覧の行はビューポートではなく、このパネルの幅で折り返す。 */
+.home-panel {
+  container-type: inline-size;
 }
 .home-section-head {
   display: flex;
@@ -3634,7 +3641,10 @@ body.fs-ui .home-empty a {
   }
 }
 
-@media (max-width: 760px) {
+/* 1100pxを超えていても、右列380pxとサイドバー256pxで一覧パネルは狭くなる。
+   固定幅の列(18+140+170+gap36=364px)に件名の幅を残せないため、
+   パネルの内容幅が600pxを下回ったら縦に積む。 */
+@container (max-width: 600px) {
   .home-work-row {
     grid-template-columns: 16px minmax(0, 1fr);
     row-gap: 4px;
@@ -3646,6 +3656,9 @@ body.fs-ui .home-empty a {
   .home-work-due {
     text-align: left;
   }
+}
+
+@media (max-width: 760px) {
   .home-bar {
     grid-template-columns: 96px minmax(0, 1fr);
   }

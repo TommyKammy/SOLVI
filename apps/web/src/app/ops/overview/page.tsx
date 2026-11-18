@@ -235,9 +235,10 @@ export default async function OperationsOverview({
   const grouped = workOk ? groupHomeWork(workItems, assessedAt) : EMPTY_GROUPS;
   const truncated = workTotal !== null && workTotal > workItems.length;
   const bucketTotal = grouped.overdue.length + grouped.today.length + grouped.week.length;
-  // 停止中は期限を作らないため、見出しの「対応する件数」からも除く。
-  const workActiveTotal =
-    workTotal === null ? null : Math.max(0, workTotal - grouped.paused.length);
+  // 見出しの件数は、読み込んだ項目だけから数える。全件数(workTotal)と
+  // 先頭ページの部分集合を混ぜると、未読込の停止中が件数に残る。
+  // 停止中は期限を作らないため、この件数からも除く。
+  const workActiveTotal = workOk ? workItems.length - grouped.paused.length : null;
 
   const inboxView: InboxView | null = inbox.ok ? inbox.data : null;
   const approvalItems = (inboxView?.items ?? []).filter(isApprovalInboxItem);
@@ -256,12 +257,26 @@ export default async function OperationsOverview({
         <h1>
           {workActiveTotal === null ? (
             '今日の対応'
+          ) : truncated ? (
+            <>
+              期限の近い{workItems.length}件のうち、対応中は{' '}
+              <strong className="home-count">{workActiveTotal}</strong>件です
+            </>
           ) : (
             <>
               今日の対応は <strong className="home-count">{workActiveTotal}</strong>件です
             </>
           )}
         </h1>
+        {workOk && truncated ? (
+          <p className="hint">
+            全{workTotal}件のうち、期限の近い{workItems.length}
+            件だけを読み込み、その中の対応中を数えています。
+            <Link href={homeWorkQueueHref()} prefetch={false}>
+              全件を期限順の一覧で確認する
+            </Link>
+          </p>
+        ) : null}
         <p className="home-lede">
           自分に割り当てられた未完了のチケットを、解決期限の近い順に表示します。返答待ちなどSLAの計測が止まっているチケットは、期限の件数に含めません。日時は日本時間（JST）です。
         </p>
