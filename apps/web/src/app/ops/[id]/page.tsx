@@ -12,7 +12,7 @@ import {
   type CommentView,
   type WorkspaceView,
 } from '../../../lib/api';
-import { CommentThread } from '../../../components/CommentThread';
+import { CommentThread, commentHistoryLabel } from '../../../components/CommentThread';
 import { ReplyForm } from '../../../components/ReplyForm';
 import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
@@ -103,7 +103,7 @@ function ticketHistory(
     ...comments.map((comment) => ({
       key: `comment:${comment.id}`,
       at: comment.createdAt,
-      label: comment.visibility === 'internal' ? '社内メモを追加' : '依頼者への返信を追加',
+      label: commentHistoryLabel(comment.visibility, comment.authorIsRequester),
       detail: actor(comment.authorId, comment.authorIsRequester),
     })),
     ...attachments.map((attachment) => ({

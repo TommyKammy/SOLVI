@@ -165,8 +165,8 @@ export default async function OpsQueue({
 
       {activeMetric === null && conditions.length > 0 && (
         <p className="hint queue-custom-note">
-          {preset === 'custom' && <span className="queue-custom-view">カスタム条件</span>}
-          {' '}条件を組み合わせています。適用中の条件から個別に解除できます。
+          {preset === 'custom' && <span className="queue-custom-view">カスタム条件</span>}{' '}
+          条件を組み合わせています。適用中の条件から個別に解除できます。
         </p>
       )}
 

@@ -2,6 +2,30 @@ import { formatDateTime } from '../lib/labels';
 import type { CommentView } from '../lib/api';
 
 /**
+ * 公開コメントの向きを、書き手が依頼者かどうかで言い分ける。
+ *
+ * **「依頼者への返信」を一律に付けない。** この欄は依頼者側の画面でも使われ、
+ * 依頼者自身が書いたコメントまで「返信」に見えてしまう。
+ * `authorIsRequester` は任意項目なので、無いときは向きを推測せず
+ * 方向を含まない「公開コメント」とする。
+ */
+export function publicCommentDirection(authorIsRequester?: boolean): string {
+  if (authorIsRequester === true) return '依頼者からのコメント';
+  if (authorIsRequester === false) return '依頼者への返信';
+  return '公開コメント';
+}
+
+/** 履歴の1行に使う文言。スレッドと同じ規則で向きを決める。 */
+export function commentHistoryLabel(
+  visibility: CommentView['visibility'],
+  authorIsRequester?: boolean,
+): string {
+  return visibility === 'internal'
+    ? '社内メモを追加'
+    : `${publicCommentDirection(authorIsRequester)}を追加`;
+}
+
+/**
  * コメント欄 (WP-P2-OPSUI-010)。
  *
  * **依頼者にはそもそも内部メモが渡ってこない。** 除外はAPI側で行っており、
@@ -34,7 +58,9 @@ export function CommentThread({
                   色覚特性のある利用者と白黒印刷で区別が消える。
                   UI v2では社内で使う言葉に合わせて「社内メモ」と表示する。 */}
               <span className="visibility-label">
-                {internal ? '社内メモ（依頼者には表示されません）' : '依頼者への返信'}
+                {internal
+                  ? '社内メモ（依頼者には表示されません）'
+                  : publicCommentDirection(comment.authorIsRequester)}
               </span>
               <span>
                 {comment.authorId === currentUserId

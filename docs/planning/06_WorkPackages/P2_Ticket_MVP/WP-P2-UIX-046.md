@@ -142,6 +142,7 @@ AIの参考情報欄と「表示項目」ボタンは作らないこと。新規
 | 2026-11-18 | Claude | - | Draft | `assets/ui/SOLVI_UI_v2_Mockup.html` | UI v2のWP案として起草した。 |
 | 2026-11-18 | Product Owner | - | Baseline | - | 未決事項の決定を反映し、baselineとして承認。 |
 | 2026-11-18 | OpenCode | - | Review | `evidence/WP-P2-UIX-046/20261118-1458/` | UI v2の一覧・受信箱・詳細を実装。API/DB/認可/監査は変更なし。 |
+| 2026-11-18 | OpenCode | - | Review fix | `evidence/WP-P2-UIX-046/20261118-1458/logs/review-fix.txt` | `ops/page.tsx`のprettier整形と、公開コメントの表示名を`authorIsRequester`で「依頼者からのコメント」「依頼者への返信」に分離(履歴も同一規則、不明時は「公開コメント」)。 |
 
 ### 2026-11-18 の実行結果
 
