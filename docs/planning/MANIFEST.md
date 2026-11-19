@@ -5,7 +5,7 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.15.8"
+version: "0.15.9"
 created: "2026-07-27"
 updated: "2026-11-19"
 owner: "SOLVI Product Team"
@@ -37,11 +37,11 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 334 |
-| Markdown | 325 |
+| 対象ファイル | 335 |
+| Markdown | 326 |
 | 画像・SVG | 8 |
 | HTML | 1 |
-| 合計サイズ | 7,947,372 bytes |
+| 合計サイズ | 7,956,763 bytes |
 
 ## ファイル一覧
 
@@ -91,7 +91,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 23556 | `cbc4c3d0ff12148549f193645816bb258d44ad9c439610df163b814d50953d6b` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 23724 | `e6b5f7e4b889b352ff21454fa96f9152e9653cda655ccad07c8a80026fb2e1ec` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11757 | `54fc51a5b6aae1ec09672cbfbae5cc4eef13d0fd50d796930feab86ea9ca4c3d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -143,8 +143,8 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `05_Modules/05.7_Workflow_Orchestration.md` | 1630 | `dda2b5c4c78f8ab737dfb97dcfa58962e3f20a15a86450a188586e275a431404` |
 | `05_Modules/05.8_SOLVI_Run_Executor.md` | 1588 | `c9579abc2e14d7b44f5ac662b23daf7bff65f72d39c6011225c1db36cbd88875` |
 | `05_Modules/05.9_Okta_Connector.md` | 1560 | `d679519010367687d12c7b0c74b77c938c0e717799c7202ff0e15e18ab3ad703` |
-| `06_WorkPackages/06.0_WorkPackage_Register.md` | 23296 | `6b10fbee6bcc315b90ac2750164fc9e8061f5478d5b3f491b5c5cb2a92ae775b` |
-| `06_WorkPackages/06.1_Dependency_Map.md` | 7341 | `d93ac7ed7e8e0919600964a3def1947d2962a5182edde75283a927750d922a6b` |
+| `06_WorkPackages/06.0_WorkPackage_Register.md` | 23579 | `64d521a171cff6583a252d348703b86a41d9ee3aef790177cc3f71a8947ac1d4` |
+| `06_WorkPackages/06.1_Dependency_Map.md` | 7449 | `277218f14e0c9d89c4d8baf02ae480978f912ebdad6304c358df68e1e618fb57` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
 | `06_WorkPackages/06.4_Backlog.md` | 6997 | `6f83536bd37767b749cd27fb306fcd24da61ff7d4166209a5621eb88615ebe25` |
@@ -267,6 +267,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P7_Change/WP-P7-APR-002.md` | 2938 | `2c1e7c0ef79d73fe2426400b5437ac8cd2c51aa115b4efe7506aab7399c1806b` |
 | `06_WorkPackages/P7_Change/WP-P7-CAL-003.md` | 2633 | `a162a220df744e4d1a78490bb119ca519d9438e932d6de907d0eb7c4db09fe23` |
 | `06_WorkPackages/P7_Change/WP-P7-CHG-001.md` | 2699 | `21256196ec507b398f3b09f054b94964dcddc71ef28ede3747f7754c7d2a63f2` |
+| `06_WorkPackages/P7_Change/WP-P7-CHGUI-005.md` | 8832 | `14963434f267c905ed7a1d01dbbb7fd5060f99060aea3c054f76db465c1f7f0a` |
 | `06_WorkPackages/P7_Change/WP-P7-PIR-004.md` | 2760 | `3861e1ef3a66add71aa44d1f0fd15b85b4ba1afcb15a6e9bec70376a6efdf9d4` |
 | `06_WorkPackages/P8_AI/WP-P8-CLS-001.md` | 2746 | `65dc3190f830d6cb3cd8370fbfb56b6ce1575bd4971010099cbf3c7992ce3eb5` |
 | `06_WorkPackages/P8_AI/WP-P8-EVAL-004.md` | 2791 | `1d604124859ae2c3495db18593fe83d573e0c214801cefb3ab4f2edfe354c45f` |

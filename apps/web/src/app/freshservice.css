@@ -2510,6 +2510,178 @@ body.fs-ui .knowledge-reader-panel h2 {
   }
 }
 
+.asset-change-workflow {
+  overflow-wrap: anywhere;
+}
+
+.asset-change-grid,
+.asset-change-records {
+  display: grid;
+  align-items: start;
+  gap: 20px;
+}
+
+.asset-change-records {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+}
+
+.asset-change-panel {
+  min-inline-size: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  background: var(--surface);
+}
+
+.asset-change-grid > .asset-change-panel {
+  margin: 0;
+}
+
+.asset-change-workflow > .asset-change-panel,
+.asset-change-workflow > div > .asset-change-panel:only-child,
+.asset-change-workflow > .asset-change-records {
+  margin-block: 20px;
+}
+
+body.fs-ui .asset-change-panel h2 {
+  margin-block: 0 12px;
+}
+
+#change-next-action {
+  scroll-margin-block-start: 72px;
+}
+
+.asset-change-panel dl.detail {
+  margin-block: 0 16px;
+}
+
+.asset-change-panel > :last-child,
+body.fs-ui .asset-change-panel > form:last-child {
+  margin-block-end: 0;
+}
+
+.asset-change-panel form.stack {
+  margin-block: 0;
+}
+
+body.fs-ui .asset-change-panel form.stack h3 {
+  margin-block: 0;
+}
+
+.asset-change-receipt,
+.change-command-panel {
+  background: var(--panel);
+}
+
+.asset-change-disclosure {
+  margin-block: 12px;
+}
+
+.asset-change-meta,
+.asset-change-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.asset-change-meta {
+  margin-block: 6px 0;
+  color: var(--muted);
+}
+
+.asset-change-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asset-change-steps li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-sm);
+  font-size: 0.8125rem;
+}
+
+.asset-change-steps li span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.asset-change-steps [aria-current='step'] {
+  border-color: var(--side-line);
+  background: var(--side);
+  color: var(--side-ink);
+  font-weight: 700;
+}
+
+.asset-change-steps [data-complete] {
+  background: var(--panel);
+}
+
+.asset-import-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 10px;
+  margin-block: 16px;
+}
+
+.asset-import-counts > div {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-sm);
+}
+
+.asset-import-counts dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.asset-import-counts dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+body.fs-ui form.stack.asset-change-form {
+  max-inline-size: 52rem;
+}
+
+.change-asset-fieldset {
+  min-inline-size: 0;
+}
+
+body.fs-ui label.change-asset-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 4px;
+  overflow-wrap: anywhere;
+}
+
+.change-asset-option input {
+  flex: none;
+}
+
+@media (min-width: 1040px) {
+  .asset-change-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.65fr);
+  }
+}
+
+@media (pointer: coarse) {
+  body.fs-ui .asset-change-workflow .support-action,
+  body.fs-ui .asset-change-workflow form button,
+  body.fs-ui label.change-asset-option {
+    min-block-size: 44px;
+  }
+}
+
 .catalog-request-form,
 .request-review-layout {
   display: grid;

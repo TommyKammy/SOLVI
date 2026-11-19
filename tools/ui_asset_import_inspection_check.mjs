@@ -495,7 +495,7 @@ export async function runAssetImportInspectionChecks({
       return { realKeyboard: true, visibleFocus: true, EnterFilter: true, SpaceClear: true };
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await check('mobile-normal-and-local-scroll', async () => {
+    await check('mobile-rows-fit-and-keep-headers', async () => {
       await open();
       await count(100);
       await applied();
@@ -507,14 +507,17 @@ export async function runAssetImportInspectionChecks({
       );
       const region = inspection().getByRole('region');
       await region.focus();
-      await page.keyboard.press('ArrowRight');
-      await page.waitForFunction(
-        () =>
-          document.querySelector('section[aria-labelledby=import-inspection-title] [role=region]')
-            .scrollLeft > 0,
+      assert.equal(
+        await region.evaluate(
+          (e) => e === document.activeElement && getComputedStyle(e).outlineStyle !== 'none',
+        ),
+        true,
       );
-      assert.equal(await region.evaluate((e) => e.scrollWidth > e.clientWidth), true);
-      return { localScroll: true, viewport: 390 };
+      assert.equal(await region.evaluate((e) => e.scrollWidth <= e.clientWidth), true);
+      const table = region.getByRole('table');
+      assert.equal(await table.getByRole('rowheader').count(), 100);
+      assert.equal(await table.getByRole('columnheader').count(), 4);
+      return { fitsRegion: true, rowHeaders: 100, viewport: 390 };
     });
     await check('mobile-empty-and-clear', async () => {
       await search().fill('no-match');

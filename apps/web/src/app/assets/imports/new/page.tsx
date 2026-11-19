@@ -44,14 +44,18 @@ export default async function NewAssetImportPage({
     );
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/assets/imports">
-        取込履歴へ戻る
-      </ContextLink>
-      <h1>資産CSVを取り込む</h1>
-      <p>
-        合成データで試すローカル取込です。列を選び、差分を確認してから確定します。CSVにない資産の削除・廃止は行いません。
-      </p>
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <ContextLink back href="/assets/imports" className="support-back">
+            取込履歴へ戻る
+          </ContextLink>
+          <h1>資産CSVを取り込む</h1>
+          <p className="lead">
+            合成データで試すローカル取込です。列を選び、差分を確認してから確定します。CSVにない資産の削除・廃止は行いません。
+          </p>
+        </div>
+      </header>
       <AssetCsvForm />
     </main>
   );

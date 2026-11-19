@@ -57,24 +57,39 @@ export default async function AssetsPage({
     return '/assets?' + q.toString();
   };
   return (
-    <main id="main" className="shell">
-      <h1>{d.canReadAll ? '資産台帳' : '自分の資産'}</h1>
-      <p>
-        {d.canReadAll
-          ? '組織の資産と利用状況を管理します。'
-          : '現在自分に割り当てられている資産を表示します。'}{' '}
-        手入力と確認付きCSV取込に対応しています。
-      </p>
-      {d.canManage && (
-        <p>
-          <ContextLink href="/assets/new">新しい資産を登録する</ContextLink>
-        </p>
-      )}
-      {d.canReadAll && (
-        <p>
-          <ContextLink href="/assets/imports">CSV取込と履歴</ContextLink>
-        </p>
-      )}
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <h1>{d.canReadAll ? '資産台帳' : '自分の資産'}</h1>
+          <p className="lead">
+            {d.canReadAll
+              ? '組織の資産と利用状況を管理します。'
+              : '現在自分に割り当てられている資産を表示します。'}
+          </p>
+        </div>
+        {(d.canReadAll || d.canManage) && (
+          <div className="form-actions">
+            {d.canManage && (
+              <ContextLink href="/assets/new" className="support-action">
+                新しい資産を登録する
+              </ContextLink>
+            )}
+            {d.canReadAll && (
+              <ContextLink href="/assets/imports" className="support-action">
+                CSV取込と履歴
+              </ContextLink>
+            )}
+            {d.canManage && (
+              <ContextLink
+                href="/assets/imports/new"
+                className="support-action support-action--primary"
+              >
+                CSV取込を始める
+              </ContextLink>
+            )}
+          </div>
+        )}
+      </header>
       <form method="get" className="filters" aria-label="資産の検索">
         <div className="field">
           <label htmlFor="asset-search">タグ・名前・モデル・シリアル・ホスト名・利用者で検索</label>

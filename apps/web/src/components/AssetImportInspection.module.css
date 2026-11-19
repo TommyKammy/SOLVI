@@ -1,6 +1,10 @@
 .inspection {
-  margin: 2rem 0;
-  min-width: 0;
+  container: import-inspection / inline-size;
+  margin-block: 24px;
+  min-inline-size: 0;
+}
+:global(body.fs-ui) .inspection > h2 {
+  margin-block: 0 8px;
 }
 .filters {
   display: flex;
@@ -16,7 +20,7 @@
   display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 8px 12px;
 }
 .searchField {
   flex: 1 1 20rem;
@@ -30,7 +34,7 @@
   width: 100%;
 }
 .table {
-  min-width: 56rem;
+  inline-size: 100%;
   table-layout: fixed;
 }
 .rowColumn {
@@ -46,9 +50,19 @@
   width: 56%;
 }
 .table > thead > tr > th,
-.table > tbody > tr > td {
+.table > tbody > tr > :is(th, td) {
   overflow-wrap: anywhere;
   white-space: normal;
+}
+.compactLabel {
+  display: none;
+}
+.issues {
+  margin: 0;
+  padding-inline-start: 18px;
+}
+.issues > li + li {
+  margin-block-start: 4px;
 }
 .change {
   margin: 0.75rem 0;
@@ -71,4 +85,48 @@
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+@container import-inspection (max-width: 38rem) {
+  .table,
+  .table caption,
+  .table tbody {
+    display: block;
+    min-inline-size: 0;
+  }
+  .table colgroup {
+    display: none;
+  }
+  .table thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) auto;
+  }
+  :global(body.fs-ui) .table tbody tr > :is(th, td) {
+    display: block;
+    min-inline-size: 0;
+    padding: 10px 8px;
+  }
+  .compactLabel {
+    display: inline;
+  }
+  .reviewCell {
+    grid-column: 1 / -1;
+  }
+  .values {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+@media (pointer: coarse) {
+  :global(body.fs-ui) :is(.filters, .search) > button {
+    min-block-size: 44px;
+  }
 }

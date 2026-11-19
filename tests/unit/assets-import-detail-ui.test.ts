@@ -322,8 +322,10 @@ describe('CSV detail session and unchanged successful renderer', () => {
       const text = plainText(html);
       expect(html).toContain('<h1>CSV取込プレビュー</h1>');
       expect(text).toContain('synthetic-source · 2026年10月9日 09:00 · 合成作成者');
-      expect(text).toContain('取込理由: 合成の取込理由');
-      expect(text).toMatch(/追加1件 · 更新1件 · 変更なし1件 · 不正1件/);
+      expect(text).toContain('取込理由 合成の取込理由');
+      expect(html).toContain('aria-label="取込行の内訳"');
+      for (const label of ['追加', '更新', '変更なし', '不正（取込対象外）'])
+        expect(html).toContain('<dt>' + label + '</dt><dd>1件</dd>');
       expect(html.match(/<tr>/g)).toHaveLength(5);
       for (const label of ['追加', '更新', '変更なし', '不正・隔離'])
         expect(html).toContain(`<td>${label}</td>`);
@@ -394,6 +396,23 @@ describe('CSV detail session and unchanged successful renderer', () => {
     });
     expect(ApplyAssetCsvForm).not.toHaveBeenCalled();
     expect(html).not.toContain('まだ資産を変更していません');
+  });
+  it('links directly to the saved asset from a single-asset receipt', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          ...detail,
+          receipt: {
+            ...receipt,
+            result: { ...receipt.result, assets: [receipt.result.assets[0]] },
+          },
+        }),
+      ),
+    );
+    const direct = link(await render(), 'SYN-1を開く');
+    expect(new URL(direct.href, 'https://solvi.local').pathname).toBe('/assets/' + savedAssetId);
+    expect(direct.native).toBe(false);
   });
   it('preserves successful ContextLink back and forward context', async () => {
     const returnTo = '/assets?q=synthetic&state=in_use&kind=pc&assignment=mine&page=2';

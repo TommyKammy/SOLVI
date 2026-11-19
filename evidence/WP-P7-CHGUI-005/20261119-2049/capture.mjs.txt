@@ -1,0 +1,552 @@
+import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { api, login, require, web } from "./helpers.mjs";
+
+const { chromium } = require("playwright");
+const { AxeBuilder } = require("@axe-core/playwright");
+const browser = await chromium.launch({ channel: "chrome" });
+const out = process.argv[2];
+const run = process.argv[3] ?? "01";
+assert.match(run, /^\d+$/);
+mkdirSync(join(out, "screens"), { recursive: true });
+const accounts = Object.fromEntries(
+  await Promise.all(
+    ["agent", "approver", "requester"].map(async (role) => [
+      role,
+      await login(role),
+    ]),
+  ),
+);
+const approverId = (await api("/auth/me", accounts.approver)).userId;
+const agentId = (await api("/auth/me", accounts.agent)).userId;
+const summary = { browser: browser.version(), journeys: [], scans: [] };
+const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+const main = (page) => page.locator("main");
+const link = (page, name) =>
+  main(page).getByRole("link", { name, exact: true });
+const button = (page, name) =>
+  main(page).getByRole("button", { name, exact: true });
+const heading = (page, name) =>
+  main(page).getByRole("heading", { name, exact: true });
+const region = (page, name) =>
+  main(page).getByRole("region", { name, exact: true });
+const state = (page, value) =>
+  main(page)
+    .locator('.asset-change-meta .state[data-state="' + value + '"]')
+    .waitFor();
+const openPath = (url) => new URL(url).pathname;
+const waitPath = (page, path) =>
+  page.waitForURL((url) => url.pathname === path);
+
+async function pageFor(role, width, colorScheme = "light") {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: "ja-JP",
+    colorScheme,
+    isMobile: width === 375,
+    hasTouch: width === 375,
+  });
+  await context.addCookies([{ ...accounts[role], url: web }]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(12000);
+  return page;
+}
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  assert.equal(openPath(page.url()), new URL(path, web).pathname);
+  await main(page).locator("h1").waitFor();
+}
+async function use(locator, width, key = "Enter") {
+  if (width === 375) await locator.tap();
+  else {
+    await locator.focus();
+    await locator.press(key);
+  }
+}
+async function check(locator, width) {
+  await use(locator, width, "Space");
+  assert.ok(await locator.isChecked());
+}
+async function scan(page, name, width, theme) {
+  assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - innerWidth,
+  );
+  const table = region(page, "CSVの行ごとの変更と隔離理由");
+  const csvTableOverflow = (await table.count())
+    ? await table.evaluate(
+        (element) => element.scrollWidth - element.clientWidth,
+      )
+    : null;
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const violations = result.violations.map(({ id, impact, nodes }) => ({
+    id,
+    impact,
+    nodes: nodes.map(({ target, failureSummary }) => ({
+      target,
+      failureSummary,
+    })),
+  }));
+  const incomplete = result.incomplete.map(({ id, nodes }) => ({
+    id,
+    targets: nodes.map(({ target }) => target),
+  }));
+  summary.scans.push({
+    name,
+    theme,
+    width,
+    overflow,
+    csvTableOverflow,
+    violations,
+    incomplete,
+  });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: join(out, "screens", [theme, width, name].join("-") + ".png"),
+    animations: "disabled",
+    fullPage: true,
+  });
+  console.log(
+    "AXE",
+    theme,
+    width,
+    name,
+    overflow,
+    csvTableOverflow,
+    violations.map((v) => v.id).join(",") || "pass",
+  );
+}
+async function inspect(page, role, width, name, filterError = false) {
+  await scan(page, name, width, "light");
+  const dark = await pageFor(role, width, "dark");
+  try {
+    await enter(dark, page.url().slice(web.length));
+    if (filterError) await use(button(dark, "不正（1）"), width);
+    await scan(dark, name, width, "dark");
+  } finally {
+    await dark.context().close();
+  }
+}
+async function preview(page, width, source, text) {
+  await page.locator("#csv-source").fill(source);
+  await page.locator("#csv-reason").fill("合成の登録内容と隔離行を確認");
+  await page.locator("#csv-text").fill(text);
+  await use(button(page, "列を確認する"), width);
+  await heading(page, "列の対応付け").waitFor();
+  assert.equal(
+    await page.locator("#csv-map-externalId").inputValue(),
+    "externalId",
+  );
+  assert.equal(
+    await page.locator("#csv-map-assetTag").inputValue(),
+    "assetTag",
+  );
+  await use(button(page, "取込プレビューを作成する"), width);
+  await page.waitForURL((url) =>
+    /^\/assets\/imports\/[a-f0-9-]{36}$/.test(url.pathname),
+  );
+  await heading(page, "CSV取込プレビュー").waitFor();
+  return openPath(page.url());
+}
+async function matchingAssets(tag) {
+  return (
+    await api("/assets?q=" + encodeURIComponent(tag), accounts.agent)
+  ).items.filter((asset) => asset.assetTag === tag);
+}
+async function assertChange(path, expectedState, assetId, ticketId) {
+  const saved = await api(path, accounts.agent);
+  assert.equal(saved.change.state, expectedState);
+  assert.equal(saved.change.snapshot.ticket.id, ticketId);
+  assert.deepEqual(
+    saved.change.snapshot.assets.map(({ id, version }) => ({ id, version })),
+    [{ id: assetId, version: 1 }],
+  );
+  return saved;
+}
+function jst(inMinutes) {
+  return new Date(Date.now() + (9 * 60 + inMinutes) * 60000)
+    .toISOString()
+    .slice(0, 16);
+}
+
+try {
+  for (const width of [1440, 375]) {
+    const opposite = width === 1440 ? 375 : 1440;
+    const tag = "SYN-OPS-" + width + "-" + run;
+    const errorTag = "SYN-ERR-" + width + "-" + run;
+    const name = "検証用VPNサービス";
+    const title = "VPNサービスの確認手順を更新（" + width + "）";
+    const header =
+      "externalId,assetTag,name,kind,state,model,serialNumber,hostname,vendor";
+    const fields = [
+      header,
+      "service-" +
+        width +
+        "," +
+        tag +
+        "," +
+        name +
+        ",saas,stocked,VPN Service,,,Synthetic Vendor",
+      "invalid-" +
+        width +
+        "," +
+        errorTag +
+        ",検証用の不正な端末,pc,stocked,,,,",
+    ];
+    const staff = await pageFor("agent", width);
+    const approver = await pageFor("approver", width);
+    const otherStaff = await pageFor("agent", opposite);
+    const ticket = await api("/tickets", accounts.requester, {
+      kind: "incident",
+      subject: "VPNの確認を依頼（" + width + "）",
+      body: "合成の起点チケット",
+      impact: "low",
+      urgency: "low",
+    });
+    await enter(staff, "/assets");
+    await use(link(staff, "CSV取込を始める"), width);
+    await waitPath(staff, "/assets/imports/new");
+    const importPath = await preview(
+      staff,
+      width,
+      "ops-" + width + "-" + run,
+      fields.join("\n"),
+    );
+    const initial = await api(importPath, accounts.agent);
+    assert.deepEqual(initial.plan.counts, {
+      add: 1,
+      update: 0,
+      unchanged: 0,
+      error: 1,
+    });
+    assert.equal(initial.receipt, null);
+    assert.equal((await matchingAssets(tag)).length, 0);
+    const error = initial.plan.rows.find((row) => row.operation === "error");
+    assert.equal(error.row, 3);
+    assert.ok(error.issues.length > 0);
+    for (const [page, browserWidth] of [
+      [staff, width],
+      [otherStaff, opposite],
+    ]) {
+      if (page !== staff) await enter(page, importPath);
+      await use(button(page, "不正（1）"), browserWidth);
+      const table = region(page, "CSVの行ごとの変更と隔離理由");
+      const row = table.getByRole("row").filter({ hasText: errorTag });
+      await row.getByRole("rowheader", { name: "3", exact: true }).waitFor();
+      for (const issue of error.issues)
+        await row.getByText(issue, { exact: true }).waitFor();
+      assert.equal(
+        await table.getByRole("row").filter({ hasText: tag }).count(),
+        0,
+      );
+    }
+    await inspect(staff, "agent", width, "preview-errors", true);
+    const confirm = region(staff, "取込の確定");
+    await check(confirm.getByRole("checkbox"), width);
+    await use(button(staff, "正常1行の取込を確定する"), width);
+    await heading(staff, "CSV取込の確定結果").waitFor();
+    assert.equal(openPath(staff.url()), importPath);
+    const receipt = (await api(importPath, accounts.agent)).receipt.result;
+    assert.deepEqual(
+      { added: receipt.added, skipped: receipt.skipped },
+      { added: 1, skipped: 1 },
+    );
+    assert.equal(receipt.assets.length, 1);
+    const assetId = receipt.assets[0].id;
+    const assetPath = "/assets/" + assetId;
+    assert.equal((await matchingAssets(tag))[0].id, assetId);
+    assert.equal((await matchingAssets(errorTag)).length, 0);
+
+    await enter(otherStaff, importPath);
+    const direct = tag + "を開く";
+    assert.equal(
+      new URL(await link(otherStaff, direct).getAttribute("href"), web)
+        .pathname,
+      assetPath,
+    );
+    const receiptTable = region(staff, "CSVの行ごとの変更と隔離理由");
+    await receiptTable
+      .getByRole("row")
+      .filter({ hasText: tag })
+      .getByRole("link", { name: tag, exact: true })
+      .waitFor();
+    await inspect(staff, "agent", width, "receipt");
+    await use(link(staff, direct), width);
+    await waitPath(staff, assetPath);
+    await heading(staff, tag + " · " + name).waitFor();
+    await main(staff)
+      .getByText("CSV取込（初回登録）", { exact: true })
+      .waitFor();
+    await inspect(staff, "agent", width, "asset");
+    await use(link(staff, "この資産から変更計画を作成する"), width);
+    await waitPath(staff, "/changes/new");
+    assert.equal(new URL(staff.url()).searchParams.get("assetId"), assetId);
+    const assets = staff.getByRole("group", {
+      name: "対象資産（1〜10件・必須）",
+    });
+    assert.deepEqual(
+      await assets
+        .locator("input:checked")
+        .evaluateAll((inputs) => inputs.map((input) => input.value)),
+      [assetId],
+    );
+    await staff.locator("#chg-title").fill(title);
+    await staff.locator("#chg-ticket").selectOption(ticket.id);
+    assert.equal(await staff.locator("#chg-owner").inputValue(), agentId);
+    await staff.locator("#chg-approver").selectOption(approverId);
+    for (const [field, value] of Object.entries({
+      purpose: "合成の確認手順を更新",
+      impact: "隔離した合成資産のみ対象",
+      implementationPlan: "現在の手順を確認して更新を記録する",
+      testPlan: "VPNの接続確認と通知までを合成で検証する",
+      backoutPlan: "問題時は旧手順に戻したことを記録する",
+      plannedStart: jst(-4),
+      plannedEnd: jst(45),
+    }))
+      await staff.locator("#chg-" + field).fill(value);
+    await use(button(staff, "変更計画を下書きで保存する"), width);
+    await staff.waitForURL((url) =>
+      /^\/changes\/[a-f0-9-]{36}$/.test(url.pathname),
+    );
+    await state(staff, "draft");
+    const changePath = openPath(staff.url());
+    const changeId = changePath.split("/").at(-1);
+    const draft = await assertChange(changePath, "draft", assetId, ticket.id);
+    const changeName = draft.change.number + " · " + title;
+    assert.equal(
+      await button(staff, "承認した対象と予定を確定する").count(),
+      0,
+    );
+    assert.equal(
+      await button(staff, "対象を確認して実施開始を記録する").count(),
+      0,
+    );
+    assert.equal(await button(staff, "この版の計画を承認する").count(), 0);
+    await use(button(staff, "この計画を承認者へ申請する"), width);
+    await state(staff, "review");
+    const pending = await assertChange(
+      changePath,
+      "review",
+      assetId,
+      ticket.id,
+    );
+    await enter(otherStaff, assetPath);
+    await use(link(otherStaff, changeName), opposite);
+    await waitPath(otherStaff, changePath);
+    await state(otherStaff, "review");
+
+    await enter(approver, "/changes");
+    await use(link(approver, changeName), width);
+    await waitPath(approver, changePath);
+    await state(approver, "review");
+    await region(approver, "承認対象の計画")
+      .locator("li")
+      .filter({ hasText: tag + " · " + name })
+      .waitFor();
+    assert.equal(await link(approver, tag + " · " + name).count(), 0);
+    assert.equal(
+      await button(approver, "対象を確認して実施開始を記録する").count(),
+      0,
+    );
+    await inspect(approver, "approver", width, "approval");
+    await use(button(approver, "この版の計画を承認する"), width);
+    await state(approver, "approved");
+    const approved = await assertChange(
+      changePath,
+      "approved",
+      assetId,
+      ticket.id,
+    );
+    assert.equal(approved.change.snapshotHash, pending.change.snapshotHash);
+    assert.equal(
+      approved.approvals.filter((a) => a.isCurrent)[0].decision,
+      "approved",
+    );
+    assert.equal(
+      await button(approver, "承認した対象と予定を確定する").count(),
+      0,
+    );
+
+    await enter(staff, changePath);
+    const next = region(staff, "現在できる操作");
+    await check(next.locator("input[name=confirmed]"), width);
+    await staff
+      .locator("#schedule-reason")
+      .fill("同じ対象と計画版で予定を確定");
+    await use(button(staff, "承認した対象と予定を確定する"), width);
+    await state(staff, "scheduled");
+    const scheduled = await assertChange(
+      changePath,
+      "scheduled",
+      assetId,
+      ticket.id,
+    );
+    assert.equal(scheduled.readiness.withinWindow, true);
+    await check(next.locator("input[name=confirmed]"), width);
+    await use(button(staff, "対象を確認して実施開始を記録する"), width);
+    await state(staff, "in_progress");
+    await assertChange(changePath, "in_progress", assetId, ticket.id);
+    const outcome = width === 1440 ? "completed" : "failed";
+    const resultText =
+      outcome === "completed"
+        ? "合成の接続確認に成功"
+        : "合成の通知確認で問題を検出";
+    await staff.locator("#result-outcome").selectOption(outcome);
+    await staff.locator("#result-summary").fill(resultText);
+    await staff
+      .locator("#result-testResults")
+      .fill("合成のVPN接続・通知を確認");
+    if (outcome === "failed")
+      await check(next.locator("input[name=backoutPerformed]"), width);
+    await staff
+      .locator("#result-backoutReason")
+      .fill(
+        outcome === "failed"
+          ? "旧手順へ切り戻したことを記録"
+          : "成功したため切戻し不要",
+      );
+    await use(button(staff, "実施結果を保存する"), width);
+    await state(staff, outcome);
+    const recorded = await assertChange(
+      changePath,
+      outcome,
+      assetId,
+      ticket.id,
+    );
+    assert.equal(recorded.result.simulation, true);
+    assert.equal(recorded.result.externalChanges, 0);
+    assert.equal(recorded.result.snapshotHash, approved.change.snapshotHash);
+    assert.equal(recorded.result.backoutPerformed, outcome === "failed");
+    assert.equal(recorded.result.summary, resultText);
+    await enter(otherStaff, changePath);
+    await region(otherStaff, "保存した実施結果")
+      .getByText(resultText)
+      .waitFor();
+    if (outcome === "failed") {
+      await enter(otherStaff, "/changes?needsPir=1");
+      await link(otherStaff, changeName).waitFor();
+    }
+
+    await use(link(staff, "実施後レビューの入力へ進む"), width);
+    await staff.waitForURL((url) => url.hash === "#change-next-action");
+    assert.ok(
+      await staff
+        .locator("#change-next-action")
+        .evaluate((el) => el === document.activeElement),
+    );
+    const lesson = "接続と通知を個別に確認する";
+    const prevention = "変更前チェックに通知経路を追加";
+    await staff
+      .locator("#pir-rootCause")
+      .fill("合成レビューで確認条件を振り返った");
+    await staff.locator("#pir-lessons").fill(lesson);
+    await staff.locator("#pir-prevention").fill(prevention);
+    await use(button(staff, "実施後レビューを保存する"), width);
+    await region(staff, "実施後レビュー（PIR）").getByText(lesson).waitFor();
+    assert.deepEqual(
+      await main(staff)
+        .locator(".asset-change-panel > h2")
+        .allTextContents()
+        .then((names) => names.slice(0, 3)),
+      ["保存した実施結果", "実施後レビュー（PIR）", "承認対象の計画"],
+    );
+    const final = await assertChange(changePath, outcome, assetId, ticket.id);
+    assert.equal(final.pir.lessons, lesson);
+    assert.equal(final.pir.prevention, prevention);
+    assert.deepEqual(final.history.map((event) => event.action).reverse(), [
+      "create",
+      "submit",
+      "approve",
+      "schedule",
+      "start",
+      "result",
+      "pir",
+    ]);
+    assert.equal(
+      await main(staff)
+        .getByRole("list", { name: "変更の進捗" })
+        .locator("[data-complete=true]")
+        .count(),
+      5,
+    );
+    await inspect(staff, "agent", width, "closed-review");
+    await enter(otherStaff, changePath);
+    await region(otherStaff, "実施後レビュー（PIR）")
+      .getByText(prevention)
+      .waitFor();
+    await use(link(otherStaff, tag + " · " + name), opposite);
+    await waitPath(otherStaff, assetPath);
+    await use(link(otherStaff, changeName), opposite);
+    await waitPath(otherStaff, changePath);
+    await region(otherStaff, "保存した実施結果")
+      .getByText(resultText)
+      .waitFor();
+    if (outcome === "failed") {
+      await enter(otherStaff, "/changes?needsPir=1");
+      assert.equal(await link(otherStaff, changeName).count(), 0);
+    }
+
+    await enter(staff, "/assets/imports/new");
+    const allError = await preview(
+      staff,
+      width,
+      "invalid-" + width + "-" + run,
+      [header, fields[2]].join("\n"),
+    );
+    assert.equal((await api(allError, accounts.agent)).plan.counts.error, 1);
+    assert.equal(await button(staff, "正常1行の取込を確定する").count(), 0);
+    await main(staff)
+      .getByRole("alert")
+      .getByText(/正常行がありません/)
+      .waitFor();
+    summary.journeys.push({
+      width,
+      opposite,
+      importId: initial.id,
+      assetId,
+      assetTag: tag,
+      changeId,
+      number: final.change.number,
+      outcome,
+      externalChanges: recorded.result.externalChanges,
+      matchesOtherViewport: [
+        "preview row and reason",
+        "receipt asset ID",
+        "change in review",
+        "result",
+        "PIR and asset link",
+      ],
+      allErrorPreview: openPath(staff.url()).split("/").at(-1),
+      errorRow: error.row,
+    });
+    console.log(
+      "JOURNEY",
+      width,
+      tag,
+      assetId,
+      final.change.number,
+      changeId,
+      outcome,
+    );
+    await Promise.all(
+      [staff, approver, otherStaff].map((page) => page.context().close()),
+    );
+  }
+  assert.equal(summary.scans.length, 20);
+  assert.ok(
+    summary.scans.every(
+      ({ overflow, csvTableOverflow, violations }) =>
+        overflow === 0 &&
+        (!csvTableOverflow || csvTableOverflow <= 0) &&
+        violations.length === 0,
+    ),
+  );
+} finally {
+  writeFileSync(
+    join(out, "summary.json"),
+    JSON.stringify(summary, null, 2) + "\n",
+  );
+  await browser.close();
+}

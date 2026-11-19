@@ -57,54 +57,63 @@ export default async function AssetPage({
     p = await searchParams;
   const revisionsByVersion = new Map(d.revisions.map((revision) => [revision.version, revision]));
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/assets">
-        資産一覧へ戻る
-      </ContextLink>
-      <h1>
-        {a.assetTag} · {a.name}
-      </h1>
-      {p.saved === '1' && <p role="status">資産と履歴を保存しました。</p>}
-      {d.canManage && (
-        <p>
-          <ContextLink href={`/assets/${id}/edit`}>資産・状態・利用者を編集する</ContextLink>
-        </p>
-      )}
-      <dl className="detail">
-        <dt>種別</dt>
-        <dd>{assetKindLabel(a.kind)}</dd>
-        <dt>状態</dt>
-        <dd>{assetStateLabel(a.state)}</dd>
-        <dt>利用者</dt>
-        <dd>{a.assignedUserName ?? '割当なし'}</dd>
-        <dt>モデル・サービス名</dt>
-        <dd>{a.model || '未入力'}</dd>
-        <dt>シリアル番号</dt>
-        <dd>{a.serialNumber || '未入力'}</dd>
-        <dt>ホスト名</dt>
-        <dd>{a.hostname || '未入力'}</dd>
-        <dt>メーカー・提供元</dt>
-        <dd>{a.vendor || '未入力'}</dd>
-        <dt>情報源</dt>
-        <dd>{a.sourceKind === 'csv' ? 'CSV取込' : '手入力'}（初回登録）</dd>
-        <dt>更新日時</dt>
-        <dd>
-          {formatDateTime(a.updatedAt)}（版{a.version}）
-        </dd>
-        {a.location !== undefined && (
-          <>
-            <dt>保管場所（担当者のみ）</dt>
-            <dd>{a.location || '未入力'}</dd>
-          </>
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <ContextLink back href="/assets" className="support-back">
+            資産一覧へ戻る
+          </ContextLink>
+          <h1>
+            {a.assetTag} · {a.name}
+          </h1>
+        </div>
+        {d.canManage && (
+          <ContextLink href={`/assets/${id}/edit`} className="support-action">
+            資産・状態・利用者を編集する
+          </ContextLink>
         )}
-      </dl>
-      {a.internalNotes !== undefined && (
-        <>
-          <h2>内部メモ</h2>
-          <p style={{ whiteSpace: 'pre-wrap' }}>{a.internalNotes || '未入力'}</p>
-        </>
-      )}
-      <RelatedChangePanel kind="asset" id={id} />
+      </header>
+      {p.saved === '1' && <p role="status">資産と履歴を保存しました。</p>}
+      <div className="asset-change-grid">
+        <section className="asset-change-panel" aria-labelledby="asset-information">
+          <h2 id="asset-information">資産情報</h2>
+          <dl className="detail">
+            <dt>種別</dt>
+            <dd>{assetKindLabel(a.kind)}</dd>
+            <dt>状態</dt>
+            <dd>{assetStateLabel(a.state)}</dd>
+            <dt>利用者</dt>
+            <dd>{a.assignedUserName ?? '割当なし'}</dd>
+            <dt>モデル・サービス名</dt>
+            <dd>{a.model || '未入力'}</dd>
+            <dt>シリアル番号</dt>
+            <dd>{a.serialNumber || '未入力'}</dd>
+            <dt>ホスト名</dt>
+            <dd>{a.hostname || '未入力'}</dd>
+            <dt>メーカー・提供元</dt>
+            <dd>{a.vendor || '未入力'}</dd>
+            <dt>情報源</dt>
+            <dd>{a.sourceKind === 'csv' ? 'CSV取込' : '手入力'}（初回登録）</dd>
+            <dt>更新日時</dt>
+            <dd>
+              {formatDateTime(a.updatedAt)}（版{a.version}）
+            </dd>
+            {a.location !== undefined && (
+              <>
+                <dt>保管場所（担当者のみ）</dt>
+                <dd>{a.location || '未入力'}</dd>
+              </>
+            )}
+          </dl>
+          {a.internalNotes !== undefined && (
+            <>
+              <h2>内部メモ</h2>
+              <p style={{ whiteSpace: 'pre-wrap' }}>{a.internalNotes || '未入力'}</p>
+            </>
+          )}
+        </section>
+        <RelatedChangePanel kind="asset" id={id} />
+      </div>
       <h2>関連するチケット</h2>
       <p className="hint">
         閲覧できるチケットを最新100件表示します。担当者はチケット画面から関連を追加・解除できます。

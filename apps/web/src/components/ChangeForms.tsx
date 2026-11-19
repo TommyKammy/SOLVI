@@ -102,7 +102,7 @@ export function ChangePlanForm({
       pending={pending}
       method="post"
       onSubmit={(e) => dispatchForm(e, action)}
-      className="stack"
+      className="stack form-panel asset-change-form"
     >
       <input type="hidden" name="creationKey" value={creationKey} />
       <input type="hidden" name="commandKey" value={commandKey} />
@@ -133,13 +133,13 @@ export function ChangePlanForm({
         </p>
       </FormField>
       <FormField name="assetIds">
-        <fieldset>
+        <fieldset className="change-asset-fieldset">
           <legend>対象資産（1〜10件・必須）</legend>
           <p className="hint">
             活動中の資産の先頭50件と現在の対象です。保存時の資産版を承認対象に固定します。
           </p>
           {candidates.map((a) => (
-            <label key={a.id} style={{ display: 'block', marginBottom: '.5rem' }}>
+            <label key={a.id} className="change-asset-option">
               <input
                 type="checkbox"
                 name="assetIds"
@@ -152,7 +152,9 @@ export function ChangePlanForm({
                   )
                 }
               />{' '}
-              {a.assetTag} · {a.name}（{assetStateLabel(a.state)} · 版{a.version}）
+              <span>
+                {a.assetTag} · {a.name}（{assetStateLabel(a.state)} · 版{a.version}）
+              </span>
             </label>
           ))}
         </fieldset>

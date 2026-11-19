@@ -65,14 +65,20 @@ export default async function ChangesPage({
       return '/changes?' + next.toString();
     };
   return (
-    <main id="main" className="shell">
-      <h1>変更管理</h1>
-      <p>通常変更の計画・承認・予定と合成の実施結果を管理します。日時は日本時間（JST）です。</p>
-      {d.canCreate && (
-        <p>
-          <ContextLink href="/changes/new">通常変更の計画を作成する</ContextLink>
-        </p>
-      )}
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <h1>変更管理</h1>
+          <p className="lead">
+            通常変更の計画・承認・予定と合成の実施結果を管理します。日時は日本時間（JST）です。
+          </p>
+        </div>
+        {d.canCreate && (
+          <ContextLink href="/changes/new" className="support-action support-action--primary">
+            通常変更の計画を作成する
+          </ContextLink>
+        )}
+      </header>
       {(q.has('assetId') || q.has('ticketId')) && (
         <p role="status">
           {q.has('assetId') ? '資産' : 'チケット'}

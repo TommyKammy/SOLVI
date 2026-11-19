@@ -26,7 +26,17 @@ export function AssetCsvForm() {
     );
   };
   return (
-    <FeedbackForm action={action} feedback={feedback} pending={pending} className="stack">
+    <FeedbackForm
+      action={action}
+      feedback={feedback}
+      pending={pending}
+      className="stack form-panel asset-change-form"
+    >
+      <ol className="asset-change-steps" role="list" aria-label="CSV取込の手順">
+        <li aria-current={inspection ? undefined : 'step'}>CSVを入力</li>
+        <li aria-current={inspection ? 'step' : undefined}>列を確認</li>
+        <li>プレビュー・確定</li>
+      </ol>
       <FormField>
         <label htmlFor="csv-source">取込元（必須・同じ元には同じ名前）</label>
         <input
@@ -36,9 +46,10 @@ export function AssetCsvForm() {
           onChange={(e) => setSourceKey(e.target.value)}
           pattern="[a-z0-9](?:[a-z0-9_]|-){0,63}"
           maxLength={64}
+          aria-describedby="csv-source-hint"
           required
         />
-        <p className="hint">
+        <p className="hint" id="csv-source-hint">
           小文字の英数字、ハイフン、アンダースコア。外部IDと組み合わせて資産を識別します。
         </p>
       </FormField>
@@ -54,7 +65,7 @@ export function AssetCsvForm() {
         />
       </FormField>
       <FormField>
-        <label htmlFor="csv-text">CSVテキスト（見出し付き・100行 / UTF-8 24KiBまで）</label>
+        <label htmlFor="csv-text">CSVテキスト（必須）</label>
         <textarea
           id="csv-text"
           name="csv"
@@ -65,20 +76,22 @@ export function AssetCsvForm() {
           }}
           rows={10}
           maxLength={24576}
+          aria-describedby="csv-text-hint"
           required
           spellCheck={false}
         />
-        <p className="hint">
-          BOM・CRLF・引用符に対応。PC/サーバー/ネットワーク機器はモデル・シリアル・ホスト名が必須です。種別:
+        <p className="hint" id="csv-text-hint">
+          見出し付きで100行、UTF-8で24KiBまで。BOM・CRLF・引用符に対応。
+          PC・サーバー・ネットワーク機器はモデル・シリアル・ホスト名、SaaSはサービス名と提供元が必須です。種別:
           pc / server / vm / network / mobile / saas、状態: stocked / in_use / repair / retired。
         </p>
       </FormField>
-      <div className="actions-row">
-        <button type="button" onClick={example} disabled={pending}>
-          合成例を入力する
-        </button>
+      <div className="form-actions">
         <button name="intent" value="inspect" disabled={pending} formNoValidate>
           {pending ? '確認しています…' : '列を確認する'}
+        </button>
+        <button type="button" className="secondary" onClick={example} disabled={pending}>
+          合成例を入力する
         </button>
       </div>
       {inspection && (
@@ -195,10 +208,11 @@ export function ApplyAssetCsvForm({
           行を確定し、不正行とCSVにない資産を変更しません。
         </label>
       </FormField>
-      <ContextLink href="/assets/imports/new">CSVを再プレビューする</ContextLink>
-      <button disabled={pending}>
-        {pending ? '保存しています…' : `正常${count}行の取込を確定する`}
-      </button>
+      <div className="form-actions">
+        <button disabled={pending}>
+          {pending ? '保存しています…' : `正常${count}行の取込を確定する`}
+        </button>
+      </div>
     </FeedbackForm>
   );
 }

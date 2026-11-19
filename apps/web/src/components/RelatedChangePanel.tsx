@@ -7,11 +7,12 @@ export async function RelatedChangePanel({ kind, id }: { kind: 'ticket' | 'asset
   if (!r.ok) return <p role="alert">関連する変更を読み込めませんでした。</p>;
   if (!r.data.canCreate && !r.data.items.length) return null;
   return (
-    <section>
+    <section className={kind === 'asset' ? 'asset-change-panel' : undefined}>
       <h2>関連する通常変更</h2>
       {r.data.canCreate && (
         <p>
           <ContextLink
+            className={kind === 'asset' ? 'support-action support-action--primary' : undefined}
             href={`/changes/new?${kind === 'ticket' ? 'ticketId' : 'assetId'}=${encodeURIComponent(id)}`}
           >
             この{kind === 'ticket' ? 'チケット' : '資産'}から変更計画を作成する

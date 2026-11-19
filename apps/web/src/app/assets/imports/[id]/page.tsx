@@ -59,22 +59,51 @@ export default async function AssetImportPage({
   const d = r.data,
     counts = d.plan.counts,
     valid = counts.add + counts.update + counts.unchanged;
+  const savedAssets = new Map(d.receipt?.result.assets.map((asset) => [asset.row, asset]));
+  const firstSavedRow = d.plan.rows.find((row) => savedAssets.has(row.row));
+  const firstSavedAsset = firstSavedRow && savedAssets.get(firstSavedRow.row);
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/assets/imports">
-        取込履歴へ戻る
-      </ContextLink>
-      <h1>{d.receipt ? 'CSV取込の確定結果' : 'CSV取込プレビュー'}</h1>
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <ContextLink back href="/assets/imports" className="support-back">
+            取込履歴へ戻る
+          </ContextLink>
+          <h1>{d.receipt ? 'CSV取込の確定結果' : 'CSV取込プレビュー'}</h1>
+          <p className="lead">
+            {d.sourceKey} · {formatDateTime(d.createdAt)} · {d.creatorName}
+          </p>
+        </div>
+        {!!counts.error && (
+          <ContextLink href={`/assets/imports/${id}/errors`} className="support-action">
+            不正行のレポートを保存する（JSON）
+          </ContextLink>
+        )}
+      </header>
       <p>
-        {d.sourceKey} · {formatDateTime(d.createdAt)} · {d.creatorName}
+        <strong>取込理由</strong> {d.plan.reason}
       </p>
-      <p>取込理由: {d.plan.reason}</p>
-      <p role="status">
-        追加{counts.add}件 · 更新{counts.update}件 · 変更なし{counts.unchanged}件 · 不正
-        {counts.error}件
-      </p>
+      <dl className="asset-import-counts" aria-label="取込行の内訳">
+        {(
+          [
+            ['追加', counts.add],
+            ['更新', counts.update],
+            ['変更なし', counts.unchanged],
+            ['不正（取込対象外）', counts.error],
+          ] as const
+        ).map(([label, count]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{count}件</dd>
+          </div>
+        ))}
+      </dl>
       {d.receipt ? (
-        <div className="success-banner" role="status">
+        <section
+          className="asset-change-panel asset-change-receipt"
+          aria-labelledby="import-receipt-heading"
+        >
+          <h2 id="import-receipt-heading">正常行の取込を確定しました</h2>
           <p>
             確定済み · {formatDateTime(d.receipt.appliedAt)} · {d.receipt.actorName}
           </p>
@@ -82,14 +111,24 @@ export default async function AssetImportPage({
             保存: 追加{d.receipt.result.added} / 更新{d.receipt.result.updated} / 変更なし
             {d.receipt.result.unchanged} / 隔離{d.receipt.result.skipped}
           </p>
-          <a href="/assets">保存した資産を見る</a>
-        </div>
+          <div className="form-actions">
+            {savedAssets.size === 1 && firstSavedRow && firstSavedAsset && (
+              <ContextLink
+                href={`/assets/${firstSavedAsset.id}`}
+                className="support-action support-action--primary"
+              >
+                {firstSavedRow.assetTag}を開く
+              </ContextLink>
+            )}
+            <a href="/assets">保存した資産を見る</a>
+          </div>
+        </section>
       ) : (
-        <p>
+        <p className="hint">
           まだ資産を変更していません。不正行は確定対象から除外します。プレビュー後に対象が変わった場合は全正常行の保存を取り消し、再確認を求めます。
         </p>
       )}
-      <details>
+      <details className="asset-change-disclosure">
         <summary>確認した列の対応付けと識別情報</summary>
         <dl className="detail">
           {Object.entries(d.plan.mapping).map(([k, v]) => (
@@ -102,17 +141,11 @@ export default async function AssetImportPage({
         <p className="hint">CSV SHA-256: {d.contentHash}</p>
         <p className="hint">プレビューID: {d.id}</p>
       </details>
-      {!!counts.error && (
-        <p>
-          <ContextLink href={`/assets/imports/${id}/errors`}>
-            不正行のレポートを保存する（JSON）
-          </ContextLink>
-        </p>
-      )}
       <AssetImportInspection
+        key={d.receipt ? 'applied' : 'preview'}
         normalCount={valid}
         rows={d.plan.rows.map((row) => {
-          const saved = d.receipt?.result.assets.find((asset) => asset.row === row.row);
+          const saved = savedAssets.get(row.row);
           const view: AssetImportInspectionRow = {
             row: row.row,
             externalId: row.externalId,
@@ -133,7 +166,10 @@ export default async function AssetImportPage({
         })}
       />
       {!d.receipt && d.canManage && valid > 0 && (
-        <ApplyAssetCsvForm id={id} planHash={d.planHash} count={valid} />
+        <section className="asset-change-panel" aria-labelledby="import-confirm-heading">
+          <h2 id="import-confirm-heading">取込の確定</h2>
+          <ApplyAssetCsvForm id={id} planHash={d.planHash} count={valid} />
+        </section>
       )}
       {!d.receipt && !valid && (
         <p role="alert">正常行がありません。CSVを修正し再プレビューしてください。</p>

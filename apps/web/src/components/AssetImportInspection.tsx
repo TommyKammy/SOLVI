@@ -107,9 +107,8 @@ export function AssetImportInspection({
       <p role="status" aria-live="polite">
         表示{displayed.length}行 / 全{rows.length}行
       </p>
-      <p className="hint">表が画面に収まらない場合は、表の中を左右にスクロールできます。</p>
       <TableRegion label="CSVの行ごとの変更と隔離理由">
-        <table className={`tickets ${styles.table}`}>
+        <table className={`tickets ${styles.table}`} role="table">
           <caption>行ごとの変更・隔離理由</caption>
           <colgroup>
             <col className={styles.rowColumn} />
@@ -117,18 +116,18 @@ export function AssetImportInspection({
             <col className={styles.operationColumn} />
             <col className={styles.changeColumn} />
           </colgroup>
-          <thead>
-            <tr>
+          <thead role="rowgroup">
+            <tr role="row">
               <th scope="col">行</th>
               <th scope="col">外部ID / 資産タグ</th>
               <th scope="col">判定</th>
               <th scope="col">差分・確認事項</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {!displayed.length && (
-              <tr>
-                <td colSpan={4}>
+              <tr role="row">
+                <td role="cell" colSpan={4} className={styles.reviewCell}>
                   {rows.length
                     ? '条件に一致する行がありません。判定や識別情報を変更するか、表示条件を解除してください。'
                     : '表示する行がありません。取込履歴から確認するプレビューを選んでください。'}
@@ -136,9 +135,14 @@ export function AssetImportInspection({
               </tr>
             )}
             {displayed.map((row) => (
-              <tr key={row.row}>
-                <td>{row.row}</td>
-                <td>
+              <tr key={row.row} role="row">
+                <th scope="row" role="rowheader">
+                  {row.row}
+                  <span className={styles.compactLabel} aria-hidden="true">
+                    行目
+                  </span>
+                </th>
+                <td role="cell">
                   {row.externalId}
                   <br />
                   {row.assetId ? (
@@ -147,11 +151,22 @@ export function AssetImportInspection({
                     row.assetTag
                   )}
                 </td>
-                <td>{operationLabel[row.operation]}</td>
-                <td>
-                  {row.issues.map((issue, i) => (
-                    <p key={i}>{issue}</p>
-                  ))}
+                <td role="cell">
+                  <span
+                    className="state"
+                    data-state={row.operation === 'error' ? 'failed' : undefined}
+                  >
+                    {operationLabel[row.operation]}
+                  </span>
+                </td>
+                <td role="cell" className={styles.reviewCell}>
+                  {row.issues.length > 0 && (
+                    <ul className={styles.issues} aria-label="確認事項">
+                      {row.issues.map((issue, i) => (
+                        <li key={i}>{issue}</li>
+                      ))}
+                    </ul>
+                  )}
                   {row.operation !== 'error' && (
                     <>
                       <p>

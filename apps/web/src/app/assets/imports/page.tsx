@@ -42,17 +42,24 @@ export default async function AssetImportsPage({
     );
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/assets">
-        資産台帳へ戻る
-      </ContextLink>
-      <h1>CSV取込と履歴</h1>
-      <p>最新50件のプレビューと確定結果です。CSVにない資産を変更しません。</p>
-      {r.data.canManage && (
-        <p>
-          <ContextLink href="/assets/imports/new">資産CSVを取り込む</ContextLink>
-        </p>
-      )}
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <ContextLink back href="/assets" className="support-back">
+            資産台帳へ戻る
+          </ContextLink>
+          <h1>CSV取込と履歴</h1>
+          <p className="lead">最新50件のプレビューと確定結果です。CSVにない資産を変更しません。</p>
+        </div>
+        {r.data.canManage && (
+          <ContextLink
+            href="/assets/imports/new"
+            className="support-action support-action--primary"
+          >
+            資産CSVを取り込む
+          </ContextLink>
+        )}
+      </header>
       {r.data.items.length ? (
         <ul className="attachments">
           {r.data.items.map((p) => (

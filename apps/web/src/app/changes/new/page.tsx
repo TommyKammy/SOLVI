@@ -51,12 +51,16 @@ export default async function NewChangePage({
     );
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/changes">
-        変更一覧へ戻る
-      </ContextLink>
-      <h1>通常変更の計画を作成する</h1>
-      <p>元のチケットと対象資産を選び、まず下書きとして保存します。</p>
+    <main id="main" className="shell asset-change-workflow">
+      <header className="support-page-heading">
+        <div>
+          <ContextLink back href="/changes" className="support-back">
+            変更一覧へ戻る
+          </ContextLink>
+          <h1>通常変更の計画を作成する</h1>
+          <p className="lead">元のチケットと対象資産を選び、まず下書きとして保存します。</p>
+        </div>
+      </header>
       <ChangePlanForm
         options={r.data}
         userId={user.userId}
