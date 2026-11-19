@@ -1,0 +1,28 @@
+1440 rule created and route preview opened
+1440 conditional questions saved, tested, published
+1440 request REQ-2026-000001 submitted
+AXE light 1440 decision 0 pass
+AXE dark 1440 decision 0 pass
+1440 verified approved on same REQ-2026-000001
+375 rule created and route preview opened
+375 conditional questions saved, tested, published
+375 request REQ-2026-000002 submitted
+AXE light 375 decision 0 pass
+AXE dark 375 decision 0 pass
+375 verified rejected on same REQ-2026-000002
+AXE light 1440 approval-rules 0 pass
+AXE light 1440 catalog-draft 0 pass
+AXE light 1440 public-form 0 pass
+AXE light 1440 outcome 0 pass
+AXE light 375 approval-rules 0 pass
+AXE light 375 catalog-draft 0 pass
+AXE light 375 public-form 0 pass
+AXE light 375 outcome 0 pass
+AXE dark 1440 approval-rules 0 pass
+AXE dark 1440 catalog-draft 0 pass
+AXE dark 1440 public-form 0 pass
+AXE dark 1440 outcome 0 pass
+AXE dark 375 approval-rules 0 pass
+AXE dark 375 catalog-draft 0 pass
+AXE dark 375 public-form 0 pass
+AXE dark 375 outcome 0 pass

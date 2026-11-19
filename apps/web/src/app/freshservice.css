@@ -1772,7 +1772,8 @@ body.fs-ui a.fs-admin-card:hover {
 }
 .fs-support-header-inner,
 .support-main,
-.fs-support-content--ticket {
+.fs-support-content--ticket,
+.fs-support-content--catalog {
   box-sizing: border-box;
   inline-size: 100%;
   max-inline-size: var(--fs-content-max);
@@ -2109,19 +2110,20 @@ body.fs-ui .fs-support-content > main.shell {
 /* 一覧(ナレッジ/カタログ)は各パネルを白くし、詳細・フォーム・設定は
    ページ全体を白い面にして読みやすくする。 */
 body.fs-ui
-  .fs-support-content:not(.fs-support-content--ticket)
+  .fs-support-content:not(.fs-support-content--ticket, .fs-support-content--catalog)
   > main.shell:not(.fs-knowledge):not(.fs-catalog) {
   padding: 24px 28px;
   background: var(--fs-surface);
   border-radius: var(--fs-radius-md);
   box-shadow: var(--fs-shadow-sm);
 }
-.fs-support-content--ticket {
+.fs-support-content--ticket,
+.fs-support-content--catalog {
   max-inline-size: var(--fs-content-max);
   padding-block: 28px 48px;
   padding-inline: var(--fs-content-gutter);
 }
-body.fs-ui .fs-support-content--ticket > main.shell {
+body.fs-ui :is(.fs-support-content--ticket, .fs-support-content--catalog) > main.shell {
   /* The frame owns both gutters. */
   max-inline-size: none;
   padding: 0;
@@ -2129,7 +2131,7 @@ body.fs-ui .fs-support-content--ticket > main.shell {
 
 .support-page-heading {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
@@ -2327,7 +2329,8 @@ body.fs-ui .support-ticket-information h2:first-child {
     display: none;
   }
   .support-main,
-  .fs-support-content--ticket {
+  .fs-support-content--ticket,
+  .fs-support-content--catalog {
     padding-block: 20px 32px;
   }
   .support-hero,
@@ -2370,6 +2373,94 @@ body.fs-ui .support-ticket-information h2:first-child {
   .support-panel-heading > a,
   .support-back,
   .support-ticket-report .support-page-heading a {
+    min-block-size: 44px;
+  }
+}
+
+.catalog-request-form,
+.request-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+.catalog-request-fields,
+.catalog-request-route,
+.request-review-panel {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.catalog-request-fields {
+  display: grid;
+  gap: 14px;
+}
+.catalog-request-route,
+.request-review-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  padding: 16px;
+}
+.catalog-request-route {
+  background: var(--panel);
+}
+.request-review-body {
+  display: grid;
+  gap: 16px;
+  min-inline-size: 0;
+}
+body.fs-ui
+  :is(.catalog-request-fields, .catalog-request-route, .request-review-panel)
+  > h2:first-child {
+  margin-block-start: 0;
+}
+body.fs-ui .request-review-panel .form-panel {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.request-identifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.request-summary-details {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 8px 12px;
+}
+.request-summary-details dt {
+  color: var(--muted);
+}
+.request-summary-details dd {
+  margin: 0;
+}
+.request-review-progress [aria-current='step'] {
+  border-color: var(--side-line);
+  background: var(--side);
+}
+.catalog-request-form > :not(.catalog-request-fields, .catalog-request-route) {
+  grid-column: 1 / -1;
+}
+.request-review-layout {
+  margin-block-end: 24px;
+}
+@media (min-width: 801px) {
+  .catalog-request-form,
+  .request-review-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.58fr);
+  }
+  body.fs-ui .catalog-request-form {
+    max-inline-size: none;
+  }
+}
+@media (width < 801px) {
+  .request-review-progress {
+    grid-row: 1;
+  }
+}
+@media (pointer: coarse) {
+  .catalog-request-form .form-actions button,
+  .request-review .actions-row button {
     min-block-size: 44px;
   }
 }

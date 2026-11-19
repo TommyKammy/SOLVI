@@ -2035,6 +2035,7 @@ export interface ServiceRequestDetail {
   fulfillment?: CatalogFulfillment;
   request: {
     id: string;
+    number?: string;
     state: string;
     version: number;
     revision: number;

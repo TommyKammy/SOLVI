@@ -2,13 +2,14 @@ import { ContextLink } from '../../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../../lib/api';
 import { CatalogAdminForm } from '../../../../components/CatalogAdminForm';
-import { safeReturnTo, withReturnTo } from '../../../../lib/navigation';
+import { isOrgAdmin, safeReturnTo, withReturnTo } from '../../../../lib/navigation';
+import Link from 'next/link';
 export default async function CatalogNewPage({
   searchParams,
 }: {
   searchParams: Promise<{ returnTo?: string | string[]; copyFrom?: string | string[] }>;
 }) {
-  await requireSession();
+  const session = await requireSession();
   const query = await searchParams;
   const copyFrom = query.copyFrom;
   if (
@@ -83,7 +84,14 @@ export default async function CatalogNewPage({
       <ContextLink back href="/catalog/manage">
         カタログ管理へ戻る
       </ContextLink>
-      <h1>{initialContent ? 'サービスを複製する' : 'サービスを作成する'}</h1>
+      <div className="support-page-heading">
+        <h1>{initialContent ? 'サービスを複製する' : 'サービスを作成する'}</h1>
+        {isOrgAdmin(session) && (
+          <Link className="support-action" href="/ops/approvals#approval-create">
+            承認ルールを設定する
+          </Link>
+        )}
+      </div>
       {initialContent && (
         <p>「{initialContent.title}」の下書き内容から、新しいサービスを作成します。</p>
       )}

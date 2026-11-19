@@ -212,6 +212,8 @@ function database({ fixed = true } = {}) {
       sql.includes('FROM assignment_group')
     )
       return { rows: [], rowCount: 0 };
+    if (sql.includes('SELECT number FROM ticket'))
+      return { rows: [{ number: 'REQ-TEST-001' }], rowCount: 1 };
     if (sql.includes('SELECT DISTINCT u.id')) return { rows: [], rowCount: 0 };
     // 代理承認 (WP-P4-APR-020)。委任を使わない申請では委任の行を読まない/0件。
     if (sql.includes('FROM approval_delegation')) return { rows: [], rowCount: 0 };
@@ -493,6 +495,7 @@ describe('3つの呼び出し箇所すべてが検証を通る', () => {
     const controller = new CatalogController(db.pool, storage, true);
     const ok = await controller.detail(actor('agent'), requestId);
     expect(ok.fulfillment.canUpdate).toBe(true);
+    expect(ok.request.number).toBe('REQ-TEST-001');
     expect(db.query.mock.calls.filter(isAssertionQuery)).toHaveLength(1);
     row(db).decided_at = new Date(row(db).expires_at.getTime() + 1000);
     const ng = await controller.detail(actor('agent'), requestId);

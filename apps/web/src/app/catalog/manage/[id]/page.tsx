@@ -2,7 +2,8 @@ import { ContextLink } from '../../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../../lib/api';
 import { formatDateTime } from '../../../../lib/labels';
-import { safeReturnTo, withReturnTo } from '../../../../lib/navigation';
+import { isOrgAdmin, safeReturnTo, withReturnTo } from '../../../../lib/navigation';
+import Link from 'next/link';
 import { CatalogManagement } from '../../../../components/CatalogAdminForm';
 export const dynamic = 'force-dynamic';
 export default async function CatalogEditPage({
@@ -12,7 +13,7 @@ export default async function CatalogEditPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string; returnTo?: string | string[] }>;
 }) {
-  await requireSession();
+  const session = await requireSession();
   const { id } = await params,
     query = await searchParams,
     { saved } = query,
@@ -88,6 +89,11 @@ export default async function CatalogEditPage({
       {i.active && (
         <p>
           <ContextLink href={'/catalog/' + i.id}>現在の公開フォームを見る</ContextLink>
+        </p>
+      )}
+      {isOrgAdmin(session) && (
+        <p>
+          <Link href="/ops/approvals">承認ルールの設定と経路プレビュー</Link>
         </p>
       )}
       <CatalogManagement key={i.id + '-' + i.editVersion} item={i} />

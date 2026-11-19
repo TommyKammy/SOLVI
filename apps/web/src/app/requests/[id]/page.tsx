@@ -1,4 +1,4 @@
-import { ContextLink } from '../../../components/ContextLink';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, requireSession, type CatalogItem } from '../../../lib/api';
 import { formatDateTime } from '../../../lib/labels';
@@ -103,7 +103,17 @@ export default async function RequestPage({
   const canApproveNow =
     !own && (assigned || delegatedToMe !== null) && q.state === 'pending' && !expired;
   const item: CatalogItem = { ...s.item, description: '', definition: s.item.definition };
-  const { saved } = await searchParams;
+  const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo);
+  const backHref = returnTo ?? (own ? '/requests?view=mine' : '/requests?view=approvals');
+  const fromInbox = new URL(backHref, 'https://solvi.local').pathname === '/inbox';
+  const created = own && query.created === '1';
+  const canRevoke = !own && (assigned || admin) && q.state === 'approved';
+  const canSimulate =
+    staff &&
+    q.state === 'approved' &&
+    !expired &&
+    !data.fulfillment?.checks.some((check) => check.required && !check.completed);
   const editable = own && !['completed', 'cancelled'].includes(q.state);
   // 変更フォームでも経路を表示する。ルールで決まる項目だけ、本人を申請者として読む。
   const editRuleId = s.item.definition.approval?.ruleId ?? null;
@@ -138,18 +148,47 @@ export default async function RequestPage({
   // 再割当の記録は世代の行だけから作り、時刻の順に出す(申請者にも見える)。
   const reassignments = reassignmentRecords(data.routeGenerations);
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/requests">
-        申請一覧へ戻る
-      </ContextLink>
-      <h1>{s.item.title}</h1>
-      <p className="notice">ローカル模擬実行の検証用。実際の権限付与・外部変更は行いません。</p>
-      {saved === '1' && (
+    <main id="main" className="shell request-review">
+      <header className="support-page-heading">
+        <div>
+          <Link className="support-back" href={backHref}>
+            {fromInbox
+              ? '業務受信箱に戻る'
+              : returnTo && !backHref.startsWith('/requests')
+                ? '元の画面に戻る'
+                : '申請一覧に戻る'}
+          </Link>
+          <p className="support-ticket-number request-identifiers">
+            {q.number && (
+              <span>
+                申請番号 <strong>{q.number}</strong>
+              </span>
+            )}
+            <span>公開版 {s.item.version}</span>
+            <span>申請内容版 {q.revision}</span>
+          </p>
+          <h1>{s.item.title}</h1>
+        </div>
+      </header>
+      {created && (
+        <div className="support-ticket-receipt" role="status">
+          <h2>申請を受け付けました</h2>
+          {q.number && (
+            <p>
+              申請番号 <strong>{q.number}</strong>
+            </p>
+          )}
+          <p>判断結果は「自分の申請」から確認できます。</p>
+          <Link className="support-back" href="/requests?view=mine">
+            自分の申請を見る
+          </Link>
+        </div>
+      )}
+      {query.saved === '1' && (
         <p role="status" className="success">
           申請の状態を保存しました。
         </p>
       )}
-      <h2>{labels[q.state] ?? q.state}</h2>
       {data.highRisk === true && (
         <p className="notice" id="request-detail-high-risk-note" role="note">
           {HIGH_RISK_APPROVAL_NOTICE}
@@ -166,39 +205,130 @@ export default async function RequestPage({
           承認者が不在です。下の「申請内容を変更して再承認を依頼する」から内容を変更して、再承認を依頼してください。
         </p>
       )}
-      <dl>
-        <dt>申請者</dt>
-        <dd>{data.requesterName}</dd>
-        <dt>指定された承認者</dt>
-        <dd>{data.approverName}</dd>
-        {s.inputs.durationDays !== undefined && (
-          <>
-            <dt>利用日数</dt>
-            <dd>{s.inputs.durationDays}日</dd>
-          </>
-        )}
-        {s.inputs.reason !== undefined && (
-          <>
-            <dt>理由</dt>
-            <dd style={{ whiteSpace: 'pre-wrap' }}>{s.inputs.reason}</dd>
-          </>
-        )}
-        <dt>承認の期限</dt>
-        <dd>
-          {formatDateTime(data.approval.expires_at)}
-          {expired &&
-            ['pending', 'approved'].includes(q.state) &&
-            '（期限切れ。変更・再承認が必要です）'}
-        </dd>
-      </dl>
-      <p>
-        カタログ定義版: {s.item.version} · 申請内容版: {q.revision}
-      </p>
-      <CatalogValueSummary
-        fields={s.item.definition.fields ?? []}
-        sections={s.item.definition.sections}
-        values={s.inputs.values ?? {}}
-      />
+      <div className="request-review-layout">
+        <div className="request-review-body">
+          <section className="request-review-panel" aria-labelledby="request-input-title">
+            <h2 id="request-input-title">申請内容</h2>
+            <dl className="request-summary-details">
+              <dt>申請者</dt>
+              <dd>{data.requesterName}</dd>
+              <dt>指定された承認者</dt>
+              <dd>{data.approverName}</dd>
+              {s.inputs.durationDays !== undefined && (
+                <>
+                  <dt>利用日数</dt>
+                  <dd>{s.inputs.durationDays}日</dd>
+                </>
+              )}
+              {s.inputs.reason !== undefined && (
+                <>
+                  <dt>理由</dt>
+                  <dd style={{ whiteSpace: 'pre-wrap' }}>{s.inputs.reason}</dd>
+                </>
+              )}
+              <dt>承認の期限</dt>
+              <dd>
+                {formatDateTime(data.approval.expires_at)}
+                {expired &&
+                  ['pending', 'approved'].includes(q.state) &&
+                  '（期限切れ。変更・再承認が必要です）'}
+              </dd>
+            </dl>
+            <CatalogValueSummary
+              fields={s.item.definition.fields ?? []}
+              sections={s.item.definition.sections}
+              values={s.inputs.values ?? {}}
+            />
+          </section>
+          <RequestActions
+            key={`actions-${q.version}`}
+            request={data}
+            canApprove={canApproveNow}
+            canRevoke={canRevoke}
+            canSimulate={canSimulate}
+          />
+        </div>
+        <section
+          className="request-review-panel request-review-progress"
+          aria-labelledby="approval-timeline-title"
+        >
+          <div className="support-progress-heading">
+            <h2 id="approval-timeline-title">承認の経過</h2>
+            <span
+              className="state"
+              data-state={expired && q.state === 'pending' ? 'expired' : q.state}
+            >
+              {expired && q.state === 'pending' ? '承認期限切れ' : (labels[q.state] ?? q.state)}
+            </span>
+          </div>
+          <p className="hint">ローカルの模擬申請です。実際の権限付与や外部変更は行いません。</p>
+          {timeline.length > 0 ? (
+            <ol className="attachments" aria-label="承認の経過">
+              {timeline.map((step) => (
+                <li
+                  key={`step-${step.stepNo}`}
+                  className="attachment"
+                  aria-current={
+                    !step.pendingCreation && step.state === 'pending' ? 'step' : undefined
+                  }
+                >
+                  <p>
+                    <strong>
+                      段{step.stepNo}（{authorityLabel(step.authorityType)}）
+                    </strong>
+                    {' · '}
+                    {step.pendingCreation ? '前の段の承認後に依頼' : stepStateLabel(step.state)}
+                    {!step.pendingCreation && step.approverName && (
+                      <>
+                        {' · 承認者: '}
+                        {step.approverName}
+                        {step.delegated && step.decidedByName
+                          ? `（代理: ${step.decidedByName}）`
+                          : ''}
+                      </>
+                    )}
+                  </p>
+                  {step.pendingCreation && <p className="hint">前の段の承認後に依頼します。</p>}
+                  {!step.pendingCreation && step.decidedAt && (
+                    <p>決定日時: {formatDateTime(step.decidedAt)}</p>
+                  )}
+                  {!step.pendingCreation && step.reason && (
+                    <p style={{ whiteSpace: 'pre-wrap' }}>理由: {step.reason}</p>
+                  )}
+                  {!step.pendingCreation && step.expiresAt && (
+                    <p className="hint">期限: {formatDateTime(step.expiresAt)}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="hint">承認の経過はまだありません。</p>
+          )}
+          {reassignments.length > 0 && (
+            <section aria-labelledby="reassignment-records-title">
+              <h3 id="reassignment-records-title">再割当の記録</h3>
+              <ol className="attachments" aria-label="再割当の記録">
+                {reassignments.map((record) => (
+                  <li key={`reassign-${record.routeGeneration}`} className="attachment">
+                    <p>
+                      <strong>段{record.invalidatedStepNo}の承認者を再割当</strong>
+                      {' · '}
+                      {formatDateTime(record.createdAt)}
+                    </p>
+                    <p>実行者: {record.createdByName ?? '確認できません'}</p>
+                    <p style={{ whiteSpace: 'pre-wrap' }}>理由: {record.reason}</p>
+                    <p>
+                      無効になったステップ: 段{record.invalidatedStepNo}（
+                      {record.invalidatedApproverName ?? '承認者を確認できません'}）
+                    </p>
+                    <p>新しい承認者: {record.newApproverName ?? '承認者を確認できません'}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+        </section>
+      </div>
       {data.fulfillment && (
         <CatalogChecklistForm
           requestId={q.id}
@@ -234,80 +364,6 @@ export default async function RequestPage({
             必須の作業チェックを完了すると、模擬結果を記録できます。
           </p>
         )}
-      <RequestActions
-        key={`actions-${q.version}`}
-        request={data}
-        canApprove={canApproveNow}
-        canRevoke={!own && (assigned || admin) && q.state === 'approved'}
-        canSimulate={
-          staff &&
-          q.state === 'approved' &&
-          !expired &&
-          !data.fulfillment?.checks.some((check) => check.required && !check.completed)
-        }
-      />
-      <section aria-labelledby="approval-timeline-title">
-        <h2 id="approval-timeline-title">承認の経過</h2>
-        {timeline.length > 0 ? (
-          <ol className="attachments" aria-label="承認の経過">
-            {timeline.map((step) => (
-              <li key={`step-${step.stepNo}`} className="attachment">
-                <p>
-                  <strong>
-                    段{step.stepNo}（{authorityLabel(step.authorityType)}）
-                  </strong>
-                  {' · '}
-                  {step.pendingCreation ? '前の段の承認後に依頼' : stepStateLabel(step.state)}
-                  {!step.pendingCreation && step.approverName && (
-                    <>
-                      {' · 承認者: '}
-                      {step.approverName}
-                      {step.delegated && step.decidedByName
-                        ? `（代理: ${step.decidedByName}）`
-                        : ''}
-                    </>
-                  )}
-                </p>
-                {step.pendingCreation && <p className="hint">前の段の承認後に依頼します。</p>}
-                {!step.pendingCreation && step.decidedAt && (
-                  <p>決定日時: {formatDateTime(step.decidedAt)}</p>
-                )}
-                {!step.pendingCreation && step.reason && (
-                  <p style={{ whiteSpace: 'pre-wrap' }}>理由: {step.reason}</p>
-                )}
-                {!step.pendingCreation && step.expiresAt && (
-                  <p className="hint">期限: {formatDateTime(step.expiresAt)}</p>
-                )}
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="hint">承認の経過はまだありません。</p>
-        )}
-        {reassignments.length > 0 && (
-          <section aria-labelledby="reassignment-records-title">
-            <h3 id="reassignment-records-title">再割当の記録</h3>
-            <ol className="attachments" aria-label="再割当の記録">
-              {reassignments.map((record) => (
-                <li key={`reassign-${record.routeGeneration}`} className="attachment">
-                  <p>
-                    <strong>段{record.invalidatedStepNo}の承認者を再割当</strong>
-                    {' · '}
-                    {formatDateTime(record.createdAt)}
-                  </p>
-                  <p>実行者: {record.createdByName ?? '確認できません'}</p>
-                  <p style={{ whiteSpace: 'pre-wrap' }}>理由: {record.reason}</p>
-                  <p>
-                    無効になったステップ: 段{record.invalidatedStepNo}（
-                    {record.invalidatedApproverName ?? '承認者を確認できません'}）
-                  </p>
-                  <p>新しい承認者: {record.newApproverName ?? '承認者を確認できません'}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-      </section>
       <h2>承認の記録</h2>
       <ul className="attachments">
         {versions.map((version) => (

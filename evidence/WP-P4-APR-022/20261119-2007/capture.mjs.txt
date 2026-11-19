@@ -1,0 +1,270 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { api, login, require, web } from './helpers.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const browser = await chromium.launch({ channel: 'chrome' });
+const out = process.argv[2];
+mkdirSync(join(out, 'screens'), { recursive: true });
+const admin = await login('org_admin'), requester = await login('requester'), approver = await login('approver');
+const requesterId = (await api('/auth/me', requester)).userId;
+const approverId = (await api('/auth/me', approver)).userId;
+const summary = { browser: browser.version(), journeys: [], crossDevice: [], scans: [], writesDuringPreview: [] };
+const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+
+async function pageFor(account, width, colorScheme = 'light') {
+  const ctx = await browser.newContext({ viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: 'ja-JP', colorScheme, isMobile: width === 375, hasTouch: width === 375 });
+  await ctx.addCookies([{ ...account, url: web }]);
+  const page = await ctx.newPage();
+  page.setDefaultTimeout(10000);
+  return page;
+}
+async function enter(page, path) {
+  const result = await page.goto(web + path);
+  assert.equal(result.status(), 200, path);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname);
+  await page.locator('main h1').waitFor();
+}
+async function press(page, locator, width, key = 'Enter') {
+  if (width === 375) {
+    await locator.tap();
+  } else {
+    await locator.focus();
+    await locator.press(key);
+  }
+}
+async function shot(page, name) {
+  await page.screenshot({ path: join(out, 'screens', name + '.png'), animations: 'disabled' });
+}
+async function scan(page, name, width, theme) {
+  assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const violations = result.violations.map(({ id, impact, nodes }) => ({
+    id, impact, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+  }));
+  const incomplete = result.incomplete.map(({ id, nodes }) => ({ id, targets: nodes.map(({ target }) => target) }));
+  summary.scans.push({ name, theme, width, overflow, violations, incomplete });
+  await shot(page, theme + '-' + width + '-' + name);
+  console.log('AXE', theme, width, name, overflow, violations.map(v => v.id).join(',') || 'pass');
+}
+async function detail(id, account) {
+  return api('/service-requests/' + id, account);
+}
+async function checkResult(page, request) {
+  const panel = page.getByRole('region', {name:'承認の経過'});
+  await panel.locator('.state[data-state="' + request.outcome + '"]').waitFor();
+  assert.match(await page.locator('.support-ticket-number').innerText(), new RegExp(request.number));
+  await panel.getByText('理由: ' + request.reason, { exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: '承認する', exact: true }).count(), 0);
+}
+async function selectType(page, id, value) {
+  await page.locator(id).selectOption(value);
+}
+
+try {
+  for (const width of [1440, 375]) {
+    const edit = await pageFor(admin, width);
+    const apply = await pageFor(requester, width);
+    const decide = await pageFor(approver, width);
+    const numberSuffix = Date.now().toString().slice(-8);
+    const code = 'apr022-' + width + '-' + numberSuffix;
+    const ruleName = width === 375 ? '設備申請の承認' : '端末申請の承認';
+    const title = width === 375 ? '会議用機器の利用申請' : '貸出PCの利用申請';
+    const label = '利用方法';
+    const supplemental = '返却場所';
+    const regular = '常設利用';
+    const temporary = '一時借用';
+    const answer = '本社3階 IT窓口';
+    const reason = width === 375 ? '貸出先の在庫確認が必要なため、日程を再調整してください。' :
+      '希望日で貸し出せます。受付で申請番号をお伝えください。';
+    const btn = (page, name) => page.getByRole('button', { name, exact: true });
+    const link = (page, name) => page.getByRole('link', { name, exact: true });
+    const progress = (name) => console.log(width, name);
+
+    await enter(edit, '/catalog/manage/new');
+    await press(edit, link(edit, '承認ルールを設定する'), width);
+    await edit.waitForURL((url) => url.pathname === '/ops/approvals');
+    await edit.locator('#approval-create-code').fill(code);
+    await edit.locator('#approval-create-name').fill(ruleName);
+    await selectType(edit, '#approval-create-step-type-0', 'fixed');
+    await selectType(edit, '#approval-create-step-approver-0', approverId);
+    await press(edit, edit.locator('#approval-create-submit'), width);
+    await edit.waitForURL((url) => url.searchParams.has('rule'));
+    const ruleId = new URL(edit.url()).searchParams.get('rule');
+    assert((await api('/approval-rules', admin)).items.some((r) => r.id === ruleId && r.name === ruleName));
+
+    let setting = await api('/approval-routing', admin);
+    if (!setting.setting.enabled) {
+      await press(edit, edit.locator('#approval-routing-toggle'), width);
+      await edit.locator('#approval-routing-submit').waitFor();
+      await press(edit, edit.locator('#approval-routing-submit'), width);
+      await edit.locator('#approval-routing-submit').waitFor({ state: 'hidden' });
+      setting = await api('/approval-routing', admin);
+    }
+    assert.equal(setting.setting.enabled, true);
+    await selectType(edit, '#approval-preview-rule', ruleId);
+    await selectType(edit, '#approval-preview-requester', requesterId);
+    await press(edit, edit.locator('#approval-preview-submit'), width);
+    await edit.waitForURL((url) => url.searchParams.get('previewRuleId') === ruleId);
+    const resultRegion = edit.getByRole('region', { name: 'プレビュー結果' });
+    await resultRegion.locator('tbody tr').filter({ hasText: '段1' }).waitFor();
+    assert.equal(await resultRegion.getByRole('alert').count(), 0);
+    progress('rule created and route preview opened');
+
+    await press(edit, link(edit, 'サービスの作成へ進む'), width);
+    await edit.waitForURL((url) => url.pathname === '/catalog/manage/new');
+    await edit.locator('#catalog-title').fill(title);
+    await edit.locator('#catalog-description').fill('業務で使う機器の利用を申請します。一時借用の場合は返却先を指定してください。');
+    await press(edit, btn(edit, '申請項目を追加する'), width);
+    await edit.locator('#field-label-0').fill(label);
+    await selectType(edit, '#field-type-0', 'select');
+    await edit.locator('#field-options-0').fill(regular + '\n' + temporary);
+    await edit.locator('.catalog-editor-field').nth(0).getByRole('checkbox', { name: '必須にする' }).check();
+    await press(edit, btn(edit, '申請項目を追加する'), width);
+    await edit.locator('#field-label-1').fill(supplemental);
+    await edit.locator('.catalog-editor-field').nth(1).getByRole('checkbox', { name: '必須にする' }).check();
+    await press(edit, edit.locator('summary').filter({ hasText:'項目2の表示条件' }), width, 'Space');
+    await selectType(edit, '#field-condition-1', { label });
+    await selectType(edit, '#field-condition-value-1', temporary);
+    await selectType(edit, '#catalog-approver', approverId);
+    await selectType(edit, '#catalog-approval-rule', ruleId);
+    await press(edit, btn(edit, '下書きを保存してプレビューする'), width);
+    await edit.waitForURL((url) => /^\/catalog\/manage\/[^/]+$/.test(url.pathname) && url.pathname !== '/catalog/manage/new' && url.searchParams.get('saved') === '1');
+    const itemId = new URL(edit.url()).pathname.split('/').at(-1);
+    const draft = await api('/catalog-admin/' + itemId, admin);
+    assert.deepEqual(draft.draft.definition.fields.map((f) => f.label), [label, supplemental]);
+    assert.equal(draft.draft.definition.fields[1].required, true);
+    assert.equal(draft.draft.definition.fields[1].visibleWhen.equals, temporary);
+    assert.equal(draft.draft.definition.approval.ruleId, ruleId);
+    assert(!(await api('/catalog', requester)).items.some((i) => i.id === itemId));
+    const preview = edit.getByRole('form', { name: '保存済みフォームの入力試験' });
+    const writes = [];
+    function recordWrite(r) {
+      if (r.method() === 'POST' && r.isNavigationRequest()) writes.push(new URL(r.url()).pathname);
+      else if (r.method() === 'POST' && r.headers()['next-action']) writes.push(new URL(r.url()).pathname);
+    }
+    edit.on('request', recordWrite);
+    await preview.getByRole('combobox', { name: label, exact: false }).selectOption(regular);
+    assert.equal(await preview.getByRole('textbox', { name: supplemental, exact: false }).count(), 0);
+    await preview.getByRole('combobox', { name: label, exact: false }).selectOption(temporary);
+    const conditionField = preview.getByRole('textbox', { name: supplemental, exact: false });
+    await conditionField.waitFor();
+    await press(edit, btn(preview, '入力を試す'), width);
+    await preview.getByRole('status').waitFor();
+    assert.equal(await conditionField.getAttribute('aria-invalid'), 'true');
+    await conditionField.fill(answer);
+    await preview.getByRole('textbox', { name: '利用する理由（必須）', exact: true }).fill('業務で使用します。');
+    await press(edit, btn(preview, '入力を試す'), width);
+    await preview.getByText('入力を確認しました。申請は送信されません。', { exact: true }).waitFor();
+    assert.notEqual(await conditionField.getAttribute('aria-invalid'), 'true');
+    await shot(edit, 'light-' + width + '-saved-preview');
+    edit.off('request', recordWrite);
+    assert.deepEqual(writes, []);
+    summary.writesDuringPreview.push({ width, count: 0 });
+    await press(edit, btn(edit, '保存済みの下書き版1を公開する'), width);
+    await edit.getByText(/公開中: .*版1/).first().waitFor();
+    const item = (await api('/catalog', requester)).items.find((i) => i.id === itemId);
+    assert(item && item.version === draft.draft.revision);
+    progress('conditional questions saved, tested, published');
+
+    await enter(apply, '/portal');
+    await press(apply, link(apply.getByRole('main'), 'サービスを探す'), width);
+    await apply.waitForURL((url) => url.pathname === '/catalog');
+    const openItem = apply.locator('main a[href^="/catalog/' + itemId + '"]').first();
+    await press(apply, openItem, width);
+    await apply.waitForURL((url) => url.pathname === '/catalog/' + itemId);
+    const form = apply.locator('form.catalog-request-form');
+    await form.getByRole('region', { name:'承認の経路' }).getByText(/段1/).waitFor();
+    await form.getByRole('textbox', { name:'利用する理由', exact:true }).fill('プロジェクトの業務に使用します。');
+    const choice = form.getByRole('combobox', { name: label, exact: false });
+    await choice.selectOption(temporary);
+    await form.getByRole('textbox', { name: supplemental, exact: false }).fill(answer);
+    if (width === 1440) {
+      await choice.selectOption(regular);
+      assert.equal(await form.getByRole('textbox', { name: supplemental, exact: false }).count(), 0);
+    }
+    await shot(apply, 'light-' + width + '-application');
+    await press(apply, btn(apply, '申請する（模擬）'), width);
+    await apply.waitForURL((url) => url.pathname.startsWith('/requests/') && url.searchParams.get('created') === '1');
+    await apply.getByRole('heading', { name:'申請を受け付けました' }).waitFor();
+    const requestId = new URL(apply.url()).pathname.split('/').at(-1);
+    const pending = await detail(requestId, requester);
+    const number = pending.request.number;
+    assert(number);
+    assert.equal(pending.request.state, 'pending');
+    assert.equal(pending.approval.approver_id, approverId);
+    assert.equal(pending.request.snapshot.item.version, 1);
+    assert.equal(pending.request.snapshot.inputs.values[draft.draft.definition.fields[1].key], width === 1440 ? undefined : answer);
+    assert.match(await apply.locator('.support-ticket-receipt').innerText(), new RegExp(number));
+    assert.equal(await btn(apply, '承認する').count(), 0);
+    await shot(apply, 'light-' + width + '-receipt');
+    await press(apply, link(apply, '自分の申請を見る'), width);
+    await apply.waitForURL((url) => url.pathname === '/requests' && url.searchParams.get('view') === 'mine');
+    progress('request ' + number + ' submitted');
+
+    await enter(decide, '/inbox?kind=approval&q=' + encodeURIComponent(number));
+    const row = decide.getByRole('row').filter({ hasText: number });
+    await press(decide, row.getByRole('button'), width);
+    await decide.waitForURL((url) => url.pathname === '/requests/' + requestId);
+    assert.match(await decide.locator('.support-ticket-number').innerText(), new RegExp(number));
+    await decide.getByRole('heading', {name:'承認の判断'}).waitFor();
+    await scan(decide, 'decision', width, 'light');
+    const reviewDark = await pageFor(approver, width, 'dark');
+    await enter(reviewDark, '/requests/' + requestId);
+    await reviewDark.getByRole('heading', {name:'承認の判断'}).waitFor();
+    await scan(reviewDark, 'decision', width, 'dark');
+    await reviewDark.context().close();
+    await decide.getByLabel('判断の理由', { exact: true }).fill(reason);
+    await shot(decide, 'light-' + width + '-review');
+    await press(decide, btn(decide, width === 1440 ? '承認する' : '理由を添えて却下する'), width);
+    await decide.waitForURL((url) => url.searchParams.get('saved') === '1');
+    const outcome = width === 1440 ? 'approved' : 'rejected';
+    await press(decide, link(decide, '業務受信箱に戻る'), width);
+    await decide.waitForURL((url) => url.pathname === '/inbox' && url.searchParams.get('q') === number);
+    await enter(apply, '/requests?view=mine&q=' + encodeURIComponent(number));
+    await press(apply, apply.getByRole('link', { name: new RegExp(number) }), width);
+    await apply.waitForURL((url) => url.pathname === '/requests/' + requestId);
+    await checkResult(apply, { number, outcome, reason });
+    const result = await detail(requestId, requester);
+    assert.equal(result.request.state, outcome);
+    assert.equal(result.request.snapshotHash, pending.request.snapshotHash);
+    await shot(apply, 'light-' + width + '-result');
+    summary.journeys.push({ width, number, requestId, itemId, ruleId, outcome, reason, title, version: 1,
+      snapshotPreserved: true, supplementalStored: width === 375, selfDecisionControl: false });
+    progress('verified ' + outcome + ' on same ' + number);
+    for (const page of [edit, apply, decide]) await page.context().close();
+  }
+
+  for (const record of summary.journeys) {
+    const width = record.width === 375 ? 1440 : 375;
+    const page = await pageFor(requester, width);
+    await enter(page, '/requests?view=mine&q=' + encodeURIComponent(record.number));
+    await press(page, page.getByRole('link', { name: new RegExp(record.number) }), width);
+    await page.waitForURL((url) => url.pathname === '/requests/' + record.requestId);
+    await checkResult(page, record);
+    summary.crossDevice.push({ width, number: record.number, requestId: record.requestId, outcome: record.outcome });
+    await page.context().close();
+  }
+  const r = summary.journeys[0];
+  for (const theme of ['light','dark']) for (const width of [1440, 375]) {
+    for (const [name, path, account] of [
+      ['approval-rules','/ops/approvals',admin],
+      ['catalog-draft','/catalog/manage/' + r.itemId,admin],
+      ['public-form','/catalog/' + r.itemId,requester],
+      ['outcome','/requests/' + r.requestId,requester],
+    ]) {
+      const page = await pageFor(account, width, theme);
+      await enter(page, path);
+      await scan(page, name, width, theme);
+      await page.context().close();
+    }
+  }
+} finally {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+  await browser.close();
+}
+assert(summary.scans.every((scan) => scan.overflow === 0 && scan.violations.length === 0), 'layout and axe');

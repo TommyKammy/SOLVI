@@ -61,7 +61,8 @@ vi.mock('../../apps/web/src/components/ContextLink', () => ({
 // These probes own the save/publication coordinator. Preview state and validation
 // are exercised independently in catalog-preview and catalog-authoring-ui tests.
 vi.mock('../../apps/web/src/components/CatalogLivePreview', () => ({
-  CatalogLivePreview: () => null,
+  CatalogLivePreview: ({ draftRevision, title }: { draftRevision?: number; title: string }) =>
+    draftRevision === undefined ? null : React.createElement('h3', null, title),
 }));
 import {
   CatalogAdminForm,

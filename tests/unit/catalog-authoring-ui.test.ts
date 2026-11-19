@@ -15,6 +15,7 @@ type FormProps = FormHTMLAttributes<HTMLFormElement> & {
   pending: boolean;
 };
 type PreviewProps = {
+  draftRevision?: number;
   title: string;
   description: string;
   target: string;
@@ -304,8 +305,9 @@ function capture(form: FormProps) {
   return event;
 }
 function preview() {
-  expect(hooks.previews).toHaveLength(1);
-  return hooks.previews[0]!;
+  const unsaved = hooks.previews.filter((props) => props.draftRevision === undefined);
+  expect(unsaved).toHaveLength(1);
+  return unsaved[0]!;
 }
 beforeEach(() => {
   vi.stubGlobal('React', React);
@@ -384,7 +386,8 @@ describe('priority-three authoring capabilities, ownership and question reuse', 
       const html = render(false, { ...operationsItem, canEdit: allowed, canPublish: allowed });
       expect(html).toContain('保存済みの下書き版');
       expect(hooks.forms).toHaveLength(0);
-      expect(hooks.previews).toHaveLength(0);
+      expect(hooks.previews).toHaveLength(1);
+      expect(hooks.previews[0]?.draftRevision).toBe(item.draft.revision);
       expect(html).not.toContain('name="state"');
       expect(html).not.toContain('name="checklist"');
       expect(hooks.save).not.toHaveBeenCalled();
@@ -612,9 +615,11 @@ describe('catalog creation intent and live values', () => {
       approvers: item.approvers,
     });
     expect(preview().fields[0]).toMatchObject({ key: 'team', label: '利用部署', type: 'text' });
-    const savedPreview = html.match(/<section id="preview"[\s\S]*?<\/section>/)?.[0];
-    expect(savedPreview).toContain('<h3>保存済みサービス</h3>');
-    expect(savedPreview).not.toContain('編集中のPC貸与');
+    const savedPreview = hooks.previews.find(
+      (props) => props.draftRevision === item.draft.revision,
+    );
+    expect(savedPreview?.title).toBe('保存済みサービス');
+    expect(savedPreview?.fields).toEqual(item.draft.definition.fields);
     expect(html).toContain('未保存の入力があります');
     const publication = hooks.forms.find((f) => f !== editorForm())!;
     expect(capture(publication).preventDefault).toHaveBeenCalledOnce();
@@ -862,14 +867,13 @@ describe('flexible request-field authoring', () => {
     (reason, duration) => {
       const current = structuredClone(item);
       current.draft.definition.requestFields = { reason, duration };
-      const html = render(false, current);
+      render(false, current);
       expect(control('catalog-show-reason').checked).toBe(reason);
       expect(control('catalog-show-duration').checked).toBe(duration);
       expect(JSON.parse(hidden('requestFields') as string)).toEqual({ reason, duration });
       expect(preview().requestFields).toEqual({ reason, duration });
-      const saved = html.match(/<section id="preview"[\s\S]*?<\/section>/)?.[0];
-      expect(saved?.includes('id="preview-reason"')).toBe(reason);
-      expect(saved?.includes('id="preview-days"')).toBe(duration);
+      const saved = hooks.previews.find((props) => props.draftRevision === current.draft.revision);
+      expect(saved?.requestFields).toEqual({ reason, duration });
       expect(render(false, current)).not.toContain('未保存の入力があります');
     },
   );

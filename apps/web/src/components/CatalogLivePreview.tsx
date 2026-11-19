@@ -12,10 +12,19 @@ import styles from './CatalogLivePreview.module.css';
 import { CatalogFieldInputs } from './CatalogFieldInputs';
 import { catalogRequestFieldVisibility, type CatalogValues } from '@solvi/shared/catalog';
 
-export type CatalogLivePreviewProps = CatalogPreviewConfig & { disabled?: boolean };
+export type CatalogLivePreviewProps = CatalogPreviewConfig & {
+  disabled?: boolean;
+  draftRevision?: number;
+  ruleName?: string;
+};
 
 /** This form is a sibling of the editor form. It never saves or sends a request. */
-export function CatalogLivePreview({ disabled = false, ...config }: CatalogLivePreviewProps) {
+export function CatalogLivePreview({
+  disabled = false,
+  draftRevision,
+  ruleName,
+  ...config
+}: CatalogLivePreviewProps) {
   const id = `catalog-try-${useId().replaceAll(':', '')}`;
   const [reason, setReason] = useState('');
   const [selectedDuration, setSelectedDuration] = useState<string>();
@@ -82,8 +91,12 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
   return (
     <aside className={styles.preview} aria-labelledby={`${id}-heading`}>
       <div className={styles.heading}>
-        <h2 id={`${id}-heading`}>編集中のプレビュー</h2>
-        <span className={styles.badge}>未保存の入力を反映</span>
+        <h2 id={`${id}-heading`}>
+          {draftRevision === undefined ? '編集中のプレビュー' : '保存した下書きのプレビュー'}
+        </h2>
+        <span className={styles.badge}>
+          {draftRevision === undefined ? '未保存の入力を反映' : `下書き版${draftRevision}`}
+        </span>
       </div>
       <p className={styles.note}>
         利用者の見え方と入力条件を試せます。保存・公開・申請送信は行いません。
@@ -101,7 +114,9 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
       <form
         onSubmit={test}
         noValidate
-        aria-label="編集中フォームの入力試験"
+        aria-label={
+          draftRevision === undefined ? '編集中フォームの入力試験' : '保存済みフォームの入力試験'
+        }
         className={styles.form}
       >
         <h3>{config.title.trim() || 'サービス名を入力してください'}</h3>
@@ -175,8 +190,13 @@ export function CatalogLivePreview({ disabled = false, ...config }: CatalogLiveP
             namedControls={false}
             errors={issues ?? []}
           />
+          {ruleName && (
+            <p className={styles.approver}>
+              承認ルール {ruleName}。申請者ごとの経路は申請時に確定します。
+            </p>
+          )}
           <p className={styles.approver}>
-            承認を依頼する相手：
+            {ruleName ? 'ルールを使わない場合の固定承認者' : '固定の承認者'}：
             {config.approvers.find((person) => person.id === config.approver)?.name ?? '未設定'}
           </p>
           <div className={styles.actions}>

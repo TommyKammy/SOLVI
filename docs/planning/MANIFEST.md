@@ -5,7 +5,7 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.15.6"
+version: "0.15.7"
 created: "2026-07-27"
 updated: "2026-11-19"
 owner: "SOLVI Product Team"
@@ -37,11 +37,11 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 
 | 項目 | 値 |
 |---|---:|
-| 対象ファイル | 332 |
-| Markdown | 323 |
+| 対象ファイル | 333 |
+| Markdown | 324 |
 | 画像・SVG | 8 |
 | HTML | 1 |
-| 合計サイズ | 7,929,194 bytes |
+| 合計サイズ | 7,938,422 bytes |
 
 ## ファイル一覧
 
@@ -91,7 +91,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `03_Requirements/03.15_Use_Case_Catalog.md` | 1827 | `f1f3713d6d7a5b70953c7f1a9ac690e525e6294842c452d9963b9891be26b201` |
 | `03_Requirements/03.16_Data_Retention_and_Privacy.md` | 4409 | `608f066ed1ad4510ca7952c84e13f93378bf994382a3a137d6d27668e317e8b7` |
 | `03_Requirements/03.17_Acceptance_Test_Strategy.md` | 1346 | `1c59e4736e0efe22888f0f530a0ec8fe08b319faba2a6a991dba92bc65f9247b` |
-| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 23219 | `23d1d6c44c6a5f13dd6b7c5045b113d23fd61ebc3bcfa3c0ddb29c949c527eca` |
+| `03_Requirements/03.18_Requirements_Traceability_Matrix.md` | 23409 | `c9d4112148c1f1bf88a7bf886cf616fb5e77d8542c6324a87e7e5639ead082e9` |
 | `03_Requirements/03.19_Migration_and_Audit_Requirements.md` | 3255 | `9d2e51151c19cfd7ef13ce2bf241c53a36e8f2a5124bdbedd3a230b88c8c3606` |
 | `03_Requirements/03.1_Requirements_Baseline.md` | 11757 | `54fc51a5b6aae1ec09672cbfbae5cc4eef13d0fd50d796930feab86ea9ca4c3d` |
 | `03_Requirements/03.2_Business_and_Stakeholder_Requirements.md` | 1756 | `05b10fcccb01750d9ee3457a532acd74a1534cc7b763e7ea8f042683da4f532e` |
@@ -143,8 +143,8 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `05_Modules/05.7_Workflow_Orchestration.md` | 1630 | `dda2b5c4c78f8ab737dfb97dcfa58962e3f20a15a86450a188586e275a431404` |
 | `05_Modules/05.8_SOLVI_Run_Executor.md` | 1588 | `c9579abc2e14d7b44f5ac662b23daf7bff65f72d39c6011225c1db36cbd88875` |
 | `05_Modules/05.9_Okta_Connector.md` | 1560 | `d679519010367687d12c7b0c74b77c938c0e717799c7202ff0e15e18ab3ad703` |
-| `06_WorkPackages/06.0_WorkPackage_Register.md` | 22709 | `e1b9f1d856f00daa0474d456c5c52a6fdc26d4518edac99bb7294694eab30994` |
-| `06_WorkPackages/06.1_Dependency_Map.md` | 7059 | `3f1a819b82fe57cbd5c1cfdb0193d6a53d267714dae873f8c92194aaa3f1c320` |
+| `06_WorkPackages/06.0_WorkPackage_Register.md` | 23016 | `b14c51e56c4da14eff1f3d4ea34a322e20dcd00cc7121f97a4d8f880cd4cbeba` |
+| `06_WorkPackages/06.1_Dependency_Map.md` | 7195 | `e5db3b7d38439af420eba84f00a50f1e9e32681cb3dbe3e08e5e21a3bb10aae9` |
 | `06_WorkPackages/06.2_Evidence_Index.md` | 951 | `920e59849445ba345355353d487e7cd1d9a2a64aa6b7cd5d65ca709fa9c55d48` |
 | `06_WorkPackages/06.3_GitHub_Issue_Conversion_Guide.md` | 3349 | `6e0beb26b78a2bdce269f8b57aa37afe4384e9ee56517ea6b991b3c25e3f0201` |
 | `06_WorkPackages/06.4_Backlog.md` | 6997 | `6f83536bd37767b749cd27fb306fcd24da61ff7d4166209a5621eb88615ebe25` |
@@ -242,6 +242,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-019.md` | 47654 | `9d8a17c2df5be82e424d8ef22664d08417cfda751eba77a3f3d353a473fc42c5` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-020.md` | 57456 | `8946ddc0944b5b7b2c314c6d47f5268053ebff1f4c61497a7d07dc21a9f90213` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-021.md` | 52547 | `83ad1de59c093037b3bf0481a04a9524169662fcb4e9ae84709927e429be00e4` |
+| `06_WorkPackages/P4_Approval_Automation/WP-P4-APR-022.md` | 8595 | `94a1a9c3b915eec9e8a42de903f4210d15861b6bff389ab3e5166122527b9b20` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-CAT-001.md` | 2747 | `0d2d0e25bc421e3f9d1e3edfa4100ef84ee430a3ccab84a37b6a2c92653775f1` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-ENTRA-006.md` | 2752 | `fb847d4895c7df5378a298d34548dc6b3701cee7ff24f09b7cf881e2b2b0d8d1` |
 | `06_WorkPackages/P4_Approval_Automation/WP-P4-EXEC-004.md` | 7187 | `22315c333f830b4dad710a897e95e871abe0a88fd6b9de2eca533504295b8062` |

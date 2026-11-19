@@ -58,19 +58,18 @@ export default async function CatalogItemPage({
     ? await api.catalogApprovalRoute(item.id)
     : null;
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/catalog">
-        カタログへ戻る
-      </ContextLink>
-      <h1>{item.title}</h1>
-      <p className="notice">
-        ローカル模擬申請です。承認後も実アカウント作成・Box権限付与・機器の貸出は行いません。
-      </p>
-      <p>{item.description}</p>
-      <p className="hint">
-        必要事項を入力 → 固定の承認者が確認 →
-        IT担当者が模擬結果を記録。状況は「申請状況」で確認できます。希望日の入力による在庫予約や、実際の貸出は行いません。
-      </p>
+    <main id="main" className="shell catalog-application">
+      <header className="support-page-heading">
+        <div>
+          <ContextLink back href="/catalog" className="support-back">
+            カタログへ戻る
+          </ContextLink>
+          <p className="support-ticket-number">公開版 {item.version}</p>
+          <h1>{item.title}</h1>
+          <p className="lead">{item.description}</p>
+        </div>
+      </header>
+      <p className="hint">ローカル模擬申請です。進捗と判断結果は「申請の状況」で確認できます。</p>
       {item.highRisk === true && (
         <p className="notice" role="note">
           {HIGH_RISK_APPROVAL_NOTICE}

@@ -66,7 +66,10 @@ export async function saveServiceRequest(
   // remount the revision-keyed form before its success cleanup can run.
   return {
     message: '',
-    redirectTo: withReturnTo(`/requests/${result.data.id}?saved=1`, form.get('returnTo')),
+    redirectTo: withReturnTo(
+      `/requests/${result.data.id}?${id ? 'saved=1' : 'created=1'}`,
+      form.get('returnTo'),
+    ),
   };
 }
 export async function processServiceRequest(

@@ -143,7 +143,7 @@ describe('public catalog entry renderer', () => {
       expect(html).toContain(item.title);
       expect(html).toContain(item.description);
       expect(html).toContain('ローカル模擬申請です');
-      expect(html).toContain('固定の承認者が確認');
+      expect(html).toContain('進捗と判断結果は「申請の状況」で確認できます。');
       expect(vi.mocked(RequestForm).mock.calls[0][0]).toEqual({
         item,
         approvers,

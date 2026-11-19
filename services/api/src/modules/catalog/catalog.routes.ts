@@ -1125,6 +1125,12 @@ export class CatalogController {
           [id, q.organization_id],
         )
       ).rows;
+      const ticketNumber = (
+        await c.query<{ number: string }>(
+          'SELECT number FROM ticket WHERE id=$1 AND organization_id=$2',
+          [q.ticket_id, q.organization_id],
+        )
+      ).rows[0]?.number;
       return {
         requesterName: names.find((u) => u.id === q.requester_id)?.display_name ?? '申請者',
         approverName: names.find((u) => u.id === a.approver_id)?.display_name ?? '承認者',
@@ -1133,6 +1139,7 @@ export class CatalogController {
         highRisk: detailHighRisk === 'true',
         request: {
           id: q.id,
+          number: ticketNumber,
           state: q.state,
           version: q.version,
           revision: q.revision,

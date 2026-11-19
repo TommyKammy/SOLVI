@@ -10,7 +10,6 @@ import type {
 } from '../lib/api';
 import type { FormFeedback } from '../lib/form-state';
 import { saveCatalog, publishCatalog } from '../app/catalog/manage/actions';
-import { CatalogFieldInputs } from './CatalogFieldInputs';
 import { catalogTemplates } from '../lib/catalog-templates';
 import styles from './CatalogAdminForm.module.css';
 import { CatalogLivePreview } from './CatalogLivePreview';
@@ -1388,6 +1387,11 @@ function EditorForm({
             category={category}
             sections={sections}
             approvers={approvers}
+            ruleName={
+              ruleId
+                ? (options?.rules?.find((rule) => rule.id === ruleId)?.name ?? '現在選べないルール')
+                : undefined
+            }
             disabled={busy}
           />
         </aside>
@@ -1485,23 +1489,34 @@ export function CatalogManagement({ item }: { item: CatalogAdminDetail }) {
               ? '未保存の入力があります。下書きを保存してから、公開・受付停止を操作してください。'
               : `入力は保存済みの下書き版${item.draft.revision}と同じです。`}
       </p>
-      <h2>保存済みの下書き版{item.draft.revision}</h2>
-      <p className="hint">以下は保存済みの内容です。編集中の入力は、保存するまで反映されません。</p>
-      <CatalogPreview
-        title={item.draft.title}
-        description={item.draft.description}
-        definition={item.draft.definition}
-        approvers={item.approvers}
-      />
-      {item.canPublish === true && (
-        <CatalogPublicationForm
-          item={item}
-          feedback={feedback}
-          action={action}
-          pending={pending}
-          blocked={() => isDirty() || isBusy()}
+      <div className={styles.reviewLayout}>
+        <CatalogPreview
+          title={item.draft.title}
+          description={item.draft.description}
+          definition={item.draft.definition}
+          approvers={item.approvers}
+          draftRevision={item.draft.revision}
+          ruleName={
+            item.draft.definition.approval?.ruleId
+              ? (item.rules?.find((rule) => rule.id === item.draft.definition.approval?.ruleId)
+                  ?.name ?? '現在選べないルール')
+              : undefined
+          }
+          disabled={busy}
         />
-      )}
+        {item.canPublish === true && (
+          <section className={styles.publication} aria-labelledby="catalog-publication">
+            <h2 id="catalog-publication">公開設定</h2>
+            <CatalogPublicationForm
+              item={item}
+              feedback={feedback}
+              action={action}
+              pending={pending}
+              blocked={() => isDirty() || isBusy()}
+            />
+          </section>
+        )}
+      </div>
       {item.canEdit === true ? (
         <details open={publishHighRiskError ? true : undefined}>
           <summary>下書きの項目と承認者を編集する</summary>
@@ -1526,49 +1541,36 @@ export function CatalogPreview({
   description,
   definition,
   approvers,
+  draftRevision,
+  ruleName,
+  disabled,
 }: {
   title: string;
   description: string;
   definition: CatalogItem['definition'];
   approvers: Array<{ id: string; name: string }>;
+  draftRevision?: number;
+  ruleName?: string;
+  disabled?: boolean;
 }) {
-  const visibleRequestFields = catalogRequestFieldVisibility(definition);
   return (
-    <section id="preview" className="form-panel">
-      <h2>保存した下書きのプレビュー</h2>
-      <p className="hint">利用者に表示するフォームです。このプレビューから申請は送信されません。</p>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      <p className="hint">業務カテゴリ: {definition.category?.trim() || '未分類'}</p>
-      <fieldset disabled className="stack">
-        {visibleRequestFields.reason && (
-          <FormField className="field">
-            <label htmlFor="preview-reason">利用する理由</label>
-            <textarea id="preview-reason" maxLength={definition.maxReasonLength} />
-          </FormField>
-        )}
-        {visibleRequestFields.duration && (
-          <FormField className="field">
-            <label htmlFor="preview-days">希望する利用日数</label>
-            <select id="preview-days">
-              {definition.allowedDurations.map((d) => (
-                <option key={d}>{d}日</option>
-              ))}
-            </select>
-          </FormField>
-        )}
-        <CatalogFieldInputs
-          fields={definition.fields ?? []}
-          sections={definition.sections}
-          values={{}}
-          disabled
-        />
-      </fieldset>
-      <p>
-        固定の承認者:{' '}
-        {approvers.find((a) => a.id === definition.approval?.approverId)?.name ??
-          '未設定・現在無効'}
-      </p>
-    </section>
+    <div id="preview" className={styles.savedPreview}>
+      <CatalogLivePreview
+        title={title}
+        description={description}
+        target={definition.targetLabel}
+        days={definition.allowedDurations.join(', ')}
+        maxReason={definition.maxReasonLength}
+        requestFields={definition.requestFields}
+        fields={definition.fields ?? []}
+        category={definition.category}
+        sections={definition.sections}
+        approver={definition.approval?.approverId ?? ''}
+        approvers={approvers}
+        draftRevision={draftRevision}
+        ruleName={ruleName}
+        disabled={disabled}
+      />
+    </div>
   );
 }

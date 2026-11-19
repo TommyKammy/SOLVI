@@ -267,7 +267,7 @@ describe('request detail page recovery and unchanged success', () => {
       const html = await render({ saved: '1' });
       expect(html).toContain('<h1>合成申請</h1>');
       expect(html).toContain('合成理由');
-      expect(html).toContain('カタログ定義版: 3');
+      expect(html).toContain('公開版 3');
       expect(html).toContain('申請の状態を保存しました。');
       expect(RequestForm).toHaveBeenCalledTimes(edit ? 1 : 0);
       expect(vi.mocked(RequestActions).mock.calls[0][0]).toMatchObject({
@@ -347,7 +347,7 @@ describe('expired の行の表示と操作 (WP-P4-APR-019 §6.4)', () => {
     const expired = await render();
 
     expect(pendingPast).toBe(expired);
-    expect(pendingPast).toContain('（期限切れ。変更・再承認が必要です）');
+    expect(pendingPast).toContain('承認期限切れ');
     expect(pendingPast).toContain('期限切れ');
     // 承認の操作は出ない(自分宛ての承認者でも、期限切れでは承認できない)。
     expect(pendingPast).toContain('data-approve="false"');

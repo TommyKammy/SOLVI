@@ -177,6 +177,9 @@ export default async function ApprovalRulesPage({
           </p>
         </div>
         <div className="directory-heading-actions">
+          <Link className="directory-cta secondary" href="/catalog/manage/new">
+            サービスの作成へ進む
+          </Link>
           <Link className="directory-cta secondary" href="/ops/approvals/changes">
             上長・部署長の変更履歴
           </Link>

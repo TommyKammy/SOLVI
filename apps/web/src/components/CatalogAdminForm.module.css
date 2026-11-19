@@ -8,6 +8,41 @@
   overflow-wrap: anywhere;
 }
 
+.reviewLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.savedPreview,
+.publication {
+  min-inline-size: 0;
+  scroll-margin-block-start: 80px;
+}
+
+.publication {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+}
+
+:global(body.fs-ui) .publication > h2 {
+  margin-block-start: 0;
+}
+
+:global(body.fs-ui) .publication :global(.form-panel) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@media (min-width: 1050px) {
+  .reviewLayout:has(.publication) {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.5fr);
+  }
+}
+
 .controls {
   display: grid;
   gap: 1rem;
