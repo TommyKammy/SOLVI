@@ -1,0 +1,146 @@
+[
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(4)",
+    "ratio": 5.95
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(5)",
+    "ratio": 5.95
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(6)",
+    "ratio": 5.95
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(7)",
+    "ratio": 5.95
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(8)",
+    "ratio": 5.95
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(9)",
+    "ratio": 5.95
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".priority-label",
+    "ratio": 15.85
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-group > .cell-clip",
+    "ratio": 15.85
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "td:nth-child(6) > .cell-clip",
+    "ratio": 15.85
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".sla",
+    "ratio": 15.85
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-requester > .cell-clip",
+    "ratio": 15.85
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-created",
+    "ratio": 15.85
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(4)",
+    "ratio": 9.08
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(5)",
+    "ratio": 9.08
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(6)",
+    "ratio": 9.08
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(7)",
+    "ratio": 9.08
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(8)",
+    "ratio": 9.08
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th[scope=\"col\"]:nth-child(9)",
+    "ratio": 9.08
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".priority-label",
+    "ratio": 15.4
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-group > .cell-clip",
+    "ratio": 15.4
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "td:nth-child(6) > .cell-clip",
+    "ratio": 15.4
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".sla",
+    "ratio": 15.4
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-requester > .cell-clip",
+    "ratio": 15.4
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-created",
+    "ratio": 15.4
+  }
+]

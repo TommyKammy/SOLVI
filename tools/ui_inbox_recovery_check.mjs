@@ -276,7 +276,7 @@ export async function runInboxRecoveryChecks({
         .click();
       await page.waitForURL(target.origin + filteredPath);
       await successful();
-      assert.equal(await page.getByLabel('番号・タイトルで検索').inputValue(), '合成 & %_\\?');
+      assert.equal(await page.getByLabel('番号・件名で検索').inputValue(), '合成 & %_\\?');
       assert.equal(await page.getByLabel('業務の種類').inputValue(), 'ticket');
       assert.equal(await page.getByLabel('更新の確認').inputValue(), '1');
       assert.equal(await page.getByLabel('担当未定のチケットも表示する').isChecked(), true);

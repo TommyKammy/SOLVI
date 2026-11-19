@@ -1,0 +1,256 @@
+import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { login, require, web } from './helpers.mjs';
+
+const { chromium, webkit } = require('playwright');
+const [out] = process.argv.slice(2);
+const before = process.env.SOLVI_STAGE9_BEFORE === '1';
+const browser = await chromium.launch({ channel: 'chrome' });
+const accounts = { admin: await login('org_admin'), agent: await login('agent'), requester: await login('requester') };
+const mock = pathToFileURL(resolve('docs/planning/assets/ui/SOLVI_Operations_Mockup.html'));
+const samples = [
+  ['inbox', 'inbox'],
+  ['portal-report', 'report'],
+  ['catalog-manage', 'catalog-admin'],
+  ['knowledge', 'knowledge'],
+  ['assets', 'assets'],
+  ['admin', 'admin'],
+  ['reports', 'reports'],
+  ['assistance', 'ticket/INC-1048?focus=ai'],
+];
+const results = { browser: browser.version(), navigation: [], queue: [], ticketDetail: [], inbox: [], portal: {}, references: [], contrast: [] };
+
+function context(width, colorScheme = 'light') {
+  return browser.newContext({
+    viewport: { width, height: width === 1440 ? 900 : 812 },
+    locale: 'ja-JP',
+    colorScheme,
+    isMobile: width === 375,
+    hasTouch: width === 375,
+  });
+}
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname);
+  await page.locator('main h1').first().waitFor();
+}
+async function shot(page, width, label) {
+  await page.screenshot({ animations: 'disabled', path: join(out, 'screens', label + '-' + width + '.png') });
+}
+function luminance(rgb) {
+  const srgb = rgb.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(Number).map(value => value / 255);
+  const linear = srgb.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+}
+function contrast(ink, background) {
+  const [dark, light] = [luminance(ink), luminance(background)].sort((a,b) => a - b);
+  return (light + 0.05) / (dark + 0.05);
+}
+try {
+  for (const width of [1440, 375]) {
+    const admin = await context(width);
+    await admin.addCookies([{ ...accounts.admin, url: web }]);
+    const page = await admin.newPage();
+    await enter(page, '/ops/admin');
+    if (width === 375) {
+      const menu = page.getByRole('button', { name: 'メニューを開く', exact: true });
+      await menu.tap();
+      await page.locator('.fs-app--nav-open').waitFor();
+    }
+    const menu = page.getByRole('navigation', { name: '業務メニュー' });
+    const active = menu.locator('[aria-current="page"]');
+    await active.waitFor();
+    async function navPosition() {
+      return active.evaluate(item => {
+        const menu = item.closest('nav');
+        const viewport = menu.getBoundingClientRect();
+        const rect = item.getBoundingClientRect();
+        return {
+          name: item.innerText.trim(),
+          withinMenu: rect.top >= viewport.top - 1 && rect.bottom <= viewport.bottom + 1,
+          scrollTop: menu.scrollTop,
+          contentScroll: window.scrollY,
+        };
+      });
+    }
+    if (!before) await page.waitForFunction(() => document.querySelector('.fs-side-menu').scrollTop > 0);
+    const position = await navPosition();
+    assert.equal(position.name, '管理ホーム');
+    assert.equal(position.contentScroll, 0);
+    if (!before) assert(position.withinMenu);
+    results.navigation.push({ width, ...position });
+    await shot(page, width, 'review-current-navigation');
+    await enter(page, '/ops');
+    const row = page.locator('table.tickets tbody tr').first();
+    const action = await row.locator('.queue-subject').evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      const region = el.closest('[role=region]').getBoundingClientRect();
+      return {height: rect.height, fits: rect.x >= region.x && rect.right <= region.right, pageOverflow: document.documentElement.scrollWidth - innerWidth};
+    });
+    const rowHeaderCount = await row.getByRole('rowheader').count();
+    const title = await page.locator('main h1').textContent();
+    if (!before) {
+      assert.equal(title.trim(), 'チケット一覧');
+      assert.equal(rowHeaderCount, 1);
+      assert.equal(action.pageOverflow, 0);
+      if (width === 375) {
+        assert(action.height >= 44, JSON.stringify(action));
+        assert(action.fits, JSON.stringify(action));
+      }
+    }
+    results.queue.push({width, title: title.trim(), rowHeaderCount, ...action});
+    await shot(page, width, 'review-queue');
+    const subject = row.locator('.queue-subject');
+    if (width === 375) await subject.tap();
+    else await subject.press('Enter');
+    await page.waitForURL(url => /^\/ops\/[a-f0-9-]+$/.test(url.pathname));
+    await page.locator('.fs-ticket-quick-actions').waitFor();
+    const detail = await page.locator('.fs-ticket-heading').evaluate(el => {
+      const title = el.firstElementChild.getBoundingClientRect();
+      const actions = el.querySelector('.fs-ticket-quick-actions').getBoundingClientRect();
+      return { belowTitle: actions.top >= title.bottom, alignedLeft: Math.abs(actions.left - title.left) < 1 };
+    });
+    if (!before && width === 375) assert(detail.belowTitle && detail.alignedLeft, JSON.stringify(detail));
+    results.ticketDetail.push({width, ...detail});
+    await shot(page, width, 'review-ticket-detail');
+
+    await admin.addCookies([{ ...accounts.agent, url: web }]);
+    await enter(page, '/inbox');
+    const form = page.getByRole('form', { name: '受信箱の絞り込み' });
+    const tabOrder = [];
+    await form.locator('select').last().focus();
+    for (let i = 0; i < 3; i++) {
+      await page.keyboard.press('Tab');
+      tabOrder.push(await page.evaluate(() => document.activeElement.matches('input[type=checkbox]') ? 'checkbox' : document.activeElement.textContent.trim()));
+    }
+    const {buttonsAligned, selectsShareRow, actionsShareRow} = await form.evaluate(el => {
+      const [kind, update] = [...el.querySelectorAll('select')].map(select => select.getBoundingClientRect());
+      const button = el.querySelector('button[type=submit]').getBoundingClientRect();
+      const reset = el.querySelector('.inbox-filter-actions a').getBoundingClientRect();
+      return {
+        actionsShareRow: Math.abs(button.top - reset.top) < 1 && Math.abs(button.bottom - reset.bottom) < 1,
+        buttonsAligned: Math.abs(kind.bottom - button.bottom) < 1,
+        selectsShareRow: Math.abs(kind.top - update.top) < 1 && update.left >= kind.right,
+      };
+    });
+    const inboxHeaders = await page.locator('table.inbox-table tbody tr').first().getByRole('rowheader').count();
+    if (!before) {
+      assert.deepEqual(tabOrder, ['絞り込む', '条件を解除する', 'checkbox']);
+      assert.equal(inboxHeaders, 1);
+      if (width === 1440) assert(buttonsAligned);
+      assert(selectsShareRow);
+      assert(actionsShareRow);
+    }
+    results.inbox.push({width, tabOrder, buttonsAligned, selectsShareRow, actionsShareRow, rowHeaderCount: inboxHeaders});
+    await admin.close();
+
+    const ref = await context(width);
+    const reference = await ref.newPage();
+    for (const [actual, hash] of samples) {
+      const url = new URL(mock);
+      url.hash = hash;
+      await reference.goto('about:blank');
+      await reference.goto(url.href);
+      const h1 = reference.locator('main h1:visible').first();
+      await h1.waitFor();
+      const sample = await h1.evaluate(el => {
+        const { x, y } = el.getBoundingClientRect();
+        const { fontSize, fontWeight, lineHeight } = getComputedStyle(el);
+        return { title: el.textContent.trim(), x, y, fontSize, fontWeight, lineHeight };
+      });
+      results.references.push({ width, actual, hash, ...sample });
+      await shot(reference, width, 'reference-' + actual);
+    }
+    await ref.close();
+  }
+
+  for (const theme of ['light', 'dark']) {
+    const requester = await context(375, theme);
+    await requester.addCookies([{ ...accounts.requester, url: web }]);
+    const page = await requester.newPage();
+    await enter(page, '/portal');
+    const colors = await page.locator('.support-hero').evaluate(el => ({
+      ink: getComputedStyle(el.querySelector('h1')).color,
+      stops: getComputedStyle(el).backgroundImage.match(/rgb\([^)]+\)/g),
+    }));
+    assert.equal(colors.stops.length, 2);
+    const minRatio = Math.min(...colors.stops.map(color => contrast(colors.ink, color)));
+    assert(minRatio >= 4.5);
+    results.contrast.push({ theme, minRatio, ...colors });
+
+    if (theme === 'light') {
+      await enter(page, '/tickets/new?kind=incident');
+      const menu = page.locator('details.fs-support-menu');
+      const trigger = menu.locator('summary');
+      await trigger.tap();
+      const currentOnNewTicket = await menu.locator('[aria-current]').count();
+      await menu.getByRole('link', { name: 'ヘルプ記事' }).focus();
+      await page.keyboard.press('Escape');
+      const closed = !(await menu.evaluate(details => details.open));
+      const restoredFocus = await trigger.evaluate(el => document.activeElement === el);
+      await enter(page, '/knowledge?q=VPN');
+      await trigger.tap();
+      const active = menu.locator('[aria-current="page"]');
+      assert.equal(await active.textContent(), 'ヘルプ記事');
+      if (!before) {
+        assert.equal(currentOnNewTicket, 0);
+        assert(closed);
+        assert(restoredFocus);
+      }
+      results.portal = { currentOnNewTicket, escapeClosed: closed, restoredFocus };
+
+      await shot(page, 375, 'review-requester-navigation');
+      await trigger.tap();
+      const knowledge = await page.locator('.knowledge-filters').evaluate(form => {
+        const input = form.querySelector('input[type=search]').getBoundingClientRect();
+        const button = form.querySelector('button[type=submit]').getBoundingClientRect();
+        const reset = form.querySelector('.knowledge-filter-actions a').getBoundingClientRect();
+        return { alignedBottom: Math.abs(input.bottom - button.bottom) < 1, resetBelow: reset.top >= input.bottom };
+      });
+      if (!before) assert(knowledge.alignedBottom && knowledge.resetBelow, JSON.stringify(knowledge));
+      results.knowledge = knowledge;
+    }
+    await requester.close();
+  }
+  if (!before) {
+    const mobileBrowser = await webkit.launch();
+    results.webkit = { version: mobileBrowser.version(), pages: [] };
+    try {
+      for (const [role, paths] of [
+        ['admin', ['/ops/overview', '/inbox', '/ops', '/catalog/manage', '/assets/imports/new', '/ops/admin', '/ops/reports']],
+        ['requester', ['/portal', '/tickets/new?kind=incident', '/knowledge']],
+      ]) {
+        const ctx = await mobileBrowser.newContext({
+          viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, locale: 'ja-JP',
+        });
+        await ctx.addCookies([{ ...accounts[role], url: web }]);
+        const page = await ctx.newPage();
+        for (const path of paths) {
+          await enter(page, path);
+          const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+          assert.equal(overflow, 0, path);
+          if (path === '/ops') {
+            const link = page.locator('.queue-subject').first();
+            const height = await link.evaluate(el => el.getBoundingClientRect().height);
+            assert(height >= 44, JSON.stringify({ path, height }));
+            await link.tap();
+            await page.waitForURL(url => /^\/ops\/[a-f0-9-]+$/.test(url.pathname));
+            await page.getByRole('link', { name: 'チケット一覧に戻る', exact: true }).tap();
+            await page.waitForURL(url => url.pathname === '/ops');
+          }
+          results.webkit.pages.push({ role, path, overflow });
+        }
+        await ctx.close();
+      }
+    } finally {
+      await mobileBrowser.close();
+    }
+  }
+} finally {
+  writeFileSync(join(out, 'review.json'), JSON.stringify(results, null, 2) + '\n');
+  await browser.close();
+}
+console.log('Reviewed', results.references.length, 'reference captures and focused browser checks');

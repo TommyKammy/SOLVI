@@ -1,0 +1,373 @@
+{
+  "browser": "157.0.8103.79",
+  "journeys": [
+    {
+      "width": 1440,
+      "departmentId": "01a1f41f-35dc-7000-8e00-7b99bc0da80b",
+      "userId": "00000000-0000-4000-9000-000000000102",
+      "groupId": "01a1f41f-42c5-7000-bbc2-28fa590db218",
+      "approvalRuleId": "01a1f41f-498b-7000-91f6-7e6caf19857f",
+      "notificationId": "3b6cd6f5-3710-4cfa-bbbd-6ac2057e11b8",
+      "accessReviewId": "01a1f41f-5ad2-7000-bece-fcb7c0f34ec3",
+      "accessReviewPeriod": "QA-1440-01",
+      "reviewedItems": 7,
+      "retryRequests": 1,
+      "viewerDeniedRoutes": [
+        "/ops/users",
+        "/ops/departments",
+        "/ops/groups",
+        "/ops/groups/01a1f41f-42c5-7000-bbc2-28fa590db218",
+        "/ops/approvals",
+        "/ops/notifications"
+      ],
+      "returnedAfterExpiry": true,
+      "recheckedRoleAfterLogin": true,
+      "selectedOrganizationAfterLogin": true
+    },
+    {
+      "width": 375,
+      "departmentId": "01a1f41f-7738-7000-b13a-4f1d5c8d5cf0",
+      "userId": "00000000-0000-4000-9000-000000000102",
+      "groupId": "01a1f41f-832f-7000-9079-2b20288c0ac5",
+      "approvalRuleId": "01a1f41f-8942-7000-ac66-dd3513a590ca",
+      "notificationId": "6bb7c8b4-647d-499c-b8bb-19bac26b5fd8",
+      "accessReviewId": "01a1f41f-99c5-7000-9c80-6c6f57efa479",
+      "accessReviewPeriod": "QA-375-01",
+      "reviewedItems": 7,
+      "retryRequests": 1,
+      "viewerDeniedRoutes": [
+        "/ops/users",
+        "/ops/departments",
+        "/ops/groups",
+        "/ops/groups/01a1f41f-832f-7000-9079-2b20288c0ac5",
+        "/ops/approvals",
+        "/ops/notifications"
+      ],
+      "returnedAfterExpiry": true,
+      "recheckedRoleAfterLogin": true,
+      "selectedOrganizationAfterLogin": true
+    }
+  ],
+  "scans": [
+    {
+      "name": "admin-home",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "admin-home",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "department",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "department",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "users",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "users",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "group",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "group",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "notifications",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "notifications",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-edit",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-edit",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-viewer",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-viewer",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "forbidden",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "forbidden",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "expired",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "expired",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "admin-home",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "admin-home",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "department",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "department",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "users",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "users",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "group",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "group",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "notifications",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "notifications",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-edit",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-edit",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-viewer",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review-viewer",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "forbidden",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "forbidden",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "expired",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "expired",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    }
+  ]
+}

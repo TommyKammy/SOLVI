@@ -1,0 +1,230 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { api, login, require, web } from './helpers.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const fixture = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const out = process.argv[3];
+mkdirSync(join(out, 'screens'), { recursive: true });
+const account = await login('org_admin');
+const requester = await login('requester');
+const [ticket, unreadTicket] = fixture.tickets;
+const ticketAnchor = 'ticket-entry-' + ticket.id;
+const detail = '/ops/' + ticket.id;
+const overview = '/ops/overview?group=' + fixture.group;
+const inbox = '/inbox?kind=ticket&q=UIX048&page=2';
+const queue = '/ops?keyword=VPN&state=in_progress&state=assigned';
+const wcag = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+const browser = await chromium.launch({ channel: 'chrome' });
+const summary = { browser: browser.version(), fixtures: { ticket: ticket.number }, journeys: [], layout: [], scans: [], safety: {} };
+const commentsPath = '/tickets/' + ticket.id + '/comments';
+
+async function context(width, colorScheme) {
+  const mobile = width === 375;
+  const ctx = await browser.newContext({
+    viewport: { width, height: mobile ? 812 : 900 },
+    locale: 'ja-JP', hasTouch: mobile, isMobile: mobile, colorScheme,
+  });
+  await ctx.addCookies([{ ...account, url: web }]);
+  return ctx;
+}
+
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname, 'authenticated page');
+  await page.locator('.fs-content main h1').waitFor();
+}
+
+async function operate(locator, width) {
+  if (width === 375) {
+    await locator.tap();
+  } else {
+    await locator.focus();
+    await locator.press('Enter');
+  }
+}
+
+async function exactFocus(page, id) {
+  await page.waitForFunction((target) => document.activeElement?.id === target, id, { timeout: 10000 });
+}
+
+function compareSource(from, expected, anchor = '') {
+  const restored = new URL(from, web);
+  const source = new URL(expected, web);
+  assert.equal(restored.pathname, source.pathname);
+  assert.deepEqual([...restored.searchParams].sort(), [...source.searchParams].sort());
+  assert.equal(restored.hash, anchor ? '#' + anchor : '');
+}
+
+async function capture(page, name) {
+  await page.screenshot({ path: join(out, 'screens', name + '.png'), animations: 'disabled' });
+}
+
+async function scan(page, width, theme, screen, path) {
+  await enter(page, path);
+  const applied = await page.locator('html').getAttribute('data-theme');
+  assert.equal(applied, theme);
+  const result = await new AxeBuilder({ page }).withTags(wcag).analyze();
+  const violations = result.violations.map(({id, impact, nodes}) => ({
+    id, impact, targets: nodes.map(({target, failureSummary}) => ({target, failureSummary})),
+  }));
+  await capture(page, theme + '-' + width + '-' + screen);
+  summary.scans.push({ width, theme, screen, violations, incompleteRules: result.incomplete.map(({id}) => id) });
+}
+
+try {
+  for (const width of [1440, 375]) {
+    const ctx = await context(width, 'light');
+    const page = await ctx.newPage();
+    for (const [source, label, path, current] of [
+      ['overview', '運営状況に戻る', overview, '運営状況'],
+      ['inbox', '業務受信箱に戻る', inbox, '業務受信箱'],
+      ['queue', 'チケット一覧に戻る', queue, 'チケット一覧'],
+    ]) {
+      await enter(page, path);
+      const entry = page.locator('#' + ticketAnchor);
+      await entry.waitFor();
+      if (source === 'inbox' && width === 1440) {
+        const edges = await page.locator('.inbox-page .filters').evaluate((form) =>
+          [...form.querySelectorAll('input[type=text], select, .inbox-filter-actions > button, .inbox-filter-actions > a')].map((control) => {
+            const { top, bottom } = control.getBoundingClientRect();
+            return [top, bottom];
+          }),
+        );
+        assert.equal(new Set(edges.map((edge) => JSON.stringify(edge))).size, 1, JSON.stringify(edges));
+        summary.safety.inboxDesktopFilterAlignment = edges[0][1] - edges[0][0];
+      }
+      if (source === 'inbox' && width === 375) {
+        const action = await entry.boundingBox();
+        assert(action.x >= 20 && action.x + action.width <= 355 && action.height >= 44, JSON.stringify(action));
+      }
+      await operate(entry, width);
+      await page.waitForURL((url) => url.pathname === detail);
+      await page.getByRole('heading', { name: ticket.subject, exact: true }).waitFor();
+      compareSource(new URL(page.url()).searchParams.get('returnTo'), path, ticketAnchor);
+      const currentNav = page.locator('.fs-side-link[aria-current=location]');
+      assert.equal((await currentNav.locator('.fs-side-label').textContent()).trim(), current);
+      const back = page.getByRole('link', { name: label, exact: true });
+      compareSource(await back.getAttribute('href'), path, ticketAnchor);
+      const message = 'UIX048 合成返信 ' + width + ' ' + source + ' ' + Date.now();
+      await page.getByLabel('依頼者への返信内容', { exact: true }).fill(message);
+      await operate(page.locator('.reply-panel').getByRole('button', { name: '返信する', exact: true }), width);
+      await page.getByRole('status').filter({ hasText: '返信を保存しました。' }).waitFor();
+      await page.getByText(message, { exact: true }).waitFor();
+      assert.equal((await api(commentsPath, requester)).items.filter((item) => item.body === message).length, 1);
+      await operate(back, width);
+      await page.waitForURL((url) => url.hash === '#' + ticketAnchor && url.pathname === new URL(path, web).pathname);
+      compareSource(page.url(), path, ticketAnchor);
+      await exactFocus(page, ticketAnchor);
+      const box = await entry.boundingBox();
+      assert(box.y >= 56 && box.y + box.height <= (width === 375 ? 812 : 900), 'restored action remains visibly inside the viewport');
+      if (source === 'inbox') await capture(page, 'light-' + width + '-inbox-return');
+      summary.journeys.push({ width, source, receipt: true, requesterViewCount: 1, focus: 'same ticket', filterAndPage: new URL(page.url()).search, input: width === 375 ? 'touch' : 'Enter' });
+      console.log('PASS', width, source, 'reply, return, focus');
+    }
+
+    if (width === 1440) {
+      const unread = '/inbox?kind=ticket&unread=1&q=' + encodeURIComponent(unreadTicket.number);
+      await enter(page, unread);
+      await operate(page.locator('#ticket-entry-' + unreadTicket.id), width);
+      await page.waitForURL((url) => url.pathname === '/ops/' + unreadTicket.id);
+      await operate(page.getByRole('link', { name: '業務受信箱に戻る', exact: true }), width);
+      await page.waitForURL((url) => url.pathname === '/inbox');
+      compareSource(page.url(), unread, 'ticket-entry-' + unreadTicket.id);
+      assert.equal(await page.locator('#ticket-entry-' + unreadTicket.id).count(), 0);
+      await exactFocus(page, 'ticket-list-heading');
+      await page.keyboard.press('Tab');
+      assert.equal(await page.evaluate(() => document.activeElement?.closest('main')?.id), 'main');
+      summary.safety.unreadFallback = true;
+      console.log('PASS unread filter fallback and subsequent Tab');
+
+      await enter(page, detail + '?returnTo=' + encodeURIComponent('//outside.invalid/inbox'));
+      assert.equal(await page.getByRole('link', { name: 'チケット一覧に戻る' }).getAttribute('href'), '/ops');
+      summary.safety.unsafeReturnFallsBack = true;
+
+      const message = 'UIX048 競合保持の合成返信 ' + Date.now();
+      const body = page.getByLabel('依頼者への返信内容', { exact: true });
+      const submit = page.locator('.reply-panel').getByRole('button', { name: '返信する', exact: true });
+      await body.fill(message);
+      const { replyContext } = await api(commentsPath, account);
+      const other = { body: 'UIX048 並行投稿の合成返信 ' + Date.now(), visibility: 'public', replyContext };
+      await api(commentsPath, account, other, 201);
+      await api(commentsPath, account, other, 409);
+      assert.equal((await api(commentsPath, account)).items.filter((item) => item.body === other.body).length, 1);
+      await operate(submit, width);
+      await page.getByText(/状態またはやり取りが変わりました。返信は保存していません/).waitFor();
+      assert.equal(await body.inputValue(), message);
+      assert.equal((await api(commentsPath, account)).items.filter((item) => item.body === message).length, 0);
+      await operate(page.getByRole('button', { name: '入力を保持して最新の内容を読み込む' }), width);
+      await page.getByText(other.body, { exact: true }).waitFor();
+      assert.equal(await body.inputValue(), message);
+      await operate(page.getByRole('button', { name: '最新のやり取りを確認して入力を引き継ぐ' }), width);
+      await operate(submit, width);
+      await page.getByRole('status').filter({ hasText: '返信を保存しました。' }).waitFor();
+      assert.equal((await api(commentsPath, account)).items.filter((item) => item.body === message).length, 1);
+      summary.safety.staleDraft = { staleStatus: 409, duplicateCount: 1, draftRetained: true, savedAfterReview: true };
+      console.log('PASS stale reply, duplicate rejection, retained draft');
+    }
+    await ctx.close();
+  }
+
+  for (const width of [320, 375, 600, 601, 1100, 1101, 1440, 1920]) {
+    const ctx = await context(width, 'light');
+    const page = await ctx.newPage();
+    for (const [screen, path] of [['overview', overview], ['inbox', inbox], ['queue', queue], ['detail', detail]]) {
+      await enter(page, path);
+      const layout = await page.locator('.fs-content').evaluate((frame) => {
+        const root = document.documentElement;
+        const main = frame.closest('.fs-main');
+        const region = frame.querySelector('.table-scroll');
+        const rect = frame.getBoundingClientRect();
+        const mainRect = main.getBoundingClientRect();
+        const style = getComputedStyle(frame);
+        return {
+          left: parseFloat(style.paddingLeft), right: parseFloat(style.paddingRight),
+          overflow: root.scrollWidth - root.clientWidth,
+          frameWidth: rect.width, mainWidth: mainRect.width,
+          max: parseFloat(style.maxInlineSize), centerOffset: (rect.left + rect.right - mainRect.left - mainRect.right) / 2,
+          tableOverflow: region ? region.scrollWidth - region.clientWidth : null,
+        };
+      });
+      const gutter = width <= 600 ? 20 : width <= 1100 ? 24 : 32;
+      assert.equal(layout.left, gutter, screen + ' left at ' + width);
+      assert.equal(layout.right, gutter, screen + ' right at ' + width);
+      assert(layout.overflow <= 0, screen + ' overflow at ' + width + ' = ' + layout.overflow);
+      assert.equal(layout.frameWidth, Math.min(layout.mainWidth, 1536));
+      assert.equal(layout.max, 1536);
+      assert.equal(layout.centerOffset, 0);
+      if (width <= 601 && (screen === 'inbox' || screen === 'queue')) {
+        assert(layout.tableOverflow > 0, screen + ' local table overflow at ' + width);
+      }
+      summary.layout.push({ width, screen, ...layout });
+    }
+    await ctx.close();
+  }
+  console.log('PASS 32 authenticated layout measurements');
+
+  for (const width of [1440, 375]) {
+    for (const theme of ['light', 'dark']) {
+      const ctx = await context(width, theme);
+      const page = await ctx.newPage();
+      const detailPath = detail + '?returnTo=' + encodeURIComponent(inbox + '#' + ticketAnchor);
+      for (const [screen, path] of [['overview', overview], ['inbox', inbox], ['queue', queue], ['detail', detailPath]]) {
+        await scan(page, width, theme, screen, path);
+        console.log('AXE', width, theme, screen, summary.scans.at(-1).violations.map(({id}) => id).join(',') || 'pass');
+        if (screen === 'detail') {
+          await page.getByRole('heading', { name: '返信・対応を記録する' }).scrollIntoViewIfNeeded();
+          await capture(page, theme + '-' + width + '-reply');
+        }
+      }
+      await ctx.close();
+    }
+  }
+} finally {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+  await browser.close();
+}
+assert.equal(summary.scans.flatMap(({ violations }) => violations).length, 0, 'axe violations');

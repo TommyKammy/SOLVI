@@ -1,0 +1,25 @@
+PASS 1440 overview reply, return, focus
+PASS 1440 inbox reply, return, focus
+PASS 1440 queue reply, return, focus
+PASS unread filter fallback and subsequent Tab
+PASS stale reply, duplicate rejection, retained draft
+PASS 375 overview reply, return, focus
+PASS 375 inbox reply, return, focus
+PASS 375 queue reply, return, focus
+PASS 32 authenticated layout measurements
+AXE 1440 light overview pass
+AXE 1440 light inbox pass
+AXE 1440 light queue pass
+AXE 1440 light detail pass
+AXE 1440 dark overview pass
+AXE 1440 dark inbox pass
+AXE 1440 dark queue pass
+AXE 1440 dark detail pass
+AXE 375 light overview pass
+AXE 375 light inbox pass
+AXE 375 light queue pass
+AXE 375 light detail pass
+AXE 375 dark overview pass
+AXE 375 dark inbox pass
+AXE 375 dark queue pass
+AXE 375 dark detail pass

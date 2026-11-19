@@ -1,0 +1,178 @@
+{
+  "browser": "157.0.8103.79",
+  "utcDate": "2026-11-19",
+  "journeys": [
+    {
+      "width": 1440,
+      "requestId": "01a1f41f-6dfd-7000-a283-ab9989e1f5a9",
+      "ticketId": "01a1f41f-6df6-7000-9cb8-63486550d736",
+      "title": "VPN利用の模擬申請 01-1440",
+      "receiptId": "01a1f41f-7714-7000-a6b6-e7075531ded9",
+      "rejectedTicket": "01a1f41f-6e46-7000-95ef-15d4e596f628",
+      "approvalBeforeSimulation": true,
+      "decisionAndReceiptIdempotent": true,
+      "zeroExternalChanges": true,
+      "permissions": {
+        "rolesDenied": 3,
+        "crossOrgTicket": true,
+        "crossOrgAudit": true
+      }
+    },
+    {
+      "width": 375,
+      "requestId": "01a1f41f-8178-7000-8e7d-ca3e50c23e61",
+      "ticketId": "01a1f41f-8174-7000-9160-965040e9b64e",
+      "title": "VPN利用の模擬申請 01-375",
+      "receiptId": "01a1f41f-8a0b-7000-b473-591652bc34cb",
+      "rejectedTicket": "01a1f41f-81a1-7000-9d38-828a4aae8717",
+      "approvalBeforeSimulation": true,
+      "decisionAndReceiptIdempotent": true,
+      "zeroExternalChanges": true,
+      "permissions": {
+        "rolesDenied": 3,
+        "crossOrgTicket": true,
+        "crossOrgAudit": true
+      }
+    }
+  ],
+  "scans": [
+    {
+      "name": "proposal",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "receipt",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-trail",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-receipt",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "proposal",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "receipt",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-trail",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-receipt",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "shared-proposal",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "shared-receipt",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "shared-audit-receipt",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "shared-proposal",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "shared-receipt",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "shared-audit-receipt",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "sharedTicket": {
+    "requestId": "01a1f41f-6dfd-7000-a283-ab9989e1f5a9",
+    "ticketId": "01a1f41f-6df6-7000-9cb8-63486550d736",
+    "title": "VPN利用の模擬申請 01-1440",
+    "receiptId": "01a1f41f-7714-7000-a6b6-e7075531ded9",
+    "widths": [
+      1440,
+      375
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 'use client';
+import type { KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
@@ -16,6 +17,14 @@ type Props = {
 function closeDetails(event: React.MouseEvent<HTMLAnchorElement>) {
   const details = event.currentTarget.closest('details');
   if (details) details.open = false;
+}
+
+function closeDetailsOnEscape(event: KeyboardEvent<HTMLDetailsElement>) {
+  const details = event.currentTarget;
+  if (event.key !== 'Escape' || !details.open) return;
+  event.preventDefault();
+  details.open = false;
+  details.querySelector('summary')?.focus();
 }
 
 const portalLinks = [
@@ -47,18 +56,19 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
   const inbox = workLinks.find((item) => item.href === '/inbox');
   const activeLink = isPortalHome
     ? (portalTabLinks.get(query.get('tab') ?? '') ?? '/portal')
-    : isTicketPage
+    : isTicketPage && pathname !== '/tickets/new'
       ? '/portal?tab=tickets'
       : pathname.startsWith('/requests')
         ? '/requests?view=mine'
         : '/' + pathname.split('/')[1];
+  const currentType = isPortalHome || activeLink.split('?')[0] === pathname ? 'page' : 'location';
 
   return (
     <div className={`fs-support${isPortalHome ? '' : ' fs-support--subpage'}`}>
       <header className="fs-support-header">
         <div className="fs-support-header-inner">
           <div className="fs-support-header-left">
-            <details className="fs-support-menu">
+            <details className="fs-support-menu" onKeyDown={closeDetailsOnEscape}>
               <summary aria-label="サポートポータルのメニュー" title="メニュー">
                 <FreshserviceIcon name="menu" size={22} />
               </summary>
@@ -68,7 +78,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
                   <Link
                     key={href}
                     href={href}
-                    aria-current={activeLink === href ? 'page' : undefined}
+                    aria-current={activeLink === href ? currentType : undefined}
                     onClick={closeDetails}
                   >
                     {label}
@@ -102,7 +112,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
           </div>
           <nav className="fs-support-nav" aria-label="依頼者メニュー">
             {portalLinks.map(({ href, label }) => (
-              <Link key={href} href={href} aria-current={activeLink === href ? 'page' : undefined}>
+              <Link key={href} href={href} aria-current={activeLink === href ? currentType : undefined}>
                 {label}
               </Link>
             ))}
@@ -116,7 +126,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
             >
               <FreshserviceIcon name="bell" size={20} />
             </Link>
-            <details className="fs-user-menu fs-support-user">
+            <details className="fs-user-menu fs-support-user" onKeyDown={closeDetailsOnEscape}>
               <summary aria-label="ユーザーメニュー" title="ユーザーメニュー">
                 <span className="fs-avatar" aria-hidden="true">
                   <FreshserviceIcon name="user" size={18} />

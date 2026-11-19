@@ -458,7 +458,7 @@ async function capture(name, axe = true, fullPage = true) {
 }
 async function density(label) {
   await open();
-  await visible(page.getByRole('heading', { name: '問い合わせの一覧', exact: true }));
+  await visible(page.getByRole('heading', { name: 'チケット一覧', exact: true }));
   const value = await page.evaluate(() => ({
     width: window.innerWidth,
     height: window.innerHeight,

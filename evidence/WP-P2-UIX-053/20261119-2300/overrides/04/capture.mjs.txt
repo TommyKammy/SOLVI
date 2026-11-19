@@ -1,0 +1,374 @@
+import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { api, login, require, web } from "./helpers.mjs";
+
+const { chromium } = require("playwright");
+const { AxeBuilder } = require("@axe-core/playwright");
+const browser = await chromium.launch({ channel: "chrome" });
+const out = process.argv[2];
+const run = process.argv[3] ?? "01";
+assert.match(run, /^\d+$/);
+mkdirSync(join(out, "screens"), { recursive: true });
+const accounts = Object.fromEntries(
+  await Promise.all(
+    ["agent", "org_admin", "requester"].map(async (role) => [
+      role,
+      await login(role),
+    ]),
+  ),
+);
+const summary = { browser: browser.version(), journeys: [], scans: [] };
+const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+const normalizeBody = (value) => value.replace(/\r\n/g, "\n");
+const main = (page) => page.locator("main");
+const link = (page, name) =>
+  main(page).getByRole("link", { name, exact: true });
+const button = (page, name) =>
+  main(page).getByRole("button", { name, exact: true });
+const heading = (page, name) =>
+  main(page).getByRole("heading", { name, exact: true });
+const state = (page, value) =>
+  page.locator('[data-knowledge-state="' + value + '"]').waitFor();
+const search = (term, manage = false) =>
+  "/knowledge?q=" + encodeURIComponent(term) + (manage ? "&manage=1" : "");
+const articleLink = (page, id) =>
+  main(page).locator('a[href^="/knowledge/' + id + '"]');
+const urlQuery = (page, term) =>
+  page.waitForURL(
+    (url) =>
+      url.pathname === "/knowledge" && url.searchParams.get("q") === term,
+  );
+
+async function pageFor(role, width, colorScheme = "light") {
+  const ctx = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: "ja-JP",
+    colorScheme,
+    isMobile: width === 375,
+    hasTouch: width === 375,
+  });
+  await ctx.addCookies([{ ...accounts[role], url: web }]);
+  const page = await ctx.newPage();
+  page.setDefaultTimeout(12000);
+  return page;
+}
+async function enter(page, path, status = 200) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), status, path);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname);
+  await page.locator("main h1").waitFor();
+}
+async function use(locator, width) {
+  if (width === 375) await locator.tap();
+  else {
+    await locator.focus();
+    await locator.press("Enter");
+  }
+}
+async function scan(page, width, theme, name) {
+  assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - innerWidth,
+  );
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const violations = result.violations.map(({ id, impact, nodes }) => ({
+    id,
+    impact,
+    nodes: nodes.map(({ target, failureSummary }) => ({
+      target,
+      failureSummary,
+    })),
+  }));
+  const incomplete = result.incomplete.map(({ id, nodes }) => ({
+    id,
+    targets: nodes.map(({ target }) => target),
+  }));
+  summary.scans.push({ name, theme, width, overflow, violations, incomplete });
+  await page.screenshot({
+    path: join(out, "screens", [theme, width, name].join("-") + ".png"),
+    animations: "disabled",
+    fullPage: true,
+  });
+  console.log(
+    "AXE",
+    theme,
+    width,
+    name,
+    overflow,
+    violations.map((v) => v.id).join(",") || "pass",
+  );
+}
+async function inspect(page, role, width, name) {
+  await scan(page, width, "light", name);
+  const dark = await pageFor(role, width, "dark");
+  try {
+    await enter(dark, page.url().slice(web.length));
+    await scan(dark, width, "dark", name);
+  } finally {
+    await dark.context().close();
+  }
+}
+async function read(id, role, opts = {}) {
+  const { manage = false, status = 200 } = opts;
+  const { article } = await api(
+    "/knowledge/" + id + (manage ? "?manage=1" : ""),
+    accounts[role],
+    undefined,
+    status,
+  );
+  return article;
+}
+async function expectArticle(page, fixture, audience, version) {
+  await heading(page, fixture.title).waitFor();
+  const info = main(page).getByRole("complementary", {
+    name: "この記事の情報",
+  });
+  await info.getByText(audience, { exact: true }).waitFor();
+  await info.getByText("版 " + version, { exact: true }).waitFor();
+  assert.equal(
+    normalizeBody(await main(page).locator(".knowledge-prose").innerText()),
+    audience === "組織内" ? fixture.organizationBody : fixture.staffBody,
+  );
+}
+async function expectZero(page, term, id) {
+  await heading(page, "条件に合う記事はありません").waitFor();
+  await page.getByRole("status").getByText("0件", { exact: true }).waitFor();
+  assert.equal(await page.locator("#knowledge-q").inputValue(), term);
+  assert.equal(await articleLink(page, id).count(), 0);
+  assert.equal(await main(page).getByRole("alert").count(), 0);
+  assert.match(
+    await link(page, "障害を報告する").getAttribute("href"),
+    /^\/tickets\/new\?kind=incident/,
+  );
+}
+async function openFromSearch(page, width, term, id, { manage = false } = {}) {
+  await enter(page, search(term, manage));
+  await use(articleLink(page, id), width);
+  await page.waitForURL((url) => url.pathname === "/knowledge/" + id);
+}
+
+try {
+  for (const width of [1440, 375]) {
+    const opposite = width === 1440 ? 375 : 1440;
+    const term = "端末確認" + width + "試験" + run;
+    const fixture = {
+      title: "VPN接続を再設定する（" + term + "）",
+      organizationBody:
+        "VPNの接続を一度切断し、社内ネットワークに再接続します。\n接続先を選び直して、VPNを有効にしてください。",
+      staffBody:
+        "依頼内容を確認し、VPNクライアントの接続プロファイルを再配布します。\n再配布後は接続状況を依頼者に確認してください。",
+    };
+    const agent = await pageFor("agent", width);
+    const admin = await pageFor("org_admin", width);
+    const requester = await pageFor("requester", width);
+    const otherRequester = await pageFor("requester", opposite);
+    const otherAgent = await pageFor("agent", opposite);
+    await enter(agent, "/knowledge?manage=1");
+    await use(
+      main(agent)
+        .getByRole("navigation", { name: "ナレッジの表示と管理" })
+        .getByRole("link", { name: "新しい記事を書く", exact: true }),
+      width,
+    );
+    await agent.waitForURL((url) => url.pathname === "/knowledge/new");
+    await agent.locator("#article-title").fill(fixture.title);
+    await agent.locator("#article-body").fill(fixture.organizationBody);
+    await agent.locator("#article-tags").fill("VPN, 接続設定");
+    await agent.locator("#article-audience").selectOption("organization");
+    await inspect(agent, "agent", width, "author");
+    await use(button(agent, "下書きを保存する"), width);
+    await agent.waitForURL(/\/knowledge\/[a-f0-9-]{36}\?/);
+    await state(agent, "draft");
+    const id = new URL(agent.url()).pathname.split("/").at(-1);
+    let doc = await read(id, "agent", { manage: true });
+    assert.equal(doc.contentVersion, 1);
+    assert.equal(doc.publishedVersion, null);
+    await read(id, "requester", { status: 404 });
+    await enter(requester, search(term));
+    await expectZero(requester, term, id);
+
+    await agent
+      .locator("#article-body")
+      .fill(fixture.organizationBody + "\n未保存の確認");
+    assert.equal(await button(agent, "レビューへ送る").isDisabled(), true);
+    await agent.locator("#article-body").fill(fixture.organizationBody);
+    assert.equal(await button(agent, "レビューへ送る").isEnabled(), true);
+    assert.equal(await button(agent, "確認した内容を公開する").count(), 0);
+    await use(button(agent, "レビューへ送る"), width);
+    await state(agent, "review");
+    assert.equal(await button(agent, "確認した内容を公開する").count(), 0);
+    doc = await read(id, "agent", { manage: true });
+    assert.equal(doc.contentVersion, 2);
+    assert.equal(normalizeBody(doc.body), fixture.organizationBody);
+
+    await openFromSearch(admin, width, term, id, { manage: true });
+    await heading(admin, "レビュー対象の内容").waitFor();
+    await main(admin).getByText("組織内の利用者", { exact: true }).waitFor();
+    assert.equal(
+      normalizeBody(await main(admin).locator(".knowledge-prose").innerText()),
+      fixture.organizationBody,
+    );
+    await inspect(admin, "org_admin", width, "review");
+    await use(button(admin, "確認した内容を公開する"), width);
+    await state(admin, "published");
+    doc = await read(id, "requester");
+    assert.equal(doc.contentVersion, 3);
+    assert.equal(doc.audience, "organization");
+    assert.equal(doc.title, fixture.title);
+    assert.equal(normalizeBody(doc.body), fixture.organizationBody);
+
+    await use(link(admin, "公開中の版を見る（版 3）"), width);
+    await expectArticle(admin, fixture, "組織内", 3);
+    await use(link(admin, "記事の管理に戻る"), width);
+    await state(admin, "published");
+
+    await enter(requester, "/portal");
+    await requester.locator("#support-search-input").fill(term);
+    await use(button(requester, "検索"), width);
+    await urlQuery(requester, term);
+    await articleLink(requester, id)
+      .getByText(fixture.title, { exact: true })
+      .waitFor();
+    await articleLink(requester, id)
+      .getByText("組織内", { exact: true })
+      .waitFor();
+    await articleLink(requester, id)
+      .getByText("版 3", { exact: true })
+      .waitFor();
+    await inspect(requester, "requester", width, "search");
+    await use(articleLink(requester, id), width);
+    await requester.waitForURL((url) => url.pathname === "/knowledge/" + id);
+    await expectArticle(requester, fixture, "組織内", 3);
+    await inspect(requester, "requester", width, "public-article");
+    await use(link(requester, "記事一覧へ戻る"), width);
+    await urlQuery(requester, term);
+    assert.equal(await requester.locator("#knowledge-q").inputValue(), term);
+    await openFromSearch(otherRequester, opposite, term, id);
+    await expectArticle(otherRequester, fixture, "組織内", 3);
+
+    await openFromSearch(agent, width, term, id, { manage: true });
+    await agent.locator("#article-body").fill(fixture.staffBody);
+    await agent.locator("#article-audience").selectOption("staff");
+    await use(button(agent, "下書きを保存する"), width);
+    await state(agent, "draft");
+    doc = await read(id, "agent", { manage: true });
+    assert.equal(doc.contentVersion, 4);
+    assert.equal(doc.publishedVersion, 3);
+    assert.equal(
+      normalizeBody((await read(id, "requester")).body),
+      fixture.organizationBody,
+    );
+    await use(button(agent, "レビューへ送る"), width);
+    await state(agent, "review");
+    doc = await read(id, "agent", { manage: true });
+    assert.equal(doc.contentVersion, 5);
+    assert.equal(doc.audience, "staff");
+    await openFromSearch(requester, width, term, id);
+    await expectArticle(requester, fixture, "組織内", 3);
+
+    await openFromSearch(admin, width, term, id, { manage: true });
+    await heading(admin, "レビュー対象の内容").waitFor();
+    assert.equal(
+      normalizeBody(await main(admin).locator(".knowledge-prose").innerText()),
+      fixture.staffBody,
+    );
+    await main(admin)
+      .getByRole("region", { name: "公開状況" })
+      .getByText("担当者限定", { exact: true })
+      .waitFor();
+    await use(button(admin, "確認した内容を公開する"), width);
+    await state(admin, "published");
+    doc = await read(id, "agent");
+    assert.equal(doc.contentVersion, 6);
+    assert.equal(doc.audience, "staff");
+    assert.equal(normalizeBody(doc.body), fixture.staffBody);
+
+    await openFromSearch(agent, width, term, id);
+    await expectArticle(agent, fixture, "担当者限定", 6);
+    await inspect(agent, "agent", width, "staff-article");
+    await openFromSearch(otherAgent, opposite, term, id);
+    await expectArticle(otherAgent, fixture, "担当者限定", 6);
+
+    for (const page of [requester, otherRequester]) {
+      await enter(page, search(term));
+      await expectZero(page, term, id);
+      await enter(page, "/knowledge/" + id, 404);
+      await heading(page, "お探しの画面は見つかりませんでした").waitFor();
+    }
+    await enter(requester, "/knowledge/" + id + "?manage=1", 404);
+    await read(id, "requester", { status: 404 });
+    await read(id, "requester", { manage: true, status: 403 });
+    await enter(requester, search(term));
+    await inspect(requester, "requester", width, "zero");
+    await use(link(requester, "検索語を修正する"), width);
+    await requester.waitForURL((url) => url.hash === "#knowledge-q");
+    assert.equal(
+      await requester
+        .locator("#knowledge-q")
+        .evaluate((el) => el === document.activeElement),
+      true,
+    );
+    const unrelated = "該当なし確認語" + width + run;
+    await requester.locator("#knowledge-q").fill(unrelated);
+    await use(button(requester, "検索する"), width);
+    await urlQuery(requester, unrelated);
+    await expectZero(requester, unrelated, id);
+    await enter(requester, search(term) + "&cursor=bogus");
+    await heading(requester, "検索条件を確認してください").waitFor();
+    assert.equal(await main(requester).getByRole("alert").count(), 1);
+    assert.equal(
+      await heading(requester, "条件に合う記事はありません").count(),
+      0,
+    );
+    await use(link(requester, "最初の結果へ"), width);
+    await requester.waitForURL((url) => !url.searchParams.has("cursor"));
+    await expectZero(requester, term, id);
+    await use(link(requester, "条件を解除してすべて表示"), width);
+    await requester.waitForURL(
+      (url) => url.pathname === "/knowledge" && !url.searchParams.has("q"),
+    );
+    assert.equal(await requester.locator("#knowledge-q").inputValue(), "");
+    summary.journeys.push({
+      width,
+      opposite,
+      id,
+      title: fixture.title,
+      versions: [1, 2, 3, 4, 5, 6],
+      organizationVersion: 3,
+      staffVersion: 6,
+      requesterSearchAfterRestriction: 0,
+      requesterDirectStatus: 404,
+      requesterManagedApiStatus: 403,
+      oppositeVerified: [
+        "organization read",
+        "staff read",
+        "requester zero",
+        "requester direct 404",
+      ],
+    });
+    console.log(
+      "JOURNEY",
+      width,
+      id,
+      "draft 1 · review 2 · organization 3 · staff draft 4 · review 5 · staff 6",
+    );
+    await Promise.all(
+      [agent, admin, requester, otherRequester, otherAgent].map((page) =>
+        page.context().close(),
+      ),
+    );
+  }
+  assert.equal(summary.scans.length, 24);
+  assert.ok(
+    summary.scans.every(
+      ({ overflow, violations }) => overflow === 0 && violations.length === 0,
+    ),
+  );
+} finally {
+  writeFileSync(
+    join(out, "summary.json"),
+    JSON.stringify(summary, null, 2) + "\n",
+  );
+  await browser.close();
+}

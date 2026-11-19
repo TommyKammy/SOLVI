@@ -150,6 +150,7 @@ export function AppFrame({
   const searchRef = useRef<HTMLInputElement>(null);
   const searchToggleRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
+  const sidebarMenuRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const wasMobileOpen = useRef(false);
@@ -161,6 +162,7 @@ export function AppFrame({
     origin?.searchParams ?? searchParams,
     groups,
   );
+  const currentHref = current?.item?.href;
   const sections = [
     ...sidebarSections,
     ...groups
@@ -182,6 +184,22 @@ export function AppFrame({
     else if (wasMobileOpen.current) toggleRef.current?.focus();
     wasMobileOpen.current = mobileOpen;
   }, [mobileOpen]);
+
+  useEffect(() => {
+    const menu = sidebarMenuRef.current;
+    if (!menu || !currentHref || (!mobileOpen && window.matchMedia(MOBILE_NAV_QUERY).matches)) {
+      return;
+    }
+    const active = menu.querySelector('[aria-current]');
+    if (!active) return;
+    const bounds = menu.getBoundingClientRect();
+    const item = active.getBoundingClientRect();
+    if (item.top < bounds.top) {
+      menu.scrollTop += item.top - bounds.top;
+    } else if (item.bottom > bounds.bottom) {
+      menu.scrollTop += item.bottom - bounds.bottom;
+    }
+  }, [currentHref, pathname, mobileOpen]);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_NAV_QUERY);
@@ -311,7 +329,7 @@ export function AppFrame({
           </button>
         </div>
 
-        <nav className="fs-side-menu" aria-label="業務メニュー">
+        <nav className="fs-side-menu" aria-label="業務メニュー" ref={sidebarMenuRef}>
           {sections.map((section) => {
             const entries = groups
               .filter((group) => section.groups.includes(group.id))

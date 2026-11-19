@@ -1,0 +1,227 @@
+{
+  "browser": "157.0.8103.79",
+  "journeys": [
+    {
+      "width": 1440,
+      "opposite": 375,
+      "importId": "01a1f41f-1d4f-7000-964b-018476404a16",
+      "assetId": "01a1f41f-2348-7000-ac5e-56e1c38972aa",
+      "assetTag": "SYN-OPS-1440-01",
+      "changeId": "01a1f41f-2c8e-7000-ba65-f0849b8ca69b",
+      "number": "CHG-000001",
+      "outcome": "completed",
+      "externalChanges": 0,
+      "matchesOtherViewport": [
+        "preview row and reason",
+        "receipt asset ID",
+        "change in review",
+        "result",
+        "PIR and asset link"
+      ],
+      "allErrorPreview": "01a1f41f-3baa-7000-be4b-7286536b8e50",
+      "errorRow": 3
+    },
+    {
+      "width": 375,
+      "opposite": 1440,
+      "importId": "01a1f41f-3e9f-7000-be2d-b8be6735586c",
+      "assetId": "01a1f41f-4400-7000-81bb-83cace0bc822",
+      "assetTag": "SYN-OPS-375-01",
+      "changeId": "01a1f41f-4c9f-7000-a2fb-b9b9ee18e43e",
+      "number": "CHG-000002",
+      "outcome": "failed",
+      "externalChanges": 0,
+      "matchesOtherViewport": [
+        "preview row and reason",
+        "receipt asset ID",
+        "change in review",
+        "result",
+        "PIR and asset link"
+      ],
+      "allErrorPreview": "01a1f41f-5c79-7000-b16c-46d91eccecf1",
+      "errorRow": 3
+    }
+  ],
+  "scans": [
+    {
+      "name": "preview-errors",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "preview-errors",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "receipt",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "receipt",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "asset",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "asset",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "closed-review",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "closed-review",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "preview-errors",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "preview-errors",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "receipt",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "receipt",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "asset",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "asset",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "closed-review",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "closed-review",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "csvTableOverflow": null,
+      "violations": [],
+      "incomplete": []
+    }
+  ]
+}

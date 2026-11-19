@@ -628,7 +628,7 @@ async function runChecks() {
     for (const role of ['agent', 'org_admin', 'platform_admin']) {
       await setRole(role);
       await open('/ops');
-      await visible(page.getByRole('heading', { name: '問い合わせの一覧', exact: true }));
+      await visible(page.getByRole('heading', { name: 'チケット一覧', exact: true }));
       await page.locator('main').getByRole('link', { name: '運営状況', exact: true }).click();
       await ready();
       assert.equal(await page.locator('.app-navigation a[aria-current="page"]').count(), 1);
@@ -644,7 +644,7 @@ async function runChecks() {
         '運営状況',
       );
       await page.locator('.app-navigation a[href="/ops"]').click();
-      await visible(page.getByRole('heading', { name: '問い合わせの一覧', exact: true }));
+      await visible(page.getByRole('heading', { name: 'チケット一覧', exact: true }));
       assert.equal(await page.locator('.app-navigation a[aria-current="page"]').count(), 1);
       assert.equal(
         await page.locator('.app-navigation a[aria-current="page"]').getAttribute('href'),
@@ -698,7 +698,7 @@ async function runChecks() {
         assert.equal(href.pathname, '/ops');
         equalQuery(href.searchParams, expected);
         await link.click();
-        await visible(page.getByRole('heading', { name: '問い合わせの一覧', exact: true }));
+        await visible(page.getByRole('heading', { name: 'チケット一覧', exact: true }));
         await page.waitForLoadState('networkidle');
         const drill = report.apiRequests.findLast(
           (r) => r.check === activeCheck && r.path === '/tickets',
@@ -912,7 +912,7 @@ async function runChecks() {
         new URLSearchParams(deadlineEntries),
       );
       await link.click();
-      await visible(page.getByRole('heading', { name: '問い合わせの一覧', exact: true }));
+      await visible(page.getByRole('heading', { name: 'チケット一覧', exact: true }));
       await page.waitForFunction(
         () => document.querySelectorAll('table.tickets tbody tr').length === 34,
       );
@@ -1106,7 +1106,7 @@ async function runChecks() {
       };
       await capture('overview-keyboard-focus', false, false);
       await page.keyboard.press('Enter');
-      await visible(page.getByRole('heading', { name: '問い合わせの一覧', exact: true }));
+      await visible(page.getByRole('heading', { name: 'チケット一覧', exact: true }));
       assert.equal(new URL(page.url()).searchParams.get('group'), 'mine');
     },
   );

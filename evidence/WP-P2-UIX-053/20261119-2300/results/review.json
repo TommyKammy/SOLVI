@@ -1,0 +1,337 @@
+{
+  "browser": "157.0.8103.79",
+  "navigation": [
+    {
+      "width": 1440,
+      "name": "管理ホーム",
+      "withinMenu": true,
+      "scrollTop": 95,
+      "contentScroll": 0
+    },
+    {
+      "width": 375,
+      "name": "管理ホーム",
+      "withinMenu": true,
+      "scrollTop": 312,
+      "contentScroll": 0
+    }
+  ],
+  "queue": [
+    {
+      "width": 1440,
+      "title": "チケット一覧",
+      "rowHeaderCount": 1,
+      "height": 16,
+      "fits": true,
+      "pageOverflow": 0
+    },
+    {
+      "width": 375,
+      "title": "チケット一覧",
+      "rowHeaderCount": 1,
+      "height": 44,
+      "fits": true,
+      "pageOverflow": 0
+    }
+  ],
+  "ticketDetail": [
+    {
+      "width": 1440,
+      "belowTitle": false,
+      "alignedLeft": false
+    },
+    {
+      "width": 375,
+      "belowTitle": true,
+      "alignedLeft": true
+    }
+  ],
+  "inbox": [
+    {
+      "width": 1440,
+      "tabOrder": [
+        "絞り込む",
+        "条件を解除する",
+        "checkbox"
+      ],
+      "buttonsAligned": true,
+      "selectsShareRow": true,
+      "actionsShareRow": true,
+      "rowHeaderCount": 1
+    },
+    {
+      "width": 375,
+      "tabOrder": [
+        "絞り込む",
+        "条件を解除する",
+        "checkbox"
+      ],
+      "buttonsAligned": false,
+      "selectsShareRow": true,
+      "actionsShareRow": true,
+      "rowHeaderCount": 1
+    }
+  ],
+  "portal": {
+    "currentOnNewTicket": 0,
+    "escapeClosed": true,
+    "restoredFocus": true
+  },
+  "references": [
+    {
+      "width": 1440,
+      "actual": "inbox",
+      "hash": "inbox",
+      "title": "業務受信箱",
+      "x": 256,
+      "y": 100,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "portal-report",
+      "hash": "report",
+      "title": "障害を報告する",
+      "x": 328,
+      "y": 131,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "catalog-manage",
+      "hash": "catalog-admin",
+      "title": "カタログ管理",
+      "x": 256,
+      "y": 119.796875,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "knowledge",
+      "hash": "knowledge",
+      "title": "ヘルプ記事を探す",
+      "x": 32,
+      "y": 131,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "assets",
+      "hash": "assets",
+      "title": "資産台帳",
+      "x": 256,
+      "y": 100,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "admin",
+      "hash": "admin",
+      "title": "管理ホーム",
+      "x": 256,
+      "y": 119.796875,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "reports",
+      "hash": "reports",
+      "title": "レポート",
+      "x": 256,
+      "y": 119.796875,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 1440,
+      "actual": "assistance",
+      "hash": "ticket/INC-1048?focus=ai",
+      "title": "VPNに接続できない",
+      "x": 256,
+      "y": 153.796875,
+      "fontSize": "32px",
+      "fontWeight": "700",
+      "lineHeight": "44.8px"
+    },
+    {
+      "width": 375,
+      "actual": "inbox",
+      "hash": "inbox",
+      "title": "業務受信箱",
+      "x": 20,
+      "y": 90,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "portal-report",
+      "hash": "report",
+      "title": "障害を報告する",
+      "x": 20,
+      "y": 216,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "catalog-manage",
+      "hash": "catalog-admin",
+      "title": "カタログ管理",
+      "x": 20,
+      "y": 109.796875,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "knowledge",
+      "hash": "knowledge",
+      "title": "ヘルプ記事を探す",
+      "x": 20,
+      "y": 216,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "assets",
+      "hash": "assets",
+      "title": "資産台帳",
+      "x": 20,
+      "y": 90,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "admin",
+      "hash": "admin",
+      "title": "管理ホーム",
+      "x": 20,
+      "y": 109.796875,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "reports",
+      "hash": "reports",
+      "title": "レポート",
+      "x": 20,
+      "y": 109.796875,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    },
+    {
+      "width": 375,
+      "actual": "assistance",
+      "hash": "ticket/INC-1048?focus=ai",
+      "title": "VPNに接続できない",
+      "x": 20,
+      "y": 143.796875,
+      "fontSize": "28px",
+      "fontWeight": "700",
+      "lineHeight": "39.2px"
+    }
+  ],
+  "contrast": [
+    {
+      "theme": "light",
+      "minRatio": 13.572250385831628,
+      "ink": "rgb(24, 35, 50)",
+      "stops": [
+        "rgb(247, 249, 252)",
+        "rgb(230, 238, 251)"
+      ]
+    },
+    {
+      "theme": "dark",
+      "minRatio": 9.58956345182367,
+      "ink": "rgb(237, 242, 250)",
+      "stops": [
+        "rgb(27, 37, 51)",
+        "rgb(40, 62, 96)"
+      ]
+    }
+  ],
+  "knowledge": {
+    "alignedBottom": true,
+    "resetBelow": true
+  },
+  "webkit": {
+    "version": "26.5",
+    "pages": [
+      {
+        "role": "admin",
+        "path": "/ops/overview",
+        "overflow": 0
+      },
+      {
+        "role": "admin",
+        "path": "/inbox",
+        "overflow": 0
+      },
+      {
+        "role": "admin",
+        "path": "/ops",
+        "overflow": 0
+      },
+      {
+        "role": "admin",
+        "path": "/catalog/manage",
+        "overflow": 0
+      },
+      {
+        "role": "admin",
+        "path": "/assets/imports/new",
+        "overflow": 0
+      },
+      {
+        "role": "admin",
+        "path": "/ops/admin",
+        "overflow": 0
+      },
+      {
+        "role": "admin",
+        "path": "/ops/reports",
+        "overflow": 0
+      },
+      {
+        "role": "requester",
+        "path": "/portal",
+        "overflow": 0
+      },
+      {
+        "role": "requester",
+        "path": "/tickets/new?kind=incident",
+        "overflow": 0
+      },
+      {
+        "role": "requester",
+        "path": "/knowledge",
+        "overflow": 0
+      }
+    ]
+  }
+}

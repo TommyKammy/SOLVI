@@ -1,0 +1,219 @@
+{
+  "browser": "157.0.8103.79",
+  "journeys": [
+    {
+      "width": 1440,
+      "number": "REQ-2026-000001",
+      "requestId": "01a1f41e-cb36-7000-b992-758f09586e9f",
+      "itemId": "01a1f41e-c8d0-7000-8c5e-b12d81d3ed7b",
+      "ruleId": "01a1f41e-c58c-7000-a9bb-80e8795b5a72",
+      "outcome": "approved",
+      "reason": "希望日で貸し出せます。受付で申請番号をお伝えください。",
+      "title": "貸出PCの利用申請",
+      "version": 1,
+      "snapshotPreserved": true,
+      "supplementalStored": false,
+      "selfDecisionControl": false
+    },
+    {
+      "width": 375,
+      "number": "REQ-2026-000002",
+      "requestId": "01a1f41e-dad9-7001-bd6b-b4b1cfc3f74a",
+      "itemId": "01a1f41e-d7d6-7000-b71f-b427ab3c506f",
+      "ruleId": "01a1f41e-d47b-7000-a8cf-585ba9457f9b",
+      "outcome": "rejected",
+      "reason": "貸出先の在庫確認が必要なため、日程を再調整してください。",
+      "title": "会議用機器の利用申請",
+      "version": 1,
+      "snapshotPreserved": true,
+      "supplementalStored": true,
+      "selfDecisionControl": false
+    }
+  ],
+  "crossDevice": [
+    {
+      "width": 375,
+      "number": "REQ-2026-000001",
+      "requestId": "01a1f41e-cb36-7000-b992-758f09586e9f",
+      "outcome": "approved"
+    },
+    {
+      "width": 1440,
+      "number": "REQ-2026-000002",
+      "requestId": "01a1f41e-dad9-7001-bd6b-b4b1cfc3f74a",
+      "outcome": "rejected"
+    }
+  ],
+  "scans": [
+    {
+      "name": "decision",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "decision",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "decision",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "decision",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval-rules",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "catalog-draft",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-form",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "outcome",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval-rules",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "catalog-draft",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-form",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "outcome",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval-rules",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "catalog-draft",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-form",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "outcome",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "approval-rules",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "catalog-draft",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-form",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "outcome",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "writesDuringPreview": [
+    {
+      "width": 1440,
+      "count": 0
+    },
+    {
+      "width": 375,
+      "count": 0
+    }
+  ]
+}

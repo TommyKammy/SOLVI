@@ -97,7 +97,7 @@ export default async function AdminHome() {
     <main id="main" className="shell fs-admin admin-workspace">
       <div className="page-heading">
         <div>
-          <h1>管理</h1>
+          <h1>管理ホーム</h1>
           <p className="hint">
             {orgAdmin
               ? '組織管理者'

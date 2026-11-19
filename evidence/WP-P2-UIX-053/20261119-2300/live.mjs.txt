@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { login, require } from './release/visual/helpers.mjs';
+const { chromium } = require('playwright');
+const url = 'http://127.0.0.1:3000';
+const admin = await login('org_admin', 'acme', 'http://127.0.0.1:3001');
+const browser = await chromium.launch({ channel: 'chrome' });
+try {
+  for (const width of [1440, 375]) {
+    const context = await browser.newContext({ viewport: { width, height: width === 1440 ? 900 : 812 }, isMobile: width === 375, hasTouch: width === 375 });
+    await context.addCookies([{ ...admin, url }]);
+    const page = await context.newPage();
+    await page.goto(url + '/');
+    await page.waitForURL(url => url.pathname === '/inbox');
+    await page.getByLabel('番号・件名で検索', { exact: true }).waitFor();
+    await page.goto(url + '/ops');
+    await page.getByRole('heading', { name: 'チケット一覧', level: 1 }).waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    assert.equal(overflow, 0);
+    await page.goto(url + '/ops/admin');
+    if (width === 375) await page.getByRole('button', { name: 'メニューを開く', exact: true }).tap();
+    await page.waitForFunction(() => {
+      const active = document.querySelector('.fs-side-menu a[aria-current="page"]');
+      const menu = active?.closest('nav');
+      if (!menu) return false;
+      const item = active.getBoundingClientRect();
+      const region = menu.getBoundingClientRect();
+      return item.height > 0 && item.top >= region.top - 1 && item.bottom <= region.bottom + 1;
+    });
+    console.log(JSON.stringify({width, rootToInbox: true, ticketListTitle: 'チケット一覧', pageOverflow: overflow, currentAdminLinkVisible: true}));
+    await context.close();
+  }
+} finally {
+  await browser.close();
+}

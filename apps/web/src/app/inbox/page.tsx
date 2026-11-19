@@ -115,24 +115,37 @@ export default async function InboxPage({
       </dl>
       <form method="get" className="filters" aria-label="受信箱の絞り込み">
         <div className="field">
-          <label htmlFor="inbox-q">番号・タイトルで検索</label>
-          <input type="text" id="inbox-q" name="q" defaultValue={f.q} maxLength={160} />
+          <label htmlFor="inbox-q">番号・件名で検索</label>
+          <input
+            type="text"
+            id="inbox-q"
+            name="q"
+            defaultValue={f.q}
+            maxLength={160}
+            placeholder="VPN、INC-1048など"
+          />
         </div>
         <div className="field">
           <label htmlFor="inbox-kind">業務の種類</label>
           <select id="inbox-kind" name="kind" defaultValue={f.kind}>
             <option value="all">すべて</option>
             <option value="ticket">担当チケット</option>
-            <option value="approval">自分への承認依頼</option>
-            <option value="change">担当する変更・PIR</option>
+            <option value="approval">承認依頼</option>
+            <option value="change">変更・PIR</option>
           </select>
         </div>
         <div className="field">
           <label htmlFor="inbox-unread">更新の確認</label>
           <select id="inbox-unread" name="unread" defaultValue={f.unread}>
-            <option value="0">未読・既読を表示</option>
-            <option value="1">新しい更新だけ</option>
+            <option value="0">すべての更新</option>
+            <option value="1">新しい更新</option>
           </select>
+        </div>
+        <div className="form-actions inbox-filter-actions">
+          <button type="submit">絞り込む</button>
+          <Link className="support-action" href="/inbox">
+            条件を解除する
+          </Link>
         </div>
         {d.canIncludeUnassigned && (
           <label className="inbox-unassigned">
@@ -145,12 +158,6 @@ export default async function InboxPage({
             担当未定のチケットも表示する
           </label>
         )}
-        <div className="form-actions inbox-filter-actions">
-          <button type="submit">絞り込む</button>
-          <Link className="support-action" href="/inbox">
-            条件を解除する
-          </Link>
-        </div>
       </form>
       <p className="hint">
         業務を開くと更新が既読になります。返答・外部対応待ちのSLAは計測を停止します。
@@ -215,9 +222,9 @@ export default async function InboxPage({
             <tbody>
               {d.items.map((item) => (
                 <tr key={item.kind + ':' + item.id}>
-                  <td className="inbox-number">
+                  <th scope="row" className="inbox-number">
                     <span className="cell-clip">{item.number}</span>
-                  </td>
+                  </th>
                   <td className="ticket-subject">
                     <strong className="record-title">{item.title}</strong>
                     <span className={`update-label${item.unread ? ' unread' : ''}`}>

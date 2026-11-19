@@ -1,0 +1,249 @@
+{
+  "browser": "157.0.8103.79",
+  "journeys": [
+    {
+      "width": 1440,
+      "opposite": 375,
+      "id": "01a1f41f-1aff-7000-8b84-16c8cb4373d1",
+      "title": "VPN接続を再設定する（端末確認1440試験01）",
+      "versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "organizationVersion": 3,
+      "staffVersion": 6,
+      "requesterSearchAfterRestriction": 0,
+      "requesterDirectStatus": 404,
+      "requesterManagedApiStatus": 403,
+      "oppositeVerified": [
+        "organization read",
+        "staff read",
+        "requester zero",
+        "requester direct 404"
+      ]
+    },
+    {
+      "width": 375,
+      "opposite": 1440,
+      "id": "01a1f41f-3c9a-7000-9480-fa0ef4ab11ec",
+      "title": "VPN接続を再設定する（端末確認375試験01）",
+      "versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "organizationVersion": 3,
+      "staffVersion": 6,
+      "requesterSearchAfterRestriction": 0,
+      "requesterDirectStatus": 404,
+      "requesterManagedApiStatus": 403,
+      "oppositeVerified": [
+        "organization read",
+        "staff read",
+        "requester zero",
+        "requester direct 404"
+      ]
+    }
+  ],
+  "scans": [
+    {
+      "name": "author",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "author",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "search",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "search",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-article",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-article",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "staff-article",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "staff-article",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "zero",
+      "theme": "light",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "zero",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "author",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "author",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "review",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "search",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "search",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-article",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "public-article",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "staff-article",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "staff-article",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "zero",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "zero",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    }
+  ]
+}

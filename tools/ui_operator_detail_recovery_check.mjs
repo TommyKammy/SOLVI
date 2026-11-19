@@ -423,7 +423,7 @@ export async function runOperatorDetailRecoveryChecks({
       await scenario({ detail: 'normal', view: 'new' });
       await nativeNavigation(back(), returnPath);
       await main()
-        .getByRole('heading', { name: '問い合わせの一覧', level: 1, exact: true })
+        .getByRole('heading', { name: 'チケット一覧', level: 1, exact: true })
         .waitFor();
       await shot('conditional-list');
     });
@@ -439,7 +439,7 @@ export async function runOperatorDetailRecoveryChecks({
       await scenario({ detail: 'normal', view: 'new' });
       await nativeNavigation(fallback(), '/ops');
       await main()
-        .getByRole('heading', { name: '問い合わせの一覧', level: 1, exact: true })
+        .getByRole('heading', { name: 'チケット一覧', level: 1, exact: true })
         .waitFor();
       await shot('fallback-list');
     });

@@ -137,7 +137,7 @@ export default async function OpsQueue({
       <div className="page-heading queue-heading">
         <div>
           <h1 id={ticketListHeadingId} tabIndex={-1}>
-            問い合わせの一覧
+            チケット一覧
           </h1>
           <p className="hint">担当・状況・期限から、次に対応する問い合わせを確認します。</p>
         </div>
@@ -267,7 +267,7 @@ export default async function OpsQueue({
               ) : null}
             </section>
           ) : (
-            <TableRegion label="問い合わせ一覧" className="table-scroll table-scroll--plain">
+            <TableRegion label="チケット一覧" className="table-scroll table-scroll--plain">
               <table className="tickets fs-queue-table fs-queue-table--v2">
                 <caption className="visually-hidden">
                   全 {tickets.data.total} 件中 {tickets.data.items.length} 件を表示
@@ -303,9 +303,9 @@ export default async function OpsQueue({
                       : 'unknown';
                     return (
                       <tr key={ticket.id}>
-                        <td className="queue-number">
+                        <th scope="row" className="queue-number">
                           <span className="cell-clip">{ticket.number}</span>
-                        </td>
+                        </th>
                         <td className="ticket-subject">
                           <Link
                             className="queue-subject"

@@ -261,7 +261,7 @@ export function actorRoutes(actor, fixture) {
   ];
   if (actor.role === 'requester') return common;
   const staff = [
-    page('ops', '/ops', '問い合わせの一覧', ['問い合わせの絞り込み']),
+    page('ops', '/ops', 'チケット一覧', ['問い合わせの絞り込み']),
     page('overview', '/ops/overview', '運営状況', ['現在の件数', '解決期限の確認']),
     page('inbox', '/inbox', '業務受信箱', ['自分への承認']),
     api(

@@ -114,7 +114,7 @@ export function buildNavigationGroups(
     ...(roles.inbox ? [item('/inbox', '業務受信箱', undefined, count('inbox', 'brand'))] : []),
     ...(roles.staff
       ? [
-          item('/ops', 'チケット対応'),
+          item('/ops', 'チケット一覧'),
           item(MINE_HREF, '自分の担当', '/ops', count('mine')),
           item(BREACHED_HREF, '解決期限超過', '/ops', count('breached', 'danger')),
         ]

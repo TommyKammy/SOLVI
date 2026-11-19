@@ -1,0 +1,21 @@
+AXE light 1440 report 0 pass
+AXE light 1440 sla-drilldown 0 pass
+AXE light 1440 ticket-detail 0 pass
+AXE light 1440 audit-approval 0 pass
+AXE light 1440 audit-role-detail 0 pass
+AXE dark 1440 sla-drilldown 0 pass
+AXE dark 1440 audit-approval 0 pass
+AXE dark 1440 audit-role-detail 0 pass
+JOURNEY 1440 counts 4/1/3/1; SLA and resolved ticket drilldown and return; approval and role history; empty/invalid and permission views
+AXE light 375 report 0 pass
+AXE light 375 sla-drilldown 0 pass
+AXE light 375 ticket-detail 0 pass
+AXE light 375 audit-approval 0 pass
+AXE light 375 audit-role-detail 0 pass
+AXE dark 375 sla-drilldown 0 pass
+AXE dark 375 audit-approval 0 pass
+AXE dark 375 audit-role-detail 0 pass
+JOURNEY 375 counts 4/1/3/1; SLA and resolved ticket drilldown and return; approval and role history; empty/invalid and permission views
+PAGING 1440 25 5
+PAGING 375 25 5
+SECURITY {"orgIsolationListAndDetail":true,"deniedRoles":4,"safeProjection":true,"auditViewed":38}

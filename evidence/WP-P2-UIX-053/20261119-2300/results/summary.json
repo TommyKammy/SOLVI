@@ -1,0 +1,11 @@
+{
+  "journeys": 20,
+  "referenceHeadingComparisons": 26,
+  "axeScans": 252,
+  "axeViolations": 0,
+  "axeIncomplete": 11,
+  "mobileTableContrast": {
+    "checks": 24,
+    "minimumRatio": 5.95
+  }
+}
