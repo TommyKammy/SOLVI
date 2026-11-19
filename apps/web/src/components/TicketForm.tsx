@@ -39,18 +39,13 @@ export function TicketForm({ kind, scope }: { kind: 'incident' | 'request'; scop
       onReset={(event) => event.preventDefault()}
     >
       <input type="hidden" name="kind" value={kind} />
-      <FormDraftRecovery
-        scope={scope}
-        formKey={formKey}
-        version="new"
-        baseline={baseline}
-        values={{ subject, body, impact, urgency }}
-        labels={{ subject: '件名', body: '内容', impact: '影響の範囲', urgency: '急ぎ具合' }}
-        onRestore={restore}
-      />
-
       <FormField className="field">
-        <label htmlFor="subject">件名</label>
+        <label htmlFor="subject">
+          件名{' '}
+          <span className="required-label" aria-hidden="true">
+            必須
+          </span>
+        </label>
         <span className="hint" id="subject-hint">
           {incident ? '例: 経費精算システムにログインできない' : '例: 新入社員のアカウント作成'}
         </span>
@@ -65,7 +60,12 @@ export function TicketForm({ kind, scope }: { kind: 'incident' | 'request'; scop
         />
       </FormField>
       <FormField className="field">
-        <label htmlFor="body">内容</label>
+        <label htmlFor="body">
+          内容{' '}
+          <span className="required-label" aria-hidden="true">
+            必須
+          </span>
+        </label>
         <span className="hint" id="body-hint">
           {incident
             ? 'いつから、何をしたときに、どうなるかをお知らせください。パスワードは記載しないでください。'
@@ -120,6 +120,15 @@ export function TicketForm({ kind, scope }: { kind: 'incident' | 'request'; scop
           キャンセルして戻る
         </ContextLink>
       </div>
+      <FormDraftRecovery
+        scope={scope}
+        formKey={formKey}
+        version="new"
+        baseline={baseline}
+        values={{ subject, body, impact, urgency }}
+        labels={{ subject: '件名', body: '内容', impact: '影響の範囲', urgency: '急ぎ具合' }}
+        onRestore={restore}
+      />
     </FeedbackForm>
   );
 }

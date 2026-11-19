@@ -12,8 +12,25 @@ import {
   portalNavigationQuery,
   portalTicketFilter,
   portalTicketNextAction,
+  portalTicketProgress,
   selectCatalogItems,
 } from '../../apps/web/src/lib/portal-overview';
+
+describe('requester ticket progress follows the current ticket state', () => {
+  it.each([
+    ['new', 0],
+    ['assigned', 1],
+    ['in_progress', 2],
+    ['pending', 2],
+    ['resolved', 3],
+    ['closed', 3],
+    ['cancelled', null],
+    ['merged', null],
+    ['other', null],
+  ])('represents %s at %s', (state, stage) => {
+    expect(portalTicketProgress(state)).toBe(stage);
+  });
+});
 
 const self = '03900000-0000-4000-8000-000000000001';
 const cursorCreatedAt = '2026-10-04 01:02:03.123456+00';

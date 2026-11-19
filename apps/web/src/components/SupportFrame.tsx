@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
+import { ThemeToggle } from './ThemeToggle';
 import type { RailGroup } from '../lib/navigation-groups';
 
 type Props = {
@@ -18,14 +19,12 @@ function closeDetails(event: React.MouseEvent<HTMLAnchorElement>) {
 }
 
 /**
- * サポートポータル専用シェル (WP-P2-UIX-032)。
- *
- * エージェント画面の左レールは出さない。Freshserviceのサポートポータルと
- * 同じく、ヒーローの上に重なる透過ヘッダーだけを置く。
+ * サポートポータル専用のヘッダーとロール別メニュー。
  */
 export function SupportFrame({ organizationName, canSwitchOrganization, groups, children }: Props) {
   const pathname = usePathname() ?? '/';
   const isPortalHome = pathname === '/portal';
+  const isTicketPage = /^\/tickets\/[^/]+$/.test(pathname);
   // Reuse the existing role-scoped menu; staff alone excludes approvers and auditors.
   const workLinks = groups
     .flatMap((group) => group.items)
@@ -35,106 +34,115 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
   return (
     <div className={`fs-support${isPortalHome ? '' : ' fs-support--subpage'}`}>
       <header className="fs-support-header">
-        <div className="fs-support-header-left">
-          <details className="fs-support-menu">
-            <summary aria-label="サポートポータルのメニュー" title="メニュー">
-              <FreshserviceIcon name="menu" size={22} />
-            </summary>
-            <nav className="fs-support-menu-panel" aria-label="サポートポータルのメニュー">
-              <p className="fs-support-menu-title">サポート</p>
-              <Link href="/portal" onClick={closeDetails}>
-                ホーム
-              </Link>
-              <Link href="/portal?tab=tickets" onClick={closeDetails}>
-                自分の問い合わせ
-              </Link>
-              <Link href="/requests?view=mine" onClick={closeDetails}>
-                申請の状況
-              </Link>
-              <Link href="/catalog" onClick={closeDetails}>
-                サービスカタログ
-              </Link>
-              <Link href="/knowledge" onClick={closeDetails}>
-                ナレッジ
-              </Link>
-              <Link href="/settings/notifications" onClick={closeDetails}>
-                通知設定
-              </Link>
-              <Link href="/settings/delegations" onClick={closeDetails}>
-                承認の委任
-              </Link>
-              {workLinks.length > 0 && (
-                <>
-                  <p className="fs-support-menu-title fs-support-menu-title--staff">担当業務</p>
-                  {workLinks.map((item) => (
-                    <Link key={item.href} href={item.href} onClick={closeDetails}>
-                      {item.label}
-                    </Link>
-                  ))}
-                </>
-              )}
-            </nav>
-          </details>
-          <Link className="fs-support-brand" href="/portal" aria-label="SOLVI サポートポータル">
-            <span className="fs-support-brand-mark" aria-hidden="true">
-              S
-            </span>
-            <span>SOLVI</span>
-          </Link>
-          {organizationName && <span className="fs-support-org">{organizationName}</span>}
-        </div>
-        <div className="fs-support-header-right">
-          <Link
-            className="fs-support-icon-button"
-            href="/settings/notifications"
-            aria-label="通知設定"
-            title="通知設定"
-          >
-            <FreshserviceIcon name="bell" size={20} />
-          </Link>
-          <details className="fs-user-menu fs-support-user">
-            <summary aria-label="ユーザーメニュー" title="ユーザーメニュー">
-              <span className="fs-avatar" aria-hidden="true">
-                <FreshserviceIcon name="user" size={18} />
-              </span>
-            </summary>
-            <div className="fs-user-popover">
-              <div className="fs-user-popover-head">
-                <span className="fs-avatar fs-avatar--large" aria-hidden="true">
-                  <FreshserviceIcon name="user" size={20} />
-                </span>
-                <div>
-                  <strong>SOLVI アカウント</strong>
-                  {organizationName && <span>{organizationName}</span>}
-                </div>
-              </div>
-              {organizationName && (
-                <div className="fs-user-org">
-                  <FreshserviceIcon name="organization" size={16} />
-                  <span>{organizationName}</span>
-                </div>
-              )}
-              <nav className="fs-user-links" aria-label="アカウント">
-                <Link href="/settings/notifications">自分の通知設定</Link>
-                <Link href="/settings/delegations">承認の委任</Link>
-                {canSwitchOrganization && <Link href="/select-organization">組織を切り替える</Link>}
-                {inbox && <Link href={inbox.href}>{inbox.label}</Link>}
+        <div className="fs-support-header-inner">
+          <div className="fs-support-header-left">
+            <details className="fs-support-menu">
+              <summary aria-label="サポートポータルのメニュー" title="メニュー">
+                <FreshserviceIcon name="menu" size={22} />
+              </summary>
+              <nav className="fs-support-menu-panel" aria-label="サポートポータルのメニュー">
+                <p className="fs-support-menu-title">サポート</p>
+                <Link href="/portal" onClick={closeDetails}>
+                  ホーム
+                </Link>
+                <Link href="/portal?tab=tickets" onClick={closeDetails}>
+                  自分の問い合わせ
+                </Link>
+                <Link href="/requests?view=mine" onClick={closeDetails}>
+                  申請の状況
+                </Link>
+                <Link href="/catalog" onClick={closeDetails}>
+                  サービスカタログ
+                </Link>
+                <Link href="/knowledge" onClick={closeDetails}>
+                  ナレッジ
+                </Link>
+                <Link href="/settings/notifications" onClick={closeDetails}>
+                  通知設定
+                </Link>
+                <Link href="/settings/delegations" onClick={closeDetails}>
+                  承認の委任
+                </Link>
+                {workLinks.length > 0 && (
+                  <>
+                    <p className="fs-support-menu-title fs-support-menu-title--staff">担当業務</p>
+                    {workLinks.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={closeDetails}>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </>
+                )}
               </nav>
-              <div className="fs-user-logout">
-                <LogoutForm />
+            </details>
+            <Link className="fs-support-brand" href="/portal" aria-label="SOLVI サポートポータル">
+              <span className="fs-support-brand-mark" aria-hidden="true">
+                S
+              </span>
+              <span>SOLVI</span>
+            </Link>
+            {organizationName && <span className="fs-support-org">{organizationName}</span>}
+          </div>
+          <div className="fs-support-header-right">
+            <Link
+              className="fs-support-icon-button"
+              href="/settings/notifications"
+              aria-label="通知設定"
+              title="通知設定"
+            >
+              <FreshserviceIcon name="bell" size={20} />
+            </Link>
+            <details className="fs-user-menu fs-support-user">
+              <summary aria-label="ユーザーメニュー" title="ユーザーメニュー">
+                <span className="fs-avatar" aria-hidden="true">
+                  <FreshserviceIcon name="user" size={18} />
+                </span>
+              </summary>
+              <div className="fs-user-popover">
+                <div className="fs-user-popover-head">
+                  <span className="fs-avatar fs-avatar--large" aria-hidden="true">
+                    <FreshserviceIcon name="user" size={20} />
+                  </span>
+                  <div>
+                    <strong>SOLVI アカウント</strong>
+                    {organizationName && <span>{organizationName}</span>}
+                  </div>
+                </div>
+                {organizationName && (
+                  <div className="fs-user-org">
+                    <FreshserviceIcon name="organization" size={16} />
+                    <span>{organizationName}</span>
+                  </div>
+                )}
+                <nav className="fs-user-links" aria-label="アカウント">
+                  <Link href="/settings/notifications">自分の通知設定</Link>
+                  <Link href="/settings/delegations">承認の委任</Link>
+                  {canSwitchOrganization && (
+                    <Link href="/select-organization">組織を切り替える</Link>
+                  )}
+                  {inbox && <Link href={inbox.href}>{inbox.label}</Link>}
+                </nav>
+                <div className="fs-user-logout">
+                  <ThemeToggle />
+                  <LogoutForm />
+                </div>
               </div>
-            </div>
-          </details>
+            </details>
+          </div>
         </div>
       </header>
       {isPortalHome ? (
         children
       ) : (
-        <>
-          <div className="fs-support-content">{children}</div>
-          <footer className="support-footer">SOLVI — 社内ITサービス管理</footer>
-        </>
+        <div
+          className={
+            isTicketPage ? 'fs-support-content fs-support-content--ticket' : 'fs-support-content'
+          }
+        >
+          {children}
+        </div>
       )}
+      <footer className="support-footer">SOLVI · 社内ITサービス管理</footer>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { formScope } from '../../../lib/form-scope';
 import { TicketWaitNotice } from '../../../components/TicketWaitNotice';
-import { safeReturnTo, withReturnTo } from '../../../lib/navigation';
-import { ContextLink } from '../../../components/ContextLink';
+import { navigationRoles, safeReturnTo, withReturnTo } from '../../../lib/navigation';
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
@@ -11,6 +11,8 @@ import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
 import { TicketAssetPanel } from '../../../components/TicketAssetPanel';
 import { RelationList } from '../../../components/RelationList';
+import { TicketReceipt } from '../../../components/TicketReceipt';
+import { portalTicketNextAction, portalTicketProgress } from '../../../lib/portal-overview';
 import {
   formatRemaining,
   stateLabel,
@@ -29,6 +31,7 @@ import {
  */
 
 export const dynamic = 'force-dynamic';
+const progressLabels = ['報告受付', '担当割当', '対応', '解決'] as const;
 
 export default async function TicketDetailPage({
   params,
@@ -39,7 +42,7 @@ export default async function TicketDetailPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const justCreated = query.created !== undefined;
+  const justCreated = query.created === '1';
 
   // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
   // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
@@ -89,6 +92,23 @@ export default async function TicketDetailPage({
   }
 
   const ticket = result.data;
+  const returnTo = safeReturnTo(query.returnTo);
+  const source = returnTo ? new URL(returnTo, 'https://solvi.local') : null;
+  const fromList =
+    source?.pathname === '/portal' &&
+    (source.searchParams.get('tab') === 'tickets' ||
+      source.searchParams.get('view') === 'all' ||
+      source.searchParams.has('cursorId'));
+  const backHref = returnTo ?? '/portal?tab=tickets';
+  const backLabel =
+    fromList || !returnTo
+      ? '自分の問い合わせに戻る'
+      : source?.pathname === '/portal'
+        ? 'ポータルに戻る'
+        : '元の画面に戻る';
+  const roles = navigationRoles(session);
+  const requesterView = !roles.staff && !roles.auditor;
+  const progress = portalTicketProgress(ticket.state);
 
   // コメント一覧。**内部メモの除外はAPI側が行う。**
   // 依頼者のセッションでは、そもそも内部メモが返ってこない。
@@ -131,44 +151,79 @@ export default async function TicketDetailPage({
   }
 
   return (
-    <main id="main" className="shell ticket-workspace">
-      {justCreated && (
-        <div
-          className="error-summary"
-          style={{ borderColor: 'var(--accent)', background: 'var(--surface)' }}
-          role="status"
-          tabIndex={-1}
-          autoFocus
-        >
-          <h2 style={{ color: 'var(--accent)' }}>受け付けました</h2>
-          <p style={{ margin: 0 }}>
-            受付番号は <strong>{ticket.number}</strong> です。担当者が内容を確認し、
-            進捗と追加の連絡はこの画面で確認できます。
+    <main id="main" className="shell ticket-workspace support-ticket-detail">
+      <header className="support-page-heading">
+        <div>
+          <Link href={backHref} className="support-back">
+            {backLabel}
+          </Link>
+          <p className="support-ticket-number">
+            受付番号 <strong>{ticket.number}</strong> · {kindLabel(ticket.kind)}
           </p>
+          <h1>{ticket.subject}</h1>
         </div>
+      </header>
+      {justCreated && (
+        <TicketReceipt number={ticket.number} incident={ticket.kind === 'incident'} />
       )}
+      <TicketWaitNotice ticket={ticket} requester={requesterView} />
 
-      <h1>{ticket.subject}</h1>
-      <p className="lead">
-        受付番号 {ticket.number} ・ {kindLabel(ticket.kind)}
-      </p>
-
-      <TicketWaitNotice
-        ticket={ticket}
-        requester={
-          !session.roles.some((role) =>
-            ['agent', 'org_admin', 'auditor', 'platform_admin'].includes(role.roleCode),
-          )
-        }
-      />
-
-      <div className="workspace-grid">
-        <section className="workspace-primary" aria-label="問い合わせと会話">
+      <div className="support-ticket-layout">
+        <aside className="support-ticket-progress" aria-labelledby="ticket-progress-title">
+          <div className="support-progress-heading">
+            <h2 id="ticket-progress-title">対応状況</h2>
+            <span className="state" data-state={ticket.state}>
+              {stateLabel(ticket.state)}
+            </span>
+          </div>
+          {progress === null ? (
+            <p className="hint">{portalTicketNextAction(ticket)}</p>
+          ) : (
+            <ol className="support-progress-steps" role="list" aria-label="対応の進捗">
+              {progressLabels.map((label, index) => {
+                const complete = index < progress || progress === progressLabels.length - 1;
+                return (
+                  <li
+                    key={label}
+                    aria-current={index === progress ? 'step' : undefined}
+                    data-complete={complete}
+                  >
+                    <span>{index === 0 && ticket.kind !== 'incident' ? '依頼受付' : label}</span>
+                    <span>{complete ? '完了' : index === progress ? '現在' : '未完了'}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          <dl>
+            <dt>担当</dt>
+            <dd>{ticket.assigned ? '担当者を割り当て済み' : '割り当て待ち'}</dd>
+            <dt>受付日時</dt>
+            <dd>
+              <time dateTime={ticket.createdAt}>{formatDateTime(ticket.createdAt)}</time>
+            </dd>
+            {ticket.resolvedAt && (
+              <>
+                <dt>解決日時</dt>
+                <dd>
+                  <time dateTime={ticket.resolvedAt}>{formatDateTime(ticket.resolvedAt)}</time>
+                </dd>
+              </>
+            )}
+          </dl>
+        </aside>
+        <section className="support-ticket-thread" aria-label="問い合わせと会話">
           <h2>お知らせいただいた内容</h2>
           <div className="body-text">{ticket.body}</div>
 
           <h2>やり取り</h2>
-          <CommentThread comments={comments} currentUserId={session.userId} />
+          {commentResult.ok && (
+            <CommentThread
+              comments={comments}
+              currentUserId={session.userId}
+              requesterView={requesterView}
+            />
+          )}
 
           <h2>追加でお知らせする</h2>
           {query.commentSaved === '1' && (
@@ -209,18 +264,9 @@ export default async function TicketDetailPage({
             <AttachmentForm ticketId={id} canChooseVisibility={false} />
           </details>
         </section>
-        <aside className="workspace-secondary" aria-label="問い合わせの状況">
+        <section className="support-ticket-information" aria-labelledby="ticket-info-title">
+          <h2 id="ticket-info-title">問い合わせ情報</h2>
           <dl className="detail">
-            <dt>状況</dt>
-            <dd>
-              <span className="state" data-state={ticket.state}>
-                {stateLabel(ticket.state)}
-              </span>
-            </dd>
-
-            <dt>担当</dt>
-            <dd>{ticket.assigned ? '担当者を割り当て済み' : '割り当て待ち'}</dd>
-
             <dt>優先度</dt>
             <dd>
               {priorityLabel(ticket.priority)}
@@ -231,31 +277,24 @@ export default async function TicketDetailPage({
                 から判定)
               </span>
             </dd>
-
-            <dt>受付日時</dt>
-            <dd>{formatDateTime(ticket.createdAt)}</dd>
-
-            {ticket.resolvedAt && (
-              <>
-                <dt>解決日時</dt>
-                <dd>{formatDateTime(ticket.resolvedAt)}</dd>
-              </>
-            )}
           </dl>
 
-          {ticket.sla && ticket.state !== 'closed' && ticket.state !== 'cancelled' && (
-            // **依頼者にも期限を見せる。** 「いつまでに返ってくるか」は
-            // 依頼者が最も知りたいことであり、見えないと
-            // 「まだですか」という問い合わせが増える。
-            <div className={ticket.sla.breached ? 'sla-panel breached' : 'sla-panel'}>
-              <strong>対応の目安: {formatRemaining(ticket.sla.remainingSeconds ?? 0)}</strong>
-              <p className="hint" style={{ margin: '0.25rem 0 0' }}>
-                {ticket.sla.breached
-                  ? '目安の時間を過ぎています。お待たせしており申し訳ありません。状況は担当者が確認しています。'
-                  : '優先度に応じた目安です。状況により前後することがあります。'}
-              </p>
-            </div>
-          )}
+          {ticket.sla &&
+            ticket.sla.remainingSeconds !== null &&
+            ticket.state !== 'closed' &&
+            ticket.state !== 'cancelled' && (
+              // **依頼者にも期限を見せる。** 「いつまでに返ってくるか」は
+              // 依頼者が最も知りたいことであり、見えないと
+              // 「まだですか」という問い合わせが増える。
+              <div className={ticket.sla.breached ? 'sla-panel breached' : 'sla-panel'}>
+                <strong>対応の目安: {formatRemaining(ticket.sla.remainingSeconds)}</strong>
+                <p className="hint" style={{ margin: '0.25rem 0 0' }}>
+                  {ticket.sla.breached
+                    ? '目安の時間を過ぎています。お待たせしており申し訳ありません。状況は担当者が確認しています。'
+                    : '優先度に応じた目安です。状況により前後することがあります。'}
+                </p>
+              </div>
+            )}
 
           {ticket.state === 'resolved' && (
             <>
@@ -299,13 +338,8 @@ export default async function TicketDetailPage({
 
             <TicketAssetPanel ticketId={id} />
           </details>
-        </aside>
+        </section>
       </div>
-      <p style={{ marginTop: '2rem' }}>
-        <ContextLink back href="/portal">
-          ポータルへ戻る
-        </ContextLink>
-      </p>
     </main>
   );
 }

@@ -1,0 +1,21 @@
+PASS 1440 INC-2026-000002 report, staff assignment and reply, requester progress
+PASS 375 INC-2026-000003 report, staff assignment and reply, requester progress
+PASS both exact ticket IDs and public replies across devices
+PASS 32 layout checks including breakpoint boundaries
+AXE 1440 light home pass
+AXE 1440 light my-tickets pass
+AXE 1440 light report pass
+AXE 1440 light detail pass
+AXE 1440 dark home pass
+AXE 1440 dark my-tickets pass
+AXE 1440 dark report pass
+AXE 1440 dark detail pass
+AXE 375 light home pass
+AXE 375 light my-tickets pass
+AXE 375 light report pass
+AXE 375 light detail pass
+AXE 375 dark home pass
+AXE 375 dark my-tickets pass
+AXE 375 dark report pass
+AXE 375 dark detail pass
+PASS pagination cursor and theme persistence

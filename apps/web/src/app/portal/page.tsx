@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
-import { stateLabel, kindLabel, formatDateTime } from '../../lib/labels';
+import { stateLabel, kindLabel, formatDate, formatDateTime } from '../../lib/labels';
 import { TicketPagination } from '../../components/TicketPagination';
 import { FreshserviceIcon } from '../../components/FreshserviceIcon';
-import { navigationRoles } from '../../lib/navigation';
+import { navigationRoles, withReturnTo } from '../../lib/navigation';
 import {
   CATALOG_SEARCH_MAX_LENGTH,
   parsePortalQuery,
@@ -61,15 +61,27 @@ export default async function PortalHome({
   const query = parsePortalQuery(raw);
   const tab: SupportTab =
     raw.tab === 'requests' ? 'requests' : raw.tab === 'services' ? 'services' : 'tickets';
+  const ticketList =
+    tab === 'tickets' && (raw.tab === 'tickets' || query.view === 'all' || query.cursor !== null);
+  const home = tab === 'tickets' && !ticketList;
+  const listHref = (href: string) => href + (href.includes('?') ? '&' : '?') + 'tab=tickets';
   const baseHref = portalHref(query);
-  const currentHref =
-    tab === 'tickets' ? baseHref : `${baseHref}${baseHref.includes('?') ? '&' : '?'}tab=${tab}`;
-  const firstHref = portalHref({ ...query, page: 1, cursor: null });
-  const tabHref = (next: SupportTab) => (next === 'tickets' ? '/portal' : `/portal?tab=${next}`);
+  const currentHref = home
+    ? '/portal'
+    : tab === 'tickets'
+      ? listHref(baseHref)
+      : `/portal?tab=${tab}`;
+  const firstHref = listHref(portalHref({ ...query, page: 1, cursor: null }));
+  const reportHref = withReturnTo('/tickets/new?kind=incident', currentHref);
+  const listQuery = portalNavigationQuery(query);
+  listQuery.set('tab', 'tickets');
 
   // API認可を維持し、URLから来た他人のIDを本人条件に使わない。
   const [tickets, requests, catalog] = await Promise.all([
-    api.listTickets(10, portalTicketFilter(session.userId, query)),
+    api.listTickets(
+      home ? 3 : 10,
+      portalTicketFilter(session.userId, home ? { ...query, view: 'all' } : query),
+    ),
     api.serviceRequests('view=mine&page=1'),
     api.catalog(),
   ]);
@@ -79,143 +91,118 @@ export default async function PortalHome({
 
   return (
     <main id="main" className="support-main">
-      <section className="support-hero" aria-labelledby="support-hero-title">
-        <div className="support-hero-inner">
-          <h1 id="support-hero-title">どういった事でお困りですか？</h1>
-          <form className="support-search" action="/knowledge" method="get" role="search">
-            <FreshserviceIcon name="search" size={22} />
-            <label className="visually-hidden" htmlFor="support-search-input">
-              ヘルプ記事を検索
-            </label>
-            <input
-              id="support-search-input"
-              type="search"
-              name="q"
-              maxLength={200}
-              placeholder="ヘルプ記事を検索"
-            />
-            <button type="submit">検索</button>
-          </form>
-        </div>
-      </section>
-
-      <section className="support-cards" aria-label="よく使う操作">
-        <div className="support-cards-grid">
-          <Link
-            className="support-card support-card--service"
-            href={{ pathname: '/catalog', query: { returnTo: currentHref } }}
-          >
-            <span className="support-card-icon" aria-hidden="true">
-              <FreshserviceIcon name="grid" size={30} />
-            </span>
-            <span className="support-card-text">
-              <strong>サービスをリクエストする</strong>
-              <span>提供されているサービスから必要なものを選び、申請します。</span>
-            </span>
-          </Link>
-          <Link
-            className="support-card support-card--incident"
-            href={{
-              pathname: '/tickets/new',
-              query: { kind: 'incident', returnTo: currentHref },
-            }}
-          >
-            <span className="support-card-icon" aria-hidden="true">
-              <FreshserviceIcon name="ticket" size={30} />
-            </span>
-            <span className="support-card-text">
-              <strong>問題を報告する</strong>
-              <span>困っていることをサポートチームへ連絡します。</span>
-            </span>
-          </Link>
-          <Link className="support-card support-card--knowledge" href="/knowledge">
-            <span className="support-card-icon" aria-hidden="true">
-              <FreshserviceIcon name="book" size={30} />
-            </span>
-            <span className="support-card-text">
-              <strong>ヘルプ記事を閲覧する</strong>
-              <span>よくある質問や手順を調べて、自分で解決します。</span>
-            </span>
-          </Link>
-          <Link
-            className="support-card support-card--approval"
-            href={hasWork ? '/inbox' : '/requests?view=mine'}
-          >
-            <span className="support-card-icon" aria-hidden="true">
-              <FreshserviceIcon name="change" size={30} />
-            </span>
-            <span className="support-card-text">
-              <strong>{hasWork ? '担当業務を確認する' : '申請状況を確認する'}</strong>
-              <span>
-                {hasWork
-                  ? '担当する問い合わせや承認待ちを確認します。'
-                  : '自分が申請したサービスの進捗を確認します。'}
-              </span>
-            </span>
-          </Link>
-        </div>
-      </section>
+      {home ? (
+        <section className="support-hero" aria-labelledby="support-hero-title">
+          <div className="support-hero-inner">
+            <h1 id="support-hero-title">どういったことでお困りですか？</h1>
+            <div className="support-primary-actions">
+              <Link className="support-action support-action--primary" href={reportHref}>
+                <FreshserviceIcon name="ticket" size={18} /> 障害を報告する
+              </Link>
+              <Link className="support-action" href="/portal?tab=tickets">
+                <FreshserviceIcon name="portal" size={18} /> 自分の問い合わせを見る
+              </Link>
+              <Link className="support-action" href="/catalog">
+                <FreshserviceIcon name="grid" size={18} /> サービスを探す
+              </Link>
+            </div>
+            <form className="support-search" action="/knowledge" method="get" role="search">
+              <FreshserviceIcon name="search" size={22} />
+              <label className="visually-hidden" htmlFor="support-search-input">
+                ヘルプ記事を検索
+              </label>
+              <input
+                id="support-search-input"
+                type="search"
+                name="q"
+                maxLength={200}
+                placeholder="ヘルプ記事を検索"
+              />
+              <button type="submit">検索</button>
+            </form>
+          </div>
+        </section>
+      ) : (
+        <header className="support-page-heading">
+          <div>
+            <Link className="support-back" href="/portal">
+              ポータルに戻る
+            </Link>
+            <h1>
+              {tab === 'tickets'
+                ? '自分の問い合わせ'
+                : tab === 'requests'
+                  ? '申請の状況'
+                  : 'サービスを探す'}
+            </h1>
+          </div>
+          {ticketList && (
+            <Link className="support-action support-action--primary" href={reportHref}>
+              <FreshserviceIcon name="ticket" size={18} /> 障害を報告する
+            </Link>
+          )}
+        </header>
+      )}
 
       <section className="support-lists" aria-label="自分の状況">
-        <nav className="support-tabs" aria-label="表示する情報">
-          <Link href={tabHref('tickets')} aria-current={tab === 'tickets' ? 'page' : undefined}>
-            オープンなチケット
-          </Link>
-          <Link href={tabHref('requests')} aria-current={tab === 'requests' ? 'page' : undefined}>
-            申請の状況
-          </Link>
-          <Link href={tabHref('services')} aria-current={tab === 'services' ? 'page' : undefined}>
-            サービスを探す
-          </Link>
-        </nav>
-
         <div className="support-tab-panel">
           {tab === 'tickets' ? (
             <section className="support-panel" aria-labelledby="support-tickets-title">
               <div className="support-panel-heading">
-                <h2 id="support-tickets-title">あなたの問い合わせ</h2>
-                <nav className="portal-ticket-views" aria-label="問い合わせの表示">
-                  <Link
-                    href={portalHref({ view: 'open', page: 1, cursor: null })}
-                    aria-current={query.view === 'open' ? 'page' : undefined}
-                  >
-                    未解決
-                  </Link>
-                  <Link
-                    href={portalHref({ view: 'all', page: 1, cursor: null })}
-                    aria-current={query.view === 'all' ? 'page' : undefined}
-                  >
-                    すべて
-                  </Link>
-                </nav>
+                <h2
+                  id="support-tickets-title"
+                  className={ticketList ? 'visually-hidden' : undefined}
+                >
+                  {home ? '最近の問い合わせ' : '問い合わせ一覧'}
+                </h2>
+                {home ? (
+                  <Link href="/portal?tab=tickets&view=all">すべての問い合わせを見る</Link>
+                ) : (
+                  <nav className="portal-ticket-views" aria-label="問い合わせの表示">
+                    <Link
+                      href="/portal?tab=tickets"
+                      aria-current={query.view === 'open' ? 'page' : undefined}
+                    >
+                      未解決
+                    </Link>
+                    <Link
+                      href="/portal?tab=tickets&view=all"
+                      aria-current={query.view === 'all' ? 'page' : undefined}
+                    >
+                      すべて
+                    </Link>
+                  </nav>
+                )}
               </div>
               {!tickets.ok ? (
                 <PortalLoadError
                   status={tickets.problem.status}
                   retryHref={currentHref}
-                  firstHref={firstHref}
+                  firstHref={ticketList ? firstHref : undefined}
                 />
               ) : (
                 <>
-                  <p className="portal-result" role="status">
-                    {query.view === 'open' ? '未解決' : '自分の問い合わせ'} {tickets.data.total}件
-                    {' · '}このページ {tickets.data.items.length}件 · {query.page}ページ目
-                  </p>
+                  {ticketList && (
+                    <p className="portal-result" role="status">
+                      {query.view === 'open' ? '未解決' : '自分の問い合わせ'} {tickets.data.total}件
+                      {' · '}このページ {tickets.data.items.length}件 · {query.page}ページ目
+                    </p>
+                  )}
                   {tickets.data.items.length === 0 ? (
                     <div className="portal-message">
                       <h3>
                         {tickets.data.total > 0
                           ? 'このページに問い合わせはありません'
-                          : query.view === 'open'
+                          : ticketList && query.view === 'open'
                             ? '未解決の問い合わせはありません'
                             : '問い合わせはまだありません'}
                       </h3>
                       <p>
                         {tickets.data.total > 0
                           ? '一覧が更新された可能性があります。最初のページから確認してください。'
-                          : query.view === 'open'
+                          : ticketList && query.view === 'open'
                             ? '過去の問い合わせや解決内容は「すべて」から確認できます。'
-                            : 'お困りごとや依頼がある場合は、上のカードから始められます。'}
+                            : '障害を報告すると、ここから受付番号や担当者の返信を確認できます。'}
                       </p>
                       {tickets.data.total > 0 && (
                         <Link href={firstHref}>最初のページから確認する</Link>
@@ -225,43 +212,48 @@ export default async function PortalHome({
                     <ul className="portal-ticket-list">
                       {tickets.data.items.map((ticket) => (
                         <li key={ticket.id}>
-                          <div className="portal-ticket-line">
-                            <Link
-                              href={{
-                                pathname: `/tickets/${encodeURIComponent(ticket.id)}`,
-                                query: { returnTo: currentHref },
-                              }}
-                            >
+                          <Link
+                            className="support-ticket-row"
+                            href={{
+                              pathname: `/tickets/${encodeURIComponent(ticket.id)}`,
+                              query: { returnTo: currentHref },
+                            }}
+                          >
+                            <FreshserviceIcon name="ticket" size={18} />
+                            <span className="support-ticket-row-copy">
+                              <span className="record-title">{ticket.subject}</span>
                               <span className="record-number">
                                 {ticket.number} · {kindLabel(ticket.kind)}
                               </span>
-                              <span className="record-title">{ticket.subject}</span>
-                            </Link>
-                            <span className="state" data-state={ticket.state}>
-                              {stateLabel(ticket.state)}
+                              <span
+                                className={
+                                  ticket.state === 'pending' &&
+                                  ticket.pendingReason === 'wait_requester'
+                                    ? 'portal-your-turn'
+                                    : 'hint'
+                                }
+                              >
+                                {portalTicketNextAction(ticket)}
+                              </span>
                             </span>
-                          </div>
-                          <div className="portal-ticket-followup">
-                            <span
-                              className={
-                                ticket.state === 'pending' &&
-                                ticket.pendingReason === 'wait_requester'
-                                  ? 'portal-your-turn'
-                                  : ''
-                              }
-                            >
-                              {portalTicketNextAction(ticket)}
+                            <span className="support-ticket-row-status">
+                              <span className="state" data-state={ticket.state}>
+                                {stateLabel(ticket.state)}
+                              </span>
+                              <time dateTime={ticket.createdAt}>
+                                受付 {formatDate(ticket.createdAt)}
+                              </time>
                             </span>
-                            <span className="hint">受付 {formatDateTime(ticket.createdAt)}</span>
-                          </div>
+                            <FreshserviceIcon name="chevron" size={14} />
+                          </Link>
                         </li>
                       ))}
                     </ul>
                   )}
-                  {tickets.data.total > 0 && (
+                  {ticketList && tickets.data.total > 0 && (
                     <TicketPagination
                       basePath="/portal"
-                      query={portalNavigationQuery(query)}
+                      query={listQuery}
                       cursor={tickets.data.nextCursor}
                       total={tickets.data.total}
                       pageSize={10}
@@ -410,7 +402,16 @@ export default async function PortalHome({
         </div>
       </section>
 
-      <footer className="support-footer">SOLVI — 社内ITサービス管理</footer>
+      {home && (
+        <nav className="support-secondary-actions" aria-label="その他のサポート">
+          <Link href="/knowledge">ヘルプ記事を閲覧する</Link>
+          <Link href="/portal?tab=services">サービスを検索する</Link>
+          <Link href={hasWork ? '/inbox' : '/requests?view=mine'}>
+            {hasWork ? '担当業務を確認する' : '申請状況を確認する'}
+          </Link>
+          <Link href="/portal?tab=requests">最近の申請を見る</Link>
+        </nav>
+      )}
     </main>
   );
 }

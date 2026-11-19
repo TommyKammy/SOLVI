@@ -1753,47 +1753,56 @@ body.fs-ui a.fs-admin-card:hover {
 }
 
 /* ------------------------------------------------------------------------- */
-/* サポートポータル(Freshservice /support/home 準拠)                        */
+/* サポートポータル                                                          */
 /* ------------------------------------------------------------------------- */
 
 .fs-support {
-  min-height: 100vh;
+  min-block-size: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--surface);
 }
-
 .fs-support-header {
-  position: absolute;
-  inset: 0 0 auto 0;
-  z-index: 20;
-  height: 64px;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+  color: var(--ink);
+  background: var(--surface);
+  border-block-end: 1px solid var(--line);
+}
+.fs-support-header-inner,
+.support-main,
+.fs-support-content--ticket {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: var(--fs-content-max);
+  margin-inline: auto;
+  padding-inline: var(--fs-content-gutter);
+}
+.fs-support-header-inner {
+  min-block-size: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 0 24px;
-  color: #fff;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0));
+  gap: 8px;
 }
-
 .fs-support-header-left,
 .fs-support-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-inline-size: 0;
 }
-
 .fs-support-menu {
   position: relative;
 }
 .fs-support-menu summary {
   list-style: none;
-  width: 40px;
-  height: 40px;
+  inline-size: 40px;
+  block-size: 40px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--fs-radius-sm);
   cursor: pointer;
 }
 .fs-support-menu summary::-webkit-details-marker {
@@ -1802,381 +1811,286 @@ body.fs-ui a.fs-admin-card:hover {
 .fs-support-menu summary::marker {
   content: '';
 }
-.fs-support-menu summary:hover {
-  background: rgba(255, 255, 255, 0.16);
+.fs-support-menu summary:hover,
+body.fs-ui a.fs-support-icon-button:hover {
+  background: var(--hover);
 }
 .fs-support-menu-panel {
-  display: none;
   position: absolute;
-  top: 48px;
-  left: 0;
-  width: 280px;
+  inset-block-start: 48px;
+  inset-inline-start: 0;
+  inline-size: min(280px, calc(100vw - 2 * var(--fs-content-gutter)));
+  max-block-size: calc(100dvh - 64px);
+  overflow: auto;
   padding: 8px;
-  background: var(--fs-surface);
-  color: var(--fs-text);
-  border: 1px solid var(--fs-border);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
   border-radius: var(--fs-radius-md);
-  box-shadow: var(--fs-shadow-md);
-}
-.fs-support-menu[open] .fs-support-menu-panel {
-  display: block;
 }
 .fs-support-menu-title {
   margin: 6px 10px;
-  color: var(--fs-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 .fs-support-menu-title--staff {
-  margin-top: 14px;
+  margin-block-start: 14px;
 }
 .fs-support-menu-panel a {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-block-size: 40px;
   padding: 8px 10px;
-  border-radius: 6px;
-  color: var(--fs-text);
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
   font-size: 0.8125rem;
 }
 .fs-support-menu-panel a:hover {
-  background: var(--fs-surface-muted);
-  color: var(--fs-brand-strong);
+  background: var(--hover);
+  color: var(--ink);
   text-decoration: none;
 }
 
 body.fs-ui a.fs-support-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: #fff;
-  font-size: 1.125rem;
+  gap: 8px;
+  min-block-size: 40px;
+  color: var(--ink);
+  font-size: 1.0625rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  text-decoration: none;
-}
-body.fs-ui a.fs-support-brand:hover {
-  color: #fff;
   text-decoration: none;
 }
 .fs-support-brand-mark {
-  width: 32px;
-  height: 32px;
+  inline-size: 22px;
+  block-size: 22px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: #fff;
-  color: var(--fs-brand-strong);
-  font-size: 0.9375rem;
-  font-weight: 700;
+  border-radius: var(--fs-radius-sm);
+  background: var(--side-brand);
+  color: var(--surface);
+  font-size: 0.8125rem;
 }
 body.fs-ui .fs-support-org {
-  color: rgba(255, 255, 255, 0.82);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 500;
 }
 body.fs-ui a.fs-support-icon-button {
-  width: 40px;
-  height: 40px;
+  inline-size: 40px;
+  block-size: 40px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
-  color: #fff;
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
   text-decoration: none;
-}
-body.fs-ui a.fs-support-icon-button:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  text-decoration: none;
-}
-.fs-support-user summary {
-  color: #fff;
-}
-.fs-support-user .fs-avatar {
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--fs-brand-strong);
 }
 .fs-support-user .fs-user-popover {
-  top: 46px;
+  inset-block-start: 46px;
+  inline-size: min(280px, calc(100vw - 2 * var(--fs-content-gutter)));
+  max-block-size: calc(100dvh - 64px);
+  overflow: auto;
+}
+.fs-support-user .fs-user-logout {
+  display: grid;
+  gap: 12px;
 }
 
 .support-main {
-  min-height: 100vh;
-  background: var(--surface);
+  flex: 1;
+  min-inline-size: 0;
+  padding-block: 32px 48px;
 }
-
 .support-hero {
-  position: relative;
-  height: 372px;
-  padding: 108px 0 20px;
-  color: #fff;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.12) 0 2px, transparent 2.5px) 0 0 /
-      26px 26px,
-    linear-gradient(135deg, #0b3fae 0%, #276cf0 55%, #6aa8ff 100%);
-}
-.support-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
-  pointer-events: none;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  background: var(--panel);
 }
 .support-hero-inner {
-  position: relative;
-  z-index: 1;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 16px;
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px 32px;
 }
 body.fs-ui .support-hero h1 {
-  margin: 0 0 28px;
-  color: #fff;
-  font-size: 2.5rem;
-  line-height: 48px;
+  grid-column: 1;
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+.support-primary-actions {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+body.fs-ui a.support-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-block-size: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--fs-control-border);
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
+  background: var(--surface);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+body.fs-ui a.support-action:hover {
+  background: var(--hover);
+}
+body.fs-ui a.support-action--primary {
+  border-color: var(--btn);
+  color: var(--btn-ink);
+  background: var(--btn);
   font-weight: 700;
-  letter-spacing: -0.01em;
+}
+body.fs-ui a.support-action--primary:hover {
+  background: color-mix(in srgb, var(--btn) 88%, var(--surface));
 }
 .support-search {
-  position: relative;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: flex;
   align-items: center;
-  width: 680px;
-  max-width: 100%;
-  height: 60px;
-  margin: 0 auto;
-  padding: 0 18px 0 48px;
+  gap: 8px;
+  min-inline-size: 0;
+  padding: 4px 4px 4px 12px;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: none;
+  border: 1px solid var(--fs-control-border);
+  border-radius: var(--fs-radius-sm);
   color: var(--muted);
 }
 .support-search:focus-within {
-  outline: 3px solid var(--fs-brand);
+  outline: 2px solid var(--fs-brand);
   outline-offset: 2px;
 }
-.support-search > svg {
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.support-search input {
+body.fs-ui .support-search input {
   flex: 1;
-  min-width: 0;
-  height: 100%;
+  min-inline-size: 0;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--ink);
-  font: inherit;
-  font-size: 1.25rem;
+  font-size: max(1rem, 1em);
 }
-.support-search input:focus {
+body.fs-ui .support-search input:focus {
   outline: none;
   box-shadow: none;
 }
 body.fs-ui .support-search button {
   flex: 0 0 auto;
   align-self: center;
-  min-height: 40px;
-  margin-left: 12px;
+  min-block-size: 40px;
+  margin: 0;
 }
-
-.support-cards {
-  padding: 48px 72px;
-  background: var(--surface);
-}
-.support-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 400px));
-  justify-content: center;
-  gap: 32px;
-  max-width: 832px;
-  margin: 0 auto;
-}
-body.fs-ui a.support-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 142px;
-  padding: 28px 24px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: none;
-  color: var(--fs-text);
-  text-decoration: none;
-  transition:
-    transform 140ms ease,
-    border-color 140ms ease;
-}
-body.fs-ui a.support-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--side-brand);
-  box-shadow: none;
-  color: var(--fs-text);
-  text-decoration: none;
-}
-.support-card-icon {
-  width: 64px;
-  height: 64px;
+.support-search > svg,
+.support-action > svg {
   flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-}
-.support-card--service .support-card-icon {
-  background: #fff3e6;
-  color: #b45f00;
-}
-.support-card--incident .support-card-icon {
-  background: #e6f7f1;
-  color: #00795c;
-}
-.support-card--knowledge .support-card-icon {
-  background: #e8f1ff;
-  color: #003fd2;
-}
-.support-card--approval .support-card-icon {
-  background: #f0eaff;
-  color: #5b21b6;
-}
-.support-card-text {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-.support-card-text strong {
-  color: var(--fs-text);
-  font-size: 1rem;
-  line-height: 24px;
-  font-weight: 700;
-}
-.support-card-text span {
-  color: var(--fs-text-secondary);
-  font-size: 0.875rem;
-  line-height: 21px;
 }
 
 .support-lists {
-  padding: 24px 82px 48px;
-  background: var(--fs-surface);
-}
-.support-tabs {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--fs-border);
-  overflow-x: auto;
-}
-.support-tabs a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 8px;
-  margin-right: 16px;
-  border-bottom: 2px solid transparent;
-  color: var(--fs-text);
-  font-size: 0.875rem;
-  white-space: nowrap;
-}
-.support-tabs a:hover {
-  color: var(--fs-brand-strong);
-  text-decoration: none;
-}
-.support-tabs a[aria-current='page'] {
-  color: var(--fs-brand-strong);
-  border-bottom-color: var(--fs-brand-strong);
-}
-.support-tab-panel {
-  max-width: 1036px;
+  margin-block-start: 28px;
 }
 .support-panel {
-  min-width: 0;
+  min-inline-size: 0;
 }
 .support-panel-heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-block-end: 8px;
 }
-.support-panel-heading h2 {
+body.fs-ui .support-panel-heading h2 {
   margin: 0;
   font-size: 1.125rem;
-  line-height: 26px;
 }
 .support-panel-heading > a {
   font-size: 0.8125rem;
   font-weight: 500;
 }
 .support-panel-heading .portal-ticket-views {
-  margin-top: 0;
+  margin: 0;
   border-bottom: 0;
-  gap: 16px;
+}
+body.fs-ui .support-main .portal-ticket-list > li {
+  padding: 0;
+}
+body.fs-ui a.support-ticket-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-block-size: 44px;
+  padding-block: 12px;
+  padding-inline: 8px;
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
+  text-decoration: none;
+}
+body.fs-ui a.support-ticket-row:hover {
+  background: var(--hover);
+}
+.support-ticket-row-copy,
+.support-ticket-row-status {
+  display: grid;
+  gap: 4px;
+  min-inline-size: 0;
+}
+.support-ticket-row-copy .record-title {
+  margin-block: 0;
+  font-size: 0.875rem;
+}
+.support-ticket-row-status {
+  justify-items: end;
+  text-align: end;
+}
+.support-ticket-row-status time {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.support-ticket-row > svg {
+  color: var(--muted);
+}
+.support-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-block-start: 24px;
+}
+.support-secondary-actions > a,
+.support-panel-heading > a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 36px;
+  font-size: 0.8125rem;
 }
 .support-services-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
+  gap: 24px;
 }
 .support-footer {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--fs-surface);
-  border-top: 1px solid var(--fs-border);
-  color: var(--fs-text-muted);
+  min-block-size: 56px;
+  display: grid;
+  place-items: center;
+  padding-inline: var(--fs-content-gutter);
+  background: var(--surface);
+  border-block-start: 1px solid var(--line);
+  color: var(--muted);
   font-size: 0.75rem;
 }
 
-/* サポートポータル配下のサブ画面 (WP-P2-UIX-033) */
-.fs-support--subpage .fs-support-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  color: var(--fs-text);
-  background: var(--fs-surface);
-  border-bottom: 1px solid var(--fs-border);
-}
-body.fs-ui .fs-support--subpage a.fs-support-brand {
-  color: var(--fs-text);
-}
-body.fs-ui .fs-support--subpage a.fs-support-brand:hover {
-  color: var(--fs-text);
-}
-.fs-support--subpage .fs-support-brand-mark {
-  background: var(--fs-brand);
-  color: var(--surface);
-}
-body.fs-ui .fs-support--subpage .fs-support-org {
-  color: var(--fs-text-muted);
-}
-body.fs-ui .fs-support--subpage a.fs-support-icon-button {
-  color: var(--fs-text-secondary);
-}
-body.fs-ui .fs-support--subpage a.fs-support-icon-button:hover {
-  background: var(--fs-surface-muted);
-  color: var(--fs-brand-strong);
-}
-.fs-support--subpage .fs-support-menu summary {
-  color: var(--fs-text-secondary);
-}
-.fs-support--subpage .fs-support-menu summary:hover {
-  background: var(--fs-surface-muted);
-}
-.fs-support--subpage .fs-support-user summary {
-  color: var(--fs-text-secondary);
-}
-.fs-support--subpage .fs-support-user .fs-avatar {
-  background: var(--fs-brand-soft);
-  color: var(--fs-brand-strong);
-}
 .fs-support-content {
   flex: 1;
   width: 100%;
@@ -2194,11 +2108,270 @@ body.fs-ui .fs-support-content > main.shell {
 }
 /* 一覧(ナレッジ/カタログ)は各パネルを白くし、詳細・フォーム・設定は
    ページ全体を白い面にして読みやすくする。 */
-body.fs-ui .fs-support-content > main.shell:not(.fs-knowledge):not(.fs-catalog) {
+body.fs-ui
+  .fs-support-content:not(.fs-support-content--ticket)
+  > main.shell:not(.fs-knowledge):not(.fs-catalog) {
   padding: 24px 28px;
   background: var(--fs-surface);
   border-radius: var(--fs-radius-md);
   box-shadow: var(--fs-shadow-sm);
+}
+.fs-support-content--ticket {
+  max-inline-size: var(--fs-content-max);
+  padding-block: 28px 48px;
+  padding-inline: var(--fs-content-gutter);
+}
+body.fs-ui .fs-support-content--ticket > main.shell {
+  /* The frame owns both gutters. */
+  max-inline-size: none;
+  padding: 0;
+}
+
+.support-page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block-end: 24px;
+  overflow-wrap: anywhere;
+}
+body.fs-ui .support-page-heading h1,
+body.fs-ui .support-page-heading .lead {
+  margin: 0;
+}
+body.fs-ui .support-page-heading .lead,
+body.fs-ui .support-ticket-number {
+  margin-block-start: 4px;
+  color: var(--muted);
+}
+.support-ticket-number {
+  margin-block-end: 6px;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.support-back,
+.support-ticket-report .support-page-heading a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 36px;
+  margin-block-end: 8px;
+}
+.support-ticket-report .request-form {
+  inline-size: min(100%, 48rem);
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  display: grid;
+  gap: 16px;
+}
+.support-ticket-report .required-label {
+  color: var(--muted);
+  margin-inline-start: 4px;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.support-ticket-report .form-actions {
+  align-items: center;
+  justify-content: flex-start;
+}
+.support-ticket-receipt {
+  padding: 16px;
+  margin-block-end: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  background: var(--panel);
+  scroll-margin-block-start: 64px;
+  overflow-wrap: anywhere;
+}
+.support-ticket-receipt:focus {
+  outline: 2px solid var(--side-brand);
+  outline-offset: 2px;
+}
+body.fs-ui .support-ticket-receipt h2,
+body.fs-ui .support-ticket-receipt p {
+  margin: 0;
+}
+body.fs-ui .support-ticket-receipt h2 {
+  color: var(--ok);
+  font-size: 1rem;
+}
+body.fs-ui .support-ticket-receipt p {
+  margin-block-start: 4px;
+}
+
+.support-ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(248px, 310px);
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  gap: 20px;
+}
+.support-ticket-progress,
+.support-ticket-information {
+  grid-column: 2;
+  min-inline-size: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  overflow-wrap: anywhere;
+}
+.support-ticket-thread {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+body.fs-ui .support-ticket-thread > h2 {
+  margin-block: 20px 8px;
+}
+body.fs-ui .support-ticket-thread > h2:first-child {
+  margin-block-start: 0;
+}
+.support-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+body.fs-ui .support-progress-heading h2,
+body.fs-ui .support-ticket-information h2:first-child {
+  margin: 0;
+  font-size: 1rem;
+}
+.support-progress-steps {
+  list-style: none;
+  display: grid;
+  padding: 0;
+  margin-block: 12px;
+}
+.support-progress-steps li {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.support-progress-steps li[data-complete='true'] {
+  color: var(--ink);
+}
+.support-progress-steps li[aria-current='step'] {
+  border-color: var(--side-line);
+  border-radius: var(--fs-radius-sm);
+  background: var(--side);
+  color: var(--side-ink);
+  font-weight: 700;
+}
+.support-ticket-progress dl {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 12px 0 0;
+  padding-block-start: 10px;
+  border-block-start: 1px solid var(--line);
+  font-size: 0.75rem;
+}
+.support-ticket-progress dt {
+  color: var(--muted);
+}
+.support-ticket-progress dd {
+  margin: 0;
+}
+.support-ticket-detail > .notice {
+  margin-block-end: 20px;
+}
+.support-ticket-information .sla-panel {
+  margin-block: 12px 0;
+}
+.support-ticket-information .detail {
+  margin-block: 10px 0;
+}
+
+@media (max-width: 980px) {
+  .support-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .support-search {
+    grid-area: auto;
+    inline-size: min(100%, 38rem);
+  }
+}
+@media (max-width: 740px) {
+  .support-ticket-layout,
+  .support-services-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .support-ticket-progress,
+  .support-ticket-thread,
+  .support-ticket-information {
+    grid-area: auto;
+  }
+  .support-progress-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .support-progress-steps li {
+    flex-direction: column;
+    justify-content: flex-start;
+    text-align: center;
+    padding-inline: 2px;
+  }
+}
+@media (max-width: 600px) {
+  body.fs-ui .fs-support-org {
+    display: none;
+  }
+  .support-main,
+  .fs-support-content--ticket {
+    padding-block: 20px 32px;
+  }
+  .support-hero,
+  .support-ticket-report .request-form {
+    padding: 14px;
+  }
+  .support-primary-actions {
+    display: grid;
+  }
+  .support-primary-actions .support-action {
+    justify-content: flex-start;
+  }
+  body.fs-ui a.support-ticket-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+    gap: 8px;
+    padding-inline: 0;
+  }
+  .support-ticket-row > svg {
+    display: none;
+  }
+  .support-ticket-row-status time {
+    max-inline-size: 10ch;
+  }
+}
+@media (pointer: coarse) {
+  body.fs-ui a.support-action,
+  body.fs-ui .support-search button,
+  body.fs-ui .support-ticket-report .form-actions button {
+    min-block-size: 48px;
+  }
+  .fs-support-menu summary,
+  .fs-support-user summary,
+  body.fs-ui a.fs-support-icon-button {
+    inline-size: 44px;
+    block-size: 44px;
+  }
+  .fs-support-menu-panel a,
+  .support-main .portal-ticket-views a,
+  .support-secondary-actions > a,
+  .support-panel-heading > a,
+  .support-back,
+  .support-ticket-report .support-page-heading a {
+    min-block-size: 44px;
+  }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -3033,29 +3206,6 @@ body.fs-ui .fs-public-content > main form.stack {
   .fs-side-nav-tags a:nth-child(n + 7) {
     display: none;
   }
-  .support-cards {
-    padding: 32px 16px;
-  }
-  .support-cards-grid {
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 560px;
-  }
-  .support-lists {
-    padding: 20px 16px 32px;
-  }
-  .support-services-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  body.fs-ui .support-hero h1 {
-    font-size: 2rem;
-    line-height: 40px;
-  }
-  .fs-support-org {
-    display: none;
-  }
-  .fs-support-header {
-    padding: 0 16px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -3085,49 +3235,6 @@ body.fs-ui .fs-public-content > main form.stack {
   body.fs-ui .fs-catalog .catalog-filters {
     flex-direction: column;
     align-items: stretch;
-  }
-  .support-hero {
-    height: auto;
-    padding: 96px 0 32px;
-  }
-  body.fs-ui .support-hero h1 {
-    margin-bottom: 20px;
-    font-size: 1.75rem;
-    line-height: 36px;
-  }
-  .support-tabs {
-    flex-wrap: wrap;
-    overflow: visible;
-  }
-  .support-tabs a {
-    margin-right: 10px;
-    padding: 8px 4px;
-    font-size: 0.8125rem;
-  }
-  .support-search {
-    height: 52px;
-    padding-left: 42px;
-  }
-  .support-search > svg {
-    left: 14px;
-  }
-  .support-search input {
-    font-size: 1rem;
-  }
-  body.fs-ui a.support-card {
-    min-height: 0;
-    padding: 20px;
-  }
-  .support-card-icon {
-    width: 56px;
-    height: 56px;
-  }
-  .fs-support-header {
-    padding: 0 12px;
-  }
-  .fs-support-header-left,
-  .fs-support-header-right {
-    gap: 6px;
   }
 }
 

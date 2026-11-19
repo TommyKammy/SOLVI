@@ -153,7 +153,7 @@ describe('the staff rail keeps one navigation target for the mobile toggle', () 
   });
 });
 
-describe('portal action card opens available personal work', () => {
+describe('portal home exposes requester actions and available personal work', () => {
   it.each([
     ['requester', '/requests?view=mine', '申請状況を確認する'],
     ['auditor', '/requests?view=mine', '申請状況を確認する'],
@@ -163,12 +163,9 @@ describe('portal action card opens available personal work', () => {
   ])('%s reaches the correct personal workflow', async (code, href, label) => {
     vi.mocked(requireSession).mockResolvedValue(session([code]));
     const html = renderToStaticMarkup(await PortalHome({ searchParams: Promise.resolve({}) }));
-    const card = html.match(
-      /<a class="support-card support-card--approval"[^>]*>([\s\S]*?)<\/a>/,
-    )?.[0];
-    expect(card).toContain(`href="${href}"`);
-    expect(card).toContain(label);
-    if (code === 'requester' || code === 'auditor') expect(card).not.toContain('承認');
+    expect(html).toContain(`href="${href}">${label}</a>`);
+    expect(html).toContain('/tickets/new?kind=incident&amp;returnTo=%2Fportal');
+    expect(html).toContain('/portal?tab=tickets');
   });
 
   it('keeps the requester filter tied to the authenticated user', async () => {

@@ -191,7 +191,10 @@ async function main() {
       await axe(page, `${role.code}-knowledge`);
 
       await open(page, '/portal');
-      const card = page.locator('.support-card--approval');
+      const card = page.getByRole('main').getByRole('link', {
+        name: role.inbox ? '担当業務を確認する' : '申請状況を確認する',
+        exact: true,
+      });
       const destination = role.inbox ? '/inbox' : '/requests?view=mine';
       assert.equal(await card.getAttribute('href'), destination);
       assert.ok(

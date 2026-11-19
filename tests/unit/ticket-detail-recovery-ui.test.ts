@@ -223,7 +223,7 @@ describe('requester detail recovery page', () => {
       );
     },
   );
-  it.each(['new', 'pending', 'resolved'])(
+  it.each(['new', 'pending', 'resolved', 'cancelled', 'merged'])(
     'preserves successful %s content and controls',
     async (state) => {
       vi.mocked(api.ticketDetail).mockResolvedValue({
@@ -247,6 +247,14 @@ describe('requester detail recovery page', () => {
       if (state === 'new') expect(html).toContain('受け付けました');
       if (state === 'pending') expect(html).toContain('あなたの返答を待っています');
       if (state === 'resolved') expect(html).toContain('まだ解決していないと伝える');
+      if (state === 'cancelled' || state === 'merged') {
+        expect(html).not.toContain('aria-current="step"');
+        expect(html).toContain(
+          state === 'cancelled' ? '問い合わせは取り消されました' : '統合先の問い合わせを確認する',
+        );
+      } else {
+        expect(html).toContain('aria-current="step"');
+      }
     },
   );
 });

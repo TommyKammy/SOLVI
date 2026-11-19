@@ -39,12 +39,20 @@ export function commentHistoryLabel(
 export function CommentThread({
   comments,
   currentUserId,
+  requesterView = false,
 }: {
   comments: CommentView[];
   currentUserId: string;
+  requesterView?: boolean;
 }) {
   if (comments.length === 0) {
-    return <p className="empty">まだやり取りはありません。</p>;
+    return (
+      <p className="empty">
+        {requesterView
+          ? '担当者から返信があると、ここに表示されます。'
+          : 'まだやり取りはありません。'}
+      </p>
+    );
   }
 
   return (
@@ -60,7 +68,9 @@ export function CommentThread({
               <span className="visibility-label">
                 {internal
                   ? '社内メモ（依頼者には表示されません）'
-                  : publicCommentDirection(comment.authorIsRequester)}
+                  : requesterView && comment.authorIsRequester === false
+                    ? '担当者からの返信'
+                    : publicCommentDirection(comment.authorIsRequester)}
               </span>
               <span>
                 {comment.authorId === currentUserId

@@ -86,6 +86,24 @@ export function portalTicketNextAction(
   }
 }
 
+/** Project the current API state onto the four steps shown to the requester. */
+export function portalTicketProgress(state: string): number | null {
+  switch (state) {
+    case 'new':
+      return 0;
+    case 'assigned':
+      return 1;
+    case 'in_progress':
+    case 'pending':
+      return 2;
+    case 'resolved':
+    case 'closed':
+      return 3;
+    default:
+      return null;
+  }
+}
+
 export function parseCatalogQuery(raw: QueryInput): CatalogQuery {
   return {
     q: scalar(raw.q),
