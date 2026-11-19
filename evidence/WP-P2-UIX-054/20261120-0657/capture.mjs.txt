@@ -1,0 +1,247 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { accountsFor, testDatabase, ticketFixture } from './fixtures.mjs';
+import { web, require } from './helpers.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const [out, database, run] = process.argv.slice(2);
+assert.match(run, /^\d+$/);
+mkdirSync(join(out, 'screens'), { recursive: true });
+const db = await testDatabase(database);
+const browser = await chromium.launch({ channel: 'chrome' });
+const mockup = pathToFileURL(resolve('docs/planning/assets/ui/SOLVI_Operations_Mockup.html')).href;
+const summary = { browser: browser.version(), appearance: [], journeys: [], scans: [] };
+const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+const today = new Date().toISOString().slice(0, 10);
+const previous = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+const main = (page) => page.locator('main#main');
+const card = (page, metric) => main(page).locator('a.report-metric[data-metric="' + metric + '"]');
+const entry = (page, ticket) => page.locator('#ticket-entry-' + ticket.id);
+const day = (page, edge) => page.locator('#report-' + edge);
+const select = (page) => page.locator('#report-group');
+const results = (page) => page.locator('#report-results');
+const table = (page) => page.locator('table.report-ticket-table');
+
+async function pageFor(width, theme, cookie) {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: 'ja-JP',
+    colorScheme: theme,
+    isMobile: width === 375,
+    hasTouch: width === 375,
+  });
+  if (cookie) await context.addCookies([{ ...cookie, url: web }]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(12_000);
+  return page;
+}
+
+async function use(locator, width) {
+  if (width === 375) await locator.tap();
+  else {
+    await locator.focus();
+    await locator.press('Enter');
+  }
+}
+async function shot(page, name, fullPage = false) {
+  await page.screenshot({ path: join(out, 'screens', name + '.png'), animations: 'disabled', fullPage });
+}
+async function report(page, path = '/ops/reports') {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200);
+  assert.equal(new URL(page.url()).pathname, '/ops/reports');
+  await main(page).getByRole('heading', { level: 1, name: 'レポート' }).waitFor();
+}
+
+async function styles(locator) {
+  return locator.evaluate((element) => {
+    const s = getComputedStyle(element);
+    const value = getComputedStyle(element.querySelector('.report-metric-value'));
+    const unit = getComputedStyle(element.querySelector('small'));
+    const footer = getComputedStyle(element.querySelector('.report-metric-open'));
+    return {
+      background: s.backgroundColor, border: s.borderTopColor, radius: s.borderTopLeftRadius,
+      padding: s.padding, gap: s.rowGap, height: element.getBoundingClientRect().height,
+      valueSize: value.fontSize, valueWeight: value.fontWeight, unitSize: unit.fontSize,
+      footerSize: footer.fontSize, footerColor: footer.color, outline: s.outlineStyle,
+      cardColumns: getComputedStyle(element.parentElement).gridTemplateColumns.split(' ').length,
+    };
+  });
+}
+
+async function scan(page, width, theme, name) {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  const findings = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const clean = (list) => list.map(({ id, nodes }) => ({ id, targets: nodes.map((n) => n.target) }));
+  summary.scans.push({ width, theme, name, overflow, violations: clean(findings.violations), incomplete: clean(findings.incomplete) });
+  assert.equal(overflow, 0, name);
+  assert.equal(findings.violations.length, 0, JSON.stringify(clean(findings.violations)));
+}
+
+async function compare(page, width, theme) {
+  const prefix = theme + '-' + width;
+  const mock = await pageFor(width, theme);
+  try {
+    await mock.goto(mockup + '#reports');
+    await mock.locator('#report-results').waitFor();
+    await mock.evaluate((value) => setTheme(value), theme);
+    const ref = mock.locator('a.report-metric[data-metric="received"]');
+    const actual = card(page, 'received');
+    const before = await styles(actual);
+    const expected = await styles(ref);
+    for (const key of ['background','border','radius','padding','gap','valueSize','valueWeight','unitSize','footerSize','footerColor','cardColumns']) {
+      assert.equal(before[key], expected[key], prefix + ' ' + key);
+    }
+    assert.ok(Math.abs(before.height - expected.height) < 1, JSON.stringify({before,expected}));
+    assert.equal(await actual.getAttribute('aria-current'), null);
+    await shot(mock, prefix + '-mock', true);
+    await shot(page, prefix + '-report', true);
+    if (width === 1440) {
+      await ref.hover();
+      await actual.hover();
+      const hover = await styles(actual);
+      const mockHover = await styles(ref);
+      assert.equal(hover.background, mockHover.background);
+      assert.equal(hover.border, mockHover.border);
+      assert.equal(hover.height, before.height);
+      assert.notEqual(hover.background, before.background);
+      assert.notEqual(hover.border, before.border);
+      await shot(mock, prefix + '-mock-hover');
+      await shot(page, prefix + '-report-hover');
+      await page.mouse.move(0, 0);
+      assert.equal((await styles(actual)).background, before.background);
+      await actual.focus();
+      assert.equal((await styles(actual)).background, mockHover.background);
+      assert.notEqual((await styles(actual)).outline, 'none');
+      summary.appearance.push({ width, theme, before, expected, hover, mockHover });
+    } else {
+      summary.appearance.push({ width, theme, before, expected });
+    }
+  } finally {
+    await mock.context().close();
+  }
+}
+
+async function hasMetric(page, metric, count, tickets) {
+  await page.waitForURL((url) => url.searchParams.get('metric') === metric);
+  await table(page).waitFor();
+  assert.equal(await card(page, metric).getAttribute('aria-current'), 'true');
+  assert.equal((await card(page, metric).locator('strong').textContent()).trim(), count + '件');
+  assert.equal(await table(page).locator('tbody tr').count(), count);
+  for (const ticket of tickets) await entry(page, ticket).waitFor();
+}
+
+async function verifyForm(page, width) {
+  const inputs = page.locator('.insights-filters').locator('input[type=date], select, button[type=submit]');
+  const controls = await inputs.evaluateAll(nodes => nodes.map(el => {
+    const { bottom, height } = el.getBoundingClientRect();
+    return { height, bottom };
+  }));
+  assert.equal(controls.length, 4);
+  assert(controls.every(c => c.height === controls[0].height));
+  assert(controls[0].height >= (width === 375 ? 44 : 40));
+  if (width === 1440) assert(controls.every(c => c.bottom === controls[0].bottom));
+}
+
+try {
+  const accounts = await accountsFor('acme');
+  const {group, tickets} = await ticketFixture(db, accounts, '054-' + run);
+  const second = await ticketFixture(db, accounts, '054-second-' + run);
+  for (const width of [1440, 375]) {
+    for (const theme of ['light', 'dark']) {
+      const page = await pageFor(width, theme, accounts.agent);
+      try {
+        await report(page);
+        await page.locator('.report-breakdown').waitFor();
+        assert.match(await results(page).textContent(), /グループ別の対応状況/);
+        const groups = page.locator('.report-breakdown-row');
+        const active = groups.filter({ has: page.getByRole('heading', { name: group.name, exact: true }) });
+        const another = groups.filter({ has: page.getByRole('heading', { name: second.group.name, exact: true }) });
+        assert.deepEqual(await active.locator('a').allTextContents(), ['4件', '1件', '1件']);
+        assert.deepEqual(await another.locator('a').allTextContents(), ['4件', '1件', '1件']);
+        assert.equal(await active.locator('.report-bar > span').evaluate(el => el.style.inlineSize), '100%');
+        await verifyForm(page, width);
+        await scan(page, width, theme, 'group-breakdown');
+        await compare(page, width, theme);
+
+        // A group count narrows the scope while preserving the displayed dates.
+        await use(active.getByRole('link', { name: group.name + 'の受付件数 4件' }), width);
+        await hasMetric(page, 'received', 4, Object.values(tickets));
+        assert.equal(new URL(page.url()).searchParams.get('group'), group.id);
+        await page.waitForFunction(() => document.activeElement?.id === 'report-results');
+        assert.equal(await table(page).getByText('SLA停止中', { exact: true }).count(), 1);
+        assert.equal(await table(page).getByRole('columnheader').count(), 5);
+        const region = page.locator('.report-table-scroll');
+        if (width === 375) await region.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+        const scroll = await region.evaluate((el) => ({ box: el.clientWidth, contents: el.scrollWidth, offset: el.scrollLeft }));
+        if (width === 375) {
+          assert(scroll.contents > scroll.box && scroll.offset > 0);
+          await region.evaluate((el) => { el.scrollLeft = 0; });
+        }
+        await scan(page, width, theme, 'received');
+        await shot(page, theme + '-' + width + '-received', true);
+
+        await use(main(page).getByRole('link', { name: 'グループ別の集計に戻る' }), width);
+        await page.getByRole('heading', { name: 'グループ別の対応状況', exact: true }).waitFor();
+        await page.waitForFunction(() => document.activeElement?.id === 'report-results');
+        assert.equal(await select(page).inputValue(), group.id);
+        assert.equal(new URL(page.url()).searchParams.get('metric'), null);
+
+        // Date inputs retain their native controls and UTC query.
+        await day(page, 'from').fill(today);
+        await day(page, 'to').fill(today);
+        await use(main(page).getByRole('button', { name: '絞り込む' }), width);
+        await page.waitForURL((url) => url.searchParams.get('from') === today && url.searchParams.get('to') === today);
+        assert.equal(await select(page).inputValue(), group.id);
+        await use(card(page, 'breached'), width);
+        await hasMetric(page, 'breached', 1, [tickets.breached]);
+        assert.equal(await entry(page, tickets.paused).count(), 0);
+        assert.equal(new URL(page.url()).hash, '#report-results');
+        const drilldown = new URL(page.url()).search;
+        await scan(page, width, theme, 'breached');
+        await use(entry(page, tickets.breached), width);
+        await page.waitForURL((url) => url.pathname === '/ops/' + tickets.breached.id);
+        await use(main(page).getByRole('link', { name: 'レポートに戻る', exact: true }), width);
+        await page.waitForURL((url) => url.pathname === '/ops/reports' && url.hash === '#ticket-entry-' + tickets.breached.id);
+        assert.equal(new URL(page.url()).search, drilldown);
+        await page.waitForFunction((id) => document.activeElement?.id === 'ticket-entry-' + id, tickets.breached.id);
+
+        await use(card(page, 'resolved'), width);
+        await hasMetric(page, 'resolved', 1, [tickets.resolved]);
+        await use(card(page, 'open'), width);
+        await hasMetric(page, 'open', 3, [tickets.breached, tickets.fresh, tickets.paused]);
+        await day(page, 'from').fill(previous);
+        await day(page, 'to').fill(previous);
+        await use(main(page).getByRole('button', { name: '絞り込む' }), width);
+        await main(page).getByText('この条件に該当するチケットはありません。', { exact: true }).waitFor();
+        assert.equal(await day(page, 'from').inputValue(), previous);
+        assert.equal(await day(page, 'to').inputValue(), previous);
+        assert.equal(new URL(page.url()).searchParams.get('metric'), 'open');
+        await scan(page, width, theme, 'empty');
+
+        await day(page, 'from').fill(today);
+        await use(main(page).getByRole('button', { name: '絞り込む' }), width);
+        await main(page).getByRole('heading', { name: '集計条件を確認してください' }).waitFor();
+        assert.equal(await day(page, 'from').inputValue(), today);
+        assert.equal(await day(page, 'to').inputValue(), previous);
+        summary.journeys.push({ width, theme, group: group.name, received: 4, resolved: 1, open: 3, breached: 1,
+          ticket: tickets.breached.number, returnFocus: true, pausesExcluded: true, dateEmpty: true, dateInvalid: true, scroll });
+        console.log('PASS', width, theme, 'hover, group counts, all metrics, back focus, UTC dates');
+      } finally {
+        await page.context().close();
+      }
+    }
+  }
+  const auditor = await pageFor(1440, 'light', accounts.auditor);
+  await report(auditor);
+  await main(auditor).getByText(/この画面を表示する権限がありません/).waitFor();
+  await auditor.context().close();
+  summary.auditorDenied = true;
+} finally {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+  await browser.close();
+  await db.end();
+}

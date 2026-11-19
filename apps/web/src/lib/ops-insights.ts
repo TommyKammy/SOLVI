@@ -18,7 +18,7 @@ function validDate(value: string) {
 export const reportMetrics = {
   received: '受付件数',
   resolved: '解決済み',
-  open: '未完了',
+  open: '未解決',
   breached: '解決期限超過',
 } as const;
 export type ReportMetric = keyof typeof reportMetrics;
@@ -31,7 +31,7 @@ export function parseReportQuery(query: RawQuery, now?: Date) {
   const metric =
     typeof query.metric === 'string' && Object.hasOwn(reportMetrics, query.metric)
       ? (query.metric as ReportMetric)
-      : 'received';
+      : null;
   const datesValid =
     validDate(from) &&
     validDate(to) &&
@@ -53,7 +53,7 @@ export function parseReportQuery(query: RawQuery, now?: Date) {
     !groupValid ||
     [query.from, query.to, query.group, query.metric].some(Array.isArray) ||
     (query.metric !== undefined && query.metric !== metric) ||
-    ((cursorDate !== undefined || cursorId !== undefined) && !cursor);
+    ((cursorDate !== undefined || cursorId !== undefined) && (!cursor || !metric));
   return { from, to, group, metric, cursor, invalid };
 }
 
@@ -80,12 +80,13 @@ export function reportTicketsQuery(scope: ReportQuery, metric: ReportMetric, pag
 
 export function reportHref(
   scope: ReportQuery,
-  metric: ReportMetric = scope.metric,
+  metric: ReportMetric | null = scope.metric,
   cursor: ReportQuery['cursor'] = null,
 ) {
-  const params = new URLSearchParams({ from: scope.from, to: scope.to, metric });
+  const params = new URLSearchParams({ from: scope.from, to: scope.to });
+  if (metric) params.set('metric', metric);
   if (scope.group) params.set('group', scope.group);
-  if (cursor) {
+  if (metric && cursor) {
     params.set('cursorCreatedAt', cursor.createdAt);
     params.set('cursorId', cursor.id);
   }

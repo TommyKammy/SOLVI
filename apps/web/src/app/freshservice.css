@@ -2608,6 +2608,7 @@ body.fs-ui .knowledge-reader-panel h2 {
 
 .report-metrics {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-block: 0;
 }
 
 .insights-filters {
@@ -2648,35 +2649,289 @@ body.fs-ui .insights-panel h2 {
   margin-block-start: 0;
 }
 
-#report-results,
 .insights-list a[id] {
   scroll-margin-block-start: 72px;
 }
 
-body.fs-ui .report-metric {
-  display: grid;
-  gap: 4px;
-  min-block-size: 64px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--fs-radius-sm);
-  color: var(--ink);
-  text-decoration: none;
+.report-heading {
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line);
+  margin-block-end: var(--fs-view-gap);
 }
 
-.report-metric strong {
-  font-size: 1.2rem;
+body.fs-ui .report-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+body.fs-ui .report-heading h1 {
+  margin-block: 0.125rem 0.25rem;
+}
+
+body.fs-ui .report-scope {
+  margin-block: 0.25rem 1rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+body.fs-ui .report-metric {
+  display: grid;
+  gap: 0.25rem;
+  align-content: start;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition: none;
+}
+
+.report-metric-name {
+  font-weight: 650;
+}
+
+.report-metric-value {
+  font-size: 1.625rem;
+  font-weight: 720;
+  line-height: 1.25;
   font-variant-numeric: tabular-nums;
 }
 
-body.fs-ui a.report-metric[aria-current='page'] {
-  background: var(--side);
-  color: var(--side-ink);
-  border-color: var(--side-line);
+.report-metric-value small {
+  margin-inline-start: 0.25rem;
+  font-size: 0.75rem;
 }
 
-body.fs-ui a.report-metric:hover {
-  border-color: var(--fs-brand);
+.report-metric-open {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--side-brand);
+  font-size: 0.75rem;
+}
+
+body.fs-ui a.report-metric:is(:hover, :focus-visible, [aria-current='true']) {
+  border-color: var(--side-brand);
+  background: var(--side-current);
+  text-decoration: none;
+}
+
+body.fs-ui :is(
+    .report-metric[data-metric='breached'] .report-metric-value,
+    .report-count[data-tone='danger'],
+    .report-overdue
+  ) {
+  color: var(--danger);
+}
+
+.report-results {
+  margin-block-start: 1rem;
+  min-inline-size: 0;
+}
+
+.report-group-panel {
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+}
+
+.report-results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+  margin-block-end: 0.625rem;
+}
+
+body.fs-ui .report-results-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  scroll-margin-block-start: 72px;
+}
+
+.report-results-heading a {
+  font-weight: 650;
+}
+
+.report-breakdown {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-breakdown-row,
+.report-breakdown-head {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(9rem, 2fr) repeat(2, minmax(4.5rem, 0.65fr));
+  align-items: center;
+  gap: 0.625rem 1rem;
+}
+
+.report-breakdown-head {
+  padding: 0.5rem 0.375rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.report-breakdown-row {
+  padding: 0.625rem 0.375rem;
+  border-block-start: 1px solid var(--line);
+}
+
+body.fs-ui .report-breakdown-row h3 {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.report-bar-cell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.report-bar {
+  block-size: 0.5rem;
+  background: var(--panel);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.report-bar > span {
+  display: block;
+  block-size: 100%;
+  background: var(--side-brand);
+}
+
+body.fs-ui .report-count {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.25rem;
+  padding-inline: 0.25rem;
+  color: var(--side-brand);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+body.fs-ui .report-count:hover {
+  text-decoration: underline;
+}
+
+.report-bar-cell > :last-child {
+  grid-column: -2 / -1;
+}
+
+.report-mobile-label {
+  display: none;
+}
+
+.report-empty {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  color: var(--muted);
+}
+
+body.fs-ui .report-empty p {
+  margin: 0;
+}
+
+body.fs-ui .report-table-scroll {
+  border-radius: 0.625rem;
+}
+
+.report-ticket-table {
+  min-inline-size: 38rem;
+}
+
+body.fs-ui .report-ticket-table th[scope='row'] {
+  min-inline-size: 11rem;
+  background: var(--surface);
+  font-size: 0.875rem;
+  font-weight: 650;
+  white-space: normal;
+}
+
+body.fs-ui .report-ticket-table tbody tr:hover th {
+  background: var(--hover);
+}
+
+body.fs-ui .report-ticket-table tbody tr:last-child th {
+  border-block-end: 0;
+}
+
+.report-ticket-table th[scope='row'] a {
+  display: inline-block;
+  scroll-margin-block-start: 72px;
+}
+
+.report-ticket-table time,
+.report-ticket-number {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 50rem) {
+  .report-metrics,
+  .report-breakdown-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-breakdown-row {
+    column-gap: 0.5rem;
+  }
+  .report-breakdown-row h3,
+  .report-bar-cell {
+    grid-column: 1 / -1;
+  }
+  .report-breakdown-head {
+    display: none;
+  }
+  .report-mobile-label {
+    display: inline;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .report-bar-cell {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 32rem) {
+  .report-metrics {
+    gap: 0.5rem;
+  }
+  body.fs-ui .report-metric {
+    padding: 0.625rem 0.75rem;
+  }
+  .report-metric-name {
+    font-size: 0.8125rem;
+  }
+  .report-ticket-table {
+    min-inline-size: 33rem;
+  }
+}
+
+@media (max-width: 45rem) {
+  .report-group-panel {
+    padding: 0.875rem;
+  }
+}
+
+@media (pointer: coarse) {
+  body.fs-ui .report-count,
+  .report-ticket-table th[scope='row'] a {
+    min-block-size: 2.75rem;
+  }
+  .report-ticket-table th[scope='row'] a {
+    align-content: center;
+  }
 }
 
 .insights-list {
@@ -2725,9 +2980,6 @@ body.fs-ui a.report-metric:hover {
 @media (max-width: 600px) {
   .insights-filters {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .report-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

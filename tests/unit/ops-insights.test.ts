@@ -16,6 +16,23 @@ const now = new Date('2026-11-19T10:00:00Z');
 const id = '05100000-0000-4000-8000-000000000001';
 
 describe('report criteria and drilldown', () => {
+  it('opens the group summary by default and clears only the drilldown on return', () => {
+    const filter = { from: '2026-11-14', to: '2026-11-18', group: id };
+    const summary = parseReportQuery(filter, now);
+    expect(summary.invalid).toBe(false);
+    expect(summary.metric).toBeNull();
+    expect(reportHref(summary)).toBe('/ops/reports?from=2026-11-14&to=2026-11-18&group=' + id);
+
+    const cursorCreatedAt = '2026-11-17T09:58:23.123456Z';
+    const selected = parseReportQuery(
+      { ...filter, metric: 'received', cursorCreatedAt, cursorId: id },
+      now,
+    );
+    expect(selected.invalid).toBe(false);
+    expect(reportHref(selected, null, selected.cursor)).toBe(reportHref(summary));
+    expect(parseReportQuery({ ...filter, cursorCreatedAt, cursorId: id }, now).invalid).toBe(true);
+  });
+
   it('uses UTC date and the same filter for total and the selected ticket page', () => {
     const scope = parseReportQuery(
       {
