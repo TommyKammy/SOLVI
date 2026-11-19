@@ -30,6 +30,8 @@
   --side-ink: light-dark(#16304f, #dce7f5);
   --side-muted: light-dark(#5a7192, #8ea3bf);
   --side-brand: light-dark(#1f5fc9, #5b93f0);
+  --fs-content-gutter: 32px;
+  --fs-content-max: 1536px;
 
   color-scheme: light;
 
@@ -293,6 +295,7 @@ body.fs-ui .fs-side-link:hover {
   color: var(--side-ink);
   text-decoration: none;
 }
+body.fs-ui .fs-side-link[aria-current='location'],
 body.fs-ui .fs-side-link[aria-current='page'] {
   background: var(--side-current);
   color: var(--side-ink);
@@ -327,6 +330,7 @@ body.fs-ui .fs-side-link:focus-visible {
    色の違いは数字と太さで補う。 */
 body.fs-ui .fs-side-link:hover .fs-side-count,
 body.fs-ui .fs-side-link:focus-visible .fs-side-count,
+body.fs-ui .fs-side-link[aria-current='location'] .fs-side-count,
 body.fs-ui .fs-side-link[aria-current='page'] .fs-side-count {
   color: var(--side-ink);
 }
@@ -660,12 +664,46 @@ body.fs-ui .fs-side-toggle,
 
 .fs-content {
   flex: 1;
-  padding: 24px 32px 40px;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: var(--fs-content-max);
+  margin-inline: auto;
+  padding-block: 24px 40px;
+  padding-inline: var(--fs-content-gutter);
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --fs-content-gutter: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --fs-content-gutter: 20px;
+  }
+}
+
+.fs-content :is([id^='ticket-entry-'], #ticket-list-heading) {
+  scroll-margin-block-start: 64px;
+}
+
+body.fs-ui .fs-ticket-back {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 32px;
+  margin-block-end: 12px;
+}
+
+@media (pointer: coarse) {
+  body.fs-ui .fs-ticket-back {
+    min-block-size: 44px;
+  }
 }
 
 body.fs-ui .fs-content > main {
   width: 100%;
-  max-width: 1280px;
   min-height: calc(100vh - 56px);
   margin: 0 auto;
   padding: 0 0 24px;
@@ -1052,6 +1090,21 @@ body.fs-ui .filters .field {
 }
 body.fs-ui .filters > button {
   flex: 0 0 auto;
+}
+
+@media (min-width: 801px) {
+  body.fs-ui .inbox-page .filters :is(select, input[type='text']),
+  body.fs-ui .inbox-page .filters > :is(button, label, a) {
+    min-block-size: 38px;
+  }
+  body.fs-ui .inbox-page .filters > button {
+    align-self: flex-end;
+  }
+  body.fs-ui .inbox-page .filters > :is(label, a) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
 }
 body.fs-ui .filter-actions {
   display: flex;
@@ -3184,7 +3237,7 @@ body.fs-ui .fs-public-content > main form.stack {
     gap: 0;
   }
   .fs-content {
-    padding: 0 16px 24px;
+    padding-block: 0 24px;
   }
   body.fs-ui .fs-content > main,
   body.fs-ui .shell {
@@ -3195,15 +3248,16 @@ body.fs-ui .fs-public-content > main form.stack {
     flex-direction: column;
     align-items: stretch;
   }
-  body.fs-ui .inbox-summary {
-    grid-template-columns: 1fr;
-  }
   body.fs-ui .inbox-summary p {
-    border-right: 0;
-    border-bottom: 1px solid var(--fs-border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    overflow-wrap: anywhere;
   }
-  body.fs-ui .inbox-summary p:last-child {
-    border-bottom: 0;
+  body.fs-ui .inbox-summary strong {
+    margin-block-start: auto;
+    font-size: 1.125rem;
   }
   body.fs-ui .overview-counts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3764,7 +3818,7 @@ body.fs-ui .fs-queue-table.fs-queue-table--v2 {
   min-width: 1040px;
 }
 body.fs-ui .inbox-table.inbox-table--v2 {
-  min-width: 940px;
+  min-width: 780px;
 }
 body.fs-ui table.tickets.fs-queue-table--v2 th,
 body.fs-ui .work-table.inbox-table--v2 th {
@@ -3848,8 +3902,10 @@ body.fs-ui .inbox-table--v2 .inbox-col-state {
 body.fs-ui .inbox-table--v2 .inbox-col-deadline {
   width: 230px;
 }
-body.fs-ui .inbox-table--v2 .inbox-col-action {
-  width: 150px;
+@media (max-width: 600px) {
+  body.fs-ui .inbox-table--v2 .inbox-col-number {
+    width: 104px;
+  }
 }
 body.fs-ui table.tickets.fs-queue-table--v2 .queue-number,
 body.fs-ui .work-table.inbox-table--v2 .inbox-number {
@@ -3938,15 +3994,20 @@ body.fs-ui .kind-label {
   font-weight: 500;
   white-space: nowrap;
 }
-body.fs-ui .inbox-table--v2 .inbox-action form,
-body.fs-ui .inbox-table--v2 .inbox-action button {
-  width: 100%;
+body.fs-ui .inbox-table--v2 .inbox-action {
+  margin-block-start: 6px;
 }
 body.fs-ui .inbox-table--v2 .inbox-action button {
   min-height: 32px;
   padding: 4px 10px;
   white-space: normal;
   text-align: left;
+}
+
+@media (pointer: coarse) {
+  body.fs-ui .inbox-table--v2 .inbox-action button {
+    min-block-size: 44px;
+  }
 }
 body.fs-ui .work-table.inbox-table--v2 td.inbox-deadline {
   white-space: normal;

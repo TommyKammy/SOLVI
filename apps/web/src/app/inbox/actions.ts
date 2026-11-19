@@ -1,13 +1,15 @@
 'use server';
 import { redirect } from 'next/navigation';
-import { withReturnTo } from '../../lib/navigation';
+import { ticketReturnTo, withReturnTo } from '../../lib/navigation';
 import { revalidatePath } from 'next/cache';
 import { api } from '../../lib/api';
 import type { FormFeedback } from '../../lib/form-state';
 export async function openInboxItem(previous: FormFeedback, form: FormData): Promise<FormFeedback> {
+  const kind = String(form.get('kind') ?? '');
+  const id = String(form.get('id') ?? '');
   const r = await api.readInbox({
-    kind: String(form.get('kind') ?? ''),
-    id: String(form.get('id') ?? ''),
+    kind,
+    id,
     eventKey: String(form.get('eventKey') ?? ''),
   });
   if (!r.ok)
@@ -20,5 +22,6 @@ export async function openInboxItem(previous: FormFeedback, form: FormData): Pro
       attempt: (previous.attempt ?? 0) + 1,
     };
   revalidatePath('/inbox');
-  redirect(withReturnTo(r.data.href, form.get('returnTo')));
+  const from = form.get('returnTo');
+  redirect(withReturnTo(r.data.href, kind === 'ticket' ? ticketReturnTo(from, id) : from));
 }

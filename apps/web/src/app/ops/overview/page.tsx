@@ -2,10 +2,17 @@ import React from 'react';
 import Link from 'next/link';
 import { InboxOpenForm } from '../../../components/InboxOpenForm';
 import { OperationsGroupSelect } from '../../../components/OperationsGroupSelect';
+import { TicketReturnFocus } from '../../../components/TicketReturnFocus';
 import { api, requireSession } from '../../../lib/api';
 import type { InboxItem, InboxView, TicketView } from '../../../lib/api';
 import { formatDateTime } from '../../../lib/labels';
-import { navigationRoles, withReturnTo } from '../../../lib/navigation';
+import {
+  navigationRoles,
+  ticketEntryId,
+  ticketListHeadingId,
+  ticketReturnTo,
+  withReturnTo,
+} from '../../../lib/navigation';
 import {
   HOME_WORK_LIMIT,
   approvalQueueHref,
@@ -92,7 +99,11 @@ function WorkList({
             <Link
               className="home-work-row"
               data-due={tone}
-              href={withReturnTo(`/ops/${encodeURIComponent(ticket.id)}`, returnTo)}
+              id={ticketEntryId(ticket.id)}
+              href={withReturnTo(
+                `/ops/${encodeURIComponent(ticket.id)}`,
+                ticketReturnTo(returnTo, ticket.id),
+              )}
               prefetch={false}
             >
               <span className="home-work-marker" aria-hidden="true" />
@@ -253,8 +264,9 @@ export default async function OperationsOverview({
 
   return (
     <main id="main" className="shell operations-overview fs-home">
+      <TicketReturnFocus />
       <header className="home-heading">
-        <h1>
+        <h1 id={ticketListHeadingId} tabIndex={-1}>
           {workActiveTotal === null ? (
             '今日の対応'
           ) : truncated ? (

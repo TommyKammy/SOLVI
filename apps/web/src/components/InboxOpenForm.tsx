@@ -4,7 +4,14 @@ import { FeedbackForm } from './FeedbackForm';
 import { openInboxItem } from '../app/inbox/actions';
 import type { InboxItem } from '../lib/api';
 import type { FormFeedback } from '../lib/form-state';
-export function InboxOpenForm({ item }: { item: InboxItem }) {
+import { ticketEntryId } from '../lib/navigation';
+export function InboxOpenForm({
+  item,
+  restoreFocus = false,
+}: {
+  item: InboxItem;
+  restoreFocus?: boolean;
+}) {
   const [feedback, action, pending] = useActionState(openInboxItem, {
     message: '',
   } as FormFeedback);
@@ -14,7 +21,13 @@ export function InboxOpenForm({ item }: { item: InboxItem }) {
       <input type="hidden" name="id" value={item.id} />
       <input type="hidden" name="eventKey" value={item.eventKey} />
 
-      <button disabled={pending}>{pending ? '更新を確認しています…' : item.nextAction}</button>
+      <button
+        type="submit"
+        id={restoreFocus && item.kind === 'ticket' ? ticketEntryId(item.id) : undefined}
+        disabled={pending}
+      >
+        {pending ? '更新を確認しています…' : item.nextAction}
+      </button>
     </FeedbackForm>
   );
 }

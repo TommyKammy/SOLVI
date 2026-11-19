@@ -1,6 +1,12 @@
 import { formScope } from '../../../lib/form-scope';
 import { TicketWaitNotice } from '../../../components/TicketWaitNotice';
-import { safeReturnTo, withReturnTo } from '../../../lib/navigation';
+import {
+  safeReturnTo,
+  ticketBackLabel,
+  ticketEntryPrefix,
+  ticketListOrigin,
+  withReturnTo,
+} from '../../../lib/navigation';
 import { ContextLink } from '../../../components/ContextLink';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -126,6 +132,9 @@ export default async function OpsWorkspace({
   const { id } = await params;
   const query = await searchParams;
   const returnTo = safeReturnTo(query.returnTo);
+  const origin = ticketListOrigin(returnTo);
+  const backLabel = ticketBackLabel(origin, Boolean(returnTo));
+  const restoreFocus = origin?.hash.startsWith('#' + ticketEntryPrefix);
 
   // 未ログインはログイン画面へ、組織が未選択なら選択画面へ。
   // 判定は requireSession に閉じる(画面ごとに書くと必ず書き漏れる)。
@@ -242,11 +251,9 @@ export default async function OpsWorkspace({
   return (
     <main id="main" className="shell ticket-workspace ticket-workspace--v2">
       <HashOpenDetails />
-      <p>
-        <ContextLink back href="/ops">
-          対応待ちの一覧へ戻る
-        </ContextLink>
-      </p>
+      <Link className="fs-ticket-back" href={returnTo ?? '/ops'} scroll={!restoreFocus}>
+        {backLabel}
+      </Link>
 
       {query.replied !== undefined && (
         <p className="notice" role="status">

@@ -7,6 +7,7 @@ import { LogoutForm } from './DraftSessionBoundary';
 import { SupportFrame } from './SupportFrame';
 import { ThemeToggle } from './ThemeToggle';
 import type { RailGroup, RailItem } from '../lib/navigation-groups';
+import { safeReturnTo, ticketEntryPrefix, ticketListOrigin } from '../lib/navigation';
 
 type Props = {
   groups: RailGroup[];
@@ -147,7 +148,14 @@ export function AppFrame({
   const toggleRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const wasMobileOpen = useRef(false);
-  const current = findCurrent(pathname, searchParams, groups);
+  const ticketId = pathname.match(/^\/ops\/([^/]+)$/)?.[1];
+  const returnTo = safeReturnTo(searchParams.get('returnTo'));
+  const origin = ticketId && DETAIL_ID.test(ticketId) ? ticketListOrigin(returnTo) : null;
+  const current = findCurrent(
+    origin?.pathname ?? pathname,
+    origin?.searchParams ?? searchParams,
+    groups,
+  );
 
   useEffect(() => {
     setMobileOpen(false);
@@ -226,6 +234,7 @@ export function AppFrame({
 
   const currentDetail = (() => {
     if (!current) return null;
+    if (origin) return '問い合わせ詳細';
     if (current.item) {
       const target = matchTarget(current.item);
       if (pathname === target.path) return current.item.label;
@@ -306,7 +315,7 @@ export function AppFrame({
                       <Link
                         href={entry.href}
                         className="fs-side-link"
-                        aria-current={active ? 'page' : undefined}
+                        aria-current={active ? (origin ? 'location' : 'page') : undefined}
                         aria-label={count ? `${entry.label} ${count.value}件` : undefined}
                         onClick={() => setMobileOpen(false)}
                       >
@@ -352,7 +361,12 @@ export function AppFrame({
             <div className="fs-breadcrumb">
               {current ? (
                 <>
-                  <Link href={current.group.href}>{current.group.label}</Link>
+                  <Link
+                    href={(origin && returnTo) || current.group.href}
+                    scroll={!origin?.hash.startsWith('#' + ticketEntryPrefix)}
+                  >
+                    {(origin && current.item?.label) || current.group.label}
+                  </Link>
                   {currentDetail && currentDetail !== current.group.label && (
                     <>
                       <FreshserviceIcon name="chevron" size={14} />

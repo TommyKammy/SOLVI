@@ -74,3 +74,35 @@ export function withReturnTo(href: string, from: unknown): string {
   else url.searchParams.delete('returnTo');
   return url.pathname + url.search + url.hash;
 }
+
+const ticketListLabels = {
+  '/ops/overview': '運営状況',
+  '/inbox': '業務受信箱',
+  '/ops': 'チケット一覧',
+};
+
+export function ticketListOrigin(value: unknown): URL | null {
+  const from = safeReturnTo(value);
+  if (!from) return null;
+  const url = new URL(from, 'https://solvi.local');
+  return Object.hasOwn(ticketListLabels, url.pathname) ? url : null;
+}
+
+export const ticketEntryPrefix = 'ticket-entry-';
+export const ticketEntryId = (id: string) => ticketEntryPrefix + id;
+export const ticketListHeadingId = 'ticket-list-heading';
+
+export function ticketReturnTo(value: unknown, id: string): string | null {
+  const origin = ticketListOrigin(value);
+  if (!origin) return safeReturnTo(value);
+  origin.hash = ticketEntryId(id);
+  return origin.pathname + origin.search + origin.hash;
+}
+
+export function ticketBackLabel(from: URL | null, hasReturnTo: boolean): string {
+  if (from) {
+    const label = ticketListLabels[from.pathname as keyof typeof ticketListLabels];
+    if (label) return label + 'に戻る';
+  }
+  return hasReturnTo ? '元の画面に戻る' : 'チケット一覧に戻る';
+}

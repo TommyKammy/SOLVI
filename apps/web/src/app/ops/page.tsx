@@ -1,8 +1,15 @@
 import { TableRegion } from '../../components/TableRegion';
 import { ContextLink } from '../../components/ContextLink';
 import { HashOpenDetails } from '../../components/HashOpenDetails';
+import { TicketReturnFocus } from '../../components/TicketReturnFocus';
 import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
+import {
+  ticketEntryId,
+  ticketListHeadingId,
+  ticketReturnTo,
+  withReturnTo,
+} from '../../lib/navigation';
 import { stateLabel, kindLabel, priorityLabel, formatDateTime, slaUrgency } from '../../lib/labels';
 import {
   OPERATIONS_METRICS,
@@ -126,9 +133,12 @@ export default async function OpsQueue({
   return (
     <main id="main" className="shell ops-shell ops-queue">
       <HashOpenDetails />
+      <TicketReturnFocus />
       <div className="page-heading queue-heading">
         <div>
-          <h1>問い合わせの一覧</h1>
+          <h1 id={ticketListHeadingId} tabIndex={-1}>
+            問い合わせの一覧
+          </h1>
           <p className="hint">担当・状況・期限から、次に対応する問い合わせを確認します。</p>
         </div>
         <div className="queue-utilities">
@@ -299,10 +309,11 @@ export default async function OpsQueue({
                         <td className="ticket-subject">
                           <Link
                             className="queue-subject"
-                            href={{
-                              pathname: `/ops/${ticket.id}`,
-                              query: { returnTo: ticketQueueHref(currentQuery) },
-                            }}
+                            id={ticketEntryId(ticket.id)}
+                            href={withReturnTo(
+                              `/ops/${ticket.id}`,
+                              ticketReturnTo(ticketQueueHref(currentQuery), ticket.id),
+                            )}
                           >
                             <span className="record-title">{ticket.subject}</span>
                           </Link>

@@ -1,0 +1,58 @@
+import { writeFileSync } from 'node:fs';
+import { api, login, require } from './helpers.mjs';
+import assert from 'node:assert/strict';
+
+const database = process.argv[2];
+const url = new URL(process.env.DATABASE_ADMIN_URL);
+assert.match(database, /^solvi_uix048_\d+_test$/);
+assert(['127.0.0.1', 'localhost', '::1'].includes(url.hostname));
+url.pathname = '/' + database;
+const { Client } = require('pg');
+const db = new Client({ connectionString: url.href });
+const admin = await login('org_admin');
+const requester = await login('requester');
+const { userId, organizationId } = await api('/auth/me', admin);
+
+await db.connect();
+try {
+  const { rows: groups } = await db.query(
+    'SELECT id, code FROM assignment_group WHERE organization_id=$1 AND code IN ($2, $3)',
+    [organizationId, 'infra', 'helpdesk'],
+  );
+  const group = (code) => groups.find((entry) => entry.code === code).id;
+  const result = { group: group('infra'), tickets: [] };
+  for (let index = 0; index < 29; index++) {
+    const target = index === 0;
+    const subject = target
+      ? 'UIX048 合成 VPN接続が切れる'
+      : 'UIX048 合成 表示・ページ確認 ' + String(index).padStart(2, '0');
+    const body = {
+      subject,
+      body: '担当者向け操作の受入確認に使用する合成問い合わせです。',
+      kind: 'incident',
+      impact: target ? 'medium' : 'high',
+      urgency: target ? 'medium' : 'high',
+    };
+    const ticket = await api('/tickets', requester, body);
+    const assigned = await db.query(
+      `UPDATE ticket SET state='in_progress', assignee_id=$2, assignee_group_id=$3,
+        sla_clock_started_at=now(), sla_elapsed_seconds=$4
+        WHERE id=$1 AND organization_id=$5`,
+      [ticket.id, userId, group(target ? 'infra' : 'helpdesk'), target ? 0 : 43200, organizationId],
+    );
+    assert.equal(assigned.rowCount, 1);
+    if (target) {
+      // Keep this synthetic ticket due soon enough to appear on the overview.
+      await db.query(
+        `UPDATE sla_policy SET response_target_minutes=60, resolution_target_minutes=120
+          WHERE organization_id=$1 AND priority=$2`,
+        [organizationId, ticket.priority],
+      );
+    }
+    result.tickets.push({ id: ticket.id, number: ticket.number, subject });
+  }
+  writeFileSync(process.argv[3], JSON.stringify(result, null, 2) + '\n');
+  console.log('Prepared 29 synthetic tickets, with a shared overview and inbox target.');
+} finally {
+  await db.end();
+}

@@ -1,0 +1,19 @@
+
+> solvi@0.1.0 lint
+> eslint . --max-warnings=0
+
+
+/Users/jp.infra/Dev/SOLVI/.claude/worktrees/adr-0027-security-headers/apps/web/next-env.d.ts
+  3:1  error  Do not use a triple slash reference for ./.next/types/routes.d.ts, use `import` style instead  @typescript-eslint/triple-slash-reference
+
+/Users/jp.infra/Dev/SOLVI/.claude/worktrees/goofy-jepsen-441db6/apps/web/next-env.d.ts
+  3:1  error  Do not use a triple slash reference for ./.next/types/routes.d.ts, use `import` style instead  @typescript-eslint/triple-slash-reference
+
+/Users/jp.infra/Dev/SOLVI/.claude/worktrees/musing-chatterjee-914c99/apps/web/next-env.d.ts
+  3:1  error  Do not use a triple slash reference for ./.next/types/routes.d.ts, use `import` style instead  @typescript-eslint/triple-slash-reference
+
+/Users/jp.infra/Dev/SOLVI/.claude/worktrees/npm-audit-fix/apps/web/next-env.d.ts
+  3:1  error  Do not use a triple slash reference for ./.next/types/routes.d.ts, use `import` style instead  @typescript-eslint/triple-slash-reference
+
+✖ 4 problems (4 errors, 0 warnings)
+

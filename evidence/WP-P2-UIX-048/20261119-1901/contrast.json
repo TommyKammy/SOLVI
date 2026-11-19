@@ -1,0 +1,242 @@
+[
+  {
+    "colorScheme": "light",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "th:nth-child(4)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "th:nth-child(5)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "tr:nth-child(1) > .inbox-deadline > .deadline-overdue.deadline-label",
+    "ratio": 5.96
+  },
+  {
+    "colorScheme": "light",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "tr:nth-child(2) > .inbox-deadline > .deadline-overdue.deadline-label",
+    "ratio": 5.96
+  },
+  {
+    "colorScheme": "light",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "tr:nth-child(3) > .inbox-deadline > .deadline-overdue.deadline-label",
+    "ratio": 5.96
+  },
+  {
+    "colorScheme": "light",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": ".deadline-upcoming",
+    "ratio": 16.91
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(3)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(4)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(5)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(6)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(7)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(8)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(9)",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".record-kind",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".priority-label",
+    "ratio": 16.91
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-group > .cell-clip",
+    "ratio": 16.91
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "td:nth-child(6) > .cell-clip",
+    "ratio": 16.91
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".sla",
+    "ratio": 16.91
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-requester > .cell-clip",
+    "ratio": 16.91
+  },
+  {
+    "colorScheme": "light",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-created",
+    "ratio": 5.98
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "th:nth-child(4)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "th:nth-child(5)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "tr:nth-child(1) > .inbox-deadline > .deadline-overdue.deadline-label",
+    "ratio": 6.53
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "tr:nth-child(2) > .inbox-deadline > .deadline-overdue.deadline-label",
+    "ratio": 6.53
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": "tr:nth-child(3) > .inbox-deadline > .deadline-overdue.deadline-label",
+    "ratio": 6.53
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/inbox?kind=ticket&q=UIX048&page=2",
+    "target": ".deadline-upcoming",
+    "ratio": 14.76
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(3)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(4)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(5)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(6)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(7)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(8)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "th:nth-child(9)",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".record-kind",
+    "ratio": 6.91
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".priority-label",
+    "ratio": 14.76
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-group > .cell-clip",
+    "ratio": 14.76
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": "td:nth-child(6) > .cell-clip",
+    "ratio": 14.76
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".sla",
+    "ratio": 14.76
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-requester > .cell-clip",
+    "ratio": 14.76
+  },
+  {
+    "colorScheme": "dark",
+    "path": "/ops?keyword=VPN&state=in_progress",
+    "target": ".queue-created",
+    "ratio": 6.91
+  }
+]

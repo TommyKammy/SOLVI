@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { api, requireSession, type InboxItem } from '../../lib/api';
 import { formatDateTime, formatRemaining } from '../../lib/labels';
 import { InboxOpenForm } from '../../components/InboxOpenForm';
+import { TicketReturnFocus } from '../../components/TicketReturnFocus';
+import { ticketListHeadingId } from '../../lib/navigation';
 export const dynamic = 'force-dynamic';
 
 /** UI v2 の共通表で使う種類の表示。APIの識別子は画面へ出さない。 */
@@ -49,7 +51,10 @@ export default async function InboxPage({
               : '受信箱を取得できませんでした。時間をおいて、同じ条件で再取得してください。';
     return (
       <main id="main" className="shell">
-        <h1>業務受信箱</h1>
+        <TicketReturnFocus />
+        <h1 id={ticketListHeadingId} tabIndex={-1}>
+          業務受信箱
+        </h1>
         <p role="alert">{message}</p>
         <p>
           <a href={refresh}>同じ条件で再取得する</a>
@@ -75,8 +80,11 @@ export default async function InboxPage({
   };
   return (
     <main id="main" className="shell ops-shell inbox-page">
+      <TicketReturnFocus />
       <p className="eyebrow">担当ワークスペース</p>
-      <h1>業務受信箱</h1>
+      <h1 id={ticketListHeadingId} tabIndex={-1}>
+        業務受信箱
+      </h1>
       <p className="lead">自分の担当、指名された承認、変更の予定を確認して、次の作業へ進みます。</p>
       <p className="hint">
         業務を開くと今回の更新を既読として記録します。既読でも、未完了の業務はここに残ります。外部への通知送信は行いません。
@@ -175,7 +183,6 @@ export default async function InboxPage({
               <col className="inbox-col-kind" />
               <col className="inbox-col-state" />
               <col className="inbox-col-deadline" />
-              <col className="inbox-col-action" />
             </colgroup>
             <thead>
               <tr>
@@ -184,7 +191,6 @@ export default async function InboxPage({
                 <th scope="col">種類</th>
                 <th scope="col">状態</th>
                 <th scope="col">期限</th>
-                <th scope="col">次の対応</th>
               </tr>
             </thead>
             <tbody>
@@ -202,6 +208,9 @@ export default async function InboxPage({
                       {' '}
                       · {item.scopeLabel} · 更新 {formatDateTime(item.updatedAt)}
                     </span>
+                    <div className="inbox-action">
+                      <InboxOpenForm key={item.eventKey} item={item} restoreFocus />
+                    </div>
                   </td>
                   <td>
                     <span className="kind-label" data-kind={item.kind}>
@@ -227,9 +236,6 @@ export default async function InboxPage({
                         〜 {item.plannedEnd ? formatDateTime(item.plannedEnd) : '終了未設定'}
                       </p>
                     )}
-                  </td>
-                  <td className="inbox-action">
-                    <InboxOpenForm key={item.eventKey} item={item} />
                   </td>
                 </tr>
               ))}
