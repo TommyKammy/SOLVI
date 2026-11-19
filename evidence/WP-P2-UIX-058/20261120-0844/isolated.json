@@ -1,0 +1,186 @@
+{
+  "mode": "isolated",
+  "browser": "157.0.8103.79",
+  "fixtures": {
+    "item": "01a1f635-bce7-7000-b09f-c322162af667",
+    "requests": {
+      "org_admin": "01a1f635-bd0d-7000-9766-09a8eb48802a",
+      "requester": "01a1f635-bd32-7000-80c1-6e11c1d3b835"
+    },
+    "organization": "01a1f635-bd4d-7000-b368-3ead8eaf728f",
+    "staff": "01a1f635-bd69-7000-984b-dafc6169ee71"
+  },
+  "checks": [
+    {
+      "role": "org_admin",
+      "width": 1440,
+      "screen": "catalog",
+      "portal": true,
+      "heading": "サービスカタログ"
+    },
+    {
+      "role": "org_admin",
+      "width": 1440,
+      "screen": "requests",
+      "portal": true,
+      "heading": "申請の状況"
+    },
+    {
+      "role": "org_admin",
+      "width": 1440,
+      "screen": "knowledge",
+      "portal": true,
+      "heading": "ヘルプ記事を探す"
+    },
+    {
+      "role": "org_admin",
+      "width": 375,
+      "screen": "catalog",
+      "portal": true,
+      "heading": "サービスカタログ"
+    },
+    {
+      "role": "org_admin",
+      "width": 375,
+      "screen": "requests",
+      "portal": true,
+      "heading": "申請の状況"
+    },
+    {
+      "role": "org_admin",
+      "width": 375,
+      "screen": "knowledge",
+      "portal": true,
+      "heading": "ヘルプ記事を探す"
+    },
+    {
+      "role": "requester",
+      "width": 1440,
+      "screen": "catalog",
+      "portal": true,
+      "heading": "サービスカタログ"
+    },
+    {
+      "role": "requester",
+      "width": 1440,
+      "screen": "requests",
+      "portal": true,
+      "heading": "申請の状況"
+    },
+    {
+      "role": "requester",
+      "width": 1440,
+      "screen": "knowledge",
+      "portal": true,
+      "heading": "ヘルプ記事を探す"
+    },
+    {
+      "role": "requester",
+      "width": 375,
+      "screen": "catalog",
+      "portal": true,
+      "heading": "サービスカタログ"
+    },
+    {
+      "role": "requester",
+      "width": 375,
+      "screen": "requests",
+      "portal": true,
+      "heading": "申請の状況"
+    },
+    {
+      "role": "requester",
+      "width": 375,
+      "screen": "knowledge",
+      "portal": true,
+      "heading": "ヘルプ記事を探す"
+    }
+  ],
+  "scans": [
+    {
+      "role": "org_admin",
+      "width": 1440,
+      "screen": "catalog",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "org_admin",
+      "width": 1440,
+      "screen": "requests",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "org_admin",
+      "width": 1440,
+      "screen": "knowledge",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "org_admin",
+      "width": 375,
+      "screen": "catalog",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "org_admin",
+      "width": 375,
+      "screen": "requests",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "org_admin",
+      "width": 375,
+      "screen": "knowledge",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "requester",
+      "width": 1440,
+      "screen": "catalog",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "requester",
+      "width": 1440,
+      "screen": "requests",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "requester",
+      "width": 1440,
+      "screen": "knowledge",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "requester",
+      "width": 375,
+      "screen": "catalog",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "requester",
+      "width": 375,
+      "screen": "requests",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "role": "requester",
+      "width": 375,
+      "screen": "knowledge",
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "submissionContinuesInPortal": true
+}

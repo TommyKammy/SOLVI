@@ -100,10 +100,15 @@ export class KnowledgeController {
     });
   }
   async list(auth: AuthenticatedRequest, query: URLSearchParams) {
-    const manage = query.get('manage') === '1';
-    if (manage) requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
-    const scope = { organizationId: auth.authz.organizationId, staffVisible: canEdit(auth) };
-    const options = parseKnowledgeListQuery(query, scope);
+    if (query.get('manage') === '1') requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    const organizationOnly = query.getAll('audience').includes('organization');
+    const conditions = new URLSearchParams(query);
+    if (organizationOnly) conditions.delete('manage');
+    const scope = {
+      organizationId: auth.authz.organizationId,
+      staffVisible: !organizationOnly && canEdit(auth),
+    };
+    const options = parseKnowledgeListQuery(conditions, scope);
     return this.run(
       auth,
       async (client) => {
@@ -143,16 +148,24 @@ export class KnowledgeController {
       true,
     );
   }
-  async detail(auth: AuthenticatedRequest, id: string, manage: boolean) {
+  async detail(
+    auth: AuthenticatedRequest,
+    id: string,
+    editView: boolean,
+    organizationOnly = false,
+  ) {
     parse(idSchema, id);
-    if (manage) requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    if (editView) requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    const manage = editView && !organizationOnly;
     return this.run(auth, async (client) => {
       const visible = manage
         ? 'v.number=a.version'
         : `v.number=a.published_version AND a.state <> 'retired' AND (v.audience='organization' OR $3)`;
       const r = await client.query(
         `${select(manage)} WHERE a.id=$1 AND a.organization_id=$2 AND ${visible}`,
-        manage ? [id, auth.authz.organizationId] : [id, auth.authz.organizationId, canEdit(auth)],
+        manage
+          ? [id, auth.authz.organizationId]
+          : [id, auth.authz.organizationId, !organizationOnly && canEdit(auth)],
       );
       if (!r.rows[0]) throw Problems.notFound('記事');
       const versions = manage

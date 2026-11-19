@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
-import { navigationRoles, withReturnTo } from '../../lib/navigation';
+import { isPortalView, navigationRoles, portalViewHref, withReturnTo } from '../../lib/navigation';
 import { formatDateTime } from '../../lib/labels';
 import { ServicePageHeading } from '../../components/ServicePageHeading';
 import { FreshserviceIcon } from '../../components/FreshserviceIcon';
@@ -47,15 +47,20 @@ export default async function KnowledgePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireSession();
-  const staff = navigationRoles(session).staff;
-  const query = parseKnowledgeQuery(await searchParams, staff);
-  const currentHref = knowledgeHref(query);
-  const firstHref = knowledgeHref({ q: query.q, manage: query.manage });
-  const clearHref = knowledgeHref({ q: '', manage: query.manage });
+  const raw = await searchParams;
+  const portalView = isPortalView(raw.portal);
+  const staff = !portalView && navigationRoles(session).staff;
+  const query = parseKnowledgeQuery(raw, staff);
+  const hrefFor = (value: Parameters<typeof knowledgeHref>[0]) =>
+    portalViewHref(knowledgeHref(value), portalView);
+  const currentHref = hrefFor(query);
+  const firstHref = hrefFor({ q: query.q, manage: query.manage });
+  const clearHref = hrefFor({ q: '', manage: query.manage });
   const result = query.error
     ? null
     : await api.knowledgeList(query.q, query.manage, {
         limit: KNOWLEDGE_PAGE_SIZE,
+        ...(portalView ? { audience: 'organization' as const } : {}),
         ...(query.cursor ? { cursor: query.cursor } : {}),
       });
   const searching = query.q.length > 0;
@@ -83,12 +88,10 @@ export default async function KnowledgePage({
       <nav className="knowledge-pagination" aria-label={`ナレッジ検索結果のページ（${position}）`}>
         {query.cursor && <Link href={firstHref}>最初の結果へ</Link>}
         {result.data.previousCursor && (
-          <Link href={knowledgeHref({ ...query, cursor: result.data.previousCursor })}>
-            前の結果
-          </Link>
+          <Link href={hrefFor({ ...query, cursor: result.data.previousCursor })}>前の結果</Link>
         )}
         {result.data.nextCursor && (
-          <Link href={knowledgeHref({ ...query, cursor: result.data.nextCursor })}>次の結果</Link>
+          <Link href={hrefFor({ ...query, cursor: result.data.nextCursor })}>次の結果</Link>
         )}
       </nav>
     );
@@ -113,7 +116,7 @@ export default async function KnowledgePage({
               <nav className="form-actions knowledge-utilities" aria-label="ナレッジの表示と管理">
                 {query.manage ? (
                   <>
-                    <Link className="support-action" href={knowledgeHref({ q: '', manage: false })}>
+                    <Link className="support-action" href={hrefFor({ q: '', manage: false })}>
                       すべての記事
                     </Link>
                     <Link
@@ -126,7 +129,7 @@ export default async function KnowledgePage({
                 ) : (
                   <Link
                     className="support-action support-action--primary"
-                    href={knowledgeHref({ q: '', manage: true })}
+                    href={hrefFor({ q: '', manage: true })}
                   >
                     ナレッジ管理
                   </Link>
@@ -159,6 +162,7 @@ export default async function KnowledgePage({
                 タイトル・本文・タグを部分一致で検索します。
               </span>
             </div>
+            {portalView && <input type="hidden" name="portal" value="1" />}
             {query.manage && <input type="hidden" name="manage" value="1" />}
             <button type="submit">
               <FreshserviceIcon name="search" size={16} />
@@ -324,7 +328,7 @@ export default async function KnowledgePage({
                 {topTags.map(([tag]) => (
                   <Link
                     key={tag}
-                    href={knowledgeHref({ q: tag, manage: query.manage })}
+                    href={hrefFor({ q: tag, manage: query.manage })}
                     aria-current={query.q === tag ? 'page' : undefined}
                   >
                     {tag}

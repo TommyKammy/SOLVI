@@ -37,6 +37,27 @@ export function isOrgAdmin(session: SessionView): boolean {
   return navigationRoles(session).orgAdmin;
 }
 
+// 表示だけを指定する。管理・編集ルートは業務画面のままにする。
+export function isPortalViewPath(pathname: string): boolean {
+  return (
+    /^\/(catalog|knowledge|requests)(\/[^/]+)?$/.test(pathname) &&
+    pathname !== '/catalog/manage' &&
+    pathname !== '/knowledge/new'
+  );
+}
+
+export function isPortalView(value: unknown): boolean {
+  return Array.isArray(value) ? value.includes('1') : value === '1';
+}
+
+export function portalViewHref(href: string, enabled = true): string {
+  if (!enabled || !href.startsWith('/')) return href;
+  const url = new URL(href, 'https://solvi.local');
+  if (url.origin !== 'https://solvi.local' || !isPortalViewPath(url.pathname)) return href;
+  url.searchParams.set('portal', '1');
+  return url.pathname + url.search + url.hash;
+}
+
 /** 戻り先はアプリの一覧と詳細だけ。任意URLへのredirectを作らない。 */
 export function safeReturnTo(value: unknown, depth = 0): string | null {
   if (typeof value !== 'string' || value.length > 2000 || !value.startsWith('/')) return null;
@@ -73,7 +94,10 @@ export function withReturnTo(href: string, from: unknown): string {
     url.pathname === source.pathname ? safeReturnTo(source.searchParams.get('returnTo')) : returnTo;
   if (target) url.searchParams.set('returnTo', target);
   else url.searchParams.delete('returnTo');
-  return url.pathname + url.search + url.hash;
+  return portalViewHref(
+    url.pathname + url.search + url.hash,
+    isPortalViewPath(source.pathname) && isPortalView(source.searchParams.getAll('portal')),
+  );
 }
 
 const ticketListLabels = {

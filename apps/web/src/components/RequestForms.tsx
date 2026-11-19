@@ -17,11 +17,13 @@ export function RequestForm({
   request,
   scope,
   route,
+  portalView = false,
 }: {
   item: CatalogItem;
   scope: string;
   approvers: Array<{ id: string; name: string }>;
   request?: ServiceRequestDetail;
+  portalView?: boolean;
   /** 申請者自身の経路 (WP-P4-APR-016 §6.1)。ルール項目だけ渡す。 */
   route?: RequestApprovalRoute | null;
 }) {
@@ -104,6 +106,7 @@ export function RequestForm({
         }
       }}
     >
+      {portalView && <input type="hidden" name="portal" value="1" />}
       <input type="hidden" name="itemId" value={item.id} />
       <input type="hidden" name="itemVersion" value={item.version} />
       <input type="hidden" name="idempotencyKey" value={key} />

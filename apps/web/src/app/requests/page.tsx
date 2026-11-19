@@ -3,6 +3,7 @@ import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 import { ContextLink } from '../../components/ContextLink';
 import { api, requireSession } from '../../lib/api';
 import { formatDateTime } from '../../lib/labels';
+import { isPortalView, portalViewHref } from '../../lib/navigation';
 const labels: Record<string, string> = {
   pending: '承認待ち',
   approved: '承認済み・模擬実行待ち',
@@ -18,10 +19,16 @@ export default async function RequestsPage({
 }) {
   await requireSession();
   const p = await searchParams;
+  const portalView = isPortalView(p.portal);
   const query = new URLSearchParams();
   for (const key of ['q', 'state', 'view', 'page'])
     if (typeof p[key] === 'string' && p[key]) query.set(key, p[key]);
-  const refresh = '/requests' + (query.size ? '?' + query.toString() : '');
+  if (portalView) query.set('view', 'mine');
+  const listHref = portalView ? portalViewHref('/requests?view=mine') : '/requests';
+  const refresh = portalViewHref(
+    '/requests' + (query.size ? '?' + query.toString() : ''),
+    portalView,
+  );
   const r = await api.serviceRequests(query.toString());
   if (!r.ok) {
     const message =
@@ -43,7 +50,7 @@ export default async function RequestsPage({
           {r.problem.status === 400 && (
             <>
               {' · '}
-              <a href="/requests">条件を解除する</a>
+              <a href={listHref}>条件を解除する</a>
             </>
           )}
           {' · '}
@@ -57,7 +64,7 @@ export default async function RequestsPage({
   const pageLink = (page: number) => {
     const next = new URLSearchParams(query);
     next.set('page', String(page));
-    return '/requests?' + next.toString();
+    return portalViewHref('/requests?' + next.toString(), portalView);
   };
   return (
     <main id="main" className="shell service-workspace">
@@ -74,7 +81,10 @@ export default async function RequestsPage({
               代理承認の委任を管理する
             </Link>
           )}
-          <Link className="support-action support-action--primary" href="/catalog">
+          <Link
+            className="support-action support-action--primary"
+            href={portalViewHref('/catalog', portalView)}
+          >
             カタログから申請する
           </Link>
         </div>
@@ -84,14 +94,21 @@ export default async function RequestsPage({
           <label htmlFor="request-q">受付番号・サービス名・申請者で検索</label>
           <input id="request-q" name="q" defaultValue={f.q} maxLength={160} />
         </div>
-        <div className="field">
-          <label htmlFor="request-view">処理対象</label>
-          <select id="request-view" name="view" defaultValue={f.view}>
-            <option value="all">閲覧できるすべて</option>
-            <option value="mine">自分の申請</option>
-            <option value="approvals">自分が判断する承認待ち</option>
-          </select>
-        </div>
+        {portalView ? (
+          <>
+            <input type="hidden" name="portal" value="1" />
+            <input type="hidden" name="view" value="mine" />
+          </>
+        ) : (
+          <div className="field">
+            <label htmlFor="request-view">処理対象</label>
+            <select id="request-view" name="view" defaultValue={f.view}>
+              <option value="all">閲覧できるすべて</option>
+              <option value="mine">自分の申請</option>
+              <option value="approvals">自分が判断する承認待ち</option>
+            </select>
+          </div>
+        )}
         <div className="field">
           <label htmlFor="request-state">進捗</label>
           <select id="request-state" name="state" defaultValue={f.state}>
@@ -105,7 +122,7 @@ export default async function RequestsPage({
           </select>
         </div>
         <button>絞り込む</button>
-        <Link href="/requests">条件を解除する</Link>
+        <Link href={listHref}>条件を解除する</Link>
       </form>
       <div className="service-list-toolbar">
         <h2 role="status">
@@ -123,7 +140,10 @@ export default async function RequestsPage({
                 <FreshserviceIcon name="ticket" size={18} />
               </span>
               <div className="service-row-copy">
-                <ContextLink className="service-row-title" href={`/requests/${q.id}`}>
+                <ContextLink
+                  className="service-row-title"
+                  href={portalViewHref(`/requests/${q.id}`, portalView)}
+                >
                   {q.number} · {q.title}
                 </ContextLink>
                 <span className="hint">

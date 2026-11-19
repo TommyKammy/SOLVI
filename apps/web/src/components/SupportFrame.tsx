@@ -6,6 +6,7 @@ import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
 import { ThemeToggle } from './ThemeToggle';
 import type { RailGroup } from '../lib/navigation-groups';
+import { isPortalView, isPortalViewPath, portalViewHref } from '../lib/navigation';
 
 type Props = {
   organizationName: string | null;
@@ -60,8 +61,11 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
   const isPortalHome = pathname === '/portal';
   const isTicketPage = /^\/tickets\/[^/]+$/.test(pathname);
   const tab = query.get('tab');
-  const requesterFlow = isTicketPage || (isPortalHome && tab !== 'requests' && tab !== 'services');
-  const isPortalWorkflow = /^\/(catalog|requests|knowledge)(\/[^/]+)?$/.test(pathname);
+  const isPortalWorkflow = isPortalViewPath(pathname);
+  const requesterFlow =
+    isTicketPage ||
+    (isPortalHome && tab !== 'requests' && tab !== 'services') ||
+    (isPortalWorkflow && isPortalView(query.getAll('portal')));
   // Reuse the existing role-scoped menu; staff alone excludes approvers and auditors.
   const workLinks = groups
     .flatMap((group) => group.items)
@@ -88,7 +92,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
         {portalLinks.map(({ href, label }) => (
           <Link
             key={href}
-            href={href}
+            href={portalViewHref(href)}
             aria-current={activeLink === href ? currentType : undefined}
             onClick={closeDetails}
           >
@@ -135,7 +139,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
             {portalLinks.map(({ href, label }) => (
               <Link
                 key={href}
-                href={href}
+                href={portalViewHref(href)}
                 aria-current={activeLink === href ? currentType : undefined}
               >
                 {label}

@@ -1,6 +1,6 @@
 'use server';
 import { redirect } from 'next/navigation';
-import { withReturnTo } from '../../lib/navigation';
+import { isPortalView, portalViewHref, withReturnTo } from '../../lib/navigation';
 import { revalidatePath } from 'next/cache';
 import { api } from '../../lib/api';
 import { highRiskUnresolvedMessage } from '../../lib/approval-route';
@@ -67,7 +67,10 @@ export async function saveServiceRequest(
   return {
     message: '',
     redirectTo: withReturnTo(
-      `/requests/${result.data.id}?${id ? 'saved=1' : 'created=1'}`,
+      portalViewHref(
+        `/requests/${result.data.id}?${id ? 'saved=1' : 'created=1'}`,
+        isPortalView(form.get('portal')),
+      ),
       form.get('returnTo'),
     ),
   };

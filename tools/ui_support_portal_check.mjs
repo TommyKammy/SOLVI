@@ -195,7 +195,7 @@ async function main() {
         name: role.inbox ? '担当業務を確認する' : '申請状況を確認する',
         exact: true,
       });
-      const destination = role.inbox ? '/inbox' : '/requests?view=mine';
+      const destination = role.inbox ? '/inbox' : '/requests?view=mine&portal=1';
       assert.equal(await card.getAttribute('href'), destination);
       assert.ok(
         (await card.innerText()).includes(role.inbox ? '担当業務を確認する' : '申請状況を確認する'),

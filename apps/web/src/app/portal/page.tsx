@@ -4,7 +4,7 @@ import { stateLabel, kindLabel, formatDate, formatDateTime } from '../../lib/lab
 import { TicketPagination } from '../../components/TicketPagination';
 import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 import { SupportOrganizationLabel } from '../../components/SupportFrame';
-import { navigationRoles, withReturnTo } from '../../lib/navigation';
+import { navigationRoles, portalViewHref, withReturnTo } from '../../lib/navigation';
 import {
   CATALOG_SEARCH_MAX_LENGTH,
   parsePortalQuery,
@@ -108,7 +108,7 @@ export default async function PortalHome({
                 <Link className="support-action" href="/portal?tab=tickets">
                   <FreshserviceIcon name="inbox" size={18} /> 自分の問い合わせを見る
                 </Link>
-                <Link className="support-action" href="/catalog">
+                <Link className="support-action" href={portalViewHref('/catalog')}>
                   <FreshserviceIcon name="grid" size={18} /> サービスを探す
                 </Link>
               </div>
@@ -120,6 +120,7 @@ export default async function PortalHome({
               role="search"
               aria-labelledby="support-help-title"
             >
+              <input type="hidden" name="portal" value="1" />
               <h2 id="support-help-title">ヘルプ記事を探す</h2>
               <div className="support-search-controls">
                 <label className="visually-hidden" htmlFor="support-search-input">
@@ -298,7 +299,7 @@ export default async function PortalHome({
             <section className="support-panel" aria-labelledby="support-requests-title">
               <div className="support-panel-heading">
                 <h2 id="support-requests-title">最近の申請</h2>
-                <Link href="/requests?view=mine">自分の申請をすべて見る</Link>
+                <Link href={portalViewHref('/requests?view=mine')}>自分の申請をすべて見る</Link>
               </div>
               {!requests.ok ? (
                 <PortalLoadError status={requests.problem.status} retryHref={currentHref} />
@@ -325,10 +326,10 @@ export default async function PortalHome({
                       {recentRequests.map((request) => (
                         <li key={request.id}>
                           <Link
-                            href={{
-                              pathname: `/requests/${encodeURIComponent(request.id)}`,
-                              query: { returnTo: currentHref },
-                            }}
+                            href={withReturnTo(
+                              portalViewHref(`/requests/${encodeURIComponent(request.id)}`),
+                              currentHref,
+                            )}
                           >
                             <span className="record-number">{request.number}</span>
                             <span className="record-title">{request.title}</span>
@@ -352,7 +353,7 @@ export default async function PortalHome({
               <section className="support-panel" aria-labelledby="support-services-title">
                 <div className="support-panel-heading">
                   <h2 id="support-services-title">サービスを探す</h2>
-                  <Link href="/catalog">カタログをすべて見る</Link>
+                  <Link href={portalViewHref('/catalog')}>カタログをすべて見る</Link>
                 </div>
                 <form
                   action="/catalog"
@@ -360,6 +361,7 @@ export default async function PortalHome({
                   className="portal-find-form"
                   aria-label="サービスの検索"
                 >
+                  <input type="hidden" name="portal" value="1" />
                   <label htmlFor="portal-service-q">サービス名・用途・対象で検索</label>
                   <div>
                     <input
@@ -386,10 +388,10 @@ export default async function PortalHome({
                     {catalog.data.items.slice(0, 6).map((item) => (
                       <li key={item.id}>
                         <Link
-                          href={{
-                            pathname: `/catalog/${encodeURIComponent(item.id)}`,
-                            query: { returnTo: currentHref },
-                          }}
+                          href={withReturnTo(
+                            portalViewHref(`/catalog/${encodeURIComponent(item.id)}`),
+                            currentHref,
+                          )}
                         >
                           {item.title}
                           <span aria-hidden="true"> →</span>
@@ -411,9 +413,10 @@ export default async function PortalHome({
               <section className="support-panel" aria-labelledby="support-knowledge-title">
                 <div className="support-panel-heading">
                   <h2 id="support-knowledge-title">解決のヒントを探す</h2>
-                  <Link href="/knowledge">ナレッジをすべて見る</Link>
+                  <Link href={portalViewHref('/knowledge')}>ナレッジをすべて見る</Link>
                 </div>
                 <form action="/knowledge" method="get" className="portal-find-form">
+                  <input type="hidden" name="portal" value="1" />
                   <label htmlFor="portal-knowledge-q">ナレッジを検索</label>
                   <div>
                     <input
@@ -435,9 +438,9 @@ export default async function PortalHome({
 
       {home && (
         <nav className="support-secondary-actions" aria-label="その他のサポート">
-          <Link href="/knowledge">ヘルプ記事を閲覧する</Link>
+          <Link href={portalViewHref('/knowledge')}>ヘルプ記事を閲覧する</Link>
           <Link href="/portal?tab=services">サービスを検索する</Link>
-          <Link href={hasWork ? '/inbox' : '/requests?view=mine'}>
+          <Link href={hasWork ? '/inbox' : portalViewHref('/requests?view=mine')}>
             {hasWork ? '担当業務を確認する' : '申請状況を確認する'}
           </Link>
           <Link href="/portal?tab=requests">最近の申請を見る</Link>

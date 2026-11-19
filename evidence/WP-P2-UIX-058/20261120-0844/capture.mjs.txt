@@ -1,0 +1,211 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { login, require } from './live-helpers.mjs';
+
+const [out, mode = 'live'] = process.argv.slice(2);
+assert(['live', 'isolated'].includes(mode));
+const isolated = mode === 'isolated';
+const web = 'http://127.0.0.1:' + (isolated ? '3280' : '3000');
+const apiBase = 'http://127.0.0.1:' + (isolated ? '3281' : '3001');
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const get = async (path, cookie, body, status = 200) => {
+  const response = await fetch(apiBase + path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'content-type':'application/json', cookie:cookie.name + '=' + cookie.value },
+    ...(body ? {body:JSON.stringify(body)} : {}),
+  });
+  assert.equal(response.status, status, path);
+  return response.json();
+};
+const roles = ['org_admin','requester'];
+const cookies = Object.fromEntries(await Promise.all(roles.map(async role => [role, await login(role,'acme',apiBase)])));
+const { org_admin: admin, requester } = cookies;
+const marker = 'ポータル確認' + Date.now();
+const fixtures = {};
+if (isolated) {
+  const approverCookie = await login('approver','acme',apiBase);
+  const approver = await get('/auth/me',approverCookie);
+  const service = await get('/catalog-admin', admin, {
+    code:'qa-portal-' + Date.now(),
+    creationKey:randomUUID(),
+    title:'ポータル用合成サービス',
+    description:'申請画面の表示を確認するための合成データです。',
+    definition:{
+      mode:'local_simulation', action:'simulate.access_grant', targetLabel:'合成対象',
+      allowedDurations:[7], maxReasonLength:300,
+      approval:{mode:'fixed', approverId:approver.userId},
+    },
+  });
+  const published = await get('/catalog-admin/'+service.id+'/publication',admin,{expectedVersion:1,state:'published'});
+  const list = await get('/catalog',admin);
+  const item = list.items.find(x=>x.id===service.id);
+  assert.ok(published && item);
+  fixtures.item = item.id;
+  fixtures.requests = {};
+  for (const role of roles) {
+    const submission = await get('/service-requests',cookies[role],{
+      itemId:item.id, itemVersion:item.version, reason:'ポータル確認用の申請 ' + role,
+      durationDays:7, approverId:approver.userId, idempotencyKey:randomUUID(),
+    },201);
+    fixtures.requests[role] = submission.id;
+    await get('/service-requests/'+submission.id+'/decisions',approverCookie,{
+      expectedVersion:1, decision:'approve', reason:'合成申請の表示確認',
+    });
+  }
+  for (const audience of ['organization','staff']) {
+    const article = await get('/knowledge',admin,{
+      title:marker + (audience==='organization'?' 公開記事':' 担当者限定記事'),
+      body:'合成記事の本文です。',tags:marker,audience,
+    },201);
+    const review = await get('/knowledge/'+article.id+'/actions',admin,{action:'review',expectedVersion:article.version});
+    const publish = await get('/knowledge/'+article.id+'/actions',admin,{action:'publish',expectedVersion:review.version});
+    assert.equal(publish.version,3);
+    fixtures[audience]=article.id;
+  }
+  const privatePath='/knowledge/'+fixtures.staff;
+  assert.equal((await get(privatePath,admin)).article.audience,'staff');
+  await get(privatePath+'?audience=organization&manage=1',admin,undefined,404);
+  await get(privatePath+'?audience=organization&manage=1',requester,undefined,403);
+  const publicList = await get('/knowledge?q='+encodeURIComponent(marker)+'&audience=organization&manage=1',admin);
+  assert.equal(publicList.total,1);
+  assert.deepEqual(publicList.items.map(a=>a.id),[fixtures.organization]);
+  const requesterList = await get('/knowledge?q='+encodeURIComponent(marker),requester);
+  assert.deepEqual(publicList,requesterList);
+}
+mkdirSync(out,{recursive:true});
+const browser = await chromium.launch({channel:'chrome'});
+const summary = { mode, browser:browser.version(), fixtures, checks:[], scans:[] };
+const screens = [
+  ['catalog','サービスカタログ','サービスカタログ'],
+  ['requests','申請の状況','申請の状況'],
+  ['knowledge','ヘルプ記事','ヘルプ記事を探す'],
+];
+const location = (page, path) => page.waitForURL(url=>url.pathname===path && url.searchParams.get('portal')==='1');
+const nav = (page,name) => page.getByRole('navigation',{name:'依頼者メニュー'}).getByRole('link',{name,exact:true});
+async function use(locator,width) {
+  if (width===375) await locator.tap();
+  else { await locator.focus(); await locator.press('Enter'); }
+}
+async function shell(page, name, current = 'page') {
+  await page.locator('main h1').waitFor();
+  assert.equal(await page.locator('.fs-rail').count(), 0);
+  await nav(page,name).waitFor();
+  assert.equal(await nav(page,name).getAttribute('aria-current'),current);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth),0);
+}
+async function scan(page, role, width, screen) {
+  const a=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+  summary.scans.push({role,width,screen,violations:a.violations.map(x=>x.id),incomplete:a.incomplete.map(x=>x.id)});
+  assert.deepEqual(a.violations.map(x=>x.id), []);
+}
+try {
+  for (const role of roles) for (const width of [1440,375]) {
+    const context = await browser.newContext({
+      viewport:{width,height:width===375?812:900},locale:'ja-JP',
+      isMobile:width===375,hasTouch:width===375,
+    });
+    await context.addCookies([{...cookies[role],url:web}]);
+    const page=await context.newPage();
+    await page.goto(web+'/portal');
+    for (const [path,name,title] of screens) {
+      await use(nav(page,name),width);
+      await location(page,'/'+path);
+      await page.getByRole('heading',{name:title,exact:true,level:1}).waitFor();
+      await shell(page,name);
+      assert.equal(await page.getByText('カタログを管理する',{exact:true}).count(),0);
+      assert.equal(await page.getByRole('link',{name:'ナレッジ管理',exact:true}).count(),0);
+      if (path==='requests') assert.equal(await page.locator('#request-view').count(),0);
+      if (isolated) {
+        await scan(page,role,width,path);
+        await page.screenshot({path:join(out,`${role}-${width}-${path}.png`),animations:'disabled'});
+      }
+      summary.checks.push({role,width,screen:path,portal:true,heading:title});
+    }
+    const query=isolated ? marker : 'VPN';
+    await page.locator('#knowledge-q').fill(query);
+    await use(page.locator('main form').getByRole('button',{name:'検索する'}),width);
+    await page.waitForURL(url=>url.searchParams.get('q')===query && url.searchParams.get('portal')==='1');
+    await shell(page,'ヘルプ記事');
+    await page.reload();
+    await shell(page,'ヘルプ記事');
+    if (isolated) {
+      const privateHref='/knowledge/'+fixtures.staff;
+      assert.equal(await page.locator('main a[href^="'+privateHref+'"]').count(),0);
+      await use(page.locator('main a[href^="/knowledge/'+fixtures.organization+'"]').first(),width);
+      await location(page,'/knowledge/'+fixtures.organization);
+      await shell(page,'ヘルプ記事','location');
+      await page.getByText('合成記事の本文です。',{exact:true}).waitFor();
+      await use(page.getByRole('link',{name:'記事一覧へ戻る'}),width);
+      await page.waitForURL(url=>url.pathname==='/knowledge' && url.searchParams.get('q')===query);
+      await shell(page,'ヘルプ記事');
+      assert.equal((await page.goto(web+privateHref+'?portal=1&manage=1')).status(),404);
+    }
+    await page.goto(web+'/portal');
+    await use(nav(page,'申請の状況'),width);
+    await location(page,'/requests');
+    await shell(page,'申請の状況');
+    await use(page.locator('main form').getByRole('button',{name:'絞り込む'}),width);
+    await page.waitForURL(url=>url.searchParams.get('state')==='all' && url.searchParams.get('portal')==='1');
+    if (isolated) {
+      const own=fixtures.requests[role], other=fixtures.requests[role==='org_admin'?'requester':'org_admin'];
+      assert.equal(await page.locator('main a[href^="/requests/'+other+'"]').count(),0);
+      await use(page.locator('main a[href^="/requests/'+own+'"]'),width);
+      await location(page,'/requests/'+own);
+      await shell(page,'申請の状況','location');
+      await page.getByText('ポータル確認用の申請 '+role,{exact:true}).first().waitFor();
+      assert.equal(await page.getByRole('heading',{name:'承認の判断',exact:true}).count(),0);
+      assert.equal(await page.getByRole('heading',{name:'模擬実行',exact:true}).count(),0);
+      await use(page.getByRole('link',{name:'申請一覧に戻る'}),width);
+      await location(page,'/requests');
+      assert.equal(new URL(page.url()).searchParams.get('state'),'all');
+      assert.equal((await page.goto(web+'/requests/'+other+'?portal=1')).status(),404);
+    }
+    await page.goto(web+'/portal');
+    await use(nav(page,'サービスカタログ'),width);
+    await location(page,'/catalog');
+    await page.locator('#catalog-q').fill('ポータル');
+    await use(page.locator('main form').getByRole('button',{name:'絞り込む'}),width);
+    await page.waitForURL(url=>url.searchParams.get('q')==='ポータル' && url.searchParams.get('portal')==='1');
+    await shell(page,'サービスカタログ');
+    if (isolated) {
+      await use(page.locator('main a[href^="/catalog/'+fixtures.item+'"]'),width);
+      await location(page,'/catalog/'+fixtures.item);
+      await shell(page,'サービスカタログ','location');
+      await page.getByRole('heading',{name:'ポータル用合成サービス',level:1}).waitFor();
+      await use(page.locator('main .support-back'),width);
+      await page.waitForURL(url=>url.pathname==='/catalog' && url.searchParams.get('q')==='ポータル');
+      await shell(page,'サービスカタログ');
+      if (role==='org_admin' && width===1440) {
+        await page.goto(web+'/catalog/'+fixtures.item+'?portal=1');
+        await page.getByLabel('利用する理由',{exact:true}).fill('合成の申請画面で表示の継続を確認する');
+        await use(page.getByRole('button',{name:'申請する（模擬）'}),width);
+        await page.waitForURL(url=>url.pathname.startsWith('/requests/') && url.searchParams.get('created')==='1' && url.searchParams.get('portal')==='1');
+        await shell(page,'申請の状況','location');
+        await page.getByRole('heading',{name:'申請を受け付けました'}).waitFor();
+        await use(page.getByRole('link',{name:'自分の申請を見る'}),width);
+        await location(page,'/requests');
+        summary.submissionContinuesInPortal = true;
+      }
+    }
+    if (role==='org_admin') {
+      for (const [path] of screens) {
+        await page.goto(web+'/'+path);
+        await page.locator('main h1').waitFor();
+        assert.equal(await page.locator('.fs-rail').count(),1);
+      }
+      if (isolated) {
+        await page.goto(web+'/knowledge/'+fixtures.staff);
+        await page.getByRole('heading',{name:marker+' 担当者限定記事',level:1}).waitFor();
+        assert.equal(await page.locator('.fs-rail').count(),1);
+      }
+    }
+    await context.close();
+    console.log('PASS',role,width,isolated?'3 entries, filters, detail, return and permissions':'3 entries, search, refresh and work shell');
+  }
+} finally {
+  writeFileSync(join(out,'summary.json'),JSON.stringify(summary,null,2)+'\n');
+  await browser.close();
+}

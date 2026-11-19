@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
-import { withReturnTo } from '../../lib/navigation';
+import { isPortalView, portalViewHref, withReturnTo } from '../../lib/navigation';
 import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 import {
   CATALOG_SEARCH_MAX_LENGTH,
@@ -8,6 +8,7 @@ import {
   catalogQueryError,
   parseCatalogQuery,
   selectCatalogItems,
+  type CatalogQuery,
 } from '../../lib/portal-overview';
 
 export const dynamic = 'force-dynamic';
@@ -18,11 +19,15 @@ export default async function CatalogPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireSession();
-  const query = parseCatalogQuery(await searchParams);
+  const raw = await searchParams;
+  const portalView = isPortalView(raw.portal);
+  const query = parseCatalogQuery(raw);
   const queryError = catalogQueryError(query);
   const result = await api.catalog();
   const selection = selectCatalogItems(result.ok ? result.data.items : [], query);
-  const currentHref = catalogHref(query);
+  const hrefFor = (overrides?: Partial<CatalogQuery>) =>
+    portalViewHref(catalogHref(query, overrides), portalView);
+  const currentHref = hrefFor();
   const missingCategory = !!query.category && !selection.categories.includes(query.category);
   const categories = selection.categories;
 
@@ -36,8 +41,8 @@ export default async function CatalogPage({
           </div>
           <nav className="catalog-utilities" aria-label="カタログの関連画面">
             <Link href="/portal">利用者ポータル</Link>
-            <Link href="/requests?view=mine">自分の申請状況</Link>
-            {result.ok && result.data.canManage && !queryError && (
+            <Link href={portalViewHref('/requests?view=mine', portalView)}>自分の申請状況</Link>
+            {!portalView && result.ok && result.data.canManage && !queryError && (
               <Link className="support-action" href={withReturnTo('/catalog/manage', currentHref)}>
                 カタログを管理する
               </Link>
@@ -46,7 +51,7 @@ export default async function CatalogPage({
         </div>
         <nav className="filter-choices" aria-label="サービスカタログのカテゴリ">
           <Link
-            href={catalogHref(query, { category: '', target: '', page: 1 })}
+            href={hrefFor({ category: '', target: '', page: 1 })}
             aria-current={!query.category && !query.target ? 'page' : undefined}
           >
             すべてのアイテム
@@ -54,7 +59,7 @@ export default async function CatalogPage({
           {categories.map((category) => (
             <Link
               key={category}
-              href={catalogHref(query, { category, target: '', page: 1 })}
+              href={hrefFor({ category, target: '', page: 1 })}
               aria-current={query.category === category && !query.target ? 'page' : undefined}
             >
               <span>{category}</span>
@@ -96,13 +101,12 @@ export default async function CatalogPage({
               サービス名・説明・カテゴリ・対象から探せます。
             </span>
           </div>
+          {portalView && <input type="hidden" name="portal" value="1" />}
           {query.target && <input type="hidden" name="target" value={query.target} />}
           {query.category && <input type="hidden" name="category" value={query.category} />}
           <div className="catalog-filter-actions">
             <button type="submit">絞り込む</button>
-            <Link href={catalogHref(query, { q: '', target: '', category: '', page: 1 })}>
-              条件を解除
-            </Link>
+            <Link href={hrefFor({ q: '', target: '', category: '', page: 1 })}>条件を解除</Link>
           </div>
         </form>
 
@@ -158,9 +162,11 @@ export default async function CatalogPage({
                       : '公開サービスが変わった可能性があります。同じ条件の最初のページから確認してください。'}
                 </p>
                 {selection.filtered > 0 ? (
-                  <Link href={catalogHref(query, { page: 1 })}>最初のページへ</Link>
+                  <Link href={hrefFor({ page: 1 })}>最初のページへ</Link>
                 ) : selection.total > 0 ? (
-                  <Link href="/catalog">条件を解除してすべて表示</Link>
+                  <Link href={portalViewHref('/catalog', portalView)}>
+                    条件を解除してすべて表示
+                  </Link>
                 ) : (
                   <Link href={withReturnTo('/tickets/new?kind=request', currentHref)}>
                     メニューにない依頼・一般相談を送る
@@ -194,13 +200,13 @@ export default async function CatalogPage({
             {selection.items.length > 0 && selection.pageCount > 1 && (
               <nav className="catalog-pagination" aria-label="サービスカタログのページ">
                 {selection.page > 1 && (
-                  <Link href={catalogHref(query, { page: selection.page - 1 })}>前のページ</Link>
+                  <Link href={hrefFor({ page: selection.page - 1 })}>前のページ</Link>
                 )}
                 <span>
                   {selection.page} / {selection.pageCount} ページ
                 </span>
                 {selection.page < selection.pageCount && (
-                  <Link href={catalogHref(query, { page: selection.page + 1 })}>次のページ</Link>
+                  <Link href={hrefFor({ page: selection.page + 1 })}>次のページ</Link>
                 )}
               </nav>
             )}

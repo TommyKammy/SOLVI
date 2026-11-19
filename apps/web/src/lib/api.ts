@@ -1222,14 +1222,19 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  knowledgeList: (q: string, manage = false, options: { limit?: number; cursor?: string } = {}) => {
+  knowledgeList: (
+    q: string,
+    manage = false,
+    options: { limit?: number; cursor?: string; audience?: 'organization' } = {},
+  ) => {
     const params = new URLSearchParams({ q });
     if (manage) params.set('manage', '1');
     if (options.limit !== undefined) params.set('limit', String(options.limit));
     if (options.cursor !== undefined) params.set('cursor', options.cursor);
+    if (options.audience) params.set('audience', options.audience);
     return call<KnowledgeList>(`/knowledge?${params}`);
   },
-  knowledgeDetail: async (id: string, manage = false) => {
+  knowledgeDetail: async (id: string, manage = false, audience?: 'organization') => {
     type Detail = {
       article: KnowledgeArticle;
       versions: Array<{ number: number; title: string; createdAt: string }>;
@@ -1245,8 +1250,11 @@ export const api = {
       const headers = new Headers({ 'content-type': 'application/json' });
       const all = (await cookies()).getAll();
       if (all.length > 0) headers.set('cookie', all.map((c) => `${c.name}=${c.value}`).join('; '));
+      const query = new URLSearchParams();
+      if (manage) query.set('manage', '1');
+      if (audience) query.set('audience', audience);
       const response = await fetch(
-        `${API_BASE}/knowledge/${encodeURIComponent(id)}${manage ? '?manage=1' : ''}`,
+        `${API_BASE}/knowledge/${encodeURIComponent(id)}${query.size ? `?${query}` : ''}`,
         {
           headers,
           cache: 'no-store',

@@ -3,7 +3,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../lib/api';
 import { KnowledgeManagement } from '../../../components/KnowledgeEditor';
-import { navigationRoles, safeReturnTo, withReturnTo } from '../../../lib/navigation';
+import {
+  isPortalView,
+  navigationRoles,
+  portalViewHref,
+  safeReturnTo,
+  withReturnTo,
+} from '../../../lib/navigation';
 import { formatDateTime } from '../../../lib/labels';
 import { knowledgeHref } from '../../../lib/knowledge-search';
 export default async function ArticlePage({
@@ -17,13 +23,19 @@ export default async function ArticlePage({
   const { id } = await params;
   const query = await searchParams;
   const roles = navigationRoles(session);
-  const manage = query.manage === '1' && roles.staff;
-  const result = await api.knowledgeDetail(id, manage);
+  const portalView = isPortalView(query.portal);
+  const staff = !portalView && roles.staff;
+  const manage = query.manage === '1' && staff;
+  const listHref = portalViewHref(manage ? '/knowledge?manage=1' : '/knowledge', portalView);
+  const result = portalView
+    ? await api.knowledgeDetail(id, false, 'organization')
+    : await api.knowledgeDetail(id, manage);
   if (!result.ok) {
     if (result.problem.status === 404) notFound();
     const returnTo = safeReturnTo(query.returnTo);
     const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const retryQuery = new URLSearchParams();
+    if (portalView) retryQuery.set('portal', '1');
     if (manage) retryQuery.set('manage', '1');
     if (returnTo) retryQuery.set('returnTo', returnTo);
     const retryHref = validId
@@ -47,9 +59,7 @@ export default async function ArticlePage({
           </p>
         )}
         <p>
-          <a href={returnTo ?? (manage ? '/knowledge?manage=1' : '/knowledge')}>
-            {returnTo ? '元の画面へ戻る' : '記事一覧へ戻る'}
-          </a>
+          <a href={returnTo ?? listHref}>{returnTo ? '元の画面へ戻る' : '記事一覧へ戻る'}</a>
         </p>
         <p>
           <a href="/portal">ポータルへ戻る</a>
@@ -59,7 +69,7 @@ export default async function ArticlePage({
   }
   const { article, versions } = result.data;
   const audience = article.audience === 'staff' ? '担当者限定' : '組織内';
-  const backHref = safeReturnTo(query.returnTo) ?? (manage ? '/knowledge?manage=1' : '/knowledge');
+  const backHref = safeReturnTo(query.returnTo) ?? listHref;
   const backLocation = new URL(backHref, 'https://solvi.local');
   const review = article.state === 'review' || article.state === 'retired';
   const tags = [...new Set(article.tags.split(/[,、\s]+/u).filter(Boolean))];
@@ -103,7 +113,7 @@ export default async function ArticlePage({
             公開中の版を見る（版 {article.publishedVersion}）
           </Link>
         )}
-        {!manage && roles.staff && (
+        {!manage && staff && (
           <Link
             className="support-action"
             href={withReturnTo(`/knowledge/${encodeURIComponent(id)}?manage=1`, backHref)}
@@ -140,7 +150,7 @@ export default async function ArticlePage({
           <article className="knowledge-reader-panel" aria-labelledby="knowledge-body-title">
             <h2 id="knowledge-body-title">記事の内容</h2>
             <p className="knowledge-prose">{article.body}</p>
-            {!roles.staff && (
+            {!staff && (
               <div className="knowledge-reader-help">
                 <ContextLink href="/tickets/new?kind=incident">
                   この記事で解決しない場合は障害を報告する
@@ -165,7 +175,10 @@ export default async function ArticlePage({
             {tags.length > 0 && (
               <nav className="knowledge-tag-links" aria-label="記事のタグ">
                 {tags.map((tag) => (
-                  <Link key={tag} href={knowledgeHref({ q: tag, manage: false })}>
+                  <Link
+                    key={tag}
+                    href={portalViewHref(knowledgeHref({ q: tag, manage: false }), portalView)}
+                  >
                     {tag}
                   </Link>
                 ))}

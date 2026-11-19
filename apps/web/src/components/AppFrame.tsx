@@ -7,7 +7,13 @@ import { LogoutForm } from './DraftSessionBoundary';
 import { SupportFrame } from './SupportFrame';
 import { ThemeToggle } from './ThemeToggle';
 import type { RailGroup, RailItem } from '../lib/navigation-groups';
-import { safeReturnTo, ticketEntryPrefix, ticketListOrigin } from '../lib/navigation';
+import {
+  isPortalView,
+  isPortalViewPath,
+  safeReturnTo,
+  ticketEntryPrefix,
+  ticketListOrigin,
+} from '../lib/navigation';
 
 type Props = {
   groups: RailGroup[];
@@ -280,9 +286,8 @@ export function AppFrame({
     return null;
   })();
 
-  // サポートポータルは依頼者のセルフサービス画面。スタッフは同じURLでも
-  // エージェントUIを使う(管理者の左サイドバーから開いた場合に元の画面へ戻す)。
-  if (pathname === '/portal' || (isSupportPath(pathname) && !staff)) {
+  const portalView = isPortalViewPath(pathname) && isPortalView(searchParams.getAll('portal'));
+  if (pathname === '/portal' || portalView || (isSupportPath(pathname) && !staff)) {
     return (
       <SupportFrame
         groups={groups}

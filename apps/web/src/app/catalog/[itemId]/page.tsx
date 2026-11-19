@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../lib/api';
 import { formScope } from '../../../lib/form-scope';
 import { RequestForm } from '../../../components/RequestForms';
-import { safeReturnTo } from '../../../lib/navigation';
+import { isPortalView, portalViewHref, safeReturnTo } from '../../../lib/navigation';
 import { HIGH_RISK_APPROVAL_NOTICE } from '../../../lib/approval-route';
 export default async function CatalogItemPage({
   params,
@@ -14,16 +14,20 @@ export default async function CatalogItemPage({
 }) {
   const session = await requireSession();
   const { itemId } = await params;
+  const query = await searchParams;
+  const portalView = isPortalView(query.portal);
+  const listHref = portalViewHref('/catalog', portalView);
   const result = await api.catalogRequestOptions();
   if (!result.ok) {
-    const query = await searchParams;
     const returnTo = safeReturnTo(query.returnTo);
     let retryHref: string | null = null;
     if (itemId && itemId !== '.' && itemId !== '..') {
       try {
-        retryHref =
+        retryHref = portalViewHref(
           `/catalog/${encodeURIComponent(itemId)}` +
-          (returnTo ? `?${new URLSearchParams({ returnTo })}` : '');
+            (returnTo ? `?${new URLSearchParams({ returnTo })}` : ''),
+          portalView,
+        );
       } catch {
         // URI符号化できない値では、同じ画面への再取得リンクだけを省く。
       }
@@ -45,7 +49,7 @@ export default async function CatalogItemPage({
         <p role="alert">{message}</p>
         <p className="actions">
           {retryHref && <a href={retryHref}>再取得する</a>}
-          <a href={returnTo ?? '/catalog'}>{returnTo ? '元の画面へ戻る' : 'カタログへ戻る'}</a>
+          <a href={returnTo ?? listHref}>{returnTo ? '元の画面へ戻る' : 'カタログへ戻る'}</a>
           <a href="/portal">ポータルへ戻る</a>
         </p>
       </main>
@@ -61,7 +65,7 @@ export default async function CatalogItemPage({
     <main id="main" className="shell service-workspace catalog-application">
       <header className="support-page-heading">
         <div>
-          <ContextLink back href="/catalog" className="support-back">
+          <ContextLink back href={listHref} className="support-back">
             カタログへ戻る
           </ContextLink>
           <p className="support-ticket-number">公開版 {item.version}</p>
@@ -77,6 +81,7 @@ export default async function CatalogItemPage({
       )}
       <RequestForm
         scope={formScope(session)}
+        {...(portalView ? { portalView: true } : {})}
         item={item}
         approvers={result.data.approvers}
         {...(routeResult ? { route: routeResult.ok ? routeResult.data : null } : {})}

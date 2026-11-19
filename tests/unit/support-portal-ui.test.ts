@@ -11,10 +11,10 @@ import { buildNavigationGroups } from '../../apps/web/src/lib/navigation-groups'
 import { AppFrame } from '../../apps/web/src/components/AppFrame';
 import PortalHome from '../../apps/web/src/app/portal/page';
 
-const route = vi.hoisted(() => ({ pathname: '/portal' }));
+const route = vi.hoisted(() => ({ pathname: '/portal', search: '' }));
 vi.mock('next/navigation', () => ({
   usePathname: () => route.pathname,
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(route.search),
 }));
 vi.mock('next/link', () => ({
   default: ({
@@ -37,8 +37,9 @@ const session = (codes: string[], organization: string | null = organizationId):
   organizationId,
   roles: codes.map((roleCode) => ({ roleCode, organizationId: organization })),
 });
-const frame = (actor: SessionView, pathname = '/portal') => {
+const frame = (actor: SessionView, pathname = '/portal', search = '') => {
   route.pathname = pathname;
+  route.search = search;
   const roles = navigationRoles(actor);
   const landing = roles.staff ? '/ops/overview' : roles.auditor ? '/changes' : '/portal';
   return renderToStaticMarkup(
@@ -137,6 +138,29 @@ describe('support shell preserves existing role-scoped work destinations', () =>
       expect(frame(session([code]), '/knowledge')).toContain('class="fs-rail"');
     },
   );
+
+  it.each([
+    '/catalog',
+    '/catalog/item',
+    '/requests',
+    '/requests/item',
+    '/knowledge',
+    '/knowledge/article',
+  ])('keeps the portal shell on %s only from the portal context', (pathname) => {
+    const actor = session(['org_admin']);
+    expect(frame(actor, pathname)).toContain('class="fs-rail"');
+    const html = frame(actor, pathname, 'portal=1');
+    expect(html).not.toContain('class="fs-rail"');
+    expect(html).toContain('aria-label="依頼者メニュー"');
+    expect(html).toContain('href="/catalog?portal=1"');
+  });
+
+  it.each(['/catalog/manage', '/catalog/manage/item', '/knowledge/new', '/ops'])(
+    'keeps %s in the work shell even with a portal query',
+    (pathname) => {
+      expect(frame(session(['org_admin']), pathname, 'portal=1')).toContain('class="fs-rail"');
+    },
+  );
 });
 
 describe('the staff rail keeps one navigation target for the mobile toggle', () => {
@@ -155,8 +179,8 @@ describe('the staff rail keeps one navigation target for the mobile toggle', () 
 
 describe('portal home exposes requester actions and available personal work', () => {
   it.each([
-    ['requester', '/requests?view=mine', '申請状況を確認する'],
-    ['auditor', '/requests?view=mine', '申請状況を確認する'],
+    ['requester', '/requests?view=mine&amp;portal=1', '申請状況を確認する'],
+    ['auditor', '/requests?view=mine&amp;portal=1', '申請状況を確認する'],
     ['approver', '/inbox', '担当業務を確認する'],
     ['agent', '/inbox', '担当業務を確認する'],
     ['org_admin', '/inbox', '担当業務を確認する'],

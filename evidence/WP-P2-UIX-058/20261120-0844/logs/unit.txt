@@ -1,0 +1,2 @@
+rtk proxy npm run test:unit -- --reporter=json --outputFile="$qa_root/unit-final.json"
+4909 passed, 0 failed, 26 skipped

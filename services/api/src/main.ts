@@ -600,13 +600,15 @@ async function bootstrap(): Promise<void> {
         new URL(req.url ?? '', 'http://local').searchParams,
       ),
     )
-    .get('/knowledge/:id', async (req, _res, params) =>
-      knowledge.detail(
+    .get('/knowledge/:id', async (req, _res, params) => {
+      const query = new URL(req.url ?? '', 'http://local').searchParams;
+      return knowledge.detail(
         await auth.authenticate(req.headers),
         params.id ?? '',
-        new URL(req.url ?? '', 'http://local').searchParams.get('manage') === '1',
-      ),
-    )
+        query.get('manage') === '1',
+        query.getAll('audience').includes('organization'),
+      );
+    })
     .post('/knowledge', async (req, res) => {
       const result = await knowledge.create(
         await auth.authenticate(req.headers),

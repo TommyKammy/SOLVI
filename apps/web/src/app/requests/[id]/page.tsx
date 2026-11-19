@@ -6,7 +6,12 @@ import { CatalogValueSummary } from '../../../components/CatalogValueSummary';
 import { CatalogChecklistForm } from '../../../components/CatalogChecklistForm';
 import { formScope } from '../../../lib/form-scope';
 import { RequestForm, RequestActions } from '../../../components/RequestForms';
-import { navigationRoles, safeReturnTo } from '../../../lib/navigation';
+import {
+  isPortalView,
+  navigationRoles,
+  portalViewHref,
+  safeReturnTo,
+} from '../../../lib/navigation';
 import {
   authorityLabel,
   displayStepState,
@@ -43,12 +48,15 @@ export default async function RequestPage({
 }) {
   const session = await requireSession();
   const { id } = await params;
+  const query = await searchParams;
+  const portalView = isPortalView(query.portal);
+  const mineHref = portalViewHref('/requests?view=mine', portalView);
   const result = await api.requestDetail(id);
   if (!result.ok) {
     if (result.problem.status === 404) notFound();
-    const query = await searchParams;
     const returnTo = safeReturnTo(query.returnTo);
     const retryQuery = new URLSearchParams();
+    if (portalView) retryQuery.set('portal', '1');
     if (returnTo) retryQuery.set('returnTo', returnTo);
     const validId =
       typeof id === 'string' &&
@@ -74,7 +82,9 @@ export default async function RequestPage({
           </p>
         )}
         <p>
-          <a href={returnTo ?? '/requests'}>{returnTo ? '元の画面へ戻る' : '申請一覧へ戻る'}</a>
+          <a href={returnTo ?? (portalView ? mineHref : '/requests')}>
+            {returnTo ? '元の画面へ戻る' : '申請一覧へ戻る'}
+          </a>
         </p>
         <p>
           <a href="/portal">ポータルへ戻る</a>
@@ -86,10 +96,13 @@ export default async function RequestPage({
     q = data.request,
     s = q.snapshot,
     own = q.requesterId === session.userId,
-    staff = session.roles.some((r) =>
-      ['agent', 'org_admin', 'platform_admin'].includes(r.roleCode),
-    ),
-    admin = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
+    staff =
+      !portalView &&
+      session.roles.some((r) => ['agent', 'org_admin', 'platform_admin'].includes(r.roleCode)),
+    admin =
+      !portalView &&
+      session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
+  if (portalView && !own) notFound();
   // 自分宛てかどうかはAPIが返す現在のステップの承認者で判定する(ロールでは判定しない)。
   // 上長・部署長は approver ロールを持たない(ADR-0023 §2 / §5)。
   // 描画の間に期限を過ぎても、行が pending のまま期限を過ぎた場合と
@@ -99,20 +112,22 @@ export default async function RequestPage({
     expired = new Date(data.approval.expires_at).getTime() <= now;
   // 代理で見ている場合は、APIが返す `currentDelegation` だけで判断する
   // (委任の一覧や期間を画面で組み立て直さない / ADR-0025 §3・§5)。
-  const delegatedToMe = data.currentDelegation ?? null;
+  const delegatedToMe = portalView ? null : (data.currentDelegation ?? null);
   const canApproveNow =
     !own && (assigned || delegatedToMe !== null) && q.state === 'pending' && !expired;
   const item: CatalogItem = { ...s.item, description: '', definition: s.item.definition };
-  const query = await searchParams;
   const returnTo = safeReturnTo(query.returnTo);
-  const backHref = returnTo ?? (own ? '/requests?view=mine' : '/requests?view=approvals');
+  const backHref = portalViewHref(
+    returnTo ?? (own ? mineHref : '/requests?view=approvals'),
+    portalView,
+  );
   const source = returnTo && new URL(returnTo, 'https://solvi.local');
   const fromAssistance =
     staff &&
     source &&
     source.pathname === `/ops/${q.ticketId}` &&
     source.hash === '#ticket-assistance';
-  const canReadAudit = navigationRoles(session).auditLog;
+  const canReadAudit = !portalView && navigationRoles(session).auditLog;
   const fromInbox = new URL(backHref, 'https://solvi.local').pathname === '/inbox';
   const created = own && query.created === '1';
   const canRevoke = !own && (assigned || admin) && q.state === 'approved';
@@ -188,7 +203,7 @@ export default async function RequestPage({
             </p>
           )}
           <p>判断結果は「自分の申請」から確認できます。</p>
-          <Link className="support-back" href="/requests?view=mine">
+          <Link className="support-back" href={mineHref}>
             自分の申請を見る
           </Link>
         </div>
@@ -343,7 +358,7 @@ export default async function RequestPage({
         <CatalogChecklistForm
           requestId={q.id}
           requestRevision={q.revision}
-          fulfillment={data.fulfillment}
+          fulfillment={portalView ? { ...data.fulfillment, canUpdate: false } : data.fulfillment}
         />
       )}
       {(own || staff) && (
@@ -356,6 +371,7 @@ export default async function RequestPage({
           <summary>申請内容を変更して再承認を依頼する</summary>
           <RequestForm
             scope={formScope(session)}
+            {...(portalView ? { portalView: true } : {})}
             key={q.version}
             item={item}
             approvers={data.approvers}
