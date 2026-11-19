@@ -1,0 +1,30 @@
+import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+
+export const require = createRequire(process.cwd() + '/package.json');
+export const web = 'http://127.0.0.1:3210';
+export const apiBase = 'http://127.0.0.1:3211';
+const organizationId = '00000000-0000-4000-9000-000000000001';
+
+export async function login(role) {
+  const password = readFileSync('tools/seed.mjs', 'utf8').match(/DEV_PASSWORD = '([^']+)'/)[1];
+  const response = await fetch(apiBase + '/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: role + '@acme.example.test', password, organizationId }),
+  });
+  assert.equal(response.status, 200, 'synthetic login for ' + role);
+  const [name, value] = response.headers.get('set-cookie').split(';', 1)[0].split(/=(.*)/s);
+  return { name, value };
+}
+
+export async function api(path, cookie, body, expected = body ? 201 : 200) {
+  const response = await fetch(apiBase + path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'content-type': 'application/json', cookie: cookie.name + '=' + cookie.value },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  assert.equal(response.status, expected, path);
+  return response.json();
+}

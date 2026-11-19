@@ -25,7 +25,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
   const pathname = usePathname() ?? '/';
   const isPortalHome = pathname === '/portal';
   const isTicketPage = /^\/tickets\/[^/]+$/.test(pathname);
-  const isCatalogWorkflow = /^\/(catalog|requests)(\/[^/]+)?$/.test(pathname);
+  const isPortalWorkflow = /^\/(catalog|requests|knowledge)(\/[^/]+)?$/.test(pathname);
   // Reuse the existing role-scoped menu; staff alone excludes approvers and auditors.
   const workLinks = groups
     .flatMap((group) => group.items)
@@ -136,7 +136,7 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
         children
       ) : (
         <div
-          className={`fs-support-content${isTicketPage ? ' fs-support-content--ticket' : isCatalogWorkflow ? ' fs-support-content--catalog' : ''}`}
+          className={`fs-support-content${isTicketPage ? ' fs-support-content--ticket' : isPortalWorkflow ? ' fs-support-content--workflow' : ''}`}
         >
           {children}
         </div>

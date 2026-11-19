@@ -4,6 +4,7 @@ import { api, requireSession } from '../../lib/api';
 import { navigationRoles, withReturnTo } from '../../lib/navigation';
 import { formatDateTime } from '../../lib/labels';
 import { TableRegion } from '../../components/TableRegion';
+import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 import {
   KNOWLEDGE_PAGE_SIZE,
   KNOWLEDGE_SEARCH_MAX_LENGTH,
@@ -94,50 +95,55 @@ export default async function KnowledgePage({
 
   return (
     <main id="main" className="shell knowledge-search fs-knowledge">
-      <div className="fs-page-with-sidebar">
-        <aside className="fs-side-nav" aria-label="ナレッジのカテゴリ">
-          <p className="fs-side-nav-heading">ナレッジ</p>
-          <nav className="fs-side-nav-links">
-            <Link
-              href={knowledgeHref({ q: '', manage: false })}
-              aria-current={!query.manage && !query.q ? 'page' : undefined}
-            >
-              すべての記事
-            </Link>
-            {staff && (
+      <div className={staff ? 'fs-page-with-sidebar' : 'knowledge-portal-layout'}>
+        {staff && (
+          <aside className="fs-side-nav" aria-label="ナレッジのカテゴリ">
+            <p className="fs-side-nav-heading">ナレッジ</p>
+            <nav className="fs-side-nav-links">
+              <Link
+                href={knowledgeHref({ q: '', manage: false })}
+                aria-current={!query.manage && !query.q ? 'page' : undefined}
+              >
+                すべての記事
+              </Link>
               <Link
                 href={knowledgeHref({ q: '', manage: true })}
                 aria-current={query.manage ? 'page' : undefined}
               >
                 ナレッジ管理
               </Link>
+              <Link href={withReturnTo('/knowledge/new', currentHref)}>記事を作成</Link>
+            </nav>
+            {topTags.length > 0 && (
+              <>
+                <p className="fs-side-nav-heading fs-side-nav-heading--tags">
+                  タグ <span className="hint">表示中の記事</span>
+                </p>
+                <nav className="fs-side-nav-links fs-side-nav-tags" aria-label="タグ">
+                  {topTags.map(([tag, count]) => (
+                    <Link
+                      key={tag}
+                      href={knowledgeHref({ q: tag, manage: query.manage })}
+                      aria-current={query.q === tag ? 'page' : undefined}
+                    >
+                      <span>{tag}</span>
+                      <span className="fs-side-nav-count">{count}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </>
             )}
-            {staff && <Link href={withReturnTo('/knowledge/new', currentHref)}>記事を作成</Link>}
-          </nav>
-          {topTags.length > 0 && (
-            <>
-              <p className="fs-side-nav-heading fs-side-nav-heading--tags">
-                タグ <span className="hint">表示中の記事</span>
-              </p>
-              <nav className="fs-side-nav-links fs-side-nav-tags" aria-label="タグ">
-                {topTags.map(([tag, count]) => (
-                  <Link
-                    key={tag}
-                    href={knowledgeHref({ q: tag, manage: query.manage })}
-                    aria-current={query.q === tag ? 'page' : undefined}
-                  >
-                    <span>{tag}</span>
-                    <span className="fs-side-nav-count">{count}</span>
-                  </Link>
-                ))}
-              </nav>
-            </>
-          )}
-        </aside>
+          </aside>
+        )}
 
         <section className="fs-page-main" aria-label="ナレッジ検索結果">
           <div className="page-heading knowledge-heading">
             <div>
+              {!staff && (
+                <Link className="support-back" href="/portal">
+                  ポータルへ戻る
+                </Link>
+              )}
               <h1>{query.manage ? 'ナレッジの管理' : 'ナレッジを探す'}</h1>
               <p className="hint">
                 {query.manage
@@ -227,7 +233,9 @@ export default async function KnowledgePage({
                   <strong>{result.data.total}件</strong>
                   {searching ? 'の検索結果' : query.manage ? 'の記事' : 'の公開記事'}
                 </p>
-                <p>この画面に{result.data.items.length}件を表示</p>
+                {(staff || result.data.items.length < result.data.total) && (
+                  <p>この画面に{result.data.items.length}件を表示</p>
+                )}
               </div>
               {result.data.items.length > 0 && pagination('上')}
               {result.data.items.length === 0 ? (
@@ -242,13 +250,17 @@ export default async function KnowledgePage({
                           : '公開中の記事はありません'}
                   </h2>
                   <p>
-                    {query.cursor && result.data.total > 0
-                      ? '記事の公開状況や検索結果が変わった可能性があります。同じ条件の最初の結果から確認してください。'
-                      : searching
-                        ? '別の言葉で検索するか、条件を解除して記事を確認してください。'
-                        : query.manage
-                          ? '新しい記事を作成すると、ここで内容や公開状況を確認できます。'
-                          : '公開された記事がここに表示されます。解決したいことは問い合わせから相談できます。'}
+                    {query.cursor && result.data.total > 0 ? (
+                      '記事の公開状況や検索結果が変わった可能性があります。同じ条件の最初の結果から確認してください。'
+                    ) : searching ? (
+                      <>
+                        「{query.q}」に一致する記事が見つかりませんでした。別の言葉で検索できます。
+                      </>
+                    ) : query.manage ? (
+                      '新しい記事を作成すると、ここで内容や公開状況を確認できます。'
+                    ) : (
+                      '公開された記事がここに表示されます。解決したいことは問い合わせから相談できます。'
+                    )}
                   </p>
                   <div className="knowledge-recovery">
                     {query.cursor ? (
@@ -257,18 +269,56 @@ export default async function KnowledgePage({
                       <>
                         <a href="#knowledge-q">検索語を修正する</a>
                         <Link href={clearHref}>条件を解除してすべて表示</Link>
+                        {!staff && (
+                          <Link href={withReturnTo('/tickets/new?kind=incident', currentHref)}>
+                            障害を報告する
+                          </Link>
+                        )}
                       </>
-                    ) : query.manage ? (
-                      <Link href={withReturnTo('/knowledge/new', currentHref)}>
-                        新しい記事を書く
-                      </Link>
-                    ) : (
+                    ) : !query.manage ? (
                       <Link href={withReturnTo('/tickets/new?kind=incident', currentHref)}>
                         問い合わせる
                       </Link>
-                    )}
+                    ) : null}
                   </div>
                 </section>
+              ) : !staff ? (
+                <ul className="knowledge-public-results" role="list" aria-label="ナレッジ記事一覧">
+                  {result.data.items.map((article) => {
+                    const excerpt = knowledgeExcerpt(article.body, query.q);
+                    return (
+                      <li key={article.id}>
+                        <Link
+                          className="knowledge-public-result"
+                          href={withReturnTo(
+                            `/knowledge/${encodeURIComponent(article.id)}`,
+                            currentHref,
+                          )}
+                        >
+                          <span>
+                            <strong>
+                              <Highlight parts={knowledgeHighlights(article.title, query.q)} />
+                            </strong>
+                            <span className="knowledge-public-excerpt">
+                              {excerpt.leading && '…'}
+                              <Highlight parts={excerpt.parts} />
+                              {excerpt.trailing && '…'}
+                            </span>
+                            <span className="knowledge-public-meta">
+                              <span className="knowledge-state">{labels[article.state]}</span>
+                              <span>{article.audience === 'staff' ? '担当者限定' : '組織内'}</span>
+                              <span>版 {article.contentVersion}</span>
+                              <time dateTime={article.versionCreatedAt}>
+                                {formatDate(article.versionCreatedAt)}
+                              </time>
+                            </span>
+                          </span>
+                          <FreshserviceIcon name="chevron" size={16} />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : (
                 <TableRegion label="ナレッジ記事一覧">
                   <table className="fs-knowledge-table">
@@ -331,6 +381,19 @@ export default async function KnowledgePage({
                 </TableRegion>
               )}
               {result.data.items.length > 0 && pagination('下')}
+              {!staff && topTags.length > 0 && (
+                <nav className="knowledge-tag-links" aria-label="表示中の記事のタグ">
+                  {topTags.map(([tag]) => (
+                    <Link
+                      key={tag}
+                      href={knowledgeHref({ q: tag, manage: false })}
+                      aria-current={query.q === tag ? 'page' : undefined}
+                    >
+                      {tag}
+                    </Link>
+                  ))}
+                </nav>
+              )}
             </>
           ) : null}
         </section>

@@ -16,6 +16,9 @@ vi.mock('../../apps/web/src/lib/api', () => ({
 vi.mock('next/link', () => ({
   default: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => createElement('a', props),
 }));
+vi.mock('../../apps/web/src/components/FreshserviceIcon', () => ({
+  FreshserviceIcon: () => createElement('span', { 'aria-hidden': true }),
+}));
 
 // The web workspace type-checks TSX; this root test config deliberately has no JSX setting.
 const { default: KnowledgePage } = await vi.importActual<{
@@ -166,8 +169,8 @@ describe('NFR-UX-002/003/004 knowledge list rendering and URL recovery', () => {
     // WP-P2-UIX-028 の左ナビでも、管理への入口は担当者だけに出す。
     expect(links(html).map((item) => item.text)).not.toContain('ナレッジ管理');
     expect(links(html).map((item) => item.text)).not.toContain('記事を作成');
-    // WP-P2-UIX-028 §7 で状態列は全員に出る。管理以外の一覧は公開記事だけなので「公開済み」は出てよいが、
-    // 公開前・取り下げ後の状態は依頼者に見せない。
+    expect(html).toContain('aria-label="ナレッジ記事一覧"');
+    expect(html).toContain('接続の確認手順です。');
     expect(html).toContain('<span class="knowledge-state">公開済み</span>');
     for (const label of ['下書き', 'レビュー待ち', '取り下げ済み'])
       expect(html).not.toContain(label);

@@ -1773,7 +1773,7 @@ body.fs-ui a.fs-admin-card:hover {
 .fs-support-header-inner,
 .support-main,
 .fs-support-content--ticket,
-.fs-support-content--catalog {
+.fs-support-content--workflow {
   box-sizing: border-box;
   inline-size: 100%;
   max-inline-size: var(--fs-content-max);
@@ -2110,7 +2110,7 @@ body.fs-ui .fs-support-content > main.shell {
 /* 一覧(ナレッジ/カタログ)は各パネルを白くし、詳細・フォーム・設定は
    ページ全体を白い面にして読みやすくする。 */
 body.fs-ui
-  .fs-support-content:not(.fs-support-content--ticket, .fs-support-content--catalog)
+  .fs-support-content:not(.fs-support-content--ticket, .fs-support-content--workflow)
   > main.shell:not(.fs-knowledge):not(.fs-catalog) {
   padding: 24px 28px;
   background: var(--fs-surface);
@@ -2118,12 +2118,12 @@ body.fs-ui
   box-shadow: var(--fs-shadow-sm);
 }
 .fs-support-content--ticket,
-.fs-support-content--catalog {
+.fs-support-content--workflow {
   max-inline-size: var(--fs-content-max);
   padding-block: 28px 48px;
   padding-inline: var(--fs-content-gutter);
 }
-body.fs-ui :is(.fs-support-content--ticket, .fs-support-content--catalog) > main.shell {
+body.fs-ui :is(.fs-support-content--ticket, .fs-support-content--workflow) > main.shell {
   /* The frame owns both gutters. */
   max-inline-size: none;
   padding: 0;
@@ -2330,7 +2330,7 @@ body.fs-ui .support-ticket-information h2:first-child {
   }
   .support-main,
   .fs-support-content--ticket,
-  .fs-support-content--catalog {
+  .fs-support-content--workflow {
     padding-block: 20px 32px;
   }
   .support-hero,
@@ -2373,6 +2373,139 @@ body.fs-ui .support-ticket-information h2:first-child {
   .support-panel-heading > a,
   .support-back,
   .support-ticket-report .support-page-heading a {
+    min-block-size: 44px;
+  }
+}
+
+.knowledge-portal-layout,
+.knowledge-reader-layout > * {
+  min-inline-size: 0;
+}
+
+.knowledge-public-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-block-start: 1px solid var(--line);
+}
+
+.knowledge-public-results > li {
+  border-block-end: 1px solid var(--line);
+}
+
+body.fs-ui a.knowledge-public-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px;
+  min-block-size: 44px;
+  border-radius: var(--fs-radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+body.fs-ui a.knowledge-public-result:hover {
+  background: var(--hover);
+}
+
+.knowledge-public-result strong {
+  font-size: 0.9375rem;
+}
+
+.knowledge-public-excerpt {
+  display: block;
+  margin-block: 5px;
+  color: var(--muted);
+}
+
+.knowledge-public-meta,
+.knowledge-article-states,
+.knowledge-tag-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.knowledge-article-states {
+  margin-block: 8px 0;
+}
+
+.knowledge-reader-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.knowledge-reader-panel {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  overflow-wrap: anywhere;
+}
+
+body.fs-ui .knowledge-reader-panel h2 {
+  margin-block: 0 12px;
+  font-size: 1rem;
+}
+
+.knowledge-prose {
+  max-inline-size: 72ch;
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+
+.knowledge-reader-panel dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.knowledge-reader-panel dt {
+  color: var(--muted);
+}
+
+.knowledge-reader-panel dd {
+  margin: 0;
+}
+
+.knowledge-reader-help,
+.knowledge-tag-links {
+  padding-block-start: 12px;
+  margin-block-start: 12px;
+}
+
+.knowledge-reader-help {
+  border-block-start: 1px solid var(--line);
+}
+
+.knowledge-tag-links a,
+.knowledge-recovery a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 32px;
+}
+
+#knowledge-q {
+  scroll-margin-block-start: 72px;
+}
+
+@media (min-width: 801px) {
+  .knowledge-reader-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.5fr);
+  }
+}
+
+@media (pointer: coarse) {
+  .knowledge-tag-links a,
+  .knowledge-recovery a {
     min-block-size: 44px;
   }
 }

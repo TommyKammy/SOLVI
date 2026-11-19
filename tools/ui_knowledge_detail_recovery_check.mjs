@@ -135,12 +135,19 @@ export async function runKnowledgeDetailRecoveryChecks({
         exact: true,
       })
       .waitFor();
-    const text = await main().innerText();
-    assert.ok(
-      text.includes(
-        '版 ' + (manage ? 7 : 2) + ' · ' + (audience === 'staff' ? '担当者限定' : '組織内'),
-      ),
-    );
+    const audienceLabel = audience === 'staff' ? '担当者限定' : '組織内';
+    if (manage) {
+      assert.ok(
+        (await main().locator('.knowledge-article-states').innerText()).includes('作業版 7'),
+      );
+      assert.ok(
+        (await main().locator('.knowledge-article-states').innerText()).includes(audienceLabel),
+      );
+    } else {
+      const info = main().getByRole('complementary', { name: 'この記事の情報' });
+      assert.equal(await info.getByText('版 2', { exact: true }).count(), 1);
+      assert.equal(await info.getByText(audienceLabel, { exact: true }).count(), 1);
+    }
     assert.equal(await main().getByRole('status').count(), saved ? 1 : 0);
     assert.equal(await main().locator('script').count(), 0);
     if (!manage) {
@@ -149,10 +156,16 @@ export async function runKnowledgeDetailRecoveryChecks({
       assert.ok(
         (await main().locator('article').innerText()).includes('<script>合成文字列</script>'),
       );
-      assert.ok(text.includes('合成, 手順'));
+      assert.deepEqual(
+        await main()
+          .getByRole('navigation', { name: '記事のタグ' })
+          .getByRole('link')
+          .allTextContents(),
+        ['合成', '手順'],
+      );
       const inquiry = new URL(
         await main()
-          .getByRole('link', { name: '問い合わせてください', exact: true })
+          .getByRole('link', { name: 'この記事で解決しない場合は障害を報告する', exact: true })
           .getAttribute('href'),
         target,
       );
@@ -218,10 +231,10 @@ export async function runKnowledgeDetailRecoveryChecks({
             .count(),
           count,
         );
-      assert.deepEqual(await main().locator('#restore-version option').allTextContents(), [
-        '版 7: 合成の最新編集記事',
-        '版 2: 合成の旧公開記事',
-      ]);
+      const restoreOptions = await main().locator('#restore-version option').allTextContents();
+      assert.equal(restoreOptions.length, 2);
+      assert.match(restoreOptions[0], /^版 7 · .+ · 合成の最新編集記事$/);
+      assert.match(restoreOptions[1], /^版 2 · .+ · 合成の旧公開記事$/);
       assert.deepEqual(
         await main()
           .locator('#restore-version option')
@@ -229,9 +242,7 @@ export async function runKnowledgeDetailRecoveryChecks({
         ['7', '2'],
       );
       assert.equal(
-        await main()
-          .getByRole('link', { name: '利用者に公開している版を見る', exact: true })
-          .count(),
+        await main().getByRole('link', { name: '公開中の版を見る（版 2）', exact: true }).count(),
         state === 'retired' ? 0 : 1,
       );
     }

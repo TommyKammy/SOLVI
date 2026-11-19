@@ -67,7 +67,12 @@ function EditorForm({
     >
       <input type="hidden" name="expectedVersion" value={article?.version ?? 1} />
       <FormField className="field">
-        <label htmlFor="article-title">記事のタイトル</label>
+        <label htmlFor="article-title">
+          記事のタイトル{' '}
+          <span className={styles.requirement} aria-hidden="true">
+            必須
+          </span>
+        </label>
         <input
           id="article-title"
           name="title"
@@ -79,18 +84,24 @@ function EditorForm({
         />
       </FormField>
       <FormField className="field">
-        <label htmlFor="article-body">内容・手順</label>
+        <label htmlFor="article-body">
+          内容・手順{' '}
+          <span className={styles.requirement} aria-hidden="true">
+            必須
+          </span>
+        </label>
         <textarea
           id="article-body"
           name="body"
           value={values.body}
           onChange={(e) => setValues({ ...values, body: e.target.value })}
           disabled={busy}
-          rows={12}
+          rows={8}
+          aria-describedby="article-body-hint"
           required
           maxLength={20000}
         />
-        <span className="hint">
+        <span className="hint" id="article-body-hint">
           見出しや手順は文章で記載してください。HTML は表示用の文章として扱います。
         </span>
       </FormField>
@@ -111,6 +122,7 @@ function EditorForm({
           id="article-audience"
           name="audience"
           value={values.audience}
+          aria-describedby="article-audience-hint"
           onChange={(e) =>
             setValues({ ...values, audience: e.target.value as EditorValues['audience'] })
           }
@@ -119,9 +131,14 @@ function EditorForm({
           <option value="organization">組織内の利用者</option>
           <option value="staff">担当者限定</option>
         </select>
+        <span className="hint" id="article-audience-hint">
+          {values.audience === 'staff'
+            ? '公開後は担当者だけが検索・閲覧できます。'
+            : '公開後は組織内の依頼者と担当者が検索・閲覧できます。'}
+        </span>
       </FormField>
       <p className="hint">
-        保存すると下書きになります。公開済みの版は、再公開するまで利用者に表示されます。
+        保存すると下書きになります。公開中の版と閲覧範囲は、再公開まで維持されます。
       </p>
       <div className="form-actions">
         <button disabled={busy}>{pending ? '保存しています…' : '下書きを保存する'}</button>
@@ -138,7 +155,22 @@ function EditorForm({
 
 export function KnowledgeEditor({ article }: { article?: KnowledgeArticle }) {
   const editor = useEditor(article);
-  return <EditorForm article={article} editor={editor} busy={editor.pending} />;
+  return (
+    <div className={styles.workspace}>
+      <EditorForm article={article} editor={editor} busy={editor.pending} />
+      <aside className={styles.workflow} aria-labelledby="knowledge-new-workflow">
+        <h2 id="knowledge-new-workflow">公開までの流れ</h2>
+        <ol className={styles.steps} role="list">
+          <li aria-current="step">下書き</li>
+          <li>レビュー</li>
+          <li>公開</li>
+        </ol>
+        <p className="hint">
+          下書きを保存した後、記事をレビューへ送れます。公開は管理者が確定します。
+        </p>
+      </aside>
+    </div>
+  );
 }
 
 function KnowledgeActions({
@@ -164,7 +196,7 @@ function KnowledgeActions({
       pending={pending}
       action={action}
       onSubmitCapture={preventActionSubmission(blocked)}
-      className={`stack form-panel ${styles.form}`}
+      className={`stack ${styles.actions}`}
     >
       <input type="hidden" name="expectedVersion" value={article.version} />
       {article.state === 'draft' && (
@@ -234,7 +266,7 @@ export function KnowledgeManagement({
     retired: '取り下げ済み',
   };
   return (
-    <div className="stack" style={{ gap: '2rem' }}>
+    <div className={editable ? styles.workspace : undefined}>
       {editable && (
         <section aria-labelledby="knowledge-edit-heading" className="stack">
           <h2 id="knowledge-edit-heading">記事を編集する</h2>
@@ -250,11 +282,26 @@ export function KnowledgeManagement({
           <EditorForm article={article} editor={editor} busy={busy} />
         </section>
       )}
-      <section aria-labelledby="knowledge-actions-heading" className="stack">
-        <h2 id="knowledge-actions-heading">保存済みの版を操作する</h2>
+      <section aria-labelledby="knowledge-actions-heading" className={styles.workflow}>
+        <h2 id="knowledge-actions-heading">公開状況</h2>
+        <ol className={styles.steps} role="list" aria-label="公開までの流れ">
+          <li aria-current={article.state === 'draft' ? 'step' : undefined}>下書き</li>
+          <li aria-current={article.state === 'review' ? 'step' : undefined}>レビュー</li>
+          <li aria-current={article.state === 'published' ? 'step' : undefined}>公開</li>
+        </ol>
         <p>
           操作対象: 保存済みの版 {article.contentVersion} · {states[article.state]}
         </p>
+        <dl className={styles.releaseInfo}>
+          <dt>作業版の閲覧範囲</dt>
+          <dd>{article.audience === 'staff' ? '担当者限定' : '組織内の利用者'}</dd>
+          <dt>現在の公開版</dt>
+          <dd>
+            {article.publishedVersion && article.state !== 'retired'
+              ? `版 ${article.publishedVersion}`
+              : '公開なし'}
+          </dd>
+        </dl>
         <p className="hint">
           未保存の入力は、レビュー・公開・取り下げ・復元の操作には含まれません。
         </p>

@@ -234,7 +234,7 @@ describe('knowledge detail renderer', () => {
       if (state === 'review' || state === 'retired') {
         expect(html).toContain('公開本文');
       }
-      expect(html.includes('利用者に公開している版を見る')).toBe(state !== 'retired');
+      expect(html.includes('公開中の版を見る（版 2）')).toBe(state !== 'retired');
     },
   );
   it('does not give agent publish permission', async () => {

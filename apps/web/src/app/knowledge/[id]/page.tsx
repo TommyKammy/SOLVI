@@ -1,8 +1,11 @@
 import { ContextLink } from '../../../components/ContextLink';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../lib/api';
 import { KnowledgeManagement } from '../../../components/KnowledgeEditor';
-import { safeReturnTo } from '../../../lib/navigation';
+import { navigationRoles, safeReturnTo, withReturnTo } from '../../../lib/navigation';
+import { formatDateTime } from '../../../lib/labels';
+import { knowledgeHref } from '../../../lib/knowledge-search';
 export default async function ArticlePage({
   params,
   searchParams,
@@ -13,9 +16,8 @@ export default async function ArticlePage({
   const session = await requireSession();
   const { id } = await params;
   const query = await searchParams;
-  const manage =
-    query.manage === '1' &&
-    session.roles.some((r) => ['agent', 'org_admin', 'platform_admin'].includes(r.roleCode));
+  const roles = navigationRoles(session);
+  const manage = query.manage === '1' && roles.staff;
   const result = await api.knowledgeDetail(id, manage);
   if (!result.ok) {
     if (result.problem.status === 404) notFound();
@@ -56,6 +58,11 @@ export default async function ArticlePage({
     );
   }
   const { article, versions } = result.data;
+  const audience = article.audience === 'staff' ? '担当者限定' : '組織内';
+  const backHref = safeReturnTo(query.returnTo) ?? (manage ? '/knowledge?manage=1' : '/knowledge');
+  const backLocation = new URL(backHref, 'https://solvi.local');
+  const review = article.state === 'review' || article.state === 'retired';
+  const tags = [...new Set(article.tags.split(/[,、\s]+/u).filter(Boolean))];
   const labels = {
     draft: '下書き',
     review: 'レビュー待ち',
@@ -63,53 +70,99 @@ export default async function ArticlePage({
     retired: '取り下げ済み',
   };
   return (
-    <main id="main" className="shell">
-      <ContextLink back href={manage ? '/knowledge?manage=1' : '/knowledge'}>
-        記事一覧へ戻る
-      </ContextLink>
-      <h1>{article.title}</h1>
+    <main id="main" className="shell knowledge-article">
+      <header className="support-page-heading">
+        <div>
+          <Link className="support-back" href={backHref}>
+            {backLocation.pathname === '/knowledge'
+              ? '記事一覧へ戻る'
+              : backLocation.pathname === `/knowledge/${id}` &&
+                  backLocation.searchParams.get('manage') === '1'
+                ? '記事の管理に戻る'
+                : '元の画面へ戻る'}
+          </Link>
+          <h1>{article.title}</h1>
+          {manage && (
+            <p className="knowledge-article-states">
+              <span className="knowledge-state" data-knowledge-state={article.state}>
+                {labels[article.state]}
+              </span>
+              <span>作業版 {article.contentVersion}</span>
+              <span>{audience}</span>
+            </p>
+          )}
+        </div>
+        {manage && article.publishedVersion !== null && article.state !== 'retired' && (
+          <Link
+            className="support-action"
+            href={{
+              pathname: `/knowledge/${id}`,
+              query: { returnTo: withReturnTo(`/knowledge/${id}?manage=1`, backHref) },
+            }}
+          >
+            公開中の版を見る（版 {article.publishedVersion}）
+          </Link>
+        )}
+      </header>
       {query.saved === '1' && (
         <p role="status" className="success">
           記事を保存しました。
         </p>
       )}
-      <p className="hint">
-        版 {article.contentVersion} · {article.audience === 'staff' ? '担当者限定' : '組織内'}
-        {manage && ` · ${labels[article.state]}`}
-      </p>
       {manage ? (
-        <>
-          {article.publishedVersion && article.state !== 'retired' && (
-            <p>
-              <ContextLink href={`/knowledge/${id}`}>利用者に公開している版を見る</ContextLink>（版{' '}
-              {article.publishedVersion}）
-            </p>
-          )}
-          {(article.state === 'review' || article.state === 'retired') && (
-            <article className="form-panel" style={{ whiteSpace: 'pre-wrap' }}>
-              {article.body}
+        <div className={review ? 'knowledge-reader-layout' : undefined}>
+          {review && (
+            <article className="knowledge-reader-panel" aria-labelledby="knowledge-review-title">
+              <h2 id="knowledge-review-title">
+                {article.state === 'review' ? 'レビュー対象の内容' : '取り下げた版の内容'}
+              </h2>
+              <p className="knowledge-prose">{article.body}</p>
+              {article.tags && <p className="hint">タグ {article.tags}</p>}
             </article>
           )}
           <KnowledgeManagement
             key={`${article.id}-${article.version}`}
             article={article}
-            canPublish={session.roles.some((r) =>
-              ['org_admin', 'platform_admin'].includes(r.roleCode),
-            )}
+            canPublish={roles.admin}
             versions={versions}
           />
-        </>
+        </div>
       ) : (
-        <>
-          <article className="form-panel" style={{ whiteSpace: 'pre-wrap' }}>
-            {article.body}
+        <div className="knowledge-reader-layout">
+          <article className="knowledge-reader-panel" aria-labelledby="knowledge-body-title">
+            <h2 id="knowledge-body-title">記事の内容</h2>
+            <p className="knowledge-prose">{article.body}</p>
+            <div className="knowledge-reader-help">
+              <ContextLink href="/tickets/new?kind=incident">
+                この記事で解決しない場合は障害を報告する
+              </ContextLink>
+            </div>
           </article>
-          <p className="hint">{article.tags}</p>
-          <p>
-            解決しない場合は
-            <ContextLink href="/tickets/new?kind=incident">問い合わせてください</ContextLink>。
-          </p>
-        </>
+          <aside className="knowledge-reader-panel" aria-labelledby="knowledge-info-title">
+            <h2 id="knowledge-info-title">この記事の情報</h2>
+            <dl>
+              <dt>公開範囲</dt>
+              <dd>{audience}</dd>
+              <dt>公開版</dt>
+              <dd>版 {article.contentVersion}</dd>
+              <dt>公開版の更新</dt>
+              <dd>
+                <time dateTime={article.versionCreatedAt}>
+                  {formatDateTime(article.versionCreatedAt)}
+                </time>
+              </dd>
+            </dl>
+            {tags.length > 0 && (
+              <nav className="knowledge-tag-links" aria-label="記事のタグ">
+                {tags.map((tag) => (
+                  <Link key={tag} href={knowledgeHref({ q: tag, manage: false })}>
+                    {tag}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </aside>
+        </div>
       )}
     </main>
   );
