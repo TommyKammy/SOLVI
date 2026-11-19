@@ -1,0 +1,633 @@
+{
+  "browser": "157.0.8103.79",
+  "journeys": [
+    {
+      "width": 1440,
+      "input": "keyboard",
+      "id": "01a1f626-d780-7000-bc6c-4a6bdf9ad7da",
+      "number": "INC-2026-000002",
+      "subject": "経費精算システムにログインできない（PCで報告）",
+      "receiptFocus": true,
+      "requiredRetainsInput": true,
+      "assignmentAndStart": true,
+      "requesterSeesSinglePublicReply": true,
+      "internalMemoExcluded": true,
+      "foreignTicket404": true,
+      "sourceConditionsPreserved": true,
+      "requesterReply": true,
+      "rowRestored": true
+    },
+    {
+      "width": 375,
+      "input": "tap",
+      "id": "01a1f626-e0cc-7000-b114-3b7446d592f0",
+      "number": "INC-2026-000003",
+      "subject": "VPNに接続できない（モバイルで報告）",
+      "receiptFocus": true,
+      "requiredRetainsInput": true,
+      "assignmentAndStart": true,
+      "requesterSeesSinglePublicReply": true,
+      "internalMemoExcluded": true,
+      "foreignTicket404": true,
+      "sourceConditionsPreserved": true,
+      "requesterReply": true,
+      "rowRestored": true
+    }
+  ],
+  "crossDevice": [
+    {
+      "number": "INC-2026-000002",
+      "sameId": "01a1f626-d780-7000-bc6c-4a6bdf9ad7da",
+      "width": 375
+    },
+    {
+      "number": "INC-2026-000003",
+      "sameId": "01a1f626-e0cc-7000-b114-3b7446d592f0",
+      "width": 1440
+    }
+  ],
+  "layout": [
+    {
+      "screen": "home",
+      "width": 320,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 320,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 320,
+      "mainPadding": 20,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 320,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 320,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 320,
+      "mainPadding": 20,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 320,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 320,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 20,
+      "mainWidth": 280,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 320,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 320,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 20,
+      "mainWidth": 280,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 375,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 375,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 375,
+      "mainPadding": 20,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 375,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 375,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 375,
+      "mainPadding": 20,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 375,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 375,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 20,
+      "mainWidth": 335,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 375,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 375,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 20,
+      "mainWidth": 335,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 600,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 600,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 600,
+      "mainPadding": 20,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 600,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 600,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 600,
+      "mainPadding": 20,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 600,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 600,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 20,
+      "mainWidth": 560,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 600,
+      "leftGutter": 20,
+      "rightGutter": 20,
+      "outerWidth": 600,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 20,
+      "mainWidth": 560,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 601,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 601,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 601,
+      "mainPadding": 24,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 601,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 601,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 601,
+      "mainPadding": 24,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 601,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 601,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 24,
+      "mainWidth": 553,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 601,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 601,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 24,
+      "mainWidth": 553,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 1100,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 1100,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 1100,
+      "mainPadding": 24,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 1100,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 1100,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 1100,
+      "mainPadding": 24,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 1100,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 1100,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 158,
+      "mainWidth": 784,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 1100,
+      "leftGutter": 24,
+      "rightGutter": 24,
+      "outerWidth": 1100,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 24,
+      "mainWidth": 1052,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 1101,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1101,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 1101,
+      "mainPadding": 32,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 1101,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1101,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 1101,
+      "mainPadding": 32,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 1101,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1101,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 158.5,
+      "mainWidth": 784,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 1101,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1101,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 32,
+      "mainWidth": 1037,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 1440,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1440,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 1440,
+      "mainPadding": 32,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 1440,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1440,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 0,
+      "mainWidth": 1440,
+      "mainPadding": 32,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 1440,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1440,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 328,
+      "mainWidth": 784,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 1440,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1440,
+      "outerLeft": 0,
+      "headerAligned": true,
+      "mainStart": 32,
+      "mainWidth": 1376,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "home",
+      "width": 1920,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1536,
+      "outerLeft": 192,
+      "headerAligned": true,
+      "mainStart": 192,
+      "mainWidth": 1536,
+      "mainPadding": 32,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "my-tickets",
+      "width": 1920,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1536,
+      "outerLeft": 192,
+      "headerAligned": true,
+      "mainStart": 192,
+      "mainWidth": 1536,
+      "mainPadding": 32,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "report",
+      "width": 1920,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1536,
+      "outerLeft": 192,
+      "headerAligned": true,
+      "mainStart": 568,
+      "mainWidth": 784,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    },
+    {
+      "screen": "detail",
+      "width": 1920,
+      "leftGutter": 32,
+      "rightGutter": 32,
+      "outerWidth": 1536,
+      "outerLeft": 192,
+      "headerAligned": true,
+      "mainStart": 224,
+      "mainWidth": 1472,
+      "mainPadding": 0,
+      "documentOverflow": 0
+    }
+  ],
+  "scans": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "screen": "home",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              ".support-hero-context"
+            ],
+            [
+              "#support-hero-title"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "screen": "my-tickets",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "screen": "report",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "screen": "detail",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "screen": "home",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              ".support-hero-context"
+            ],
+            [
+              "#support-hero-title"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "screen": "my-tickets",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "screen": "report",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "screen": "detail",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "screen": "home",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              ".support-hero-context"
+            ],
+            [
+              "#support-hero-title"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "screen": "my-tickets",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "screen": "report",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "screen": "detail",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "screen": "home",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              ".support-hero-context"
+            ],
+            [
+              "#support-hero-title"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "screen": "my-tickets",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "screen": "report",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "screen": "detail",
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "safeguards": {
+    "pageTwoCursorPreserved": true,
+    "themePersists": true
+  }
+}

@@ -1929,10 +1929,62 @@ body.fs-ui a.fs-support-icon-button {
   gap: 12px;
 }
 
+.fs-support--requester-flow {
+  --support-page-start: 1.875rem;
+  --support-header-height: var(--fs-toolbar-height);
+}
+.fs-support--requester-flow .fs-support-header {
+  position: relative;
+}
+.fs-support--requester-flow .fs-support-header-inner {
+  gap: 0.5rem 1.125rem;
+  min-block-size: calc(var(--support-header-height) - 1px);
+  padding-block: 0.5rem;
+  flex-wrap: wrap;
+}
+.fs-support--requester-flow .fs-support-nav {
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+body.fs-ui .fs-support--requester-flow .fs-support-nav a {
+  min-block-size: 2.25rem;
+  padding: 0.25rem 0.625rem;
+  font-weight: 650;
+}
+body.fs-ui .fs-support--requester-flow .fs-support-brand {
+  font-size: 1.0625rem;
+}
+.fs-support--requester-flow .fs-support-menu-panel {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+.fs-support--requester-flow .fs-support-header-right {
+  position: relative;
+}
+.fs-support--requester-flow :is(.fs-support-menu, .fs-support-user) {
+  position: static;
+}
+body.fs-ui .fs-support--requester-flow :is(.fs-support-theme, .fs-support-menu summary) {
+  display: grid;
+  place-items: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  min-inline-size: 0;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--fs-control-border);
+  border-radius: var(--fs-radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+body.fs-ui .fs-support--requester-flow :is(.fs-support-theme, .fs-support-menu summary):is(:hover, :focus-visible) {
+  background: var(--hover);
+}
 .support-main {
   flex: 1;
   min-inline-size: 0;
-  padding-block: var(--fs-page-start) var(--fs-page-end);
+  padding-block: var(--support-page-start, var(--fs-page-start)) var(--fs-page-end);
 }
 .support-hero {
   padding: 2rem 2.25rem;
@@ -1946,15 +1998,18 @@ body.fs-ui a.fs-support-icon-button {
   align-items: center;
   gap: 16px 32px;
 }
-body.fs-ui .support-hero h1 {
-  grid-column: 1;
+body.fs-ui .support-hero-context {
   margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+body.fs-ui .support-hero h1 {
+  margin-block: 0.5rem 1.25rem;
   font-size: var(--fs-hero-title);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
 .support-primary-actions {
-  grid-column: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1987,45 +2042,48 @@ body.fs-ui a.support-action--primary:hover {
   background: color-mix(in srgb, var(--btn) 88%, var(--surface));
 }
 .support-search {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  gap: 0.45rem;
   min-inline-size: 0;
-  padding: 4px 4px 4px 12px;
+  padding: 0.875rem 1rem;
   background: var(--surface);
-  border: 1px solid var(--fs-control-border);
-  border-radius: var(--fs-radius-sm);
-  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
 }
 .support-search:focus-within {
-  outline: 2px solid var(--fs-brand);
+  outline: 2px solid var(--side-brand);
   outline-offset: 2px;
 }
+
+body.fs-ui .support-search h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.support-search-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 body.fs-ui .support-search input {
-  flex: 1;
+  flex: 1 1 8rem;
   min-inline-size: 0;
   margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  font-size: max(1rem, 1em);
 }
-body.fs-ui .support-search input:focus {
-  outline: none;
-  box-shadow: none;
-}
+
 body.fs-ui .support-search button {
-  flex: 0 0 auto;
-  align-self: center;
-  min-block-size: 40px;
+  display: inline-flex;
+  align-items: center;
+  align-self: end;
+  gap: 0.375rem;
+  flex: none;
   margin: 0;
 }
-.support-search > svg,
+
 .support-action > svg {
-  flex: 0 0 auto;
+  flex: none;
 }
 
 .support-lists {
@@ -2054,28 +2112,42 @@ body.fs-ui .support-panel-heading h2 {
   margin: 0;
   border-bottom: 0;
 }
+body.fs-ui .support-main .portal-ticket-list {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
 body.fs-ui .support-main .portal-ticket-list > li {
   padding: 0;
+  border: 0;
+}
+body.fs-ui .support-main .portal-ticket-list > li + li {
+  border-block-start: 1px solid var(--line);
 }
 body.fs-ui a.support-ticket-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
-  min-block-size: 44px;
-  padding-block: 12px;
-  padding-inline: 8px;
+  gap: 0.625rem;
+  min-block-size: 4.125rem;
+  padding: 0.6875rem 0.875rem;
   border-radius: var(--fs-radius-sm);
   color: var(--ink);
   text-decoration: none;
+  scroll-margin-block-start: 1rem;
+  transition: none;
 }
-body.fs-ui a.support-ticket-row:hover {
+body.fs-ui a.support-ticket-row:is(:hover, :focus-visible, :target) {
   background: var(--hover);
+}
+body.fs-ui a.support-ticket-row:is(:hover, :focus-visible) .record-title {
+  color: var(--side-brand);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .support-ticket-row-copy,
 .support-ticket-row-status {
   display: grid;
-  gap: 4px;
+  gap: 0.1875rem;
   min-inline-size: 0;
 }
 .support-ticket-row-copy .record-title {
@@ -2088,10 +2160,50 @@ body.fs-ui a.support-ticket-row:hover {
 }
 .support-ticket-row-status time {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+}
+.support-ticket-row-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: 0.625rem;
+  background: var(--side-current);
+  color: var(--side-brand);
 }
 .support-ticket-row > svg {
   color: var(--muted);
+}
+.support-panel-heading > a {
+  gap: 0.375rem;
+}
+.support-text-arrow {
+  transform: rotate(180deg);
+}
+.support-ticket-list-page .support-lists {
+  margin-block-start: 0;
+}
+.support-ticket-list-page .portal-ticket-views {
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+body.fs-ui .support-ticket-list-page .portal-ticket-views a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--fs-control-height);
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--fs-control-border);
+  border-radius: var(--fs-radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+}
+body.fs-ui .support-ticket-list-page .portal-ticket-views a:is(:hover, :focus-visible, [aria-current='page']) {
+  background: var(--side-current);
+  color: var(--side-brand);
+}
+body.fs-ui .support-ticket-list-page .portal-result {
+  margin: 0;
 }
 .support-secondary-actions {
   display: flex;
@@ -2189,14 +2301,43 @@ body.fs-ui .support-ticket-number {
   min-block-size: 36px;
   margin-block-end: 8px;
 }
-.support-ticket-report .request-form {
-  inline-size: min(100%, 48rem);
+body.fs-ui .fs-support-content--ticket > main.support-ticket-report {
+  max-inline-size: 49rem;
+  margin-inline: auto;
+}
+body.fs-ui .support-ticket-report .request-form {
+  inline-size: 100%;
+  max-inline-size: none;
   margin: 0;
-  padding: 20px;
+  padding: 1.125rem 1.25rem;
   border: 1px solid var(--line);
-  border-radius: var(--fs-radius-md);
+  border-radius: 0.75rem;
+  background: var(--panel);
   display: grid;
-  gap: 16px;
+  gap: 1rem;
+}
+body.fs-ui .support-ticket-report .request-form .field {
+  margin: 0;
+  min-inline-size: 0;
+}
+body.fs-ui .support-ticket-report .request-form .field label {
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+body.fs-ui .support-ticket-report .request-form textarea {
+  min-block-size: 8rem;
+  resize: vertical;
+}
+.support-report-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+.support-report-actions > .hint {
+  flex: 1 1 10rem;
+  margin: 0;
 }
 .support-ticket-report .required-label {
   color: var(--muted);
@@ -2204,17 +2345,23 @@ body.fs-ui .support-ticket-number {
   font-size: 0.75rem;
   font-weight: 400;
 }
-.support-ticket-report .form-actions {
+.support-ticket-report .support-report-actions .form-actions {
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+body.fs-ui .support-report-actions .form-actions button {
+  margin: 0;
 }
 .support-ticket-receipt {
   padding: 16px;
-  margin-block-end: 20px;
+  margin-block-end: 1.125rem;
   border: 1px solid var(--line);
-  border-radius: var(--fs-radius-md);
-  background: var(--panel);
-  scroll-margin-block-start: 64px;
+  border-radius: 0.75rem;
+  background: var(--side-current);
+  scroll-margin-block-start: 1rem;
   overflow-wrap: anywhere;
 }
 .support-ticket-receipt:focus {
@@ -2226,8 +2373,14 @@ body.fs-ui .support-ticket-receipt p {
   margin: 0;
 }
 body.fs-ui .support-ticket-receipt h2 {
-  color: var(--ok);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink);
   font-size: 1rem;
+}
+.support-ticket-receipt :is(svg, strong) {
+  color: var(--side-brand);
 }
 body.fs-ui .support-ticket-receipt p {
   margin-block-start: 4px;
@@ -2235,10 +2388,10 @@ body.fs-ui .support-ticket-receipt p {
 
 .support-ticket-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(248px, 310px);
+  grid-template-columns: minmax(0, 1.65fr) minmax(17rem, 1fr);
   grid-template-rows: auto 1fr;
   align-items: start;
-  gap: 20px;
+  gap: 1.25rem 1.75rem;
 }
 .support-ticket-progress,
 .support-ticket-information {
@@ -2249,17 +2402,34 @@ body.fs-ui .support-ticket-receipt p {
   border-radius: var(--fs-radius-md);
   overflow-wrap: anywhere;
 }
+.support-ticket-progress {
+  background: var(--panel);
+}
 .support-ticket-thread {
   grid-column: 1;
   grid-row: 1 / span 2;
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }
-body.fs-ui .support-ticket-thread > h2 {
-  margin-block: 20px 8px;
+.support-ticket-thread > section + section {
+  margin-block-start: 1.375rem;
 }
-body.fs-ui .support-ticket-thread > h2:first-child {
-  margin-block-start: 0;
+body.fs-ui .support-ticket-thread h2 {
+  margin-block: 0 0.625rem;
+}
+.support-conversation-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+body.fs-ui .support-ticket-thread .body-text {
+  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+  background: var(--surface);
+}
+body.fs-ui .support-conversation :is(.comments, .empty) {
+  margin: 0;
 }
 .support-progress-heading {
   display: flex;
@@ -2276,33 +2446,46 @@ body.fs-ui .support-ticket-information h2:first-child {
 .support-progress-steps {
   list-style: none;
   display: grid;
+  gap: 0.5rem;
   padding: 0;
-  margin-block: 12px;
+  margin-block: 0.75rem;
 }
 .support-progress-steps li {
   display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 6px 8px;
-  border: 1px solid transparent;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--muted);
-  font-size: 0.75rem;
-}
-.support-progress-steps li[data-complete='true'] {
-  color: var(--ink);
+  font-size: 0.8125rem;
 }
 .support-progress-steps li[aria-current='step'] {
-  border-color: var(--side-line);
-  border-radius: var(--fs-radius-sm);
-  background: var(--side);
-  color: var(--side-ink);
+  color: var(--side-brand);
   font-weight: 700;
+}
+.support-progress-dot {
+  flex: none;
+  inline-size: 0.5625rem;
+  block-size: 0.5625rem;
+  margin-inline: 0.21875rem;
+  border: 1px solid var(--fs-control-border);
+  border-radius: 50%;
+}
+.support-progress-steps li[aria-current='step'] .support-progress-dot {
+  background: var(--side-brand);
+  border-color: var(--side-brand);
+}
+.support-progress-steps svg {
+  flex: none;
+  color: var(--side-brand);
+}
+.support-progress-status {
+  margin-inline-start: auto;
+  font-size: 0.6875rem;
 }
 .support-ticket-progress dl {
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
-  gap: 6px 12px;
-  margin: 12px 0 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  gap: 0.3125rem 0.625rem;
+  margin: 0.875rem 0 0;
   padding-block-start: 10px;
   border-block-start: 1px solid var(--line);
   font-size: 0.75rem;
@@ -2312,6 +2495,7 @@ body.fs-ui .support-ticket-information h2:first-child {
 }
 .support-ticket-progress dd {
   margin: 0;
+  text-align: end;
 }
 .support-ticket-detail > .notice {
   margin-block-end: 20px;
@@ -2323,80 +2507,125 @@ body.fs-ui .support-ticket-information h2:first-child {
   margin-block: 10px 0;
 }
 
-@media (max-width: 980px) {
+.fs-support--requester-flow .fs-support-content--ticket {
+  padding-block-start: var(--support-page-start);
+}
+body.fs-ui :is(.support-ticket-list-page, .support-ticket-report, .support-ticket-detail) .support-page-heading {
+  margin-block-end: 1.25rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line);
+}
+body.fs-ui :is(.support-ticket-list-page, .support-ticket-report, .support-ticket-detail) .support-back {
+  gap: 0.375rem;
+  min-block-size: 1.625rem;
+  margin-block-end: 0.5rem;
+  font-weight: 650;
+}
+body.fs-ui .support-ticket-detail .support-ticket-number {
+  margin-block: 0 0.25rem;
+}
+body.fs-ui :is(.support-ticket-list-page, .support-ticket-report, .support-ticket-detail) .support-page-heading h1 {
+  margin-block-start: 0.125rem;
+}
+
+@media (max-width: 65rem) {
   .support-hero-inner {
     grid-template-columns: minmax(0, 1fr);
   }
   .support-search {
-    grid-area: auto;
-    inline-size: min(100%, 38rem);
+    inline-size: min(100%, 32rem);
   }
 }
-@media (max-width: 740px) {
+@media (max-width: 63rem) {
+  .fs-support:not(.fs-support--requester-flow) .fs-support-nav {
+    display: none;
+  }
+}
+@media (max-width: 48rem) {
+  .fs-support--requester-flow {
+    --support-page-start: 1.25rem;
+  }
+  .fs-support--requester-flow .fs-support-nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .support-hero {
+    padding: 1.375rem;
+  }
+  body.fs-ui .support-hero h1 {
+    margin-block: 0.375rem 0.875rem;
+  }
   .support-ticket-layout,
   .support-services-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
+    gap: 1.125rem;
   }
   .support-ticket-progress,
   .support-ticket-thread,
   .support-ticket-information {
     grid-area: auto;
   }
-  .support-progress-steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .support-progress-steps li {
-    flex-direction: column;
-    justify-content: flex-start;
-    text-align: center;
-    padding-inline: 2px;
-  }
 }
-@media (max-width: 600px) {
-  .support-hero,
-  .support-ticket-report .request-form {
+@media (max-width: 26rem) {
+  .fs-support--requester-flow .fs-support-nav {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.1875rem;
+  }
+  body.fs-ui .fs-support--requester-flow .fs-support-nav a {
+    grid-column: span 2;
+    justify-content: center;
+    padding-inline: 0.1875rem;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+  body.fs-ui .fs-support--requester-flow .fs-support-nav a:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+  .support-hero {
     padding: 1rem;
   }
-  .support-primary-actions {
-    align-items: start;
+  .support-search {
+    padding: 0.625rem 0.75rem;
+  }
+  body.fs-ui .support-ticket-report .request-form {
+    padding: 0.875rem;
+  }
+  .support-ticket-report .form-columns {
+    grid-template-columns: minmax(0, 1fr);
   }
   body.fs-ui a.support-ticket-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
-    gap: 8px;
-    padding-inline: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, max-content) auto;
+    gap: 0.375rem;
+    padding-inline: 0.625rem;
   }
-  .support-ticket-row > svg {
+  .support-ticket-row-icon {
     display: none;
   }
   .support-ticket-row-status time {
-    max-inline-size: 10ch;
-  }
-}
-@media (max-width: 63rem) {
-  .fs-support-nav {
-    display: none;
+    max-inline-size: 12ch;
   }
 }
 @media (pointer: coarse) {
   body.fs-ui a.support-action,
   body.fs-ui .support-search button,
   body.fs-ui .support-ticket-report .form-actions button {
-    min-block-size: 48px;
+    min-block-size: 44px;
   }
   .fs-support-menu summary,
   .fs-support-user summary,
-  body.fs-ui a.fs-support-icon-button {
+  body.fs-ui a.fs-support-icon-button,
+  body.fs-ui .fs-support--requester-flow :is(.fs-support-theme, .fs-support-menu summary) {
     inline-size: 44px;
     block-size: 44px;
   }
   .fs-support-menu-panel a,
-  .support-main .portal-ticket-views a,
+  body.fs-ui .fs-support--requester-flow .fs-support-nav a,
+  body.fs-ui .support-ticket-list-page .portal-ticket-views a,
   .support-secondary-actions > a,
   .support-panel-heading > a,
-  .support-back,
-  .support-ticket-report .support-page-heading a {
+  body.fs-ui :is(.support-ticket-list-page, .support-ticket-report, .support-ticket-detail) .support-back {
     min-block-size: 44px;
   }
 }

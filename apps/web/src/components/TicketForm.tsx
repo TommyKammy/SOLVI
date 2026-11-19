@@ -47,7 +47,7 @@ export function TicketForm({ kind, scope }: { kind: 'incident' | 'request'; scop
           </span>
         </label>
         <span className="hint" id="subject-hint">
-          {incident ? '例: 経費精算システムにログインできない' : '例: 新入社員のアカウント作成'}
+          {incident ? '例　経費精算システムにログインできない' : '例　新入社員のアカウント作成'}
         </span>
         <input
           id="subject"
@@ -109,16 +109,18 @@ export function TicketForm({ kind, scope }: { kind: 'incident' | 'request'; scop
           </select>
         </FormField>
       </div>
-      <p className="hint">
-        送信すると受付番号を発行します。担当者とのやり取りは問い合わせ詳細に残ります。
-      </p>
-      <div className="form-actions">
-        <button type="submit" disabled={pending}>
-          {pending ? '送信しています…' : incident ? '障害を報告する' : '依頼を送信する'}
-        </button>
-        <ContextLink back href="/portal">
-          キャンセルして戻る
-        </ContextLink>
+      <div className="support-report-actions">
+        <p className="hint">
+          送信すると受付番号を発行します。担当者とのやり取りは問い合わせ詳細に残ります。
+        </p>
+        <div className="form-actions">
+          <ContextLink className="support-action" back href="/portal">
+            キャンセルして戻る
+          </ContextLink>
+          <button type="submit" disabled={pending}>
+            {pending ? '送信しています…' : incident ? '障害を報告する' : '依頼を送信する'}
+          </button>
+        </div>
       </div>
       <FormDraftRecovery
         scope={scope}

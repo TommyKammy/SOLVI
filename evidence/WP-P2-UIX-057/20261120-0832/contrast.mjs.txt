@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+import { login, require } from './live-helpers.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const [out, web = 'http://127.0.0.1:3270', api = 'http://127.0.0.1:3271'] = process.argv.slice(2);
+const browser = await chromium.launch({channel:'chrome'});
+const cookie = await login('requester','acme',api);
+const checks = [];
+const luminance = rgb => rgb.map((channel, index) => {
+  const value = channel / 255;
+  const linear = value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  return linear * [0.2126, 0.7152, 0.0722][index];
+}).reduce((a, b) => a + b, 0);
+const ratio = (first, second) => {
+  const [bright, dark] = [luminance(first), luminance(second)].sort((a,b) => b-a);
+  return (bright + 0.05) / (dark + 0.05);
+};
+try {
+  for (const width of [1440, 375]) for (const theme of ['light', 'dark']) {
+    const context = await browser.newContext({
+      viewport: {width,height:width===375?812:900},
+      isMobile:width===375,hasTouch:width===375,colorScheme:theme,locale:'ja-JP',
+    });
+    await context.addCookies([{...cookie,url:web}]);
+    const page = await context.newPage();
+    await page.goto(web + '/portal');
+    await page.locator('.support-hero-context').waitFor();
+    const result = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+    assert.deepEqual(result.violations.map(v=>v.id), []);
+    for (const rule of result.incomplete) {
+      assert.equal(rule.id, 'color-contrast');
+      for (const item of rule.nodes) {
+        const target = item.target[0];
+        const values = await page.locator(target).evaluate(el => {
+          const hero = el.closest('.support-hero');
+          if (!hero) return null;
+          const css = getComputedStyle(el);
+          const probe = document.createElement('span');
+          probe.hidden = true;
+          hero.append(probe);
+          const stops = ['--panel','--side-current'].map(token => {
+            probe.style.color = 'var(' + token + ')';
+            return getComputedStyle(probe).color;
+          });
+          probe.remove();
+          return {color: css.color, stops};
+        });
+        assert(values, String(target));
+        const rgb = v => v.match(/[\d.]+/g).map(Number);
+        const ratios = values.stops.map(stop => ratio(rgb(values.color), rgb(stop)));
+        assert(Math.min(...ratios) >= 4.5, String(target));
+        checks.push({width,theme,target,foreground:values.color,backgroundStops:values.stops,ratios});
+      }
+    }
+    await context.close();
+  }
+} finally {
+  await browser.close();
+}
+writeFileSync(out, JSON.stringify(checks,null,2)+'\n');

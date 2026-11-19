@@ -3,6 +3,7 @@ import { api, requireSession } from '../../lib/api';
 import { stateLabel, kindLabel, formatDate, formatDateTime } from '../../lib/labels';
 import { TicketPagination } from '../../components/TicketPagination';
 import { FreshserviceIcon } from '../../components/FreshserviceIcon';
+import { SupportOrganizationLabel } from '../../components/SupportFrame';
 import { navigationRoles, withReturnTo } from '../../lib/navigation';
 import {
   CATALOG_SEARCH_MAX_LENGTH,
@@ -90,35 +91,54 @@ export default async function PortalHome({
     : [];
 
   return (
-    <main id="main" className="support-main">
+    <main
+      id="main"
+      className={ticketList ? 'support-main support-ticket-list-page' : 'support-main'}
+    >
       {home ? (
         <section className="support-hero" aria-labelledby="support-hero-title">
           <div className="support-hero-inner">
-            <h1 id="support-hero-title">どういったことでお困りですか？</h1>
-            <div className="support-primary-actions">
-              <Link className="support-action support-action--primary" href={reportHref}>
-                <FreshserviceIcon name="ticket" size={18} /> 障害を報告する
-              </Link>
-              <Link className="support-action" href="/portal?tab=tickets">
-                <FreshserviceIcon name="portal" size={18} /> 自分の問い合わせを見る
-              </Link>
-              <Link className="support-action" href="/catalog">
-                <FreshserviceIcon name="grid" size={18} /> サービスを探す
-              </Link>
+            <div className="support-hero-content">
+              <SupportOrganizationLabel />
+              <h1 id="support-hero-title">どういったことでお困りですか？</h1>
+              <div className="support-primary-actions">
+                <Link className="support-action support-action--primary" href={reportHref}>
+                  <FreshserviceIcon name="ticket" size={18} /> 障害を報告する
+                </Link>
+                <Link className="support-action" href="/portal?tab=tickets">
+                  <FreshserviceIcon name="inbox" size={18} /> 自分の問い合わせを見る
+                </Link>
+                <Link className="support-action" href="/catalog">
+                  <FreshserviceIcon name="grid" size={18} /> サービスを探す
+                </Link>
+              </div>
             </div>
-            <form className="support-search" action="/knowledge" method="get" role="search">
-              <FreshserviceIcon name="search" size={22} />
-              <label className="visually-hidden" htmlFor="support-search-input">
-                ヘルプ記事を検索
-              </label>
-              <input
-                id="support-search-input"
-                type="search"
-                name="q"
-                maxLength={200}
-                placeholder="ヘルプ記事を検索"
-              />
-              <button type="submit">検索</button>
+            <form
+              className="support-search"
+              action="/knowledge"
+              method="get"
+              role="search"
+              aria-labelledby="support-help-title"
+            >
+              <h2 id="support-help-title">ヘルプ記事を探す</h2>
+              <div className="support-search-controls">
+                <label className="visually-hidden" htmlFor="support-search-input">
+                  ヘルプ記事を検索
+                </label>
+                <input
+                  id="support-search-input"
+                  type="search"
+                  name="q"
+                  maxLength={200}
+                  placeholder="例　VPN、パスワード"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+                <button type="submit">
+                  <FreshserviceIcon name="search" size={16} />
+                  検索する
+                </button>
+              </div>
             </form>
           </div>
         </section>
@@ -126,6 +146,7 @@ export default async function PortalHome({
         <header className="support-page-heading">
           <div>
             <Link className="support-back" href="/portal">
+              {ticketList && <FreshserviceIcon name="arrow-left" size={16} />}
               ポータルに戻る
             </Link>
             <h1>
@@ -135,6 +156,9 @@ export default async function PortalHome({
                   ? '申請の状況'
                   : 'サービスを探す'}
             </h1>
+            {ticketList && (
+              <p className="lead">受付番号から、過去の報告と担当者からの返信を確認できます。</p>
+            )}
           </div>
           {ticketList && (
             <Link className="support-action support-action--primary" href={reportHref}>
@@ -156,7 +180,10 @@ export default async function PortalHome({
                   {home ? '最近の問い合わせ' : '問い合わせ一覧'}
                 </h2>
                 {home ? (
-                  <Link href="/portal?tab=tickets&view=all">すべての問い合わせを見る</Link>
+                  <Link href="/portal?tab=tickets&view=all">
+                    すべての問い合わせを見る
+                    <FreshserviceIcon className="support-text-arrow" name="arrow-left" size={14} />
+                  </Link>
                 ) : (
                   <nav className="portal-ticket-views" aria-label="問い合わせの表示">
                     <Link
@@ -173,6 +200,13 @@ export default async function PortalHome({
                     </Link>
                   </nav>
                 )}
+                {ticketList && tickets.ok && (
+                  <p className="portal-result" role="status">
+                    {tickets.data.total} 件
+                    {(query.page > 1 || tickets.data.items.length < tickets.data.total) &&
+                      ` · このページ ${tickets.data.items.length}件 · ${query.page}ページ目`}
+                  </p>
+                )}
               </div>
               {!tickets.ok ? (
                 <PortalLoadError
@@ -182,12 +216,6 @@ export default async function PortalHome({
                 />
               ) : (
                 <>
-                  {ticketList && (
-                    <p className="portal-result" role="status">
-                      {query.view === 'open' ? '未解決' : '自分の問い合わせ'} {tickets.data.total}件
-                      {' · '}このページ {tickets.data.items.length}件 · {query.page}ページ目
-                    </p>
-                  )}
                   {tickets.data.items.length === 0 ? (
                     <div className="portal-message">
                       <h3>
@@ -209,19 +237,22 @@ export default async function PortalHome({
                       )}
                     </div>
                   ) : (
-                    <ul className="portal-ticket-list">
+                    <ul className="portal-ticket-list" role="list">
                       {tickets.data.items.map((ticket) => (
                         <li key={ticket.id}>
                           <Link
+                            id={`request-row-${ticket.id}`}
                             className="support-ticket-row"
                             href={{
                               pathname: `/tickets/${encodeURIComponent(ticket.id)}`,
                               query: { returnTo: currentHref },
                             }}
                           >
-                            <FreshserviceIcon name="ticket" size={18} />
+                            <span className="support-ticket-row-icon">
+                              <FreshserviceIcon name="ticket" size={16} />
+                            </span>
                             <span className="support-ticket-row-copy">
-                              <span className="record-title">{ticket.subject}</span>
+                              <strong className="record-title">{ticket.subject}</strong>
                               <span className="record-number">
                                 {ticket.number} · {kindLabel(ticket.kind)}
                               </span>

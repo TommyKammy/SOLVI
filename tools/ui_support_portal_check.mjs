@@ -107,7 +107,7 @@ async function searchWithKeyboard(page, name) {
     page.keyboard.press('Enter'),
   ]);
   await page.waitForLoadState('networkidle');
-  await page.getByRole('heading', { name: 'ナレッジを探す', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'ヘルプ記事を探す', exact: true }).waitFor();
 }
 
 async function main() {
@@ -203,9 +203,11 @@ async function main() {
       await navigate(page, card, role.inbox ? '/inbox' : '/requests');
       if (role.inbox) {
         await page.getByRole('heading', { name: '業務受信箱', exact: true }).waitFor();
-        const approvalCount = page.locator('.inbox-summary p').filter({ hasText: '自分への承認' });
+        const approvalCount = page.locator('.inbox-summary > div').filter({
+          has: page.getByText('承認依頼', { exact: true }),
+        });
         await approvalCount.waitFor();
-        assert.match(await approvalCount.innerText(), /自分への承認\s*\d+件/);
+        assert.match(await approvalCount.innerText(), /承認依頼\s*\d+件/);
       } else assert.equal(new URL(page.url()).searchParams.get('view'), 'mine');
       report.checks.push({ name: `${role.code}-personal-work-card`, destination });
 

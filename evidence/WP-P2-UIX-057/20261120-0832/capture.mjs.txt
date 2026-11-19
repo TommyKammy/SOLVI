@@ -1,0 +1,320 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { api, login, require, web } from './helpers.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const requester = await login('requester');
+const agent = await login('agent');
+const admin = await login('org_admin');
+const output = process.argv[2];
+mkdirSync(join(output, 'screens'), { recursive: true });
+const run = Date.now();
+const browser = await chromium.launch({ channel: 'chrome' });
+const summary = { browser: browser.version(), journeys: [], crossDevice: [], layout: [], scans: [], safeguards: {} };
+const observed = [];
+const wcag = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+
+function device(width, colorScheme = 'light') {
+  return { viewport: { width, height: width === 375 ? 812 : 900 }, locale: 'ja-JP',
+    isMobile: width === 375, hasTouch: width === 375, colorScheme };
+}
+
+async function session(cookie, width, colorScheme) {
+  const ctx = await browser.newContext(device(width, colorScheme));
+  await ctx.addCookies([{ ...cookie, url: web }]);
+  const page = await ctx.newPage();
+  page.setDefaultTimeout(8000);
+  return { ctx, page };
+}
+
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname);
+  await page.locator('main h1').waitFor();
+}
+
+async function operate(locator, width, key = 'Enter') {
+  if (width === 375) {
+    await locator.tap();
+  } else {
+    await locator.focus();
+    await locator.press(key);
+  }
+}
+
+async function exactState(page, state, step) {
+  const progress = page.getByRole('complementary', { name: '対応状況' });
+  await progress.locator('.state[data-state="' + state + '"]').waitFor();
+  assert.match(await progress.locator('[aria-current=step]').innerText(), new RegExp(step));
+}
+
+async function shot(page, name) {
+  await page.screenshot({ path: join(output, 'screens', name + '.png'), animations: 'disabled' });
+}
+
+async function verifyReply(page, ticket) {
+  await page.getByRole('heading', { name: ticket.subject, exact: true }).waitFor();
+  assert.match(await page.locator('.support-ticket-number').innerText(), new RegExp(ticket.number));
+  await exactState(page, 'in_progress', '対応');
+  await page.getByText(ticket.reply, { exact: true }).waitFor();
+  await page.getByText('担当者からの返信', { exact: true }).waitFor();
+  if (ticket.requesterReply) await page.getByText(ticket.requesterReply, { exact: true }).waitFor();
+  assert.equal(await page.getByText(ticket.memo, { exact: true }).count(), 0);
+}
+
+try {
+  const foreign = await api('/tickets', admin, {
+    kind: 'incident', subject: '隔離確認用の別ユーザー起票 ' + run,
+    body: '所有者の境界検証に使用する合成データです。', impact: 'low', urgency: 'low',
+  });
+  for (const width of [1440, 375]) {
+    const req = await session(requester, width);
+    const ops = await session(agent, width);
+    const page = req.page;
+    const staff = ops.page;
+    const mode = width === 375 ? 'モバイル' : 'PC';
+    const subject = width === 375 ? 'VPNに接続できない（モバイルで報告）' : '経費精算システムにログインできない（PCで報告）';
+    const report = '午前10時ごろから、認証の直後にログイン画面へ戻ります。ブラウザーを開き直しても同じです。';
+    const memo = '合成の内部メモ ' + mode + ' ' + run;
+    const reply = width === 375 ? '接続状況を確認しています。エラー画面が表示された時刻をお知らせください。' :
+      '担当者が調査を開始しました。状況が変わった場合は、こちらの問い合わせでお知らせください。';
+
+    await enter(page, '/portal');
+    assert.equal(await page.locator('.fs-rail').count(), 0);
+    const nav = page.getByRole('navigation', { name: '依頼者メニュー' });
+    await nav.getByRole('link', { name: '自分の問い合わせ', exact: true }).waitFor();
+    assert.equal(await nav.getByRole('link', { name: 'ホーム', exact: true }).getAttribute('aria-current'), 'page');
+    const menu = page.locator('.fs-support-menu > summary');
+    await operate(menu, width, 'Space');
+    const panel = page.locator('.fs-support-menu-panel');
+    await panel.getByRole('link', { name: '通知設定', exact: true }).waitFor();
+    assert(await panel.evaluate(el => {
+      const box = el.getBoundingClientRect();
+      return box.left >= 0 && box.right <= innerWidth;
+    }));
+    await operate(menu, width, 'Space');
+    await operate(page.getByRole('main').getByRole('link', { name: '障害を報告する' }), width);
+    await page.waitForURL((url) => url.pathname === '/tickets/new');
+    const form = page.locator('form.request-form');
+    const subjectInput = form.getByRole('textbox', { name: '件名', exact: true });
+    const bodyInput = form.getByRole('textbox', { name: '内容', exact: true });
+    await subjectInput.fill(subject);
+    const submit = form.getByRole('button', { name: '障害を報告する', exact: true });
+    await operate(submit, width);
+    const validation = form.getByRole('alert');
+    await validation.getByText('保存・送信できませんでした').waitFor();
+    assert.equal(await bodyInput.getAttribute('aria-invalid'), 'true');
+    await operate(validation.getByRole('button', { name: /内容.*この項目を入力/ }), width);
+    await page.waitForFunction(() => document.activeElement?.id === 'body');
+    assert.equal(await subjectInput.inputValue(), subject);
+    assert.equal(new URL(page.url()).pathname, '/tickets/new');
+    await bodyInput.fill(report);
+    await form.getByLabel('影響の範囲').selectOption('medium');
+    await form.getByLabel('急ぎ具合').selectOption('medium');
+    await shot(page, 'light-' + width + '-report-input');
+    await operate(submit, width);
+    await page.waitForURL((url) => /^\/tickets\/[^/]+$/.test(url.pathname) && url.pathname !== '/tickets/new' && url.searchParams.get('created') === '1');
+    await page.getByRole('heading', { name: '障害報告を受け付けました' }).waitFor();
+    await page.waitForFunction(() => document.activeElement?.classList.contains('support-ticket-receipt'));
+    await exactState(page, 'new', '報告受付');
+    assert.match(await page.locator('.support-ticket-progress .state').innerText(), /受付済み/);
+    const path = new URL(page.url()).pathname;
+    const id = path.split('/').at(-1);
+    const created = await api(path, requester);
+    assert.equal(created.id, id);
+    assert.deepEqual([created.subject, created.body, created.kind, created.impact, created.urgency],
+      [subject, report, 'incident', 'medium', 'medium']);
+    const number = created.number;
+    assert.match(await page.locator('.support-ticket-receipt').innerText(), new RegExp(number));
+    await shot(page, 'light-' + width + '-receipt');
+
+    await enter(staff, '/ops');
+    await operate(staff.locator('#ticket-entry-' + id), width);
+    await staff.waitForURL((url) => url.pathname === '/ops/' + id);
+    assert.match(await staff.locator('.fs-ticket-heading').innerText(), new RegExp(number));
+    await operate(staff.getByRole('button', { name: '自分が引き受ける', exact: true }), width);
+    await staff.locator('.ticket-properties .state[data-state=assigned]').waitFor();
+    await operate(staff.getByRole('button', { name: '対応を始める', exact: true }), width);
+    await staff.locator('.ticket-properties .state[data-state=in_progress]').waitFor();
+
+    await operate(staff.locator('#reply-internal'), width, 'Space');
+    await staff.getByLabel('内部メモの内容', { exact: true }).fill(memo);
+    await operate(staff.getByRole('button', { name: '内部メモを保存する', exact: true }), width);
+    await staff.getByRole('status').filter({ hasText: '内部メモを保存しました' }).waitFor();
+    await staff.getByText(memo, { exact: true }).waitFor();
+    await operate(staff.locator('#reply-public'), width, 'Space');
+    await staff.getByLabel('依頼者への返信内容', { exact: true }).fill(reply);
+    await operate(staff.locator('.reply-panel').getByRole('button', { name: '返信する', exact: true }), width);
+    await staff.getByRole('status').filter({ hasText: '返信を保存しました' }).waitFor();
+    await staff.getByText(reply, { exact: true }).waitFor();
+
+    // Reopen the exact ticket from the requester navigation after the staff write.
+    await operate(page.getByRole('link', { name: 'ポータルに戻る', exact: true }), width);
+    await page.waitForURL((url) => url.pathname === '/portal' && url.search === '');
+    await operate(page.getByRole('link', { name: '自分の問い合わせを見る', exact: true }), width);
+    await page.waitForURL((url) => url.searchParams.get('tab') === 'tickets');
+    await operate(page.getByRole('navigation', { name: '問い合わせの表示' }).getByRole('link', { name: 'すべて', exact: true }), width);
+    await page.waitForURL((url) => url.searchParams.get('view') === 'all');
+    assert.equal(await page.getByText(foreign.subject, { exact: true }).count(), 0);
+    const listUrl = new URL(page.url());
+    const row = page.getByRole('link', { name: new RegExp(number) });
+    await operate(row, width);
+    await page.waitForURL((url) => url.pathname === path);
+    const ticket = { id, number, path, subject, reply, memo };
+    await verifyReply(page, ticket);
+    observed.push(ticket);
+    const apiComments = await api(path + '/comments', requester);
+    assert.equal(apiComments.items.filter((item) => item.body === reply && item.visibility === 'public').length, 1);
+    assert.equal(apiComments.items.some((item) => item.visibility === 'internal'), false);
+    const panels = await page.locator('.support-ticket-layout').evaluate(layout => {
+      const progress = layout.querySelector('.support-ticket-progress').getBoundingClientRect();
+      const thread = layout.querySelector('.support-ticket-thread').getBoundingClientRect();
+      return { beforeThread: progress.bottom < thread.top, afterThread: progress.left > thread.right };
+    });
+    assert(width === 375 ? panels.beforeThread : panels.afterThread);
+    ticket.requesterReply = '追加情報　認証画面に戻った時刻は10時15分ごろです。';
+    await page.getByLabel('担当者へ追加で知らせる内容', { exact: true }).fill(ticket.requesterReply);
+    await operate(page.getByRole('button', { name: '追加内容を送信する', exact: true }), width);
+    await page.getByRole('status').filter({ hasText: '追加内容を送信しました' }).waitFor();
+    await verifyReply(page, ticket);
+    const allReplies = await api(path + '/comments', requester);
+    assert.equal(allReplies.items.filter(item => item.body === ticket.requesterReply && item.visibility === 'public').length, 1);
+    await enter(staff, '/ops/' + id);
+    await staff.getByText(ticket.requesterReply, { exact: true }).waitFor();
+    await operate(page.getByRole('link', { name: '自分の問い合わせに戻る', exact: true }), width);
+    await page.waitForURL((url) => url.pathname === '/portal');
+    assert.deepEqual([...new URL(page.url()).searchParams].sort(), [...listUrl.searchParams].sort());
+    await row.waitFor();
+    assert.equal(new URL(page.url()).hash, '#request-row-' + id);
+    assert.equal(await row.evaluate(el => el.matches(':target')), true);
+
+    const access = await page.goto(web + '/tickets/' + foreign.id);
+    assert.equal(access.status(), 404);
+    assert.equal(await page.getByText(foreign.subject, { exact: true }).count(), 0);
+    summary.journeys.push({ width, input: width === 375 ? 'tap' : 'keyboard', id, number, subject,
+      receiptFocus: true, requiredRetainsInput: true, assignmentAndStart: true, requesterSeesSinglePublicReply: true,
+      internalMemoExcluded: true, foreignTicket404: true, sourceConditionsPreserved: true, requesterReply: true, rowRestored: true });
+    console.log('PASS', width, number, 'report, staff assignment and reply, requester progress');
+    await req.ctx.close();
+    await ops.ctx.close();
+  }
+
+  // Check each created record again using the other device viewport.
+  for (const journey of summary.journeys) {
+    const width = journey.width === 375 ? 1440 : 375;
+    const { ctx, page } = await session(requester, width);
+    await enter(page, '/portal?tab=tickets');
+    await operate(page.getByRole('link', { name: new RegExp(journey.number) }), width);
+    await page.waitForURL((url) => url.pathname === '/tickets/' + journey.id);
+    await verifyReply(page, observed.find((ticket) => ticket.id === journey.id));
+    summary.crossDevice.push({ number: journey.number, sameId: journey.id, width });
+    await ctx.close();
+  }
+
+  console.log('PASS both exact ticket IDs and public replies across devices');
+
+  const detail = '/tickets/' + summary.journeys[0].id;
+  const routes = [
+    ['home', '/portal'], ['my-tickets', '/portal?tab=tickets'],
+    ['report', '/tickets/new?kind=incident'], ['detail', detail],
+  ];
+  for (const width of [320, 375, 600, 601, 1100, 1101, 1440, 1920]) {
+    const { ctx, page } = await session(requester, width);
+    for (const [screen, path] of routes) {
+      await enter(page, path);
+      const layout = await page.evaluate(() => {
+        const root = document.documentElement;
+        const content = document.querySelector('.support-main, .fs-support-content--ticket');
+        const style = getComputedStyle(content);
+        const header = document.querySelector('.fs-support-header-inner');
+        const left = content.getBoundingClientRect().left;
+        const main = document.querySelector('main');
+        return {
+          leftGutter: parseFloat(style.paddingLeft), rightGutter: parseFloat(style.paddingRight),
+          outerWidth: content.getBoundingClientRect().width,
+          outerLeft: left, headerAligned: header.getBoundingClientRect().left === left &&
+            getComputedStyle(header).paddingLeft === style.paddingLeft,
+          mainStart: main.getBoundingClientRect().left,
+          mainWidth: main.getBoundingClientRect().width,
+          mainPadding: parseFloat(getComputedStyle(main).paddingLeft),
+          documentOverflow: root.scrollWidth - root.clientWidth,
+        };
+      });
+      const expected = width <= 600 ? 20 : width <= 1100 ? 24 : 32;
+      assert.equal(layout.leftGutter, expected, screen + ' at ' + width);
+      assert.equal(layout.rightGutter, expected);
+      assert.equal(layout.outerWidth, Math.min(width, 1536));
+      assert.equal(layout.outerLeft, (width - layout.outerWidth) / 2);
+      if (screen === 'report') {
+        const expectedWidth = Math.min(784, layout.outerWidth - 2 * expected);
+        assert.equal(layout.mainWidth, expectedWidth);
+        assert.equal(layout.mainStart, layout.outerLeft + (layout.outerWidth - expectedWidth) / 2);
+      } else {
+        assert.equal(layout.mainStart + layout.mainPadding, layout.outerLeft + expected);
+      }
+      assert.equal(layout.documentOverflow, 0, JSON.stringify({ screen, width, ...layout }));
+      assert(layout.headerAligned);
+      summary.layout.push({ screen, width, ...layout });
+    }
+    await ctx.close();
+  }
+  console.log('PASS 32 layout checks including breakpoint boundaries');
+
+  for (const width of [1440, 375]) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page } = await session(requester, width, theme);
+      for (const [screen, path] of routes) {
+        await enter(page, path);
+        assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
+        const result = await new AxeBuilder({ page }).withTags(wcag).analyze();
+        const violations = result.violations.map(({ id, impact, nodes }) => ({
+          id, impact, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+        }));
+        summary.scans.push({ width, theme, screen, violations, incomplete: result.incomplete.map(({ id, nodes }) => ({
+          id, targets: nodes.map(({ target }) => target),
+        })) });
+        await shot(page, theme + '-' + width + '-' + screen);
+        console.log('AXE', width, theme, screen, violations.map(({ id }) => id).join(',') || 'pass');
+      }
+      await ctx.close();
+    }
+  }
+
+  for (let i = 1; i <= 10; i++) {
+    await api('/tickets', requester, {
+      kind: 'incident', subject: 'ページ復帰の合成データ ' + i + ' ' + run,
+      body: '問い合わせ一覧の2ページ目を確認するために使用します。', impact: 'low', urgency: 'low',
+    });
+  }
+  {
+    const { ctx, page } = await session(requester, 1440);
+    await enter(page, '/portal?tab=tickets&view=all');
+    await operate(page.getByRole('link', { name: /次のページへ/ }), 1440);
+    await page.waitForURL((url) => url.searchParams.get('page') === '2');
+    const listUrl = new URL(page.url());
+    assert(listUrl.searchParams.has('cursorId') && listUrl.searchParams.has('cursorCreatedAt'));
+    await operate(page.getByRole('link', { name: new RegExp(summary.journeys[0].number) }), 1440);
+    await page.waitForURL((url) => url.pathname === '/tickets/' + summary.journeys[0].id);
+    await operate(page.getByRole('link', { name: '自分の問い合わせに戻る', exact: true }), 1440);
+    await page.waitForURL((url) => url.pathname === '/portal' && url.searchParams.get('page') === '2');
+    assert.deepEqual([...new URL(page.url()).searchParams].sort(), [...listUrl.searchParams].sort());
+    summary.safeguards.pageTwoCursorPreserved = true;
+
+    await enter(page, '/portal');
+    await operate(page.getByRole('button', { name: 'ダーク表示に切り替える', exact: true }), 1440);
+    await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+    await enter(page, '/tickets/new?kind=incident');
+    assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+    summary.safeguards.themePersists = true;
+    await ctx.close();
+  }
+  console.log('PASS pagination cursor and theme persistence');
+
+} finally {
+  writeFileSync(join(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+  await browser.close();
+}
+assert.equal(summary.scans.flatMap(({ violations }) => violations).length, 0, 'axe violations');

@@ -1,0 +1,114 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "target": ".support-hero-context",
+    "foreground": "rgb(86, 101, 120)",
+    "backgroundStops": [
+      "rgb(247, 249, 252)",
+      "rgb(230, 238, 251)"
+    ],
+    "ratios": [
+      5.64304406903558,
+      5.097937435507366
+    ]
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "target": "#support-hero-title",
+    "foreground": "rgb(24, 35, 50)",
+    "backgroundStops": [
+      "rgb(247, 249, 252)",
+      "rgb(230, 238, 251)"
+    ],
+    "ratios": [
+      15.023489011416363,
+      13.572250385831628
+    ]
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "target": ".support-hero-context",
+    "foreground": "rgb(175, 189, 208)",
+    "backgroundStops": [
+      "rgb(27, 37, 51)",
+      "rgb(40, 62, 96)"
+    ],
+    "ratios": [
+      8.1032953024659,
+      5.652789444854132
+    ]
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "target": "#support-hero-title",
+    "foreground": "rgb(237, 242, 250)",
+    "backgroundStops": [
+      "rgb(27, 37, 51)",
+      "rgb(40, 62, 96)"
+    ],
+    "ratios": [
+      13.746675907520315,
+      9.58956345182367
+    ]
+  },
+  {
+    "width": 375,
+    "theme": "light",
+    "target": ".support-hero-context",
+    "foreground": "rgb(86, 101, 120)",
+    "backgroundStops": [
+      "rgb(247, 249, 252)",
+      "rgb(230, 238, 251)"
+    ],
+    "ratios": [
+      5.64304406903558,
+      5.097937435507366
+    ]
+  },
+  {
+    "width": 375,
+    "theme": "light",
+    "target": "#support-hero-title",
+    "foreground": "rgb(24, 35, 50)",
+    "backgroundStops": [
+      "rgb(247, 249, 252)",
+      "rgb(230, 238, 251)"
+    ],
+    "ratios": [
+      15.023489011416363,
+      13.572250385831628
+    ]
+  },
+  {
+    "width": 375,
+    "theme": "dark",
+    "target": ".support-hero-context",
+    "foreground": "rgb(175, 189, 208)",
+    "backgroundStops": [
+      "rgb(27, 37, 51)",
+      "rgb(40, 62, 96)"
+    ],
+    "ratios": [
+      8.1032953024659,
+      5.652789444854132
+    ]
+  },
+  {
+    "width": 375,
+    "theme": "dark",
+    "target": "#support-hero-title",
+    "foreground": "rgb(237, 242, 250)",
+    "backgroundStops": [
+      "rgb(27, 37, 51)",
+      "rgb(40, 62, 96)"
+    ],
+    "ratios": [
+      13.746675907520315,
+      9.58956345182367
+    ]
+  }
+]

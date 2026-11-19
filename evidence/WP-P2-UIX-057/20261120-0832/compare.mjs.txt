@@ -1,0 +1,98 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { login, require } from './live-helpers.mjs';
+
+const [out, mode = 'before', web = 'http://127.0.0.1:3000', api = 'http://127.0.0.1:3001', providedTicketPath] = process.argv.slice(2);
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const mock = pathToFileURL(resolve('docs/planning/assets/ui/SOLVI_Operations_Mockup.html')).href;
+const browser = await chromium.launch({ channel: 'chrome' });
+const cookie = await login('requester', 'acme', api);
+const checks = [];
+mkdirSync(out, { recursive: true });
+try {
+  for (const width of [1440, 375]) {
+    const context = await browser.newContext({ viewport: { width, height: width === 375 ? 812 : 900 }, locale: 'ja-JP', isMobile: width === 375, hasTouch: width === 375 });
+    await context.addCookies([{...cookie, url:web}]);
+    const page = await context.newPage();
+    const ref = await context.newPage();
+    await page.goto(web + '/portal?tab=tickets&view=all');
+    const ticket = page.locator('main .support-ticket-row').first();
+    const ticketHref = providedTicketPath ?? ((await ticket.count()) ? await ticket.getAttribute('href') : undefined);
+    const receiptHref = ticketHref ? ticketHref.split('?')[0] + '?created=1' : undefined;
+    const routes = [
+      ['home', '/portal', 'portal'],
+      ['report', '/tickets/new?kind=incident&returnTo=%2Fportal', 'report'],
+      ['list', '/portal?tab=tickets', 'my-tickets'],
+      ['detail', ticketHref, 'request/INC-1048'],
+      ['receipt', receiptHref, 'request/INC-1048?receipt=1'],
+    ];
+    for (const [key, route, hash] of routes) {
+      if (!route) continue;
+      await ref.goto(mock + '#' + hash);
+      const resp = await page.goto(web + route);
+      assert(resp?.ok(), route);
+      await ref.locator('main h1:visible').waitFor();
+      await page.locator('main h1:visible').waitFor();
+      if (key === 'receipt') {
+        await page.locator('.support-ticket-receipt').waitFor();
+        await page.waitForFunction(() => document.activeElement?.classList.contains('support-ticket-receipt'));
+        await page.evaluate(() => scrollTo(0, 0));
+      }
+      const measure = p => p.locator('main h1:visible').evaluate(h1 => {
+        const rect = h1.getBoundingClientRect(), css = getComputedStyle(h1);
+        return { title:h1.textContent.trim(), x:rect.x, y:rect.y, size:css.fontSize, weight:css.fontWeight, overflow:document.documentElement.scrollWidth - innerWidth };
+      });
+      const reference = await measure(ref);
+      const actual = await measure(page);
+      const check = { key, width, reference, actual };
+      if (mode === 'after') {
+        assert.equal(actual.overflow, 0, key);
+        assert.equal(actual.size, reference.size, key);
+        assert.equal(actual.weight, reference.weight, key);
+        assert.equal(actual.x, reference.x, key + ' horizontal alignment');
+        await page.getByRole('navigation', { name: '依頼者メニュー' }).waitFor();
+        if (key === 'home') {
+          const controls = page.locator('.support-search-controls');
+          const input = controls.locator('input[type=search]');
+          const submit = controls.locator('button');
+          const [inputBounds, submitBounds] = await Promise.all([input.boundingBox(), submit.boundingBox()]);
+          assert.equal(inputBounds.y + inputBounds.height, submitBounds.y + submitBounds.height);
+        }
+        if (key === 'report') {
+          const box = await page.locator('main form').boundingBox();
+          assert.equal(box.x + box.width / 2, width / 2);
+        }
+        const axe = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+        check.violations = axe.violations.map(v => ({id:v.id,nodes:v.nodes.map(n=>({target:n.target,failureSummary:n.failureSummary}))}));
+        check.incomplete = axe.incomplete.map(v => v.id);
+      }
+      checks.push(check);
+      await page.screenshot({path:join(out,width+'-'+key+'-solvi.png'),animations:'disabled'});
+      await ref.screenshot({path:join(out,width+'-'+key+'-mock.png'),animations:'disabled'});
+      if (mode === 'after' && width === 375 && key === 'detail') {
+        await page.screenshot({path:join(out,'375-detail-solvi-full.png'),fullPage:true,animations:'disabled'});
+        await ref.screenshot({path:join(out,'375-detail-mock-full.png'),fullPage:true,animations:'disabled'});
+      }
+      if (mode==='after' && width===1440 && key === 'home' && await page.locator('.support-ticket-row').count()) {
+        const row = page.locator('.support-ticket-row').first();
+        const refRow = ref.locator('.portal-ticket-link').first();
+        const color = el => el.evaluate(node=>getComputedStyle(node).backgroundColor);
+        await row.hover();
+        await refRow.hover();
+        assert.equal(await color(row), await color(refRow));
+        check.hover = await color(row);
+        await page.screenshot({path:join(out,'1440-home-hover.png')});
+        await page.mouse.move(0,0);
+        await row.focus();
+        assert.equal(await color(row), check.hover);
+      }
+    }
+    await context.close();
+  }
+} finally {
+  writeFileSync(join(out,'measurements.json'), JSON.stringify(checks,null,2)+'\n');
+  await browser.close();
+}

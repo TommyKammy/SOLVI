@@ -17,6 +17,11 @@ export type FreshserviceIconName =
   | 'user'
   | 'menu'
   | 'chevron'
+  | 'arrow-left'
+  | 'check'
+  | 'moon'
+  | 'sun'
+  | 'inbox'
   | 'logout'
   | 'organization';
 
@@ -59,6 +64,38 @@ export function FreshserviceIcon({ name, size = 20, className }: Props) {
         <svg {...common}>
           <path d="M4 6.5h16v3a2.5 2.5 0 0 0 0 5v3H4v-3a2.5 2.5 0 0 0 0-5z" />
           <path d="M9 6.5v11" strokeDasharray="2 2" />
+        </svg>
+      );
+    case 'inbox':
+      return (
+        <svg {...common}>
+          <path d="M3.5 13 6 6h12l2.5 7v5H3.5zM3.5 13h5l1.5 2h4l1.5-2h5" />
+        </svg>
+      );
+    case 'arrow-left':
+      return (
+        <svg {...common}>
+          <path d="m10 6-6 6 6 6M4 12h16" />
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m8.5 12 2.3 2.3 4.7-5" />
+        </svg>
+      );
+    case 'moon':
+      return (
+        <svg {...common}>
+          <path d="M20 15.3A8.3 8.3 0 0 1 8.7 4a8.4 8.4 0 1 0 11.3 11.3Z" />
+        </svg>
+      );
+    case 'sun':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="4.25" />
+          <path d="M12 2v2.5m0 15V22M2 12h2.5m15 0H22M5 5l1.8 1.8m10.4 10.4L19 19M5 19l1.8-1.8M17.2 6.8 19 5" />
         </svg>
       );
     case 'book':

@@ -1,0 +1,227 @@
+[
+  {
+    "key": "home",
+    "width": 1440,
+    "reference": {
+      "title": "どういったことでお困りですか？",
+      "x": 69,
+      "y": 155.796875,
+      "size": "34px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "どういったことでお困りですか？",
+      "x": 69,
+      "y": 154.796875,
+      "size": "34px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ],
+    "hover": "rgb(238, 242, 247)"
+  },
+  {
+    "key": "report",
+    "width": 1440,
+    "reference": {
+      "title": "障害を報告する",
+      "x": 328,
+      "y": 131,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "障害を報告する",
+      "x": 328,
+      "y": 130,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "list",
+    "width": 1440,
+    "reference": {
+      "title": "自分の問い合わせ",
+      "x": 32,
+      "y": 131,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "自分の問い合わせ",
+      "x": 32,
+      "y": 130,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "detail",
+    "width": 1440,
+    "reference": {
+      "title": "VPNに接続できない",
+      "x": 32,
+      "y": 156.796875,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "UI021 合成 高リスク申請 UI021-SYN-1794746790837",
+      "x": 32,
+      "y": 153.4375,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "receipt",
+    "width": 1440,
+    "reference": {
+      "title": "VPNに接続できない",
+      "x": 32,
+      "y": 156.796875,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "UI021 合成 高リスク申請 UI021-SYN-1794746790837",
+      "x": 32,
+      "y": 153.4375,
+      "size": "32px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "home",
+    "width": 375,
+    "reference": {
+      "title": "どういったことでお困りですか？",
+      "x": 37,
+      "y": 222.796875,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "どういったことでお困りですか？",
+      "x": 37,
+      "y": 222.796875,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "key": "report",
+    "width": 375,
+    "reference": {
+      "title": "障害を報告する",
+      "x": 20,
+      "y": 216,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "障害を報告する",
+      "x": 20,
+      "y": 234,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "list",
+    "width": 375,
+    "reference": {
+      "title": "自分の問い合わせ",
+      "x": 20,
+      "y": 216,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "自分の問い合わせ",
+      "x": 20,
+      "y": 234,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "detail",
+    "width": 375,
+    "reference": {
+      "title": "VPNに接続できない",
+      "x": 20,
+      "y": 241.796875,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "UI021 合成 高リスク申請 UI021-SYN-1794746790837",
+      "x": 20,
+      "y": 257.4375,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "key": "receipt",
+    "width": 375,
+    "reference": {
+      "title": "VPNに接続できない",
+      "x": 20,
+      "y": 241.796875,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "actual": {
+      "title": "UI021 合成 高リスク申請 UI021-SYN-1794746790837",
+      "x": 20,
+      "y": 257.4375,
+      "size": "28px",
+      "weight": "700",
+      "overflow": 0
+    },
+    "violations": [],
+    "incomplete": []
+  }
+]

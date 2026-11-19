@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { FreshserviceIcon } from './FreshserviceIcon';
 
 type Theme = 'light' | 'dark';
 
@@ -34,7 +35,7 @@ function applyTheme(theme: Theme) {
  * 初期値はOS設定。利用者が選んだテーマだけをブラウザに保存し、
  * サーバーには保存しない。保存領域の読み書きに失敗しても表示は壊さない。
  */
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: { compact?: boolean } = {}) {
   // サーバーでは決められないため、マウント後に現在のテーマを反映する。
   const [theme, setTheme] = useState<Theme | null>(null);
 
@@ -87,6 +88,22 @@ export function ThemeToggle() {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  if (compact) {
+    const dark = theme === 'dark';
+    const label = dark ? 'ライト表示に切り替える' : 'ダーク表示に切り替える';
+    return (
+      <button
+        className="fs-support-theme"
+        type="button"
+        aria-label={label}
+        title={label}
+        onClick={() => select(dark ? 'light' : 'dark')}
+      >
+        <FreshserviceIcon name={dark ? 'sun' : 'moon'} size={18} />
+      </button>
+    );
+  }
 
   return (
     <div className="fs-theme" role="group" aria-label="表示テーマ">

@@ -1,7 +1,6 @@
 import { formScope } from '../../../lib/form-scope';
 import { TicketWaitNotice } from '../../../components/TicketWaitNotice';
 import { navigationRoles, safeReturnTo, withReturnTo } from '../../../lib/navigation';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
@@ -12,6 +11,7 @@ import { AttachmentForm } from '../../../components/AttachmentForm';
 import { TicketAssetPanel } from '../../../components/TicketAssetPanel';
 import { RelationList } from '../../../components/RelationList';
 import { TicketReceipt } from '../../../components/TicketReceipt';
+import { FreshserviceIcon } from '../../../components/FreshserviceIcon';
 import { portalTicketNextAction, portalTicketProgress } from '../../../lib/portal-overview';
 import {
   formatRemaining,
@@ -99,7 +99,11 @@ export default async function TicketDetailPage({
     (source.searchParams.get('tab') === 'tickets' ||
       source.searchParams.get('view') === 'all' ||
       source.searchParams.has('cursorId'));
-  const backHref = returnTo ?? '/portal?tab=tickets';
+  const portalOrigin =
+    fromList || !returnTo || (source?.pathname === '/portal' && !source.searchParams.has('tab'));
+  const backHref = portalOrigin
+    ? `${source ? source.pathname + source.search : '/portal?tab=tickets'}#request-row-${encodeURIComponent(ticket.id)}`
+    : (returnTo ?? '/portal?tab=tickets');
   const backLabel =
     fromList || !returnTo
       ? '自分の問い合わせに戻る'
@@ -154,9 +158,10 @@ export default async function TicketDetailPage({
     <main id="main" className="shell ticket-workspace support-ticket-detail">
       <header className="support-page-heading">
         <div>
-          <Link href={backHref} className="support-back">
+          <a href={backHref} className="support-back">
+            <FreshserviceIcon name="arrow-left" size={16} />
             {backLabel}
-          </Link>
+          </a>
           <p className="support-ticket-number">
             受付番号 <strong>{ticket.number}</strong> · {kindLabel(ticket.kind)}
           </p>
@@ -188,8 +193,15 @@ export default async function TicketDetailPage({
                     aria-current={index === progress ? 'step' : undefined}
                     data-complete={complete}
                   >
+                    {complete ? (
+                      <FreshserviceIcon name="check" size={16} />
+                    ) : (
+                      <span className="support-progress-dot" aria-hidden="true" />
+                    )}
                     <span>{index === 0 && ticket.kind !== 'incident' ? '依頼受付' : label}</span>
-                    <span>{complete ? '完了' : index === progress ? '現在' : '未完了'}</span>
+                    <span className="support-progress-status">
+                      {complete ? '完了' : index === progress ? '現在' : '未完了'}
+                    </span>
                   </li>
                 );
               })}
@@ -212,45 +224,54 @@ export default async function TicketDetailPage({
             )}
           </dl>
         </aside>
-        <section className="support-ticket-thread" aria-label="問い合わせと会話">
-          <h2>お知らせいただいた内容</h2>
-          <div className="body-text">{ticket.body}</div>
+        <div className="support-ticket-thread">
+          <section aria-labelledby="support-report-body-title">
+            <h2 id="support-report-body-title">お知らせいただいた内容</h2>
+            <div className="body-text">{ticket.body}</div>
+          </section>
 
-          <h2>やり取り</h2>
-          {commentResult.ok && (
-            <CommentThread
-              comments={comments}
-              currentUserId={session.userId}
-              requesterView={requesterView}
-            />
-          )}
+          <section className="support-conversation" aria-labelledby="support-conversation-title">
+            <div className="support-conversation-heading">
+              <h2 id="support-conversation-title">やり取り</h2>
+              {commentResult.ok && <span className="hint">{comments.length} 件</span>}
+            </div>
+            {commentResult.ok && (
+              <CommentThread
+                comments={comments}
+                currentUserId={session.userId}
+                requesterView={requesterView}
+              />
+            )}
+          </section>
 
-          <h2>追加でお知らせする</h2>
-          {query.commentSaved === '1' && (
-            <p role="status" className="success">
-              追加内容を送信しました。
+          <section className="support-reply" aria-labelledby="support-reply-title">
+            <h2 id="support-reply-title">追加でお知らせする</h2>
+            {query.commentSaved === '1' && (
+              <p role="status" className="success">
+                追加内容を送信しました。
+              </p>
+            )}
+            <p className="lead">
+              状況が変わった場合や、担当者への補足があればこちらへお書きください。
             </p>
-          )}
-          <p className="lead">
-            状況が変わった場合や、担当者への補足があればこちらへお書きください。
-          </p>
-          {commentResult.ok ? (
-            <CommentForm
-              key={`${formScope(session)}:${id}`}
-              ticketId={id}
-              scope={formScope(session)}
-              replyContext={commentResult.data.replyContext}
-              errorMessage={
-                query.commentError !== undefined
-                  ? '内容を確認して、もう一度お試しください。'
-                  : undefined
-              }
-            />
-          ) : (
-            <p role="alert">
-              やり取りを読み込めませんでした。画面を再読込してから入力してください。
-            </p>
-          )}
+            {commentResult.ok ? (
+              <CommentForm
+                key={`${formScope(session)}:${id}`}
+                ticketId={id}
+                scope={formScope(session)}
+                replyContext={commentResult.data.replyContext}
+                errorMessage={
+                  query.commentError !== undefined
+                    ? '内容を確認して、もう一度お試しください。'
+                    : undefined
+                }
+              />
+            ) : (
+              <p role="alert">
+                やり取りを読み込めませんでした。画面を再読込してから入力してください。
+              </p>
+            )}
+          </section>
 
           <details className="workspace-disclosure">
             <summary>添付ファイル</summary>
@@ -263,7 +284,7 @@ export default async function TicketDetailPage({
             />
             <AttachmentForm ticketId={id} canChooseVisibility={false} />
           </details>
-        </section>
+        </div>
         <section className="support-ticket-information" aria-labelledby="ticket-info-title">
           <h2 id="ticket-info-title">問い合わせ情報</h2>
           <dl className="detail">
