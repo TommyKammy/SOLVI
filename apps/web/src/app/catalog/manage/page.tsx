@@ -47,22 +47,36 @@ export default async function CatalogManagePage({
   const clearUrl = catalogListUrl({ ...query, q: '', state: 'all', page: 1 });
   return (
     <main id="main" className="shell">
-      <ContextLink back href="/catalog">
-        利用者のカタログへ戻る
-      </ContextLink>
-      <h1>カタログ管理</h1>
-      <p className="lead">項目と承認者を下書きで整え、プレビューして新規受付へ公開します。</p>
-      {r.data.canCreate && (
-        <p>
-          <a className="button-link" href={withReturnTo('/catalog/manage/new', context)}>
-            サービスを作成する
+      <header className="support-page-heading">
+        <div>
+          <ContextLink className="support-back" back href="/catalog">
+            利用者のカタログへ戻る
+          </ContextLink>
+          <h1>カタログ管理</h1>
+          <p className="lead">項目と承認者を下書きで整え、プレビューして新規受付へ公開します。</p>
+        </div>
+        <nav className="form-actions" aria-label="カタログ管理の設定">
+          <a
+            className="support-action"
+            href={withReturnTo('/catalog/manage/question-sets', context)}
+          >
+            共有項目セット
           </a>
-        </p>
-      )}
-      <nav className="form-actions" aria-label="カタログ管理の設定">
-        <a href={withReturnTo('/catalog/manage/question-sets', context)}>共有項目セット</a>
-        {r.data.canPublish && <a href="/ops/users">編集権限を委任する</a>}
-      </nav>
+          {r.data.canPublish && (
+            <a className="support-action" href="/ops/users">
+              編集権限を委任する
+            </a>
+          )}
+          {r.data.canCreate && (
+            <a
+              className="support-action support-action--primary"
+              href={withReturnTo('/catalog/manage/new', context)}
+            >
+              サービスを作成する
+            </a>
+          )}
+        </nav>
+      </header>
       <form
         action="/catalog/manage"
         method="get"

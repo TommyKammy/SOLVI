@@ -1,0 +1,1550 @@
+{
+  "browser": "157.0.8103.79",
+  "geometry": [
+    {
+      "width": 1440,
+      "reference": {
+        "label": "運営状況",
+        "titleSize": "32px",
+        "titleWeight": "700",
+        "titleLeading": "44.8px",
+        "top": 98,
+        "left": 256,
+        "right": 970.375,
+        "font": "-apple-system, \"system-ui\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Noto Sans JP\", sans-serif",
+        "body": "14px",
+        "leading": "23.1px",
+        "bar": 64,
+        "rail": 224,
+        "gutter": "32px",
+        "drawnFonts": [
+          "HiraginoSans-W7"
+        ]
+      },
+      "actual": {
+        "label": "運営状況",
+        "titleSize": "32px",
+        "titleWeight": "700",
+        "titleLeading": "44.8px",
+        "top": 98,
+        "left": 256,
+        "right": 32,
+        "font": "-apple-system, \"system-ui\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Noto Sans JP\", sans-serif",
+        "body": "14px",
+        "leading": "23.1px",
+        "bar": 64,
+        "rail": 224,
+        "gutter": "32px",
+        "drawnFonts": [
+          "HiraginoSans-W7"
+        ],
+        "groupFilterAligned": true
+      },
+      "measured": [
+        "titleSize",
+        "titleWeight",
+        "titleLeading",
+        "top",
+        "left",
+        "font",
+        "body",
+        "leading",
+        "bar",
+        "gutter",
+        "drawnFonts",
+        "rail"
+      ]
+    },
+    {
+      "width": 375,
+      "reference": {
+        "label": "運営状況",
+        "titleSize": "28px",
+        "titleWeight": "700",
+        "titleLeading": "39.2px",
+        "top": 88,
+        "left": 20,
+        "right": 141.375,
+        "font": "-apple-system, \"system-ui\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Noto Sans JP\", sans-serif",
+        "body": "14px",
+        "leading": "23.1px",
+        "bar": 64,
+        "rail": 0,
+        "gutter": "20px",
+        "drawnFonts": [
+          "HiraginoSans-W7"
+        ]
+      },
+      "actual": {
+        "label": "運営状況",
+        "titleSize": "28px",
+        "titleWeight": "700",
+        "titleLeading": "39.2px",
+        "top": 88,
+        "left": 20,
+        "right": 20,
+        "font": "-apple-system, \"system-ui\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Noto Sans JP\", sans-serif",
+        "body": "14px",
+        "leading": "23.1px",
+        "bar": 64,
+        "rail": 304,
+        "gutter": "20px",
+        "drawnFonts": [
+          "HiraginoSans-W7"
+        ]
+      },
+      "measured": [
+        "titleSize",
+        "titleWeight",
+        "titleLeading",
+        "top",
+        "left",
+        "font",
+        "body",
+        "leading",
+        "bar",
+        "gutter",
+        "drawnFonts"
+      ]
+    }
+  ],
+  "references": [
+    {
+      "id": "inbox",
+      "width": 1440,
+      "hash": "inbox",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "tickets",
+      "width": 1440,
+      "hash": "tickets",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "portal",
+      "width": 1440,
+      "hash": "portal",
+      "headingSize": "34px",
+      "liveHeadingSize": "34px"
+    },
+    {
+      "id": "portal-list",
+      "width": 1440,
+      "hash": "my-tickets",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "portal-report",
+      "width": 1440,
+      "hash": "report",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "catalog",
+      "width": 1440,
+      "hash": "catalog",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "catalog-manage",
+      "width": 1440,
+      "hash": "catalog-admin",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "knowledge",
+      "width": 1440,
+      "hash": "knowledge",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "assets",
+      "width": 1440,
+      "hash": "assets",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "asset-import",
+      "width": 1440,
+      "hash": "asset-import-new",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "admin",
+      "width": 1440,
+      "hash": "admin",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "reports",
+      "width": 1440,
+      "hash": "reports",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "assistance",
+      "width": 1440,
+      "hash": "ticket/INC-1048?focus=ai",
+      "headingSize": "32px",
+      "liveHeadingSize": "32px"
+    },
+    {
+      "id": "inbox",
+      "width": 375,
+      "hash": "inbox",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "tickets",
+      "width": 375,
+      "hash": "tickets",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "portal",
+      "width": 375,
+      "hash": "portal",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "portal-list",
+      "width": 375,
+      "hash": "my-tickets",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "portal-report",
+      "width": 375,
+      "hash": "report",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "catalog",
+      "width": 375,
+      "hash": "catalog",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "catalog-manage",
+      "width": 375,
+      "hash": "catalog-admin",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "knowledge",
+      "width": 375,
+      "hash": "knowledge",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "assets",
+      "width": 375,
+      "hash": "assets",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "asset-import",
+      "width": 375,
+      "hash": "asset-import-new",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "admin",
+      "width": 375,
+      "hash": "admin",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "reports",
+      "width": 375,
+      "hash": "reports",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    },
+    {
+      "id": "assistance",
+      "width": 375,
+      "hash": "ticket/INC-1048?focus=ai",
+      "headingSize": "28px",
+      "liveHeadingSize": "28px"
+    }
+  ],
+  "pages": [
+    {
+      "id": "catalog-manage",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "カタログ管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog-editor",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "admin",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "users",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "利用者管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "departments",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "部署管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "groups",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "担当グループの管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "approval-rules",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "承認ルール",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "notifications",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "通知状況",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "access-review",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "アクセスレビュー",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "audit",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "監査ログ",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "overview",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "運営状況",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "inbox",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "業務受信箱",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "tickets",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "問い合わせの一覧",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "ticket",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN接続が認証後に止まる QA01",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge-manage",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "ナレッジの管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "assets",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "資産台帳",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "asset",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "NET-QA052-01 · VPN検証装置",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "asset-import",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "資産CSVを取り込む",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "change",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "CHG-000001 · VPN検証装置の設定見直し QA01",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "reports",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "レポート",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "assistance",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-completed",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "simulation",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-completed",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "approval",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "どういったことでお困りですか？",
+      "h1": "34px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#support-hero-title"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "portal-list",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "自分の問い合わせ",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal-report",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "障害を報告する",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal-ticket",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN接続が認証後に止まる QA01",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "サービスカタログ",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog-item",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "requests",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "申請の状況",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "ナレッジを探す",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge-article",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPNに接続できないときの確認手順 QA01",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "admin",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "管理",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "audit",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "監査ログ",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "overview",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "運営状況",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "inbox",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "業務受信箱",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "reports",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "レポート",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "assistance",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-completed",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "approval",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "どういったことでお困りですか？",
+      "h1": "34px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#support-hero-title"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "portal-ticket",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN接続が認証後に止まる QA01",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "ナレッジを探す",
+      "h1": "32px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog-manage",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "カタログ管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog-editor",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "admin",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "users",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "利用者管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "departments",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "部署管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "groups",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "担当グループの管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "approval-rules",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "承認ルール",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "notifications",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "通知状況",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "access-review",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "アクセスレビュー",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "audit",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "監査ログ",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "overview",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "運営状況",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "inbox",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "業務受信箱",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "tickets",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "問い合わせの一覧",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "th:nth-child(3)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "th:nth-child(4)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "th:nth-child(5)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "th:nth-child(6)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "th:nth-child(7)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "th:nth-child(8)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "th:nth-child(9)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "#ticket-entry-01a1f408-0004-7000-b5f0-301982def121 > .record-title"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(1) > td:nth-child(4) > .priority-label[data-priority=\"low\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+            },
+            {
+              "target": [
+                "tr:nth-child(1) > .queue-group > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(1) > td:nth-child(6) > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "span[title=\"あと7日\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(1) > .queue-requester > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(1) > .queue-created[title=\"2026年11月19日 22:38\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "#ticket-entry-01a1f407-ffd5-7000-b2ba-e50b52eccd60 > .record-title"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > td:nth-child(4) > .priority-label[data-priority=\"low\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > .queue-group > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "td:nth-child(6) > .hint"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "span[title=\"あと6日23時間\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > .queue-requester > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > .queue-created[title=\"2026年11月19日 22:38\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(3) > .ticket-subject > .record-kind"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "span[data-priority=\"critical\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(3) > .queue-group > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(3) > td:nth-child(6) > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "span[title=\"あと3時間59分\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(3) > .queue-requester > .cell-clip"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                "tr:nth-child(3) > .queue-created[title=\"2026年11月19日 22:38\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ticket",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN接続が認証後に止まる QA01",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge-manage",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "ナレッジの管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "assets",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "資産台帳",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "asset",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "NET-QA052-01 · VPN検証装置",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "asset-import",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "資産CSVを取り込む",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "change",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "CHG-000001 · VPN検証装置の設定見直し QA01",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "reports",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "レポート",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "assistance",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-completed",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "simulation",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-completed",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "approval",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "どういったことでお困りですか？",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#support-hero-title"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "portal-list",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "自分の問い合わせ",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal-report",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "障害を報告する",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal-ticket",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN接続が認証後に止まる QA01",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "サービスカタログ",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "catalog-item",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "requests",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "申請の状況",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "ナレッジを探す",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge-article",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPNに接続できないときの確認手順 QA01",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "admin",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "管理",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "audit",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "監査ログ",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "overview",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "運営状況",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "inbox",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "業務受信箱",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "reports",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "レポート",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "assistance",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-completed",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "approval",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN利用の模擬申請 uix052-01-pending",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "portal",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "どういったことでお困りですか？",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#support-hero-title"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "portal-ticket",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "VPN接続が認証後に止まる QA01",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "id": "knowledge",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "culprit": [],
+      "title": "ナレッジを探す",
+      "h1": "28px",
+      "body": "14px",
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "actions": [
+    {
+      "width": 1440,
+      "rootToInbox": true,
+      "search": true,
+      "overviewReturnFocus": true,
+      "inboxReturn": true,
+      "requesterSeesReply": true,
+      "report": true,
+      "knowledge": true
+    },
+    {
+      "width": 375,
+      "rootToInbox": true,
+      "search": true,
+      "overviewReturnFocus": true,
+      "inboxReturn": true,
+      "requesterSeesReply": true,
+      "report": true,
+      "knowledge": true
+    }
+  ],
+  "narrow": true
+}

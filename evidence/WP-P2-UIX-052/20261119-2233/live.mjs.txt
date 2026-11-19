@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import { login, require } from './helpers.mjs';
+const { chromium } = require('playwright');
+const live = 'http://127.0.0.1:3000';
+const realApi = 'http://127.0.0.1:3001';
+const cookie = await login('agent', 'acme', realApi);
+const browser = await chromium.launch({ channel:'chrome' });
+try {
+  for (const width of [1440,375]) {
+    const context=await browser.newContext({viewport:{width,height:900}, locale:'ja-JP',
+      colorScheme:'light', isMobile:width===375,hasTouch:width===375});
+    await context.addCookies([{...cookie,url:live}]);
+    const page=await context.newPage();
+    const geometry = await page.goto(live+'/');
+    assert.equal(geometry.status(), 200);
+    assert.equal(new URL(page.url()).pathname,'/inbox');
+    await page.getByRole('heading',{name:'業務受信箱',exact:true}).waitFor();
+    const value = await page.evaluate(()=>{
+      const body = getComputedStyle(document.body);
+      const title = document.querySelector('main h1');
+      const heading = getComputedStyle(title);
+      return { path: location.pathname, size: heading.fontSize, left: title.getBoundingClientRect().x,
+        body: body.fontSize, leading: body.lineHeight, font: body.fontFamily,
+        toolbar:document.querySelector('.fs-topbar').getBoundingClientRect().height,
+        gutter:getComputedStyle(document.querySelector('.fs-content')).paddingInlineStart,
+        overflow:document.documentElement.scrollWidth-innerWidth };
+    });
+    assert.equal(value.left,width===1440?256:20);
+    assert.equal(value.size,width===1440?'32px':'28px');
+    assert.equal(value.body,'14px');
+    assert.equal(value.leading,'23.1px');
+    assert.equal(value.toolbar,64);
+    assert.equal(value.gutter,width===1440?'32px':'20px');
+    assert.equal(value.overflow,0);
+    assert.match(value.font,/Hiragino Sans/);
+    await page.goto(live+'/ops/overview');
+    await page.getByRole('heading',{name:'運営状況',exact:true}).waitFor();
+    assert.equal(await page.locator('.home-layout').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),width===1440?2:1);
+    const groupFilterAligned = width !== 1440 || await page.locator('.home-group-filter').evaluate(form => (
+      form.querySelector('select').getBoundingClientRect().bottom ===
+      form.querySelector('button').getBoundingClientRect().bottom
+    ));
+    assert.equal(groupFilterAligned,true);
+    console.log(JSON.stringify({width,...value,overview:true,groupFilterAligned}));
+    await context.close();
+  }
+} finally {await browser.close();}

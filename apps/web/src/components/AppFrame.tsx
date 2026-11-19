@@ -14,8 +14,6 @@ type Props = {
   staff: boolean;
   organizationName: string | null;
   canSwitchOrganization: boolean;
-  /** 上部バーに出す日付。サーバーで作る(SSRとクライアントの食い違いを避ける)。 */
-  todayLabel?: string;
   children: React.ReactNode;
 };
 
@@ -24,8 +22,14 @@ function normalizedPath(href: string): string {
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
-/** モバイル用サイドバーの表示条件。CSSの `max-width: 800px` と揃える。 */
-const MOBILE_NAV_QUERY = '(max-width: 800px)';
+const MOBILE_NAV_QUERY = '(max-width: 63rem)';
+const COMPACT_TOOLBAR_QUERY = '(max-width: 34rem)';
+const sidebarSections = [
+  { id: 'dashboard', label: 'ダッシュボード', groups: ['dashboard'] },
+  { id: 'tickets', label: 'チケット', groups: ['tickets'] },
+  { id: 'services', label: 'サービス管理', groups: ['knowledge', 'catalog', 'assets', 'changes'] },
+  { id: 'admin', label: '管理', groups: ['admin', 'audit', 'portal'] },
+];
 
 /** 詳細画面として扱うのは、UUIDまたは数値のIDが続く場合だけ。 */
 const DETAIL_ID =
@@ -137,13 +141,14 @@ export function AppFrame({
   staff,
   organizationName,
   canSwitchOrganization,
-  todayLabel,
   children,
 }: Props) {
   const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -156,10 +161,21 @@ export function AppFrame({
     origin?.searchParams ?? searchParams,
     groups,
   );
+  const sections = [
+    ...sidebarSections,
+    ...groups
+      .filter((group) => !sidebarSections.some((section) => section.groups.includes(group.id)))
+      .map((group) => ({ id: group.id, label: group.label, groups: [group.id] })),
+  ];
 
   useEffect(() => {
     setMobileOpen(false);
+    setMobileSearchOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (mobileSearchOpen) searchRef.current?.focus();
+  }, [mobileSearchOpen]);
 
   useEffect(() => {
     if (mobileOpen) closeRef.current?.focus();
@@ -226,6 +242,7 @@ export function AppFrame({
       if (slash && typing) return;
       if (!searchRef.current) return;
       event.preventDefault();
+      if (window.matchMedia(COMPACT_TOOLBAR_QUERY).matches) setMobileSearchOpen(true);
       searchRef.current.focus();
     };
     window.addEventListener('keydown', onKey);
@@ -277,9 +294,7 @@ export function AppFrame({
       >
         <div className="fs-side-head">
           <Link className="fs-side-brand" href="/" aria-label="SOLVI ホーム">
-            <span className="fs-side-mark" aria-hidden="true">
-              <span />
-            </span>
+            <span className="fs-side-mark" aria-hidden="true" />
             <span className="fs-side-brand-text">
               <strong>SOLVI</strong>
               {organizationName && <span>{organizationName}</span>}
@@ -297,45 +312,52 @@ export function AppFrame({
         </div>
 
         <nav className="fs-side-menu" aria-label="業務メニュー">
-          {groups.map((group) => (
-            <section
-              className="fs-side-section"
-              key={group.id}
-              aria-labelledby={`fs-side-heading-${group.id}`}
-            >
-              <h2 className="fs-side-heading" id={`fs-side-heading-${group.id}`}>
-                {group.label}
-              </h2>
-              <ul className="fs-side-list">
-                {group.items.map((entry) => {
-                  const active = current?.item === entry;
-                  const count = entry.count;
-                  return (
-                    <li key={`${entry.href}:${entry.label}`}>
-                      <Link
-                        href={entry.href}
-                        className="fs-side-link"
-                        aria-current={active ? (origin ? 'location' : 'page') : undefined}
-                        aria-label={count ? `${entry.label} ${count.value}件` : undefined}
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        <span className="fs-side-label">{entry.label}</span>
-                        {count && (
-                          <span
-                            className="fs-side-count"
-                            data-tone={count.tone ?? undefined}
-                            aria-hidden="true"
-                          >
-                            {count.value}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+          {sections.map((section) => {
+            const entries = groups
+              .filter((group) => section.groups.includes(group.id))
+              .flatMap((group) => group.items.map((entry) => ({ entry, icon: group.icon })));
+            if (!entries.length) return null;
+            return (
+              <section
+                className="fs-side-section"
+                key={section.id}
+                aria-labelledby={`fs-side-heading-${section.id}`}
+              >
+                <h2 className="fs-side-heading" id={`fs-side-heading-${section.id}`}>
+                  {section.label}
+                </h2>
+                <ul className="fs-side-list">
+                  {entries.map(({ entry, icon }) => {
+                    const active = current?.item === entry;
+                    const count = entry.count;
+                    return (
+                      <li key={`${entry.href}:${entry.label}`}>
+                        <Link
+                          href={entry.href}
+                          className="fs-side-link"
+                          aria-current={active ? (origin ? 'location' : 'page') : undefined}
+                          aria-label={count ? `${entry.label} ${count.value}件` : undefined}
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          <FreshserviceIcon name={icon} size={16} />
+                          <span className="fs-side-label">{entry.label}</span>
+                          {count && (
+                            <span
+                              className="fs-side-count"
+                              data-tone={count.tone ?? undefined}
+                              aria-hidden="true"
+                            >
+                              {count.value}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </nav>
 
         <div className="fs-side-foot">
@@ -344,47 +366,61 @@ export function AppFrame({
       </aside>
 
       <div className="fs-main" inert={mobileOpen ? true : undefined}>
-        <header className="fs-topbar">
-          <button
-            type="button"
-            className="fs-icon-button fs-side-toggle"
-            aria-expanded={mobileOpen}
-            aria-controls="solvi-main-navigation"
-            aria-label={mobileOpen ? 'メニューを閉じる' : 'メニューを開く'}
-            ref={toggleRef}
-            onClick={() => setMobileOpen((open) => !open)}
-          >
-            <FreshserviceIcon name="menu" size={20} />
-          </button>
+        <header className="fs-topbar" data-search-open={mobileSearchOpen}>
+          <div className="fs-topbar-start">
+            <button
+              type="button"
+              className="fs-icon-button fs-side-toggle"
+              aria-expanded={mobileOpen}
+              aria-controls="solvi-main-navigation"
+              aria-label={mobileOpen ? 'メニューを閉じる' : 'メニューを開く'}
+              ref={toggleRef}
+              onClick={() => {
+                setMobileSearchOpen(false);
+                setMobileOpen((open) => !open);
+              }}
+            >
+              <FreshserviceIcon name="menu" size={20} />
+            </button>
 
-          <div className="fs-topbar-location">
-            <div className="fs-breadcrumb">
-              {current ? (
-                <>
-                  <Link
-                    href={(origin && returnTo) || current.group.href}
-                    scroll={!origin?.hash.startsWith('#' + ticketEntryPrefix)}
-                  >
-                    {(origin && current.item?.label) || current.group.label}
-                  </Link>
-                  {currentDetail && currentDetail !== current.group.label && (
-                    <>
-                      <FreshserviceIcon name="chevron" size={14} />
-                      <span aria-current="page">{currentDetail}</span>
-                    </>
-                  )}
-                </>
-              ) : (
-                <span aria-current="page">SOLVI</span>
-              )}
+            <div className="fs-topbar-location">
+              <div className="fs-breadcrumb">
+                {current ? (
+                  <>
+                    <Link
+                      href={(origin && returnTo) || current.group.href}
+                      scroll={!origin?.hash.startsWith('#' + ticketEntryPrefix)}
+                    >
+                      {(origin && current.item?.label) || current.group.label}
+                    </Link>
+                    {currentDetail && currentDetail !== current.group.label && (
+                      <>
+                        <FreshserviceIcon name="chevron" size={14} />
+                        <span aria-current="page">{currentDetail}</span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <span aria-current="page">SOLVI</span>
+                )}
+              </div>
             </div>
-            <p className="fs-topbar-meta">
-              {organizationName && <span className="fs-topbar-org">{organizationName}</span>}
-              <span>{todayLabel}</span>
-            </p>
+            <span className="fs-mobile-wordmark">SOLVI</span>
           </div>
 
-          <form className="fs-global-search" action={staff ? '/ops' : '/knowledge'} method="get">
+          <form
+            className="fs-global-search"
+            id="solvi-global-search"
+            action={staff ? '/ops' : '/knowledge'}
+            method="get"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && mobileSearchOpen) {
+                event.preventDefault();
+                setMobileSearchOpen(false);
+                searchToggleRef.current?.focus();
+              }
+            }}
+          >
             <FreshserviceIcon name="search" size={18} />
             <label className="visually-hidden" htmlFor="fs-global-search-input">
               検索
@@ -394,7 +430,7 @@ export function AppFrame({
               ref={searchRef}
               type="search"
               name="q"
-              placeholder="検索"
+              placeholder={staff ? 'チケットを検索' : 'ナレッジを検索'}
               autoComplete="off"
               aria-keyshortcuts="/ Control+K Meta+K"
             />
@@ -402,6 +438,23 @@ export function AppFrame({
           </form>
 
           <div className="fs-topbar-actions">
+            <button
+              className="fs-icon-button fs-mobile-search"
+              type="button"
+              aria-label="検索を開く"
+              aria-controls="solvi-global-search"
+              aria-expanded={mobileSearchOpen}
+              ref={searchToggleRef}
+              onClick={() => setMobileSearchOpen((open) => !open)}
+            >
+              <FreshserviceIcon name="search" size={18} />
+            </button>
+            {staff && (
+              <Link className="fs-topbar-portal" href="/portal">
+                <FreshserviceIcon name="user" size={15} />
+                依頼者画面を開く
+              </Link>
+            )}
             <Link className="fs-create-button" href="/tickets/new" aria-label="新規チケット">
               <span className="fs-create-icon" aria-hidden="true">
                 <FreshserviceIcon name="plus" size={16} />

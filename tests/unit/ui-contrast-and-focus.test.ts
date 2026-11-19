@@ -40,32 +40,21 @@ const contrast = (a: string, b: string): number => {
   return (lighter! + 0.05) / (darker! + 0.05);
 };
 
-/** 11.3 §4 の表と同じ値であること(コード側で独自に変えない)。 */
-const EXPECTED: Record<string, Record<Theme, string>> = {
-  ink: { light: '#1a1d21', dark: '#e8eaed' },
-  muted: { light: '#5c6470', dark: '#9aa2ae' },
-  line: { light: '#e4e6ea', dark: '#2c3036' },
-  surface: { light: '#ffffff', dark: '#16181b' },
-  panel: { light: '#fafafb', dark: '#1c1f23' },
-  hover: { light: '#eff0f2', dark: '#262a30' },
-  danger: { light: '#b83228', dark: '#f07a6e' },
-  warn: { light: '#8a5d00', dark: '#e3b04b' },
-  ok: { light: '#1b7f4b', dark: '#5ccb8f' },
-  btn: { light: '#1a1d21', dark: '#e8eaed' },
-  'btn-ink': { light: '#ffffff', dark: '#16181b' },
-  side: { light: '#eef4fc', dark: '#152233' },
-  'side-line': { light: '#d5e2f4', dark: '#24354c' },
-  'side-hover': { light: '#dfeaf9', dark: '#1e3048' },
-  'side-current': { light: '#cfe0f7', dark: '#243a57' },
-  'side-ink': { light: '#16304f', dark: '#dce7f5' },
-  'side-muted': { light: '#5a7192', dark: '#8ea3bf' },
-  'side-brand': { light: '#1f5fc9', dark: '#5b93f0' },
-};
-
+const design = readFileSync(
+  join(process.cwd(), 'docs/planning/11_UI_UX/11.3_Design_System.md'),
+  'utf8',
+);
+const expected = Array.from(
+  design.matchAll(/^\| `--([\w-]+)` \| (#[\da-f]{6}) \| (#[\da-f]{6}) \|/gim),
+);
 describe('UI v2 design tokens', () => {
   it('defines every 11.3 §4 token for both themes with the documented value', () => {
-    for (const [name, expected] of Object.entries(EXPECTED)) {
-      expect(token(name), `--${name}`).toEqual(expected);
+    expect(expected).toHaveLength(18);
+    for (const [, name, light, dark] of expected) {
+      expect(token(name!), `--${name}`).toEqual({
+        light: light!.toLowerCase(),
+        dark: dark!.toLowerCase(),
+      });
     }
   });
 
@@ -83,11 +72,13 @@ describe('UI v2 design tokens', () => {
       ['muted', 'surface', '補足文字'],
       ['ink', 'panel', 'カード本文'],
       ['muted', 'panel', 'カード補足'],
+      ['ink', 'side-current', 'ポータル見出しの背景グラデーションの終端'],
       ['side-ink', 'side', 'サイドバー文字'],
       ['side-muted', 'side', 'サイドバー補足'],
       ['side-ink', 'side-hover', 'サイドバーのホバー'],
       ['side-ink', 'side-current', 'サイドバーの現在地'],
       ['side-brand', 'side', 'サイドバーの強調'],
+      ['side-brand', 'side-current', 'サイドバーの選択行'],
       ['btn-ink', 'btn', '主ボタン'],
       ['danger', 'surface', '期限超過'],
       ['warn', 'surface', '期限間近'],
@@ -162,21 +153,23 @@ describe('UI v2 design tokens', () => {
     );
   });
 
-  it('uses the side tokens for the 256px sidebar instead of the old 64px rail', () => {
-    expect(css).toMatch(/\.fs-rail\s*{[^}]*width:\s*256px/);
+  it('uses the adopted 14rem sidebar and an accessible selected row', () => {
+    expect(css).toMatch(/--fs-rail-width:\s*14rem/);
+    expect(css).toMatch(/\.fs-rail\s*{[^}]*inline-size:\s*var\(--fs-rail-width\)/);
     expect(css).toMatch(/\.fs-rail\s*{[^}]*background:\s*var\(--side\)/);
-    expect(css).toMatch(/\.fs-rail\s*{[^}]*border-right:\s*1px solid var\(--side-line\)/);
+    expect(css).toMatch(/\.fs-rail\s*{[^}]*border-inline-end:\s*1px solid var\(--side-line\)/);
     expect(css).toMatch(
-      /body\.fs-ui \.fs-side-link\[aria-current='page'\]\s*{[^}]*background:\s*var\(--side-current\)[^}]*color:\s*var\(--side-ink\)/,
+      /body\.fs-ui \.fs-side-link\[aria-current='page'\]\s*{[^}]*background:\s*var\(--side-current\)[^}]*color:\s*var\(--side-brand\)/,
     );
     expect(css).not.toMatch(/\.fs-rail\s*{[^}]*width:\s*64px/);
     expect(css).not.toContain('.fs-flyout');
   });
 
-  it('uses the 56px top bar and the UI v2 radius scale', () => {
-    expect(css).toMatch(/\.fs-topbar\s*{[^}]*height:\s*56px/);
-    expect(css).toMatch(/--fs-radius-sm:\s*6px/);
-    expect(css).toMatch(/--fs-radius-md:\s*10px/);
+  it('uses the adopted 4rem toolbar and radius scale', () => {
+    expect(css).toMatch(/--fs-toolbar-height:\s*4rem/);
+    expect(css).toMatch(/\.fs-topbar\s*{[^}]*min-block-size:\s*var\(--fs-toolbar-height\)/);
+    expect(css).toMatch(/--fs-radius-sm:\s*8px/);
+    expect(css).toMatch(/--fs-radius-md:\s*12px/);
     expect(css).toMatch(/--fs-radius-toggle:\s*8px/);
     expect(css).toMatch(/--fs-shadow-sm:\s*none/);
     expect(css).toMatch(/--fs-shadow-md:\s*none/);
@@ -190,7 +183,8 @@ describe('freshservice control affordances', () => {
   });
 
   it('removes the closed mobile sidebar from the tab order and the accessibility tree', () => {
-    const mobile = css.match(/@media \(max-width: 800px\)\s*{([\s\S]*?)\n}/)?.[1] ?? '';
+    const mobile =
+      css.match(/@media \(max-width: 63rem\)\s*{\s*\/\* 初期状態([\s\S]*?)\n}/)?.[1] ?? '';
     expect(mobile).toMatch(/\.fs-rail\s*{[^}]*visibility:\s*hidden/);
     expect(mobile).toMatch(/\.fs-app--nav-open \.fs-rail\s*{[^}]*visibility:\s*visible/);
     // Descendants must not force `visible`: it would override the hidden sidebar
@@ -202,9 +196,12 @@ describe('freshservice control affordances', () => {
     }
   });
 
-  it('uses at least 1rem input text to prevent iOS focus zoom', () => {
+  it('uses at least 1rem input text on touch devices to prevent iOS focus zoom', () => {
     const inputs = css.match(/body\.fs-ui input\[type='text'\],[\s\S]*?\n}/)?.[0] ?? '';
-    expect(inputs).toContain('font-size: max(1rem, 1em)');
+    expect(inputs).toContain('font-size: var(--fs-input-font)');
+    expect(css).toMatch(
+      /@media \(any-pointer: coarse\)\s*{\s*:root\s*{[^}]*--fs-input-font:\s*max\(1rem, 1em\)/,
+    );
   });
 
   it('expands touch targets and keeps focus visible in forced colors', () => {

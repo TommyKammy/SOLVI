@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { FreshserviceIcon } from './FreshserviceIcon';
 import { LogoutForm } from './DraftSessionBoundary';
 import { ThemeToggle } from './ThemeToggle';
@@ -18,11 +18,25 @@ function closeDetails(event: React.MouseEvent<HTMLAnchorElement>) {
   if (details) details.open = false;
 }
 
+const portalLinks = [
+  { href: '/portal', label: 'ホーム' },
+  { href: '/portal?tab=tickets', label: '自分の問い合わせ' },
+  { href: '/catalog', label: 'サービスカタログ' },
+  { href: '/requests?view=mine', label: '申請の状況' },
+  { href: '/knowledge', label: 'ヘルプ記事' },
+];
+const portalTabLinks = new Map([
+  ['tickets', '/portal?tab=tickets'],
+  ['requests', '/requests?view=mine'],
+  ['services', '/catalog'],
+]);
+
 /**
  * サポートポータル専用のヘッダーとロール別メニュー。
  */
 export function SupportFrame({ organizationName, canSwitchOrganization, groups, children }: Props) {
   const pathname = usePathname() ?? '/';
+  const query = useSearchParams();
   const isPortalHome = pathname === '/portal';
   const isTicketPage = /^\/tickets\/[^/]+$/.test(pathname);
   const isPortalWorkflow = /^\/(catalog|requests|knowledge)(\/[^/]+)?$/.test(pathname);
@@ -31,6 +45,13 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
     .flatMap((group) => group.items)
     .filter((item) => ['/inbox', '/assets', '/changes'].includes(item.href));
   const inbox = workLinks.find((item) => item.href === '/inbox');
+  const activeLink = isPortalHome
+    ? (portalTabLinks.get(query.get('tab') ?? '') ?? '/portal')
+    : isTicketPage
+      ? '/portal?tab=tickets'
+      : pathname.startsWith('/requests')
+        ? '/requests?view=mine'
+        : '/' + pathname.split('/')[1];
 
   return (
     <div className={`fs-support${isPortalHome ? '' : ' fs-support--subpage'}`}>
@@ -43,21 +64,16 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
               </summary>
               <nav className="fs-support-menu-panel" aria-label="サポートポータルのメニュー">
                 <p className="fs-support-menu-title">サポート</p>
-                <Link href="/portal" onClick={closeDetails}>
-                  ホーム
-                </Link>
-                <Link href="/portal?tab=tickets" onClick={closeDetails}>
-                  自分の問い合わせ
-                </Link>
-                <Link href="/requests?view=mine" onClick={closeDetails}>
-                  申請の状況
-                </Link>
-                <Link href="/catalog" onClick={closeDetails}>
-                  サービスカタログ
-                </Link>
-                <Link href="/knowledge" onClick={closeDetails}>
-                  ナレッジ
-                </Link>
+                {portalLinks.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={activeLink === href ? 'page' : undefined}
+                    onClick={closeDetails}
+                  >
+                    {label}
+                  </Link>
+                ))}
                 <Link href="/settings/notifications" onClick={closeDetails}>
                   通知設定
                 </Link>
@@ -77,13 +93,20 @@ export function SupportFrame({ organizationName, canSwitchOrganization, groups, 
               </nav>
             </details>
             <Link className="fs-support-brand" href="/portal" aria-label="SOLVI サポートポータル">
-              <span className="fs-support-brand-mark" aria-hidden="true">
-                S
+              <span className="fs-side-mark" aria-hidden="true" />
+              <span className="fs-support-brand-text">
+                <strong>SOLVI</strong>
+                <span>サポートポータル</span>
               </span>
-              <span>SOLVI</span>
             </Link>
-            {organizationName && <span className="fs-support-org">{organizationName}</span>}
           </div>
+          <nav className="fs-support-nav" aria-label="依頼者メニュー">
+            {portalLinks.map(({ href, label }) => (
+              <Link key={href} href={href} aria-current={activeLink === href ? 'page' : undefined}>
+                {label}
+              </Link>
+            ))}
+          </nav>
           <div className="fs-support-header-right">
             <Link
               className="fs-support-icon-button"

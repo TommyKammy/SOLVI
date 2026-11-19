@@ -81,26 +81,38 @@ export default async function InboxPage({
   return (
     <main id="main" className="shell ops-shell inbox-page">
       <TicketReturnFocus />
-      <p className="eyebrow">担当ワークスペース</p>
-      <h1 id={ticketListHeadingId} tabIndex={-1}>
-        業務受信箱
-      </h1>
-      <p className="lead">自分の担当、指名された承認、変更の予定を確認して、次の作業へ進みます。</p>
-      <p className="hint">
-        業務を開くと今回の更新を既読として記録します。既読でも、未完了の業務はここに残ります。外部への通知送信は行いません。
-      </p>
-      <div className="inbox-summary" role="group" aria-label="現在の業務件数">
-        <p>
-          {f.unassigned === '1' ? '担当・未割当チケット' : '担当チケット'}{' '}
-          <strong>{d.counts.ticket}件</strong>
+      <header className="page-heading">
+        <div>
+          <h1 id={ticketListHeadingId} tabIndex={-1}>
+            業務受信箱
+          </h1>
+          <p className="lead">担当チケット、承認依頼、担当する変更を確認します。</p>
+        </div>
+        <p className="hint inbox-as-of">
+          <time dateTime={d.asOf}>{formatDateTime(d.asOf)}</time>
+          <span>（JST）</span>
         </p>
-        <p>
-          自分への承認 <strong>{d.counts.approval}件</strong>
-        </p>
-        <p>
-          担当する変更・PIR <strong>{d.counts.change}件</strong>
-        </p>
-      </div>
+      </header>
+      <dl className="inbox-summary" aria-label="現在の業務件数">
+        <div>
+          <dt>{f.unassigned === '1' ? '担当・未割当チケット' : '担当チケット'}</dt>
+          <dd>
+            <strong>{d.counts.ticket}</strong>件
+          </dd>
+        </div>
+        <div>
+          <dt>承認依頼</dt>
+          <dd>
+            <strong>{d.counts.approval}</strong>件
+          </dd>
+        </div>
+        <div>
+          <dt>変更・PIR</dt>
+          <dd>
+            <strong>{d.counts.change}</strong>件
+          </dd>
+        </div>
+      </dl>
       <form method="get" className="filters" aria-label="受信箱の絞り込み">
         <div className="field">
           <label htmlFor="inbox-q">番号・タイトルで検索</label>
@@ -123,7 +135,7 @@ export default async function InboxPage({
           </select>
         </div>
         {d.canIncludeUnassigned && (
-          <label>
+          <label className="inbox-unassigned">
             <input
               type="checkbox"
               name="unassigned"
@@ -133,19 +145,26 @@ export default async function InboxPage({
             担当未定のチケットも表示する
           </label>
         )}
-        <button>絞り込む</button>
-        <Link href="/inbox">条件を解除する</Link>
+        <div className="form-actions inbox-filter-actions">
+          <button type="submit">絞り込む</button>
+          <Link className="support-action" href="/inbox">
+            条件を解除する
+          </Link>
+        </div>
       </form>
       <p className="hint">
-        期限超過、対応が必要な項目、近い期限の順で表示します。返答・外部対応待ちのSLAは計測停止。日時は日本時間（JST）です。
+        業務を開くと更新が既読になります。返答・外部対応待ちのSLAは計測を停止します。
       </p>
-      <p role="status">
-        {filtering ? '絞り込み中 · ' : ''}表示対象 {d.total}件 · 新しい更新 {d.unread}件 · {d.page}
-        ページ目
-      </p>
-      <p>
-        確認時点: {formatDateTime(d.asOf)} · <a href={refresh}>受信箱を更新する</a>
-      </p>
+      <div className="inbox-results">
+        <p role="status">
+          {filtering ? '絞り込み中 · ' : ''}表示対象 {d.total}件 · 新しい更新 {d.unread}件 ·{' '}
+          {d.page}
+          ページ目
+        </p>
+        <a className="support-back" href={refresh}>
+          受信箱を更新する
+        </a>
+      </div>
       {!d.items.length ? (
         <section className="inbox-empty">
           <h2>
@@ -172,7 +191,7 @@ export default async function InboxPage({
           )}
         </section>
       ) : (
-        <TableRegion label="業務一覧" className="table-scroll table-scroll--plain">
+        <TableRegion label="業務一覧" className="table-scroll">
           <table className="work-table inbox-table inbox-table--v2">
             <caption>
               表示対象 {d.total} 件中 {d.items.length} 件を表示

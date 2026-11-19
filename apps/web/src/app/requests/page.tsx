@@ -60,16 +60,24 @@ export default async function RequestsPage({
   };
   return (
     <main id="main" className="shell">
-      <h1>申請の状況</h1>
-      <p>申請の進捗と、いま誰が対応するかを確認します。実際の権限・外部サービスは変更しません。</p>
-      <p>
-        <a href="/catalog">カタログから申請する</a>
-      </p>
-      {f.view === 'approvals' && (
-        <p>
-          <Link href="/settings/delegations">代理承認の委任を管理する</Link>
-        </p>
-      )}
+      <header className="support-page-heading">
+        <div>
+          <h1>申請の状況</h1>
+          <p className="lead">
+            申請の進捗と、いま誰が対応するかを確認します。実際の権限・外部サービスは変更しません。
+          </p>
+        </div>
+        <div className="form-actions">
+          {f.view === 'approvals' && (
+            <Link className="support-action" href="/settings/delegations">
+              代理承認の委任を管理する
+            </Link>
+          )}
+          <Link className="support-action support-action--primary" href="/catalog">
+            カタログから申請する
+          </Link>
+        </div>
+      </header>
       <form method="get" className="filters" aria-label="申請の絞り込み">
         <div className="field">
           <label htmlFor="request-q">受付番号・サービス名・申請者で検索</label>

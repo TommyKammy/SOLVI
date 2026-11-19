@@ -1,0 +1,330 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { api, require, web } from './helpers.mjs';
+import { accountsFor, requestFixture, testDatabase } from './fixtures.mjs';
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const [out, database, run] = process.argv.slice(2);
+assert.match(run, /^\d+$/);
+const db = await testDatabase(database);
+const browser = await chromium.launch({ channel: 'chrome' });
+const mock = pathToFileURL(resolve('docs/planning/assets/ui/SOLVI_Operations_Mockup.html'));
+const summary = { browser: browser.version(), geometry: [], references: [], pages: [], actions: [] };
+const tags = ['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa'];
+mkdirSync(join(out, 'screens'), { recursive: true });
+const main = (page) => page.locator('main#main');
+const title = (page) => main(page).locator('h1').first();
+const link = (page, name) => main(page).getByRole('link', { name, exact: true });
+const button = (page, name) => main(page).getByRole('button', { name, exact: true });
+async function contextFor(cookie, width, scheme = 'light') {
+  const context = await browser.newContext({
+    viewport: { width, height: width >= 1000 ? 900 : 812 },
+    locale: 'ja-JP', colorScheme: scheme, isMobile: width <= 375, hasTouch: width <= 375,
+  });
+  if (cookie) await context.addCookies([{ ...cookie, url: web }]);
+  return context;
+}
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  const actualPath = new URL(page.url()).pathname;
+  assert.ok(!actualPath.includes('/login'), path);
+  if (path !== '/') assert.equal(actualPath, new URL(path,web).pathname);
+  await title(page).waitFor();
+}
+async function activate(target, width) {
+  if (width <= 375) await target.tap();
+  else {
+    await target.focus();
+    await target.press('Enter');
+  }
+}
+async function makeFixtures(accounts) {
+  const agent = await api('/auth/me', accounts.agent);
+  const approver = await api('/auth/me', accounts.approver);
+  const incident = await api('/tickets', accounts.requester, {
+    kind: 'incident', subject: 'VPN接続が認証後に止まる QA' + run,
+    impact: 'high', urgency: 'high', body: '隔離環境の合成チケットです。接続中にエラーが表示されます。',
+  });
+  const { ticket: original } = await api('/tickets/' + incident.id + '/workspace', accounts.agent);
+  await api('/tickets/' + incident.id + '/take', accounts.agent, { expectedVersion: original.version }, 200);
+  const article = await api('/knowledge', accounts.agent, {
+    title: 'VPNに接続できないときの確認手順 QA' + run,
+    body: '接続時刻と画面の表示を確認してください。', audience: 'organization', tags: 'VPN,接続',
+  });
+  const review = await api('/knowledge/' + article.id + '/actions', accounts.agent,
+    { expectedVersion: 1, action: 'review' }, 200);
+  await api('/knowledge/' + article.id + '/actions', accounts.org_admin,
+    { expectedVersion: review.version, action: 'publish' }, 200);
+  const asset = await api('/assets', accounts.agent, {
+    assetTag: 'NET-QA052-' + run, kind: 'network', state: 'stocked', name: 'VPN検証装置',
+    model: 'QA Network', serialNumber: 'NET-052-' + run, hostname: 'test-vpn-' + run,
+  });
+  const planStart = Date.now() + 172800000;
+  const change = await api('/changes', accounts.agent, {
+    creationKey: randomUUID(), title: 'VPN検証装置の設定見直し QA' + run,
+    ticketId: incident.id, assetIds: [asset.id], ownerId: agent.userId,
+    approverId: approver.userId, purpose: '確認手順を更新する', impact: '隔離環境のテスト機器',
+    risk: 'low', implementationPlan: '設定を確認する', testPlan: '接続を検証する',
+    backoutPlan: '直前の設定を復元する', plannedStart: new Date(planStart).toISOString(),
+    plannedEnd: new Date(planStart+3600000).toISOString(),
+  }, 200);
+  const pending = await requestFixture(accounts, 'uix052-' + run + '-pending');
+  const simulated = await requestFixture(accounts, 'uix052-' + run + '-completed');
+  const reqPath = '/service-requests/' + simulated.requestId;
+  await api('/tickets/' + simulated.ticketId + '/assistance/decision', accounts.agent,
+    { decision: 'accepted', requestRevision: 1, suggestionVersion: 1 }, 200);
+  await api(reqPath+'/decisions', accounts.approver,
+    { expectedVersion: 1, decision: 'approve', reason: '隔離環境の模擬申請を確認' }, 200);
+  const {request} = await api(reqPath, accounts.agent);
+  await api(reqPath+'/simulate', accounts.agent, { expectedVersion: request.version }, 200);
+  const {items} = await api('/catalog', accounts.requester);
+  const catalogItem = items.find((item) => item.title === pending.title);
+  assert.ok(catalogItem);
+  return { incident, article, asset, change, pending, simulated, catalogItem };
+}
+async function scan(page, entry, width, theme, picture) {
+  const {id, path} = entry;
+  await enter(page, path);
+  if (id === 'assistance') {
+    await page.locator('#ticket-assistance').evaluate(el => { el.open = true; });
+  }
+  const css = await page.evaluate(() => ({
+    overflow: document.documentElement.scrollWidth - innerWidth,
+    culprit: Array.from(document.querySelectorAll('main *')).filter(e => {
+      const r = e.getBoundingClientRect();
+      return r.width > 0 && r.right > innerWidth + 1 &&
+        !e.closest('.table-scroll, .directory-table-scroll, .fs-ticket-property-table');
+    }).slice(0, 5).map(e => e.tagName + '.' + (typeof e.className === 'string' ? e.className : '')),
+    title: document.querySelector('main h1')?.textContent?.trim(),
+    h1: getComputedStyle(document.querySelector('main h1')).fontSize,
+    body: getComputedStyle(document.body).fontSize,
+    theme: document.documentElement.dataset.theme,
+  }));
+  assert.equal(css.theme, theme);
+  const axe = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const issues = (xs) => xs.map(({id, nodes}) => ({
+    id, nodes: nodes.map(({target, failureSummary}) => ({target, failureSummary})),
+  }));
+  summary.pages.push({id, width, theme, ...css, violations: issues(axe.violations),
+    incomplete: issues(axe.incomplete)});
+  if (picture) {
+    await page.evaluate(()=>scrollTo(0, 0));
+    await page.screenshot({path: join(out, 'screens', `live-${theme}-${width}-${id}.png`),
+      animations:'disabled', fullPage: false});
+  }
+  console.log('PAGE', theme, width, id, css.h1, css.overflow, axe.violations.map(x=>x.id).join(',') || 'pass');
+}
+async function geometry(page, isMock) {
+  const selectors = isMock
+    ? {h1:'main #page-title', toolbar:'.toolbar', rail:'.sidebar', content:'main.page'}
+    : {h1:'main h1', toolbar:'.fs-topbar', rail:'.fs-rail', content:'.fs-content'};
+  await page.locator(selectors.h1).waitFor();
+  const result = await page.evaluate(({h1, toolbar, rail, content})=>{
+    const h = document.querySelector(h1), t = document.querySelector(toolbar);
+    const sidebar = document.querySelector(rail), c = document.querySelector(content);
+    const text = getComputedStyle(h), body = getComputedStyle(document.body);
+    const r = h.getBoundingClientRect();
+    return { label: h.textContent.trim(), titleSize:text.fontSize, titleWeight:text.fontWeight,
+      titleLeading:text.lineHeight, top:r.top, left:r.left, right:innerWidth-r.right,
+      font:body.fontFamily, body:body.fontSize, leading:body.lineHeight,
+      bar:t.getBoundingClientRect().height, rail:sidebar.getBoundingClientRect().width,
+      gutter:getComputedStyle(c).paddingInlineStart };
+  },selectors);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('DOM.enable');
+  await cdp.send('CSS.enable');
+  const {root} = await cdp.send('DOM.getDocument');
+  const {nodeId} = await cdp.send('DOM.querySelector',{nodeId:root.nodeId,selector:selectors.h1});
+  const fonts = await cdp.send('CSS.getPlatformFontsForNode',{nodeId});
+  await cdp.detach();
+  result.drawnFonts = fonts.fonts.map(({postScriptName})=>postScriptName);
+  return result;
+}
+async function compareOverview(staff, width) {
+  const liveContext = await contextFor(staff, width);
+  const referenceContext = await contextFor(null, width);
+  try {
+    const live = await liveContext.newPage();
+    const ref = await referenceContext.newPage();
+    await enter(live, '/ops/overview');
+    await ref.goto(new URL('#home',mock).href);
+    const reference = await geometry(ref, true);
+    const actual = await geometry(live, false);
+    const measured = ['titleSize','titleWeight','titleLeading','top','left','font','body','leading','bar','gutter','drawnFonts'];
+    if (width === 1440) {
+      measured.push('rail');
+      const filter = await live.locator('.home-group-filter').evaluate(node => ({
+        input: node.querySelector('select').getBoundingClientRect().bottom,
+        submit: node.querySelector('button').getBoundingClientRect().bottom,
+      }));
+      assert.equal(filter.input, filter.submit, 'group filter action alignment');
+      actual.groupFilterAligned = true;
+    }
+    for (const k of measured) assert.deepEqual(actual[k], reference[k], `${width} ${k}`);
+    assert.equal(await live.locator('.home-layout').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),
+      width === 1440 ? 2 : 1);
+    summary.geometry.push({width, reference, actual, measured});
+    await ref.screenshot({path:join(out,'screens',`mock-light-${width}-overview.png`), animations:'disabled'});
+  } finally { await liveContext.close(); await referenceContext.close(); }
+}
+// Pair static reference pages with the closest real workflow screen. The app
+// displays real records and operation-specific text, so compare type scale here.
+async function compareReferencePages(width) {
+  const references = [
+    ['inbox','inbox'], ['tickets','tickets'], ['portal','portal'], ['portal-list','my-tickets'],
+    ['portal-report','report'], ['catalog','catalog'], ['catalog-manage','catalog-admin'],
+    ['knowledge','knowledge'], ['assets','assets'], ['asset-import','asset-import-new'],
+    ['admin','admin'], ['reports','reports'], ['assistance','ticket/INC-1048?focus=ai'],
+  ];
+  const context = await contextFor(null, width);
+  try {
+    const page = await context.newPage();
+    for (const [id, hash] of references) {
+      await page.goto(new URL('#'+hash,mock).href);
+      const heading = page.locator('main h1:visible').first();
+      await heading.waitFor();
+      const actual = summary.pages.find(p=>p.id === id && p.theme === 'light' && p.width === width);
+      const expectedSize = await heading.evaluate(h=>getComputedStyle(h).fontSize);
+      assert.equal(actual.h1, expectedSize, 'reference size '+id+' '+width);
+      summary.references.push({id, width, hash, headingSize: expectedSize, liveHeadingSize: actual.h1});
+      if (['inbox','portal'].includes(id)) {
+        await page.evaluate(()=>scrollTo(0,0));
+        await page.screenshot({path:join(out,'screens',`mock-light-${width}-${id}.png`),animations:'disabled'});
+      }
+    }
+  } finally { await context.close(); }
+}
+async function journey(accounts, fixtures, width) {
+  const staff = await contextFor(accounts.agent, width);
+  const requester = await contextFor(accounts.requester, width);
+  try {
+    const page = await staff.newPage();
+    page.setDefaultTimeout(14000);
+    await enter(page, '/');
+    assert.equal(new URL(page.url()).pathname, '/inbox');
+    if (width === 375) {
+      await activate(page.getByRole('button',{name:'メニューを開く'}),width);
+      await page.getByRole('navigation',{name:'業務メニュー'}).getByRole('link',{name:'運営状況',exact:true}).waitFor();
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label')==='メニューを開く');
+      await activate(page.getByRole('button',{name:'検索を開く'}),width);
+    } else {
+      await page.keyboard.press('Control+k');
+    }
+    const search = page.locator('#fs-global-search-input');
+    await search.waitFor();
+    await page.waitForFunction(() => document.activeElement?.id==='fs-global-search-input');
+    await search.fill(fixtures.incident.number);
+    await search.press('Enter');
+    await page.waitForURL(u=>u.pathname==='/ops' && u.searchParams.get('q')===fixtures.incident.number);
+
+    await enter(page, '/ops/overview');
+    const entry = page.locator('#ticket-entry-' + fixtures.incident.id);
+    await activate(entry, width);
+    await page.waitForURL(u=>u.pathname==='/ops/'+fixtures.incident.id);
+    await title(page).waitFor();
+    const reply = '共通UIの表示を確認しました ' + width;
+    await main(page).locator('textarea[name="body"]').fill(reply);
+    await activate(button(page,'返信する'),width);
+    await main(page).getByText(reply,{exact:true}).waitFor();
+    await activate(link(page,'運営状況に戻る'),width);
+    await page.waitForURL(u=>u.pathname==='/ops/overview' && u.hash==='#ticket-entry-'+fixtures.incident.id);
+    await page.waitForFunction(id=>document.activeElement?.id===id,'ticket-entry-'+fixtures.incident.id);
+    await enter(page,'/inbox?q='+encodeURIComponent(fixtures.incident.number));
+    await activate(main(page).getByRole('row').filter({hasText:fixtures.incident.number}).getByRole('button'),width);
+    await page.waitForURL(u=>u.pathname==='/ops/'+fixtures.incident.id);
+    await activate(link(page,'業務受信箱に戻る'),width);
+    await page.waitForURL(u=>u.pathname==='/inbox'&&u.searchParams.get('q')===fixtures.incident.number);
+
+    const portal = await requester.newPage();
+    portal.setDefaultTimeout(14000);
+    await enter(portal,'/tickets/'+fixtures.incident.id);
+    await main(portal).getByText(reply,{exact:true}).waitFor();
+    await enter(portal,'/portal');
+    await activate(link(portal,'障害を報告する'),width);
+    await portal.waitForURL(u=>u.pathname==='/tickets/new' && u.searchParams.get('kind')==='incident');
+    await title(portal).waitFor();
+    await enter(portal,'/knowledge?q=VPN');
+    await activate(main(portal).locator('a[href^="/knowledge/'+fixtures.article.id+'"]').first(),width);
+    await portal.waitForURL(u=>u.pathname==='/knowledge/'+fixtures.article.id);
+    summary.actions.push({width, rootToInbox:true, search:true, overviewReturnFocus:true, inboxReturn:true, requesterSeesReply:true,
+      report:true, knowledge:true});
+  } finally { await staff.close(); await requester.close(); }
+}
+try {
+  const accounts = await accountsFor('acme');
+  const f = await makeFixtures(accounts);
+  const pages = [
+    ['overview','agent','/ops/overview',true,true],
+    ['inbox','agent','/inbox',true,true],
+    ['tickets','agent','/ops',false,false],
+    ['ticket','agent','/ops/'+f.incident.id,true,false],
+    ['portal','requester','/portal',true,true],
+    ['portal-list','requester','/portal?tab=tickets',false,false],
+    ['portal-report','requester','/tickets/new?kind=incident',true,false],
+    ['portal-ticket','requester','/tickets/'+f.incident.id,false,true],
+    ['catalog','requester','/catalog',true,false],
+    ['catalog-item','requester','/catalog/'+f.catalogItem.id,false,false],
+    ['catalog-manage','org_admin','/catalog/manage',true,false],
+    ['catalog-editor','org_admin','/catalog/manage/'+f.catalogItem.id,false,false],
+    ['requests','requester','/requests?view=mine',false,false],
+    ['approval','approver','/requests/'+f.pending.requestId,true,true],
+    ['knowledge','requester','/knowledge?q=VPN',true,true],
+    ['knowledge-manage','agent','/knowledge?manage=1',false,false],
+    ['knowledge-article','requester','/knowledge/'+f.article.id,false,false],
+    ['assets','agent','/assets',true,false],
+    ['asset','agent','/assets/'+f.asset.id,false,false],
+    ['asset-import','agent','/assets/imports/new',false,false],
+    ['change','agent','/changes/'+f.change.id,true,false],
+    ['admin','org_admin','/ops/admin',true,true],
+    ['users','org_admin','/ops/users',false,false],
+    ['departments','org_admin','/ops/departments',false,false],
+    ['groups','org_admin','/ops/groups',false,false],
+    ['approval-rules','org_admin','/ops/approvals',false,false],
+    ['notifications','org_admin','/ops/notifications',false,false],
+    ['access-review','auditor','/ops/access-review',false,false],
+    ['reports','agent','/ops/reports',true,true],
+    ['audit','auditor','/ops/audit',true,true],
+    ['assistance','agent','/ops/'+f.simulated.ticketId+'#ticket-assistance',true,true],
+    ['simulation','agent','/requests/'+f.simulated.requestId+'#simulation-receipt',true,false],
+  ].map(([id, role, path, screenshot, dark])=>({id,role,path,screenshot,dark}));
+  const only = process.env.SOLVI_VISUAL_ONLY?.split(',');
+  for (const width of [1440,375]) {
+    if (!only) {
+      await compareOverview(accounts.agent,width);
+      try { await journey(accounts,f,width); }
+      catch (error) { summary.actions.push({width,error:String(error)}); console.error('JOURNEY',width,String(error)); }
+    }
+    for (const theme of ['light','dark']) {
+      for (const role of Object.keys(accounts)) {
+        const context = await contextFor(accounts[role],width,theme);
+        const page = await context.newPage();
+        try {
+          for (const entry of pages.filter(e=>e.role===role&&(theme==='light'||e.dark)&&(!only||only.includes(e.id)))) {
+            await scan(page,entry,width,theme,entry.screenshot && (theme === 'light' || ['overview','portal','reports','audit'].includes(entry.id)));
+          }
+        } finally { await context.close(); }
+      }
+    }
+    if (!only) await compareReferencePages(width);
+  }
+  const narrow = await contextFor(accounts.agent,320);
+  try {
+    const page = await narrow.newPage();
+    for (const path of ['/ops/overview','/inbox','/ops/reports']) {
+      await enter(page,path);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth),0,path);
+    }
+    summary.narrow = true;
+  } finally { await narrow.close(); }
+} finally {
+  writeFileSync(join(out,'summary.json'),JSON.stringify(summary,null,2)+'\n');
+  await browser.close();
+  await db.end();
+}
+assert.ok(summary.actions.every(a=>!a.error),'workflow failure');
+assert.ok(summary.pages.every(p=>p.overflow===0&&p.violations.length===0),'overflow or axe violations');

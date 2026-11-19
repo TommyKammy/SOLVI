@@ -481,10 +481,8 @@ describe('UI v2ホームの承認待ちと通知', () => {
 });
 
 describe('UI v2ホームの一覧行の折り返し', () => {
-  // 1120px: 1120-256(サイドバー)-64(本文余白)-380(右列)-32(間隔)-40(パネル余白)=348px
-  // 1280px: 508px、1440px: 668px。600px未満の1120/1280は縦積み、1440は4列のまま。
   it('一覧パネルの幅で行を縦に積み、ビューポート幅では切り替えない', () => {
-    const panel = [...stylesheet.matchAll(/\.home-panel\s*\{([^}]*)\}/g)]
+    const panel = [...stylesheet.matchAll(/\.home-panel--work\s*\{([^}]*)\}/g)]
       .map((match) => match[1] ?? '')
       .find((body) => body.includes('container-type'));
     expect(panel).toMatch(/container-type:\s*inline-size/);
@@ -497,14 +495,13 @@ describe('UI v2ホームの一覧行の折り返し', () => {
       .filter(({ body }) => body.includes('.home-work-row'));
     expect(containers).toHaveLength(1);
     const [container] = containers;
-    const maxWidth = Number(container!.condition.match(/max-width:\s*(\d+)px/)?.[1]);
-    // 固定幅の列(18+140+170+gap36=364px)に加えて、件名に200px近くを残せる幅で縦に積む。
-    expect(maxWidth).toBeGreaterThanOrEqual(560);
+    expect(container!.condition).toBe('max-inline-size: 34rem');
     expect(container!.body).toMatch(
-      /\.home-work-row\s*\{[^}]*grid-template-columns:\s*16px\s+minmax\(0,\s*1fr\)/,
+      /\.home-work-row\s*\{[^}]*grid-template-columns:\s*1.625rem\s+minmax\(0,\s*1fr\)\s+0.875rem/,
     );
-    expect(container!.body).toMatch(/\.home-work-group-name,[\s\S]*?grid-column:\s*2/);
-    expect(container!.body).toMatch(/\.home-work-due\s*\{[^}]*text-align:\s*left/);
+    expect(container!.body).toMatch(
+      /\.home-work-due\s*\{[^}]*grid-column:\s*2[^}]*text-align:\s*start/,
+    );
 
     for (const media of stylesheet.matchAll(/@media[^{]+\{/g))
       expect(blockAfter(stylesheet, media.index ?? 0) ?? '').not.toContain('.home-work-row');

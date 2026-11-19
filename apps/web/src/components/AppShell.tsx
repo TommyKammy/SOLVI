@@ -30,19 +30,6 @@ async function loadNavigationCounts(roles: Roles): Promise<NavigationCounts | un
   );
 }
 
-/** 上部バーに出す日付。サーバーで作り、ハイドレーションの食い違いを避ける。 */
-function todayLabel(): string {
-  const parts = new Intl.DateTimeFormat('ja-JP', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-    timeZone: 'Asia/Tokyo',
-  }).formatToParts(new Date());
-  const value = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? '';
-  return `${value('month')}月${value('day')}日 ${value('weekday')}`;
-}
-
 /**
  * UI v2の共通シェル (WP-P2-UIX-044)。
  *
@@ -96,7 +83,6 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         staff={roles.staff}
         organizationName={currentOrganization?.name ?? null}
         canSwitchOrganization={organizations.length > 1}
-        todayLabel={todayLabel()}
       >
         {children}
       </AppFrame>

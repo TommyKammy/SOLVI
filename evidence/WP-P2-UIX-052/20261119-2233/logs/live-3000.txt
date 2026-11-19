@@ -1,0 +1,2 @@
+{"width":1440,"path":"/inbox","size":"32px","left":256,"body":"14px","leading":"23.1px","font":"-apple-system, \"system-ui\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Noto Sans JP\", sans-serif","toolbar":64,"gutter":"32px","overflow":0,"overview":true,"groupFilterAligned":true}
+{"width":375,"path":"/inbox","size":"28px","left":20,"body":"14px","leading":"23.1px","font":"-apple-system, \"system-ui\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Noto Sans JP\", sans-serif","toolbar":64,"gutter":"20px","overflow":0,"overview":true,"groupFilterAligned":true}

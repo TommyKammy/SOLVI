@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { InboxOpenForm } from '../../../components/InboxOpenForm';
+import { FreshserviceIcon } from '../../../components/FreshserviceIcon';
 import { OperationsGroupSelect } from '../../../components/OperationsGroupSelect';
 import { TicketReturnFocus } from '../../../components/TicketReturnFocus';
 import { api, requireSession } from '../../../lib/api';
@@ -106,15 +107,19 @@ function WorkList({
               )}
               prefetch={false}
             >
-              <span className="home-work-marker" aria-hidden="true" />
-              <span className="home-work-subject">
-                <span className="home-work-number">{ticket.number}</span>
-                <span className="home-work-title">{ticket.subject}</span>
+              <span className="home-work-marker">
+                <FreshserviceIcon name="ticket" size={16} />
               </span>
-              <span className="home-work-group-name">
-                {ticket.assigneeGroupName ?? 'グループ未設定'}
+              <span className="home-work-subject">
+                <span className="home-work-title">{ticket.subject}</span>
+                <span className="home-work-reference">
+                  <span className="home-work-number">{ticket.number}</span>
+                  <span aria-hidden="true"> · </span>
+                  {ticket.assigneeGroupName ?? 'グループ未設定'}
+                </span>
               </span>
               <span className="home-work-due">{dueLabel}</span>
+              <FreshserviceIcon name="chevron" size={14} className="home-work-arrow" />
             </Link>
           </li>
         ))}
@@ -267,46 +272,65 @@ export default async function OperationsOverview({
       <TicketReturnFocus />
       <header className="home-heading">
         <h1 id={ticketListHeadingId} tabIndex={-1}>
-          {workActiveTotal === null ? (
-            '今日の対応'
-          ) : truncated ? (
-            <>
-              期限の近い{workItems.length}件のうち、対応中は{' '}
-              <strong className="home-count">{workActiveTotal}</strong>件です
-            </>
-          ) : (
-            <>
-              今日の対応は <strong className="home-count">{workActiveTotal}</strong>件です
-            </>
-          )}
+          運営状況
         </h1>
-        {workOk && truncated ? (
-          <p className="hint">
-            全{workTotal}件のうち、期限の近い{workItems.length}
-            件だけを読み込み、その中の対応中を数えています。
-            <Link href={homeWorkQueueHref()} prefetch={false}>
-              全件を期限順の一覧で確認する
-            </Link>
-          </p>
-        ) : null}
-        <p className="home-lede">
-          自分に割り当てられた未完了のチケットを、解決期限の近い順に表示します。返答待ちなどSLAの計測が止まっているチケットは、期限の件数に含めません。日時は日本時間（JST）です。
+        <p className="home-date">
+          <time dateTime={assessedAt.toISOString()}>
+            {new Intl.DateTimeFormat('ja-JP', {
+              timeZone: 'Asia/Tokyo',
+              month: 'short',
+              day: 'numeric',
+              weekday: 'short',
+            }).format(assessedAt)}
+          </time>
+          <span aria-hidden="true">·</span>
+          <span>日本時間（JST）</span>
         </p>
-        {workOk ? (
-          <dl className="home-summary" aria-label="解決期限ごとの件数">
-            {BUCKETS.map((bucket) => (
-              <div key={bucket.id} data-tone={bucket.id}>
-                <dt>{bucket.label}</dt>
-                <dd>{grouped[bucket.id].length}件</dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
       </header>
 
       <div className="home-layout">
         <div className="home-main">
-          <section className="home-panel" aria-labelledby="home-work-title">
+          <section className="home-today" aria-labelledby="home-today-title">
+            <h2 id="home-today-title">
+              {workActiveTotal === null ? (
+                '今日の対応'
+              ) : truncated ? (
+                <>
+                  期限の近い{workItems.length}件のうち、対応中は{' '}
+                  <strong className="home-count">{workActiveTotal}</strong>件です
+                </>
+              ) : (
+                <>
+                  今日の対応は <strong className="home-count">{workActiveTotal}</strong>件です
+                </>
+              )}
+            </h2>
+            {workOk && truncated ? (
+              <p className="hint">
+                全{workTotal}件のうち、期限の近い{workItems.length}
+                件だけを読み込み、その中の対応中を数えています。
+                <Link href={homeWorkQueueHref()} prefetch={false}>
+                  全件を期限順の一覧で確認する
+                </Link>
+              </p>
+            ) : null}
+            <p className="home-lede">
+              自分に割り当てられた未完了のチケットを、解決期限の近い順に表示します。
+            </p>
+            {workOk ? (
+              <dl className="home-summary" aria-label="解決期限ごとの件数">
+                {BUCKETS.map((bucket) => (
+                  <div key={bucket.id} data-tone={bucket.id}>
+                    <dt>{bucket.label}</dt>
+                    <dd>
+                      <strong>{grouped[bucket.id].length}</strong>件
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+          </section>
+          <section className="home-panel home-panel--work" aria-labelledby="home-work-title">
             <div className="home-section-head">
               <h2 id="home-work-title">自分の担当（未完了）</h2>
               <Link href={homeWorkQueueHref()} prefetch={false}>
@@ -381,20 +405,20 @@ export default async function OperationsOverview({
               </>
             )}
           </section>
+        </div>
 
-          <section className="home-panel" aria-labelledby="home-group-title">
+        <aside className="home-aside" aria-label="担当グループ、承認待ちと通知">
+          <section className="home-panel home-panel--group" aria-labelledby="home-group-title">
             <div className="home-section-head">
               <div>
-                <h2 id="home-group-title">担当グループの状況</h2>
+                <h2 id="home-group-title">
+                  <FreshserviceIcon name="admin" size={18} />
+                  担当グループの状況
+                </h2>
                 <p className="hint">
                   表示範囲: <strong>{scope}</strong>
                 </p>
               </div>
-              {!error ? (
-                <Link href={operationsQueueHref(operationsDeadlineQuery(group))} prefetch={false}>
-                  期限順の一覧を見る
-                </Link>
-              ) : null}
             </div>
             <form
               key={currentHref}
@@ -420,7 +444,9 @@ export default async function OperationsOverview({
                 />
               </div>
               <button type="submit">範囲を適用</button>
-              <Link href="/ops/overview">範囲を解除</Link>
+              <Link className="home-clear-range" href="/ops/overview">
+                範囲を解除
+              </Link>
             </form>
             {!groupList.ok && (
               <p className="overview-notice" role="alert">
@@ -451,13 +477,15 @@ export default async function OperationsOverview({
             ) : counts ? (
               <GroupBars counts={counts} group={group} />
             ) : null}
-            <p className="hint">
-              未完了と解決期限超過は重複します。SLA達成率は表示しません。件数は取得時点のものです。
-            </p>
+            <div className="home-group-footer">
+              <p className="hint">解決期限超過は未完了の内数です。</p>
+              {!error && (
+                <Link href={operationsQueueHref(operationsDeadlineQuery(group))} prefetch={false}>
+                  期限順の一覧を見る
+                </Link>
+              )}
+            </div>
           </section>
-        </div>
-
-        <aside className="home-aside" aria-label="承認待ちと通知">
           {inboxError ? (
             <section className="home-card home-error" role="alert">
               <h2>承認待ちと通知</h2>
@@ -467,7 +495,13 @@ export default async function OperationsOverview({
           ) : (
             <>
               <section className="home-card" aria-labelledby="home-approval-title">
-                <h2 id="home-approval-title">あなたの承認待ち</h2>
+                <div className="home-section-head">
+                  <h2 id="home-approval-title">
+                    <FreshserviceIcon name="change" size={18} />
+                    あなたの承認待ち
+                  </h2>
+                  <span className="hint">{approvalTotal}件</span>
+                </div>
                 {approval ? (
                   <>
                     <h3>{approval.title}</h3>
@@ -531,12 +565,14 @@ export default async function OperationsOverview({
               </section>
 
               <section className="home-notifications" aria-labelledby="home-notifications-title">
-                <h2 id="home-notifications-title">通知</h2>
-                <p className="hint">業務受信箱に届いた更新です。外部への通知送信は行いません。</p>
-                <NotificationList items={notifications} />
-                <p className="hint">
+                <div className="home-section-head">
+                  <h2 id="home-notifications-title">
+                    <FreshserviceIcon name="bell" size={18} />
+                    通知
+                  </h2>
                   <Link href="/inbox">業務受信箱を見る</Link>
-                </p>
+                </div>
+                <NotificationList items={notifications} />
               </section>
             </>
           )}
