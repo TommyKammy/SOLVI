@@ -1,0 +1,523 @@
+import assert from "node:assert/strict";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { api, login, require, web } from "./helpers.mjs";
+import {
+  testDatabase,
+  expireTestSession,
+  notificationFixture,
+  retryCount,
+  addViewerOrganization,
+} from "./fixtures.mjs";
+
+const { chromium } = require("playwright");
+const { AxeBuilder } = require("@axe-core/playwright");
+const out = process.argv[2];
+const run = process.argv[4] ?? "01";
+assert.match(run, /^\d+$/);
+mkdirSync(join(out, "screens"), { recursive: true });
+const db = await testDatabase(process.argv[3]);
+const browser = await chromium.launch({ channel: "chrome" });
+const accounts = Object.fromEntries(
+  await Promise.all(
+    ["org_admin", "auditor", "agent", "approver", "requester"].map(
+      async (role) => [role, await login(role)],
+    ),
+  ),
+);
+const actors = Object.fromEntries(
+  await Promise.all(
+    Object.entries(accounts).map(async ([role, cookie]) => [
+      role,
+      await api("/auth/me", cookie),
+    ]),
+  ),
+);
+const summary = { browser: browser.version(), journeys: [], scans: [] };
+const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+const password = readFileSync("tools/seed.mjs", "utf8").match(
+  /DEV_PASSWORD = '([^']+)'/,
+)[1];
+const main = (page) => page.locator("main");
+const link = (page, name) =>
+  main(page).getByRole("link", { name, exact: true });
+const button = (page, name) =>
+  main(page).getByRole("button", { name, exact: true });
+const heading = (page, name) =>
+  main(page).getByRole("heading", { name, exact: true });
+const pathOf = (url) => new URL(url, web).pathname;
+const waitPath = (page, path) =>
+  page.waitForURL((url) => url.pathname === path);
+const admin = (path) => api(path, accounts.org_admin);
+const viewer = (path, status = 200) =>
+  api(path, accounts.auditor, undefined, status);
+
+async function pageFor(role, width, colorScheme = "light") {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: "ja-JP",
+    colorScheme,
+    isMobile: width === 375,
+    hasTouch: width === 375,
+  });
+  if (role) await context.addCookies([{ ...(await login(role)), url: web }]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(12000);
+  return page;
+}
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  assert.equal(pathOf(page.url()), pathOf(path));
+  await main(page).locator("h1").waitFor();
+}
+async function use(locator, width) {
+  if (width === 375) await locator.tap();
+  else {
+    await locator.focus();
+    await locator.press("Enter");
+  }
+}
+async function scan(page, name, width, theme) {
+  assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
+  if (['users','department','group','approval','notification-detail'].includes(name)) {
+    const areas = await main(page).locator('.admin-split').evaluate(el => {
+      const [list, detail] = el.children;
+      const left = list.getBoundingClientRect();
+      const right = detail.getBoundingClientRect();
+      return { sideBySide: right.left > left.left, below: right.top >= left.bottom };
+    });
+    assert.equal(areas.sideBySide, width === 1440, name);
+    if (width === 375) assert(areas.below, name);
+  }
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - innerWidth,
+  );
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const violations = result.violations.map(({ id, impact, nodes }) => ({
+    id,
+    impact,
+    nodes: nodes.map(({ target, failureSummary }) => ({
+      target,
+      failureSummary,
+    })),
+  }));
+  const incomplete = result.incomplete.map(({ id, nodes }) => ({
+    id,
+    targets: nodes.map(({ target }) => target),
+  }));
+  summary.scans.push({ name, theme, width, overflow, violations, incomplete });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: join(out, "screens", [theme, width, name].join("-") + ".png"),
+    animations: "disabled",
+    fullPage: true,
+  });
+  console.log(
+    "AXE",
+    theme,
+    width,
+    name,
+    overflow,
+    violations.map((v) => v.id).join(",") || "pass",
+  );
+}
+async function inspect(page, role, width, name, beforeDark) {
+  await scan(page, name, width, "light");
+  const dark = await pageFor(role, width, "dark");
+  try {
+    await enter(dark, page.url().slice(web.length));
+    if (beforeDark) await beforeDark(dark);
+    await scan(dark, name, width, "dark");
+  } finally {
+    await dark.context().close();
+  }
+}
+async function appLogin(page, role, width) {
+  await page.locator("#email").fill(role + "@acme.example.test");
+  await page.locator("#password").fill(password);
+  await use(button(page, "ログイン"), width);
+}
+async function loginExpiry(page, target, width, screenshot) {
+  const cookies = await page.context().cookies(web);
+  const cookie = cookies.find(({ name }) => name.startsWith("solvi_session"));
+  assert.ok(cookie);
+  await expireTestSession(db, cookie, actors.org_admin);
+  await page.goto(web + target);
+  await waitPath(page, "/login");
+  await heading(page, "ログインの有効期限が切れました").waitFor();
+  const back = new URL(page.url()).searchParams.get("returnTo");
+  assert.ok(back);
+  assert.equal(pathOf(back), pathOf(target));
+  assert.equal(await page.locator("input[name=returnTo]").inputValue(), back);
+  if (screenshot) {
+    await scan(page, "expired", width, "light");
+    const dark = await pageFor(null, width, "dark");
+    try {
+      await enter(dark, page.url().slice(web.length));
+      await scan(dark, "expired", width, "dark");
+    } finally {
+      await dark.context().close();
+    }
+  }
+  return back;
+}
+async function denied(page) {
+  await main(page)
+    .getByRole("alert")
+    .filter({ hasText: "権限がありません" })
+    .waitFor();
+  assert.equal(await main(page).locator("form").count(), 0);
+}
+const adminHome = "/ops/admin";
+const reviewRoot = "/ops/access-review";
+const targets = [
+  ["利用者管理", "/ops/users"],
+  ["部署管理", "/ops/departments"],
+  ["担当グループ", "/ops/groups"],
+  ["承認ルール", "/ops/approvals"],
+  ["通知状況", "/ops/notifications"],
+  ["アクセスレビュー", reviewRoot],
+];
+const openCard = async (page, width, title, path) => {
+  await enter(page, adminHome);
+  await use(
+    main(page)
+      .locator('a.fs-admin-card[href="' + path + '"]')
+      .filter({ hasText: title }),
+    width,
+  );
+  await waitPath(page, path);
+};
+function findDepartment(items, code) {
+  for (const item of items) {
+    if (item.code === code) return item;
+    const found = findDepartment(item.children ?? [], code);
+    if (found) return found;
+  }
+  return null;
+}
+
+try {
+  await addViewerOrganization(db, actors.auditor.userId);
+  for (const width of [1440, 375]) {
+    const suffix = width + "-" + run;
+    const start = await pageFor("org_admin", width);
+    const observer = await pageFor("auditor", width);
+    const groupCode = "qa-grp-" + suffix;
+    const groupName = "検証グループ " + suffix;
+    const deptCode = "qa-dept-" + suffix;
+    const deptName = "検証部署 " + suffix;
+    const ruleCode = "qa-rule-" + suffix;
+    const ruleName = "検証承認ルール " + suffix;
+    const period = "QA-" + suffix;
+    const decisionReason = "役割を維持する確認 " + suffix;
+
+    await enter(start, adminHome);
+    for (const [title, path] of targets) {
+      await main(start)
+        .locator('a.fs-admin-card[href="' + path + '"]')
+        .filter({ hasText: title })
+        .waitFor();
+    }
+    const directoryCards = main(start)
+      .getByRole("region", { name: "組織と利用者" })
+      .locator("a.fs-admin-card");
+    assert.deepEqual(
+      await directoryCards.evaluateAll((cards) =>
+        cards.map((card) => card.getAttribute("href")),
+      ),
+      ["/ops/users", "/ops/departments", "/ops/groups"],
+    );
+    await inspect(start, "org_admin", width, "admin-home");
+    await openCard(start, width, "部署管理", "/ops/departments");
+    await start.locator("#department-code").fill(deptCode);
+    await start.locator("#department-name").fill(deptName);
+    await use(start.locator("#department-create-submit"), width);
+    await heading(start, deptName).waitFor();
+    const dept = findDepartment((await admin("/departments")).items, deptCode);
+    assert.ok(dept);
+    await inspect(start, "org_admin", width, "department");
+
+    await openCard(start, width, "利用者管理", "/ops/users");
+    const userId = actors.agent.userId;
+    const member = main(start)
+      .locator('a[href*="selected=' + userId + '"]')
+      .first();
+    await use(member, width);
+    await start.locator("#profile-primary-department").selectOption(dept.id);
+    await start.locator("#profile-job-title").fill("検証用の担当 " + suffix);
+    await use(button(start, "プロフィールを保存する"), width);
+    await main(start)
+      .getByText("組織プロフィールを保存しました。変更は監査に記録されます。")
+      .waitFor();
+    const profile = (await admin("/users/" + userId + "/profile")).profile;
+    assert.equal(profile.primaryDepartmentId, dept.id);
+    assert.equal(profile.jobTitle, "検証用の担当 " + suffix);
+    await main(start)
+      .getByRole("region", { name: "組織プロフィール" })
+      .waitFor();
+    if (width === 1440) {
+      assert.equal(
+        await start
+          .locator(".directory-table-wrap")
+          .evaluate((table) => table.scrollWidth - table.clientWidth),
+        0,
+      );
+    }
+    await inspect(start, "org_admin", width, "users");
+
+    await openCard(start, width, "担当グループ", "/ops/groups");
+    await start.locator("#group-name").fill(groupName);
+    await start.locator("#group-code").fill(groupCode);
+    await use(button(start, "作成する"), width);
+    await main(start).getByText(groupName, { exact: true }).waitFor();
+    const group = (await admin("/groups")).items.find(
+      (item) => item.code === groupCode,
+    );
+    assert.ok(group);
+    await use(
+      main(start)
+        .locator('a[href^="/ops/groups/' + group.id + '"]')
+        .first(),
+      width,
+    );
+    await waitPath(start, "/ops/groups/" + group.id);
+    await start.locator("#member-id").selectOption(userId);
+    await use(button(start, "選んだ在籍者を追加する"), width);
+    await main(start)
+      .getByText("メンバーの追加を受け付けました。", { exact: false })
+      .waitFor();
+    assert.ok(
+      (await admin("/groups/" + group.id + "/members")).items.some(
+        (m) => m.userId === userId,
+      ),
+    );
+    await inspect(start, "org_admin", width, "group");
+
+    await openCard(start, width, "承認ルール", "/ops/approvals");
+    await start.locator("#approval-create-code").fill(ruleCode);
+    await start.locator("#approval-create-name").fill(ruleName);
+    await start.locator("#approval-create-step-type-0").selectOption("fixed");
+    await start
+      .locator("#approval-create-step-approver-0")
+      .selectOption(actors.approver.userId);
+    await use(start.locator("#approval-create-submit"), width);
+    await heading(start, ruleName).waitFor();
+    const rule = (await admin("/approval-rules")).items.find(
+      (item) => item.code === ruleCode,
+    );
+    assert.ok(rule);
+    await start.locator("#approval-preview-rule").selectOption(rule.id);
+    await start
+      .locator("#approval-preview-requester")
+      .selectOption(actors.requester.userId);
+    await use(start.locator("#approval-preview-submit"), width);
+    await heading(start, "プレビュー結果").waitFor();
+    assert.match(
+      await start
+        .locator("#approval-preview-result-title")
+        .locator("..")
+        .innerText(),
+      /(?:approver|承認者)/,
+    );
+    await inspect(start, "org_admin", width, "approval");
+
+    const notificationId = await notificationFixture(
+      db,
+      accounts.org_admin,
+      accounts.agent,
+      suffix,
+    );
+    await openCard(start, width, "通知状況", "/ops/notifications");
+    await use(link(start, "失敗"), width);
+    await start.waitForURL(
+      (url) => url.searchParams.get("status") === "failed",
+    );
+    const notificationControl = main(start).locator('button.admin-notification-detail-button').first();
+    assert(!(await main(start).innerHTML()).includes(notificationId));
+    await use(notificationControl, width);
+    const detail = main(start).locator('section[aria-labelledby=notification-detail]');
+    await detail.waitFor();
+    assert.match(await detail.locator('dl').innerText(), /失敗/);
+    assert.equal(await notificationControl.getAttribute('aria-expanded'), 'true');
+    await inspect(start, 'org_admin', width, 'notification-detail', async (dark) => {
+      await use(main(dark).locator('button.admin-notification-detail-button').first(), width);
+      await main(dark).locator('section[aria-labelledby=notification-detail]').waitFor();
+    });
+    await use(detail.getByRole('button', { name: '詳細を閉じる' }), width);
+    await detail.waitFor({ state: 'detached' });
+    assert.equal(new URL(start.url()).searchParams.get('status'), 'failed');
+    assert(await notificationControl.evaluate(el => document.activeElement === el));
+    const expected = await admin(
+      "/notifications/" + notificationId + "/manual-retry",
+    );
+    assert.equal(expected.reason, null);
+    assert.equal(expected.eligible, true);
+    await use(button(start, "再試行を確認").first(), width);
+    const retry = main(start).getByRole("region", { name: "通知の手動再試行" });
+    await retry
+      .getByRole("button", { name: "再試行を予約", exact: true })
+      .waitFor();
+    await use(
+      retry.getByRole("button", { name: "再試行を予約", exact: true }),
+      width,
+    );
+    await retry
+      .getByText("再試行を予約済み", { exact: false })
+      .first()
+      .waitFor();
+    assert.equal(await retryCount(db, notificationId), 1);
+    await inspect(start, "org_admin", width, "notifications");
+
+    await openCard(start, width, "アクセスレビュー", reviewRoot);
+    await start.locator("#periodLabel").fill(period);
+    await use(button(start, "レビューを開始"), width);
+    await heading(start, period).waitFor();
+    const opened = (await admin("/access-reviews")).items.find(
+      (review) => review.periodLabel === period,
+    );
+    const reviewPath = reviewRoot + "?review=" + opened.id;
+    await enter(observer, adminHome);
+    const cards = await main(observer)
+      .locator("a.fs-admin-card")
+      .evaluateAll((entries) => entries.map((a) => a.getAttribute("href")));
+    assert.deepEqual(cards, [reviewRoot]);
+    await use(main(observer).locator("a.fs-admin-card"), width);
+    await heading(observer, period).waitFor();
+    assert.equal(await main(observer).locator("form").count(), 0);
+    assert.ok(
+      (await viewer("/access-reviews/" + opened.id)).review.pendingItems > 0,
+    );
+    await inspect(start, "org_admin", width, "review-edit");
+    const pending = (await admin("/access-reviews/" + opened.id)).items.filter(
+      (item) => item.decision === "pending",
+    );
+    for (const item of pending) {
+      const reason = start.locator("#reason-" + item.id);
+      await reason.fill(decisionReason);
+      const save = reason
+        .locator("xpath=ancestor::form")
+        .getByRole("button", { name: "維持する", exact: true });
+      await use(save, width);
+      await reason.waitFor({ state: "detached" });
+    }
+    await use(button(start, "レビューを完了する"), width);
+    await link(start, period).waitFor();
+    await use(link(start, period), width);
+    await start.waitForURL(
+      (url) => url.searchParams.get("review") === opened.id,
+    );
+    await heading(start, period).waitFor();
+    await enter(observer, reviewPath);
+    await heading(observer, period).waitFor();
+    await main(observer)
+      .getByText(decisionReason, { exact: true })
+      .first()
+      .waitFor();
+    assert.equal(await main(observer).locator("form").count(), 0);
+    const completed = await viewer("/access-reviews/" + opened.id);
+    assert.ok(
+      completed.review.completedAt &&
+        completed.items.every((item) => item.decision === "keep"),
+    );
+    await inspect(observer, "auditor", width, "review-viewer");
+
+    const blocked = [
+      "/ops/users",
+      "/ops/departments",
+      "/ops/groups",
+      "/ops/groups/" + group.id,
+      "/ops/approvals",
+      "/ops/notifications",
+    ];
+    for (const path of blocked) {
+      await enter(observer, path);
+      await denied(observer);
+      await use(link(observer, "管理ホームへ戻る"), width);
+      await waitPath(observer, adminHome);
+    }
+    await Promise.all(
+      [
+        "/users",
+        "/departments",
+        "/groups",
+        "/approval-rules",
+        "/notifications",
+      ].map((path) => viewer(path, 403)),
+    );
+    await enter(observer, "/ops/departments?department=" + dept.id);
+    await inspect(observer, "auditor", width, "forbidden");
+
+    const target =
+      "/ops/users?selected=" + userId + "&q=agent&create=requester";
+    const returnTo = await loginExpiry(start, target, width, true);
+    const view = new URL(returnTo, web);
+    assert.equal(view.searchParams.get("selected"), userId);
+    assert.equal(view.searchParams.get("q"), "agent");
+    assert.equal(view.searchParams.has("create"), false);
+    await appLogin(start, "org_admin", width);
+    await waitPath(start, "/ops/users");
+    await start.locator("#profile-primary-department").waitFor();
+    assert.equal(
+      await start.locator("#profile-primary-department").inputValue(),
+      dept.id,
+    );
+    const resumed = new URL(start.url());
+    assert.equal(resumed.searchParams.get("selected"), userId);
+    assert.equal(resumed.searchParams.get("q"), "agent");
+    assert.equal(resumed.searchParams.has("create"), false);
+    await loginExpiry(start, target, width, false);
+    await appLogin(start, "auditor", width);
+    await waitPath(start, "/select-organization");
+    await heading(start, "どの組織として操作しますか").waitFor();
+    assert.equal(new URL(start.url()).searchParams.get("returnTo"), returnTo);
+    await start.locator("#org-" + actors.auditor.organizationId).check();
+    await use(button(start, "この組織で続ける"), width);
+    await waitPath(start, "/ops/users");
+    await denied(start);
+    await use(link(start, "管理ホームへ戻る"), width);
+    await waitPath(start, adminHome);
+
+    summary.journeys.push({
+      width,
+      departmentId: dept.id,
+      userId,
+      groupId: group.id,
+      approvalRuleId: rule.id,
+      notificationId,
+      accessReviewId: opened.id,
+      accessReviewPeriod: period,
+      reviewedItems: completed.items.length,
+      retryRequests: 1,
+      viewerDeniedRoutes: blocked,
+      returnedAfterExpiry: true,
+      recheckedRoleAfterLogin: true,
+      selectedOrganizationAfterLogin: true,
+    });
+    console.log(
+      "JOURNEY",
+      width,
+      dept.id,
+      group.id,
+      rule.id,
+      opened.id,
+      "period",
+      period,
+    );
+    await Promise.all([start, observer].map((page) => page.context().close()));
+  }
+  assert.equal(summary.scans.length, 44);
+  assert.ok(
+    summary.scans.every(
+      ({ overflow, violations }) => overflow === 0 && violations.length === 0,
+    ),
+  );
+} finally {
+  writeFileSync(
+    join(out, "summary.json"),
+    JSON.stringify(summary, null, 2) + "\n",
+  );
+  await browser.close();
+  await db.end();
+}

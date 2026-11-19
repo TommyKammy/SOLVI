@@ -1,5 +1,9 @@
 import Link from 'next/link';
-import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import {
+  adminOrganizationName,
+  AdminDenied,
+  AdminPageHeader,
+} from '../../../components/AdminWorkspace';
 import { adminViewPath, withAdminReturnTo } from '../../../lib/admin-recovery';
 import { navigationRoles } from '../../../lib/navigation';
 import { DIRECTORY_ROLE_LABELS } from '../../../lib/user-directory';
@@ -32,7 +36,7 @@ export default async function AccessReviewPage({
   const roles = navigationRoles(session);
   const canManage = roles.admin;
   if (!canManage && !roles.auditor) {
-    return <AdminDenied title="アクセスレビュー" canOpenHome={false} />;
+    return <AdminDenied administration title="アクセスレビュー" canOpenHome={false} />;
   }
 
   const error = typeof query.error === 'string' ? query.error : null;
@@ -89,20 +93,17 @@ export default async function AccessReviewPage({
 
   return (
     <main id="main" className="shell admin-workspace">
-      <header className="support-page-heading">
-        <div>
-          <AdminBackLink />
-          <h1>アクセスレビュー</h1>
-          <p className="lead">
-            {canManage
-              ? '付与されている役割を確認し、判断と理由を記録します。'
-              : '監査担当者 · 閲覧のみ'}
-          </p>
-        </div>
-        <Link className="support-action" href="/ops/approvals/changes">
-          上長・部署長の変更履歴
-        </Link>
-      </header>
+      <AdminPageHeader
+        title="アクセスレビュー"
+        area="access-review"
+        session={session}
+        organizationName={await adminOrganizationName(session)}
+        actions={
+          <Link className="directory-cta secondary" href="/ops/approvals/changes">
+            上長・部署長の変更履歴
+          </Link>
+        }
+      />
 
       {error && (
         <p role="alert" className="error">
@@ -121,7 +122,10 @@ export default async function AccessReviewPage({
       )}
 
       {list.ok && canManage && !open && (
-        <section className="admin-panel" aria-labelledby="review-start-title">
+        <section
+          className="admin-panel admin-detail-panel admin-recovery-panel"
+          aria-labelledby="review-start-title"
+        >
           <h2 id="review-start-title">レビューを開始する</h2>
           <p>開始時点で有効な役割を、確認対象として固定します。</p>
           <form className="stack" action={openReview}>
@@ -188,7 +192,12 @@ export default async function AccessReviewPage({
                 </div>
                 {item.decision !== 'pending' ? (
                   <div>
-                    <strong>{item.decision === 'keep' ? '維持' : '失効済み'}</strong>
+                    <strong
+                      className="state"
+                      data-state={item.decision === 'keep' ? 'approved' : 'rejected'}
+                    >
+                      {item.decision === 'keep' ? '維持' : '失効済み'}
+                    </strong>
                     {item.selfReviewed && '（自分で判断）'}
                     <p>{item.reason}</p>
                   </div>

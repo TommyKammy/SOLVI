@@ -1,0 +1,254 @@
+[
+  {
+    "route": "admin",
+    "width": 1440,
+    "reference": {
+      "title": "管理ホーム",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "管理ホーム",
+      "size": "32px",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "users",
+    "width": 1440,
+    "reference": {
+      "title": "利用者管理",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "利用者管理",
+      "size": "32px",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "departments",
+    "width": 1440,
+    "reference": {
+      "title": "部署管理",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "部署管理",
+      "size": "32px",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "groups",
+    "width": 1440,
+    "reference": {
+      "title": "担当グループ",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "担当グループの管理",
+      "size": "32px",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "approvals",
+    "width": 1440,
+    "reference": {
+      "title": "承認ルール",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "承認ルール",
+      "size": "32px",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "notifications",
+    "width": 1440,
+    "reference": {
+      "title": "通知状況",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "通知状況",
+      "size": "32px",
+      "x": 256,
+      "y": 142.828125,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "access-review",
+    "width": 1440,
+    "reference": {
+      "title": "アクセスレビュー",
+      "size": "32px",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "アクセスレビュー",
+      "size": "32px",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "admin",
+    "width": 375,
+    "reference": {
+      "title": "管理ホーム",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "管理ホーム",
+      "size": "28px",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "users",
+    "width": 375,
+    "reference": {
+      "title": "利用者管理",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "利用者管理",
+      "size": "28px",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "departments",
+    "width": 375,
+    "reference": {
+      "title": "部署管理",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "部署管理",
+      "size": "28px",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "groups",
+    "width": 375,
+    "reference": {
+      "title": "担当グループ",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "担当グループの管理",
+      "size": "28px",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "approvals",
+    "width": 375,
+    "reference": {
+      "title": "承認ルール",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "承認ルール",
+      "size": "28px",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "notifications",
+    "width": 375,
+    "reference": {
+      "title": "通知状況",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "通知状況",
+      "size": "28px",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "route": "access-review",
+    "width": 375,
+    "reference": {
+      "title": "アクセスレビュー",
+      "size": "28px",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "アクセスレビュー",
+      "size": "28px",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  }
+]

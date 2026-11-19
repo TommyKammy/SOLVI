@@ -1,0 +1,6 @@
+{
+  "passedTestFiles": 122,
+  "passed": 4899,
+  "skipped": 26,
+  "failed": 0
+}

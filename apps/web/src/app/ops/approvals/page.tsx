@@ -1,4 +1,9 @@
-import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { FreshserviceIcon } from '../../../components/FreshserviceIcon';
+import {
+  adminOrganizationName,
+  AdminDenied,
+  AdminPageHeader,
+} from '../../../components/AdminWorkspace';
 import { adminViewPath } from '../../../lib/admin-recovery';
 import Link from 'next/link';
 import { Fragment } from 'react';
@@ -51,7 +56,9 @@ export default async function ApprovalRulesPage({
   const session = await requireSession(adminViewPath('/ops/approvals', raw));
   const roles = navigationRoles(session);
   if (!isOrgAdmin(session)) {
-    return <AdminDenied title="承認ルール" canOpenHome={roles.admin || roles.auditor} />;
+    return (
+      <AdminDenied administration title="承認ルール" canOpenHome={roles.admin || roles.auditor} />
+    );
   }
 
   const { query, preview } = parseApprovalsQuery(raw);
@@ -166,26 +173,17 @@ export default async function ApprovalRulesPage({
 
   return (
     <main id="main" className="shell admin-workspace directory-shell">
-      <div className="directory-heading">
-        <div>
-          <AdminBackLink />
-          <h1>承認ルール</h1>
-          <p>
-            承認の段（固定承認者・上長・部署長）と、組織での使用を管理します。保存済みの版は変更できません。
-          </p>
-        </div>
-        <div className="directory-heading-actions">
-          <Link className="directory-cta secondary" href="/catalog/manage/new">
-            サービスの作成へ進む
+      <AdminPageHeader
+        title="承認ルール"
+        area="approvals"
+        session={session}
+        organizationName={await adminOrganizationName(session)}
+        actions={
+          <Link className="directory-cta" href="#approval-create">
+            <FreshserviceIcon name="plus" size={16} /> 承認ルールを作成
           </Link>
-          <Link className="directory-cta secondary" href="/ops/approvals/changes">
-            上長・部署長の変更履歴
-          </Link>
-          <Link className="directory-cta secondary" href="/settings/delegations">
-            代理承認の委任
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {notice && (
         <div className="notice directory-notice" id="approval-notice" role="status" tabIndex={-1}>
@@ -206,6 +204,563 @@ export default async function ApprovalRulesPage({
         </div>
       )}
 
+      <div className="admin-split">
+        <section className="admin-panel" aria-labelledby="approval-rules-title">
+          <h2 id="approval-rules-title">承認ルールの一覧</h2>
+          {rules.length === 0 ? (
+            <p className="empty">
+              まだ承認ルールがありません。下の「承認ルールを作成」から最初のルールを作成してください。
+            </p>
+          ) : (
+            <TableRegion
+              className="directory-table-wrap admin-table-scroll"
+              label="承認ルールの一覧"
+            >
+              <table className="directory-table admin-approval-table">
+                <caption>承認ルールの一覧</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">名称</th>
+                    <th scope="col">コード</th>
+                    <th scope="col">状態</th>
+                    <th scope="col">現在の版</th>
+                    <th scope="col">段の要約</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rules.map((rule) => (
+                    <tr key={rule.id} data-selected={rule.id === query.rule ? 'true' : undefined}>
+                      <th scope="row" data-label="名称">
+                        <Link
+                          href={
+                            approvalHref(query, {
+                              rule: rule.id,
+                              confirm: null,
+                              unresolved: false,
+                            }) + '#approval-rule-detail'
+                          }
+                          aria-label={`${rule.name} の詳細`}
+                        >
+                          {rule.name}
+                        </Link>
+                      </th>
+                      <td data-label="コード">
+                        <code>{rule.code}</code>
+                      </td>
+                      <td data-label="状態">
+                        {rule.active ? (
+                          '有効'
+                        ) : (
+                          <span>
+                            無効
+                            <br />
+                            <small>変更できません</small>
+                          </span>
+                        )}
+                      </td>
+                      <td data-label="現在の版">版{rule.currentRevision}</td>
+                      <td data-label="段の要約">
+                        {summarizeApprovalSteps(rule.steps, rule.stepsValid)}
+                      </td>
+                      <td data-label="操作">
+                        <Link
+                          href={
+                            approvalHref(query, {
+                              rule: rule.id,
+                              confirm: null,
+                              unresolved: false,
+                            }) + '#approval-rule-detail'
+                          }
+                          style={actionLinkStyle}
+                        >
+                          詳細
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableRegion>
+          )}
+        </section>
+
+        <div className="admin-detail-column">
+          {query.rule && !selected && (
+            <p role="status">
+              選択した承認ルールは表示できませんでした。一覧から選び直してください。
+            </p>
+          )}
+
+          {selected && (
+            <section
+              className="directory-panel admin-detail-panel"
+              id="approval-rule-detail"
+              aria-labelledby="approval-rule-detail-title"
+              tabIndex={-1}
+            >
+              <div className="directory-detail-heading">
+                <h2 id="approval-rule-detail-title">{selected.name}</h2>
+                <Link
+                  href={approvalHref(query, { rule: null, confirm: null, unresolved: false })}
+                  style={actionLinkStyle}
+                >
+                  詳細を閉じる
+                </Link>
+              </div>
+              <p>
+                <code>{selected.code}</code> · {selected.active ? '有効' : '無効'} · 現在の版: 版
+                {selected.currentRevision} · 更新: {formatDateTime(selected.updatedAt)}
+              </p>
+              <p>段の構成: {summarizeApprovalSteps(selected.steps, selected.stepsValid)}</p>
+
+              {selected.active ? (
+                <section aria-labelledby="approval-revise-title">
+                  <h3 id="approval-revise-title">新しい版を追加</h3>
+                  <p className="notice">
+                    保存済みの版は変更できません。下の内容は<strong>新しい版</strong>
+                    として追加され、現在の版{selected.currentRevision}
+                    はそのまま残ります。進行中の申請と保存済みの版の経路は変わりません。
+                  </p>
+                  <form
+                    action={reviseApprovalRuleAction.bind(null, scope, query, selected.id)}
+                    className="directory-form"
+                    aria-describedby={error ? 'approval-error' : undefined}
+                  >
+                    <input type="hidden" name="expectedRevision" value={selected.currentRevision} />
+                    <div className="field">
+                      <label htmlFor="approval-revise-name">名称</label>
+                      <input
+                        id="approval-revise-name"
+                        name="name"
+                        type="text"
+                        required
+                        maxLength={200}
+                        defaultValue={selected.name}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <ApprovalStepFields
+                      idPrefix="approval-revise-step"
+                      approvers={eligibleApprovers}
+                      defaults={currentSteps}
+                    />
+                    <div className="directory-form-actions">
+                      <button type="submit" id="approval-revise-submit">
+                        新しい版を追加する
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              ) : (
+                <p className="empty">
+                  この承認ルールは無効化されています。変更はできません。必要な場合は新しいルールを作成してください。
+                </p>
+              )}
+
+              <section aria-labelledby="approval-history-title">
+                <h3 id="approval-history-title">版の履歴</h3>
+                {historyResult && !historyResult.ok ? (
+                  <p className="hint" role="alert">
+                    版の履歴を読み込めませんでした。時間をおいて再度お試しください。
+                  </p>
+                ) : history.length === 0 ? (
+                  <p className="empty">版の履歴を表示できません。</p>
+                ) : (
+                  <TableRegion className="directory-table-wrap" label="承認ルールの版の履歴">
+                    <table className="directory-table">
+                      <caption>承認ルールの版の履歴</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">版</th>
+                          <th scope="col">段の構成</th>
+                          <th scope="col">作成者</th>
+                          <th scope="col">作成日時</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.map((revision) => (
+                          <tr key={revision.revision}>
+                            <td data-label="版">
+                              版{revision.revision}
+                              {revision.revision === selected.currentRevision ? '（現在）' : ''}
+                            </td>
+                            <td data-label="段の構成">
+                              {summarizeApprovalSteps(revision.steps, revision.stepsValid)}
+                            </td>
+                            <td data-label="作成者">
+                              {revision.createdByName ?? '確認できません'}
+                            </td>
+                            <td data-label="作成日時">{formatDateTime(revision.createdAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableRegion>
+                )}
+              </section>
+
+              <section aria-labelledby="approval-deactivate-title" id="approval-deactivate">
+                <h3 id="approval-deactivate-title">承認ルールの無効化</h3>
+                {selected.active ? (
+                  <>
+                    <p>
+                      無効化すると元に戻せません。カタログ項目の結び付けは残りますが、新しい申請ではこのルールを使いません。
+                    </p>
+                    {query.confirm === 'deactivate' ? (
+                      <div className="notice" aria-labelledby="approval-deactivate-confirm-title">
+                        <h4 id="approval-deactivate-confirm-title">承認ルールを無効化しますか</h4>
+                        <p>
+                          {selected.name}（<code>{selected.code}</code>
+                          ）を無効化します。この操作は取り消せません。
+                        </p>
+                        <form
+                          action={deactivateApprovalRuleAction.bind(
+                            null,
+                            scope,
+                            query,
+                            selected.id,
+                          )}
+                          className="actions-row"
+                        >
+                          <button type="submit" id="approval-deactivate-submit" className="danger">
+                            無効化する
+                          </button>
+                          <Link
+                            href={approvalHref(query, { confirm: null }) + '#approval-rule-detail'}
+                            style={actionLinkStyle}
+                          >
+                            やめる
+                          </Link>
+                        </form>
+                      </div>
+                    ) : (
+                      <p>
+                        <Link
+                          href={
+                            approvalHref(query, { confirm: 'deactivate' }) + '#approval-deactivate'
+                          }
+                          id="approval-deactivate-link"
+                          style={actionLinkStyle}
+                        >
+                          この承認ルールを無効化する
+                        </Link>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="empty">この承認ルールは既に無効化されています。</p>
+                )}
+              </section>
+
+              <section aria-labelledby="approval-unresolved-title" id="approval-unresolved">
+                <h3 id="approval-unresolved-title">解決できない人の一覧</h3>
+                <p className="hint">
+                  現在の有効な所属のうち、このルールで経路を解決できない人を表示します。上長・主部署・部署長の設定は利用者管理と部署管理で確認できます。
+                </p>
+                {query.unresolved ? (
+                  unresolvedResult && !unresolvedResult.ok ? (
+                    <p className="hint" role="alert">
+                      {unresolvedResult.problem.status === 403
+                        ? '解決できない人の一覧を表示する権限がありません。'
+                        : '解決できない人の一覧を読み込めませんでした。時間をおいて再度お試しください。'}
+                    </p>
+                  ) : unresolvedResult?.ok ? (
+                    <>
+                      <p>
+                        対象: 現在の有効な所属 {unresolvedResult.data.scanned} 人 / 解決できない人{' '}
+                        {unresolvedResult.data.items.length} 人
+                      </p>
+                      {unresolvedResult.data.items.length === 0 ? (
+                        <p className="empty">
+                          現在の有効な所属で、このルールの経路を解決できない人はいません。
+                        </p>
+                      ) : (
+                        <TableRegion className="directory-table-wrap" label="解決できない人の一覧">
+                          <table className="directory-table">
+                            <caption>解決できない人の一覧</caption>
+                            <thead>
+                              <tr>
+                                <th scope="col">利用者</th>
+                                <th scope="col">理由</th>
+                                <th scope="col">操作</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {unresolvedResult.data.items.map((item) => (
+                                <tr key={item.userId}>
+                                  <td data-label="利用者">{item.displayName}</td>
+                                  <td data-label="理由">{resolverReasonText(item.reason)}</td>
+                                  <td data-label="操作">
+                                    <Link
+                                      href={`/ops/users?selected=${encodeURIComponent(item.userId)}`}
+                                      style={actionLinkStyle}
+                                    >
+                                      利用者管理で確認する
+                                    </Link>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </TableRegion>
+                      )}
+                      <p>
+                        <Link
+                          href={approvalHref(query, { unresolved: false }) + '#approval-unresolved'}
+                          style={actionLinkStyle}
+                        >
+                          一覧を閉じる
+                        </Link>
+                      </p>
+                    </>
+                  ) : null
+                ) : (
+                  <p>
+                    <Link
+                      href={approvalHref(query, { unresolved: true }) + '#approval-unresolved'}
+                      style={actionLinkStyle}
+                    >
+                      解決できない人を表示する
+                    </Link>
+                  </p>
+                )}
+              </section>
+            </section>
+          )}
+
+          <section
+            className="directory-panel admin-detail-panel"
+            id="approval-create"
+            aria-labelledby="approval-create-title"
+          >
+            <h2 id="approval-create-title">承認ルールを作成</h2>
+            <p className="hint">
+              コードは英小文字から始まる64文字以内の英小文字・数字・ハイフンです。段は最大3段で、上から順に承認します。
+            </p>
+            {eligibleApprovers.length === 0 && (
+              <p className="hint" role="alert">
+                現在有効な承認者（承認者ロールを持つ利用者）がいません。固定承認者を含むルールを作る前に、利用者管理でロールを確認してください。
+              </p>
+            )}
+            <form
+              action={createApprovalRuleAction.bind(null, scope, query)}
+              className="directory-form"
+              aria-describedby={error ? 'approval-error' : undefined}
+            >
+              <fieldset className="directory-form-grid">
+                <legend className="visually-hidden">承認ルールを作成</legend>
+                <div className="field">
+                  <label htmlFor="approval-create-code">コード</label>
+                  <input
+                    id="approval-create-code"
+                    name="code"
+                    type="text"
+                    required
+                    maxLength={64}
+                    pattern="[a-z][a-z0-9\-]*"
+                    aria-describedby="approval-create-code-hint"
+                    autoComplete="off"
+                  />
+                  <p className="hint" id="approval-create-code-hint">
+                    例: ui016-syn-2step。作成後は変更できません。
+                  </p>
+                </div>
+                <div className="field">
+                  <label htmlFor="approval-create-name">名称</label>
+                  <input
+                    id="approval-create-name"
+                    name="name"
+                    type="text"
+                    required
+                    maxLength={200}
+                    autoComplete="off"
+                  />
+                </div>
+              </fieldset>
+              <ApprovalStepFields idPrefix="approval-create-step" approvers={eligibleApprovers} />
+              <div className="directory-form-actions">
+                <button type="submit" id="approval-create-submit">
+                  承認ルールを作成する
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section
+            className="directory-panel admin-detail-panel"
+            id="approval-preview"
+            aria-labelledby="approval-preview-title"
+          >
+            <h2 id="approval-preview-title">経路プレビュー</h2>
+            <p className="hint">
+              承認ルール、または公開済みのカタログ項目と申請者を選ぶと、誰が承認するかを段ごとに表示します。この操作は保存も申請もしません。
+            </p>
+            <form
+              method="get"
+              action="/ops/approvals"
+              className="directory-form"
+              aria-describedby={previewError ? 'approval-preview-error' : undefined}
+            >
+              {query.rule && <input type="hidden" name="rule" value={query.rule} />}
+              <fieldset>
+                <legend>経路を確認する対象</legend>
+                <label>
+                  <input
+                    type="radio"
+                    name="previewKind"
+                    value="rule"
+                    defaultChecked={preview.kind !== 'item'}
+                  />{' '}
+                  承認ルール
+                </label>{' '}
+                <label>
+                  <input
+                    type="radio"
+                    name="previewKind"
+                    value="item"
+                    defaultChecked={preview.kind === 'item'}
+                  />{' '}
+                  公開済みのカタログ項目
+                </label>
+              </fieldset>
+              <div
+                className="directory-form-grid"
+                style={{ minWidth: 0, overflow: 'hidden', padding: 2 }}
+              >
+                <div className="field" style={{ minWidth: 0 }}>
+                  <label htmlFor="approval-preview-rule">承認ルール</label>
+                  <p className="hint" id="approval-preview-rule-hint">
+                    「承認ルール」を選んだときに使います。無効なルールも経路の確認だけはできます。
+                  </p>
+                  <select
+                    id="approval-preview-rule"
+                    name="previewRuleId"
+                    defaultValue={preview.ruleId}
+                    aria-describedby="approval-preview-rule-hint"
+                    style={{ maxWidth: '100%' }}
+                  >
+                    <option value="">選択してください</option>
+                    {rules.map((rule) => (
+                      <option key={rule.id} value={rule.id}>
+                        {rule.code} — {rule.name}
+                        {rule.active ? '' : '（無効）'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ minWidth: 0 }}>
+                  <label htmlFor="approval-preview-item">公開済みのカタログ項目</label>
+                  <p className="hint" id="approval-preview-item-hint">
+                    「公開済みのカタログ項目」を選んだときに使います。
+                    {catalogResult.ok ? '' : '現在、カタログ項目を読み込めませんでした。'}
+                  </p>
+                  <select
+                    id="approval-preview-item"
+                    name="previewItemId"
+                    defaultValue={preview.itemId}
+                    aria-describedby="approval-preview-item-hint"
+                    style={{ maxWidth: '100%' }}
+                  >
+                    <option value="">選択してください</option>
+                    {publishedItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ minWidth: 0 }}>
+                  <label htmlFor="approval-preview-requester">申請者</label>
+                  <p className="hint" id="approval-preview-requester-hint">
+                    現在の有効な所属から選びます。表示名だけを使い、社員番号・役職・勤務地は表示しません。
+                  </p>
+                  <select
+                    id="approval-preview-requester"
+                    name="previewRequesterId"
+                    defaultValue={preview.requesterId}
+                    aria-describedby="approval-preview-requester-hint"
+                    required
+                    style={{ maxWidth: '100%' }}
+                  >
+                    <option value="">選択してください</option>
+                    {activeMembers.map((member) => (
+                      <option key={member.userId} value={member.userId}>
+                        {member.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="directory-form-actions">
+                <button type="submit" id="approval-preview-submit">
+                  経路をプレビューする
+                </button>
+              </div>
+            </form>
+
+            {previewError && (
+              <div className="error-summary" id="approval-preview-error" role="alert">
+                <h3>経路を確認できませんでした</h3>
+                <p>{previewError}</p>
+              </div>
+            )}
+            {previewResult && (
+              <section aria-labelledby="approval-preview-result-title" className="notice">
+                <h3 id="approval-preview-result-title">プレビュー結果</h3>
+                <p>
+                  申請者: <strong>{previewResult.requesterName ?? '表示名を確認できません'}</strong>
+                  {' · '}組織の承認ルール: {previewResult.ruleRoutingEnabled ? '有効' : '無効'}
+                  {previewResult.rule
+                    ? ` · ${previewResult.rule.code}（版${previewResult.rule.revision}）`
+                    : ' · ルールを使わない経路'}
+                </p>
+                {previewResult.resolved ? (
+                  previewResult.steps && previewResult.steps.length > 0 ? (
+                    <TableRegion className="directory-table-wrap" label="承認の経路">
+                      <table className="directory-table">
+                        <caption>承認の経路</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">段</th>
+                            <th scope="col">種別</th>
+                            <th scope="col">承認者</th>
+                            <th scope="col">解決方法</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewResult.steps.map((step) => (
+                            <tr key={step.stepNo}>
+                              <td data-label="段">段{step.stepNo}</td>
+                              <td data-label="種別">
+                                {AUTHORITY_LABELS[step.authorityType] ?? '種別を確認できません'}
+                              </td>
+                              <td data-label="承認者">
+                                {step.approverName ?? '表示名を確認できません'}
+                              </td>
+                              <td data-label="解決方法">{resolvedFromLabel(step.resolvedFrom)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TableRegion>
+                  ) : (
+                    <p className="empty">承認の段が返りませんでした。設定を確認してください。</p>
+                  )
+                ) : (
+                  <p role="alert">
+                    <strong>経路を解決できません。</strong>{' '}
+                    {resolverReasonText(previewResult.reason)}
+                  </p>
+                )}
+              </section>
+            )}
+            {!previewResult && !previewError && preview.kind && (
+              <p className="hint">条件を選んで「経路をプレビューする」を押してください。</p>
+            )}
+          </section>
+        </div>
+      </div>
       <section
         className="directory-panel"
         id="approval-routing"
@@ -299,539 +854,17 @@ export default async function ApprovalRulesPage({
         )}
       </section>
 
-      <section aria-labelledby="approval-rules-title">
-        <h2 id="approval-rules-title">承認ルールの一覧</h2>
-        {rules.length === 0 ? (
-          <p className="empty">
-            まだ承認ルールがありません。下の「承認ルールを作成」から最初のルールを作成してください。
-          </p>
-        ) : (
-          <TableRegion className="directory-table-wrap" label="承認ルールの一覧">
-            <table className="directory-table">
-              <caption>承認ルールの一覧</caption>
-              <thead>
-                <tr>
-                  <th scope="col">コード</th>
-                  <th scope="col">名称</th>
-                  <th scope="col">状態</th>
-                  <th scope="col">現在の版</th>
-                  <th scope="col">段の要約</th>
-                  <th scope="col">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((rule) => (
-                  <tr key={rule.id} data-selected={rule.id === query.rule ? 'true' : undefined}>
-                    <td data-label="コード">
-                      <code>{rule.code}</code>
-                    </td>
-                    <td data-label="名称">
-                      <Link
-                        href={
-                          approvalHref(query, { rule: rule.id, confirm: null, unresolved: false }) +
-                          '#approval-rule-detail'
-                        }
-                        aria-label={`${rule.name} の詳細`}
-                      >
-                        {rule.name}
-                      </Link>
-                    </td>
-                    <td data-label="状態">
-                      {rule.active ? (
-                        '有効'
-                      ) : (
-                        <span>
-                          無効
-                          <br />
-                          <small>変更できません</small>
-                        </span>
-                      )}
-                    </td>
-                    <td data-label="現在の版">版{rule.currentRevision}</td>
-                    <td data-label="段の要約">
-                      {summarizeApprovalSteps(rule.steps, rule.stepsValid)}
-                    </td>
-                    <td data-label="操作">
-                      <Link
-                        href={
-                          approvalHref(query, { rule: rule.id, confirm: null, unresolved: false }) +
-                          '#approval-rule-detail'
-                        }
-                        style={actionLinkStyle}
-                      >
-                        詳細
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableRegion>
-        )}
-      </section>
-
-      <section
-        className="directory-panel"
-        id="approval-create"
-        aria-labelledby="approval-create-title"
-      >
-        <h2 id="approval-create-title">承認ルールを作成</h2>
-        <p className="hint">
-          コードは英小文字から始まる64文字以内の英小文字・数字・ハイフンです。段は最大3段で、上から順に承認します。
-        </p>
-        {eligibleApprovers.length === 0 && (
-          <p className="hint" role="alert">
-            現在有効な承認者（承認者ロールを持つ利用者）がいません。固定承認者を含むルールを作る前に、利用者管理でロールを確認してください。
-          </p>
-        )}
-        <form
-          action={createApprovalRuleAction.bind(null, scope, query)}
-          className="directory-form"
-          aria-describedby={error ? 'approval-error' : undefined}
-        >
-          <fieldset className="directory-form-grid">
-            <legend className="visually-hidden">承認ルールを作成</legend>
-            <div className="field">
-              <label htmlFor="approval-create-code">コード</label>
-              <input
-                id="approval-create-code"
-                name="code"
-                type="text"
-                required
-                maxLength={64}
-                pattern="[a-z][a-z0-9\-]*"
-                aria-describedby="approval-create-code-hint"
-                autoComplete="off"
-              />
-              <p className="hint" id="approval-create-code-hint">
-                例: ui016-syn-2step。作成後は変更できません。
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="approval-create-name">名称</label>
-              <input
-                id="approval-create-name"
-                name="name"
-                type="text"
-                required
-                maxLength={200}
-                autoComplete="off"
-              />
-            </div>
-          </fieldset>
-          <ApprovalStepFields idPrefix="approval-create-step" approvers={eligibleApprovers} />
-          <div className="directory-form-actions">
-            <button type="submit" id="approval-create-submit">
-              承認ルールを作成する
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {query.rule && !selected && (
-        <p role="status">選択した承認ルールは表示できませんでした。一覧から選び直してください。</p>
-      )}
-
-      {selected && (
-        <section
-          className="directory-panel"
-          id="approval-rule-detail"
-          aria-labelledby="approval-rule-detail-title"
-          tabIndex={-1}
-        >
-          <div className="directory-detail-heading">
-            <h2 id="approval-rule-detail-title">{selected.name}</h2>
-            <Link
-              href={approvalHref(query, { rule: null, confirm: null, unresolved: false })}
-              style={actionLinkStyle}
-            >
-              詳細を閉じる
-            </Link>
-          </div>
-          <p>
-            <code>{selected.code}</code> · {selected.active ? '有効' : '無効'} · 現在の版: 版
-            {selected.currentRevision} · 更新: {formatDateTime(selected.updatedAt)}
-          </p>
-          <p>段の構成: {summarizeApprovalSteps(selected.steps, selected.stepsValid)}</p>
-
-          {selected.active ? (
-            <section aria-labelledby="approval-revise-title">
-              <h3 id="approval-revise-title">新しい版を追加</h3>
-              <p className="notice">
-                保存済みの版は変更できません。下の内容は<strong>新しい版</strong>
-                として追加され、現在の版{selected.currentRevision}
-                はそのまま残ります。進行中の申請と保存済みの版の経路は変わりません。
-              </p>
-              <form
-                action={reviseApprovalRuleAction.bind(null, scope, query, selected.id)}
-                className="directory-form"
-                aria-describedby={error ? 'approval-error' : undefined}
-              >
-                <input type="hidden" name="expectedRevision" value={selected.currentRevision} />
-                <div className="field">
-                  <label htmlFor="approval-revise-name">名称</label>
-                  <input
-                    id="approval-revise-name"
-                    name="name"
-                    type="text"
-                    required
-                    maxLength={200}
-                    defaultValue={selected.name}
-                    autoComplete="off"
-                  />
-                </div>
-                <ApprovalStepFields
-                  idPrefix="approval-revise-step"
-                  approvers={eligibleApprovers}
-                  defaults={currentSteps}
-                />
-                <div className="directory-form-actions">
-                  <button type="submit" id="approval-revise-submit">
-                    新しい版を追加する
-                  </button>
-                </div>
-              </form>
-            </section>
-          ) : (
-            <p className="empty">
-              この承認ルールは無効化されています。変更はできません。必要な場合は新しいルールを作成してください。
-            </p>
-          )}
-
-          <section aria-labelledby="approval-history-title">
-            <h3 id="approval-history-title">版の履歴</h3>
-            {historyResult && !historyResult.ok ? (
-              <p className="hint" role="alert">
-                版の履歴を読み込めませんでした。時間をおいて再度お試しください。
-              </p>
-            ) : history.length === 0 ? (
-              <p className="empty">版の履歴を表示できません。</p>
-            ) : (
-              <TableRegion className="directory-table-wrap" label="承認ルールの版の履歴">
-                <table className="directory-table">
-                  <caption>承認ルールの版の履歴</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">版</th>
-                      <th scope="col">段の構成</th>
-                      <th scope="col">作成者</th>
-                      <th scope="col">作成日時</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((revision) => (
-                      <tr key={revision.revision}>
-                        <td data-label="版">
-                          版{revision.revision}
-                          {revision.revision === selected.currentRevision ? '（現在）' : ''}
-                        </td>
-                        <td data-label="段の構成">
-                          {summarizeApprovalSteps(revision.steps, revision.stepsValid)}
-                        </td>
-                        <td data-label="作成者">{revision.createdByName ?? '確認できません'}</td>
-                        <td data-label="作成日時">{formatDateTime(revision.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableRegion>
-            )}
-          </section>
-
-          <section aria-labelledby="approval-deactivate-title" id="approval-deactivate">
-            <h3 id="approval-deactivate-title">承認ルールの無効化</h3>
-            {selected.active ? (
-              <>
-                <p>
-                  無効化すると元に戻せません。カタログ項目の結び付けは残りますが、新しい申請ではこのルールを使いません。
-                </p>
-                {query.confirm === 'deactivate' ? (
-                  <div className="notice" aria-labelledby="approval-deactivate-confirm-title">
-                    <h4 id="approval-deactivate-confirm-title">承認ルールを無効化しますか</h4>
-                    <p>
-                      {selected.name}（<code>{selected.code}</code>
-                      ）を無効化します。この操作は取り消せません。
-                    </p>
-                    <form
-                      action={deactivateApprovalRuleAction.bind(null, scope, query, selected.id)}
-                      className="actions-row"
-                    >
-                      <button type="submit" id="approval-deactivate-submit" className="danger">
-                        無効化する
-                      </button>
-                      <Link
-                        href={approvalHref(query, { confirm: null }) + '#approval-rule-detail'}
-                        style={actionLinkStyle}
-                      >
-                        やめる
-                      </Link>
-                    </form>
-                  </div>
-                ) : (
-                  <p>
-                    <Link
-                      href={approvalHref(query, { confirm: 'deactivate' }) + '#approval-deactivate'}
-                      id="approval-deactivate-link"
-                      style={actionLinkStyle}
-                    >
-                      この承認ルールを無効化する
-                    </Link>
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="empty">この承認ルールは既に無効化されています。</p>
-            )}
-          </section>
-
-          <section aria-labelledby="approval-unresolved-title" id="approval-unresolved">
-            <h3 id="approval-unresolved-title">解決できない人の一覧</h3>
-            <p className="hint">
-              現在の有効な所属のうち、このルールで経路を解決できない人を表示します。上長・主部署・部署長の設定は利用者管理と部署管理で確認できます。
-            </p>
-            {query.unresolved ? (
-              unresolvedResult && !unresolvedResult.ok ? (
-                <p className="hint" role="alert">
-                  {unresolvedResult.problem.status === 403
-                    ? '解決できない人の一覧を表示する権限がありません。'
-                    : '解決できない人の一覧を読み込めませんでした。時間をおいて再度お試しください。'}
-                </p>
-              ) : unresolvedResult?.ok ? (
-                <>
-                  <p>
-                    対象: 現在の有効な所属 {unresolvedResult.data.scanned} 人 / 解決できない人{' '}
-                    {unresolvedResult.data.items.length} 人
-                  </p>
-                  {unresolvedResult.data.items.length === 0 ? (
-                    <p className="empty">
-                      現在の有効な所属で、このルールの経路を解決できない人はいません。
-                    </p>
-                  ) : (
-                    <TableRegion className="directory-table-wrap" label="解決できない人の一覧">
-                      <table className="directory-table">
-                        <caption>解決できない人の一覧</caption>
-                        <thead>
-                          <tr>
-                            <th scope="col">利用者</th>
-                            <th scope="col">理由</th>
-                            <th scope="col">操作</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {unresolvedResult.data.items.map((item) => (
-                            <tr key={item.userId}>
-                              <td data-label="利用者">{item.displayName}</td>
-                              <td data-label="理由">{resolverReasonText(item.reason)}</td>
-                              <td data-label="操作">
-                                <Link
-                                  href={`/ops/users?selected=${encodeURIComponent(item.userId)}`}
-                                  style={actionLinkStyle}
-                                >
-                                  利用者管理で確認する
-                                </Link>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </TableRegion>
-                  )}
-                  <p>
-                    <Link
-                      href={approvalHref(query, { unresolved: false }) + '#approval-unresolved'}
-                      style={actionLinkStyle}
-                    >
-                      一覧を閉じる
-                    </Link>
-                  </p>
-                </>
-              ) : null
-            ) : (
-              <p>
-                <Link
-                  href={approvalHref(query, { unresolved: true }) + '#approval-unresolved'}
-                  style={actionLinkStyle}
-                >
-                  解決できない人を表示する
-                </Link>
-              </p>
-            )}
-          </section>
-        </section>
-      )}
-
-      <section
-        className="directory-panel"
-        id="approval-preview"
-        aria-labelledby="approval-preview-title"
-      >
-        <h2 id="approval-preview-title">経路プレビュー</h2>
-        <p className="hint">
-          承認ルール、または公開済みのカタログ項目と申請者を選ぶと、誰が承認するかを段ごとに表示します。この操作は保存も申請もしません。
-        </p>
-        <form
-          method="get"
-          action="/ops/approvals"
-          className="directory-form"
-          aria-describedby={previewError ? 'approval-preview-error' : undefined}
-        >
-          {query.rule && <input type="hidden" name="rule" value={query.rule} />}
-          <fieldset>
-            <legend>経路を確認する対象</legend>
-            <label>
-              <input
-                type="radio"
-                name="previewKind"
-                value="rule"
-                defaultChecked={preview.kind !== 'item'}
-              />{' '}
-              承認ルール
-            </label>{' '}
-            <label>
-              <input
-                type="radio"
-                name="previewKind"
-                value="item"
-                defaultChecked={preview.kind === 'item'}
-              />{' '}
-              公開済みのカタログ項目
-            </label>
-          </fieldset>
-          <div
-            className="directory-form-grid"
-            style={{ minWidth: 0, overflow: 'hidden', padding: 2 }}
-          >
-            <div className="field" style={{ minWidth: 0 }}>
-              <label htmlFor="approval-preview-rule">承認ルール</label>
-              <p className="hint" id="approval-preview-rule-hint">
-                「承認ルール」を選んだときに使います。無効なルールも経路の確認だけはできます。
-              </p>
-              <select
-                id="approval-preview-rule"
-                name="previewRuleId"
-                defaultValue={preview.ruleId}
-                aria-describedby="approval-preview-rule-hint"
-                style={{ maxWidth: '100%' }}
-              >
-                <option value="">選択してください</option>
-                {rules.map((rule) => (
-                  <option key={rule.id} value={rule.id}>
-                    {rule.code} — {rule.name}
-                    {rule.active ? '' : '（無効）'}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ minWidth: 0 }}>
-              <label htmlFor="approval-preview-item">公開済みのカタログ項目</label>
-              <p className="hint" id="approval-preview-item-hint">
-                「公開済みのカタログ項目」を選んだときに使います。
-                {catalogResult.ok ? '' : '現在、カタログ項目を読み込めませんでした。'}
-              </p>
-              <select
-                id="approval-preview-item"
-                name="previewItemId"
-                defaultValue={preview.itemId}
-                aria-describedby="approval-preview-item-hint"
-                style={{ maxWidth: '100%' }}
-              >
-                <option value="">選択してください</option>
-                {publishedItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ minWidth: 0 }}>
-              <label htmlFor="approval-preview-requester">申請者</label>
-              <p className="hint" id="approval-preview-requester-hint">
-                現在の有効な所属から選びます。表示名だけを使い、社員番号・役職・勤務地は表示しません。
-              </p>
-              <select
-                id="approval-preview-requester"
-                name="previewRequesterId"
-                defaultValue={preview.requesterId}
-                aria-describedby="approval-preview-requester-hint"
-                required
-                style={{ maxWidth: '100%' }}
-              >
-                <option value="">選択してください</option>
-                {activeMembers.map((member) => (
-                  <option key={member.userId} value={member.userId}>
-                    {member.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="directory-form-actions">
-            <button type="submit" id="approval-preview-submit">
-              経路をプレビューする
-            </button>
-          </div>
-        </form>
-
-        {previewError && (
-          <div className="error-summary" id="approval-preview-error" role="alert">
-            <h3>経路を確認できませんでした</h3>
-            <p>{previewError}</p>
-          </div>
-        )}
-        {previewResult && (
-          <section aria-labelledby="approval-preview-result-title" className="notice">
-            <h3 id="approval-preview-result-title">プレビュー結果</h3>
-            <p>
-              申請者: <strong>{previewResult.requesterName ?? '表示名を確認できません'}</strong>
-              {' · '}組織の承認ルール: {previewResult.ruleRoutingEnabled ? '有効' : '無効'}
-              {previewResult.rule
-                ? ` · ${previewResult.rule.code}（版${previewResult.rule.revision}）`
-                : ' · ルールを使わない経路'}
-            </p>
-            {previewResult.resolved ? (
-              previewResult.steps && previewResult.steps.length > 0 ? (
-                <TableRegion className="directory-table-wrap" label="承認の経路">
-                  <table className="directory-table">
-                    <caption>承認の経路</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">段</th>
-                        <th scope="col">種別</th>
-                        <th scope="col">承認者</th>
-                        <th scope="col">解決方法</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewResult.steps.map((step) => (
-                        <tr key={step.stepNo}>
-                          <td data-label="段">段{step.stepNo}</td>
-                          <td data-label="種別">
-                            {AUTHORITY_LABELS[step.authorityType] ?? '種別を確認できません'}
-                          </td>
-                          <td data-label="承認者">
-                            {step.approverName ?? '表示名を確認できません'}
-                          </td>
-                          <td data-label="解決方法">{resolvedFromLabel(step.resolvedFrom)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableRegion>
-              ) : (
-                <p className="empty">承認の段が返りませんでした。設定を確認してください。</p>
-              )
-            ) : (
-              <p role="alert">
-                <strong>経路を解決できません。</strong> {resolverReasonText(previewResult.reason)}
-              </p>
-            )}
-          </section>
-        )}
-        {!previewResult && !previewError && preview.kind && (
-          <p className="hint">条件を選んで「経路をプレビューする」を押してください。</p>
-        )}
-      </section>
-
+      <nav className="admin-heading-actions" aria-label="承認の関連設定">
+        <Link className="directory-cta secondary" href="/catalog/manage/new">
+          サービスの作成へ進む
+        </Link>
+        <Link className="directory-cta secondary" href="/ops/approvals/changes">
+          上長・部署長の変更履歴
+        </Link>
+        <Link className="directory-cta secondary" href="/settings/delegations">
+          代理承認の委任
+        </Link>
+      </nav>
       <section aria-labelledby="approval-unavailable-title" id="approval-unavailable">
         <h2 id="approval-unavailable-title">承認者不在の申請</h2>
         {reassignmentNotice && (

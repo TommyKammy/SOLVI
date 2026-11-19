@@ -1,4 +1,9 @@
-import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { FreshserviceIcon } from '../../../components/FreshserviceIcon';
+import {
+  adminOrganizationName,
+  AdminDenied,
+  AdminPageHeader,
+} from '../../../components/AdminWorkspace';
 import { adminViewPath } from '../../../lib/admin-recovery';
 import { ContextLink } from '../../../components/ContextLink';
 import { redirect } from 'next/navigation';
@@ -38,7 +43,7 @@ export default async function ManageGroups({
   const session = await requireSession(adminViewPath('/ops/groups', query));
   const roles = navigationRoles(session);
   if (!roles.admin) {
-    return <AdminDenied title="担当グループの管理" canOpenHome={roles.auditor} />;
+    return <AdminDenied administration title="担当グループの管理" canOpenHome={roles.auditor} />;
   }
 
   // 無効化したものも出す。管理画面では「運用から外したもの」も見えないと、
@@ -107,11 +112,17 @@ export default async function ManageGroups({
 
   return (
     <main id="main" className="shell admin-workspace">
-      <AdminBackLink />
-      <h1>担当グループの管理</h1>
-      <p className="lead">
-        問い合わせをまず受けるキューです。担当者はグループのキューから引き受けます。
-      </p>
+      <AdminPageHeader
+        title="担当グループの管理"
+        area="groups"
+        session={session}
+        organizationName={await adminOrganizationName(session)}
+        actions={
+          <a className="directory-cta" href="#group-create">
+            <FreshserviceIcon name="plus" size={16} /> グループを作る
+          </a>
+        }
+      />
 
       {typeof query.error === 'string' && (
         <div className="error-summary" role="alert" tabIndex={-1} autoFocus>
@@ -120,139 +131,160 @@ export default async function ManageGroups({
         </div>
       )}
 
-      <h2>いまあるグループ</h2>
-      <form action="/ops/groups" method="get" className="stack" style={{ maxWidth: '32rem' }}>
-        {conditions.returnTo && <input type="hidden" name="returnTo" value={conditions.returnTo} />}
-        <div className="field">
-          <label htmlFor="group-search">グループを検索</label>
-          <input
-            id="group-search"
-            type="search"
-            name="q"
-            defaultValue={conditions.q}
-            maxLength={200}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="group-state">運用状態</label>
-          <select id="group-state" name="state" defaultValue={conditions.state}>
-            <option value="all">すべて</option>
-            <option value="active">運用中</option>
-            <option value="inactive">運用から外れたグループ</option>
-          </select>
-        </div>
-        <div className="actions-row">
-          <button type="submit">条件を適用</button>
-          <a href={groupListUrl({ ...conditions, q: '', state: 'all', page: 1 })}>条件をクリア</a>
-        </div>
-      </form>
-      <p role="status">
-        全{view.total}件 / 条件に該当{view.matched}件 / {view.start}〜{view.end}件を表示 /{' '}
-        {conditions.page}ページ目
-      </p>
-      {view.total === 0 ? (
-        <p className="empty">まだグループがありません。下のフォームから作成してください。</p>
-      ) : view.matched === 0 ? (
-        <p className="empty">
-          条件に一致するグループがありません。検索や運用状態を変更してください。
-        </p>
-      ) : view.items.length === 0 ? (
-        <p className="empty">
-          このページにグループがありません。
-          <a href={groupListUrl({ ...conditions, page: 1 })}>先頭ページへ戻る</a>
-        </p>
-      ) : (
-        <ul className="groups">
-          {view.items.map((group) => (
-            <li key={group.id} className={group.active ? 'group' : 'group inactive'}>
-              <div className="meta">
-                <span className="group-code">{group.code}</span>
-                {!group.active && <span className="state">運用から外れています</span>}
-                <span>{group.memberCount}人</span>
-              </div>
-              <strong>{group.name}</strong>
-              {group.description && <p style={{ margin: '0.25rem 0 0' }}>{group.description}</p>}
+      <div className="admin-split">
+        <section className="admin-panel" aria-labelledby="group-list-heading">
+          <h2 id="group-list-heading">グループ一覧</h2>
+          <form action="/ops/groups" method="get" className="admin-list-filters">
+            {conditions.returnTo && (
+              <input type="hidden" name="returnTo" value={conditions.returnTo} />
+            )}
+            <div className="field">
+              <label htmlFor="group-search">グループを検索</label>
+              <input
+                id="group-search"
+                type="search"
+                name="q"
+                defaultValue={conditions.q}
+                maxLength={200}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="group-state">運用状態</label>
+              <select id="group-state" name="state" defaultValue={conditions.state}>
+                <option value="all">すべて</option>
+                <option value="active">運用中</option>
+                <option value="inactive">運用から外れたグループ</option>
+              </select>
+            </div>
+            <div className="actions-row">
+              <button type="submit">条件を適用</button>
+              <a href={groupListUrl({ ...conditions, q: '', state: 'all', page: 1 })}>
+                条件をクリア
+              </a>
+            </div>
+          </form>
+          <p role="status">
+            全{view.total}件 / 条件に該当{view.matched}件 / {view.start}〜{view.end}件を表示 /{' '}
+            {conditions.page}ページ目
+          </p>
+          {view.total === 0 ? (
+            <p className="empty">まだグループがありません。下のフォームから作成してください。</p>
+          ) : view.matched === 0 ? (
+            <p className="empty">
+              条件に一致するグループがありません。検索や運用状態を変更してください。
+            </p>
+          ) : view.items.length === 0 ? (
+            <p className="empty">
+              このページにグループがありません。
+              <a href={groupListUrl({ ...conditions, page: 1 })}>先頭ページへ戻る</a>
+            </p>
+          ) : (
+            <ul className="admin-group-items" role="list">
+              {view.items.map((group) => (
+                <li key={group.id} className={group.active ? 'group' : 'group inactive'}>
+                  <a
+                    className="admin-tree-row"
+                    href={withReturnTo(`/ops/groups/${group.id}`, context)}
+                  >
+                    <FreshserviceIcon name="admin" size={16} />
+                    <strong>{group.name}</strong>
+                    <span className="admin-tree-meta">{group.memberCount}人</span>
+                  </a>
+                  <p className="hint">
+                    {group.code}
+                    {!group.active && ' · 運用から外れています'}
+                  </p>
+                  {group.description && (
+                    <p style={{ margin: '0.25rem 0 0' }}>{group.description}</p>
+                  )}
 
-              <div className="actions-row" style={{ marginTop: '0.5rem' }}>
-                <a href={withReturnTo(`/ops/groups/${group.id}`, context)}>メンバーを見る</a>
-                <form action={toggleActive}>
-                  <input type="hidden" name="groupId" value={group.id} />
-                  <input type="hidden" name="active" value={group.active ? 'false' : 'true'} />
-                  {/* **削除は無い。** 消すと過去のチケットが振り先を失う。
+                  <div className="actions-row" style={{ marginTop: '0.5rem' }}>
+                    <a href={withReturnTo(`/ops/groups/${group.id}`, context)}>メンバーを見る</a>
+                    <form action={toggleActive}>
+                      <input type="hidden" name="groupId" value={group.id} />
+                      <input type="hidden" name="active" value={group.active ? 'false' : 'true'} />
+                      {/* **削除は無い。** 消すと過去のチケットが振り先を失う。
                       運用から外すのは無効化で行う。 */}
-                  <button type="submit" className="secondary">
-                    {group.active ? '運用から外す' : '運用に戻す'}
-                  </button>
-                </form>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {(view.previous || view.next) && (
-        <nav aria-label="グループ一覧のページ" className="actions-row">
-          {view.previous && (
-            <a href={groupListUrl({ ...conditions, page: conditions.page - 1 })}>前のページ</a>
+                      <button type="submit" className="secondary">
+                        {group.active ? '運用から外す' : '運用に戻す'}
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
-          {view.next && (
-            <a href={groupListUrl({ ...conditions, page: conditions.page + 1 })}>次のページ</a>
+
+          {(view.previous || view.next) && (
+            <nav aria-label="グループ一覧のページ" className="actions-row">
+              {view.previous && (
+                <a href={groupListUrl({ ...conditions, page: conditions.page - 1 })}>前のページ</a>
+              )}
+              {view.next && (
+                <a href={groupListUrl({ ...conditions, page: conditions.page + 1 })}>次のページ</a>
+              )}
+            </nav>
           )}
-        </nav>
-      )}
+        </section>
+        <section
+          className="admin-panel admin-detail-panel"
+          id="group-create"
+          aria-labelledby="group-create-heading"
+        >
+          <h2 id="group-create-heading">グループを作る</h2>
+          <form action={createGroup} className="stack" style={{ maxWidth: '32rem' }}>
+            <div className="field">
+              <label htmlFor="group-name">名前</label>
+              <span className="hint" id="group-name-hint">
+                画面と一覧に出ます。例: ヘルプデスク / インフラ担当
+              </span>
+              <input
+                id="group-name"
+                name="name"
+                type="text"
+                required
+                maxLength={120}
+                aria-describedby="group-name-hint"
+              />
+            </div>
 
-      <h2>グループを作る</h2>
-      <form action={createGroup} className="stack" style={{ maxWidth: '32rem' }}>
-        <div className="field">
-          <label htmlFor="group-name">名前</label>
-          <span className="hint" id="group-name-hint">
-            画面と一覧に出ます。例: ヘルプデスク / インフラ担当
-          </span>
-          <input
-            id="group-name"
-            name="name"
-            type="text"
-            required
-            maxLength={120}
-            aria-describedby="group-name-hint"
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="group-code">記号</label>
-          {/* 記号を持たせるのは、会話やAPIで指し示すためである。
+            <div className="field">
+              <label htmlFor="group-code">記号</label>
+              {/* 記号を持たせるのは、会話やAPIで指し示すためである。
               UUIDを人に読ませない(WP-P1-IDM-010 と同じ理由)。 */}
-          <span className="hint" id="group-code-hint">
-            英小文字・数字・ハイフン・下線で2〜32文字。例: helpdesk
-          </span>
-          <input
-            id="group-code"
-            name="code"
-            type="text"
-            required
-            maxLength={32}
-            pattern="[a-z0-9][a-z0-9_\-]{1,31}"
-            aria-describedby="group-code-hint"
-            autoComplete="off"
-          />
-        </div>
+              <span className="hint" id="group-code-hint">
+                英小文字・数字・ハイフン・下線で2〜32文字。例: helpdesk
+              </span>
+              <input
+                id="group-code"
+                name="code"
+                type="text"
+                required
+                maxLength={32}
+                pattern="[a-z0-9][a-z0-9_\-]{1,31}"
+                aria-describedby="group-code-hint"
+                autoComplete="off"
+              />
+            </div>
 
-        <div className="field">
-          <label htmlFor="group-description">説明(任意)</label>
-          <span className="hint" id="group-desc-hint">
-            どんな問い合わせを受けるかを書くと、振り間違いが減ります
-          </span>
-          <input
-            id="group-description"
-            name="description"
-            type="text"
-            maxLength={500}
-            aria-describedby="group-desc-hint"
-          />
-        </div>
+            <div className="field">
+              <label htmlFor="group-description">説明(任意)</label>
+              <span className="hint" id="group-desc-hint">
+                どんな問い合わせを受けるかを書くと、振り間違いが減ります
+              </span>
+              <input
+                id="group-description"
+                name="description"
+                type="text"
+                maxLength={500}
+                aria-describedby="group-desc-hint"
+              />
+            </div>
 
-        <button type="submit">作成する</button>
-      </form>
+            <button type="submit">作成する</button>
+          </form>
+        </section>
+      </div>
     </main>
   );
 }

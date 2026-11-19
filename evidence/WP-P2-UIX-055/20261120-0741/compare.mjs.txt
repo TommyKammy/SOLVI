@@ -1,0 +1,75 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { login, require } from './live-helpers.mjs';
+const { chromium } = require('playwright');
+const [out, mode = 'before', web = 'http://127.0.0.1:3000', api = 'http://127.0.0.1:3001'] = process.argv.slice(2);
+const cookie = await login('org_admin', 'acme', api);
+const mock = pathToFileURL(resolve('docs/planning/assets/ui/SOLVI_Operations_Mockup.html')).href;
+const routes = {
+  admin: '', users: 'users', departments: 'departments', groups: 'groups',
+  approvals: 'approvals', notifications: 'notifications', 'access-review': 'access',
+};
+const checks = [];
+mkdirSync(out, { recursive: true });
+const browser = await chromium.launch({ channel: 'chrome' });
+try {
+  for (const width of [1440, 375]) {
+    const context = await browser.newContext({ viewport: { width, height: width === 375 ? 812 : 900 }, locale: 'ja-JP', isMobile: width === 375, hasTouch: width === 375 });
+    await context.addCookies([{ ...cookie, url: web }]);
+    const page = await context.newPage();
+    const ref = await context.newPage();
+    for (const [route, hash] of Object.entries(routes)) {
+      await ref.goto(mock + '#admin' + (hash ? '/' + hash : ''));
+      await ref.locator('main h1:visible').waitFor();
+      await page.goto(web + '/ops/' + route);
+      await page.locator('main h1:visible').waitFor();
+      async function measure(target) {
+        return target.locator('main h1:visible').evaluate(h1 => {
+          const css = getComputedStyle(h1);
+          const rect = h1.getBoundingClientRect();
+          return { title: h1.textContent.trim(), size: css.fontSize, x: rect.x, y: rect.y, overflow: document.documentElement.scrollWidth - innerWidth };
+        });
+      }
+      const reference = await measure(ref);
+      const actual = await measure(page);
+      checks.push({ route, width, reference, actual });
+      if (mode === 'after') {
+        assert.equal(reference.size, actual.size, route);
+        assert.equal(reference.x, actual.x, route);
+        assert.equal(actual.overflow, 0, route);
+        if (hash) {
+          const nav = page.getByRole('navigation', { name: '管理機能' });
+          assert.equal(await nav.locator('[aria-current=page]').getAttribute('href'), '/ops/' + route);
+          assert.equal(await nav.getByRole('link').count(), 7);
+        } else {
+          const columns = (target, selector) => target.locator(selector).evaluate(el =>
+            getComputedStyle(el).gridTemplateColumns.split(' ').length);
+          assert.equal(await columns(page, '.admin-home-panels'), await columns(ref, '.admin-home-grid'));
+          if (width === 1440) {
+            const row = page.locator('.fs-admin-card').first();
+            const refRow = ref.locator('.admin-home-link').first();
+            await row.hover();
+            await refRow.hover();
+            const color = el => el.evaluate(a => getComputedStyle(a).backgroundColor);
+            const hover = await color(row);
+            assert.equal(hover, await color(refRow));
+            checks.at(-1).hover = hover;
+            await page.screenshot({ path: join(out, 'after-1440-admin-hover.png'), animations:'disabled' });
+            await ref.screenshot({ path: join(out, 'mock-1440-admin-hover.png'), animations:'disabled' });
+            await page.mouse.move(0, 0);
+            await ref.mouse.move(0, 0);
+            assert.equal(await color(row), 'rgba(0, 0, 0, 0)');
+          }
+        }
+      }
+      await ref.screenshot({ path: join(out, 'mock-' + width + '-' + route + '.png'), animations: 'disabled' });
+      await page.screenshot({ path: join(out, mode + '-' + width + '-' + route + '.png'), animations: 'disabled' });
+    }
+    await context.close();
+  }
+} finally {
+  writeFileSync(join(out, 'geometry.json'), JSON.stringify(checks, null, 2) + '\n');
+  await browser.close();
+}

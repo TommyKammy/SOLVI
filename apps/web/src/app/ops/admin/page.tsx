@@ -2,7 +2,11 @@ import Link from 'next/link';
 import { requireSession } from '../../../lib/api';
 import { isOrgAdmin, navigationRoles } from '../../../lib/navigation';
 import { FreshserviceIcon, type FreshserviceIconName } from '../../../components/FreshserviceIcon';
-import { AdminDenied } from '../../../components/AdminWorkspace';
+import {
+  adminOrganizationName,
+  AdminDenied,
+  AdminPageHeader,
+} from '../../../components/AdminWorkspace';
 import { adminViewPath } from '../../../lib/admin-recovery';
 
 export const dynamic = 'force-dynamic';
@@ -20,11 +24,13 @@ export default async function AdminHome() {
   const roles = navigationRoles(session);
   const orgAdmin = isOrgAdmin(session);
 
-  if (!roles.admin && !roles.auditor) return <AdminDenied title="管理" canOpenHome={false} />;
+  if (!roles.admin && !roles.auditor)
+    return <AdminDenied administration title="管理" canOpenHome={false} />;
 
-  const groups: Array<{ title: string; items: AdminCard[] }> = [
+  const groups: Array<{ title: string; icon: FreshserviceIconName; items: AdminCard[] }> = [
     {
       title: '組織と利用者',
+      icon: 'admin',
       items: [
         {
           href: '/ops/users',
@@ -49,6 +55,7 @@ export default async function AdminHome() {
     },
     {
       title: roles.admin ? '承認と運用' : 'アクセスの監査',
+      icon: 'change',
       items: [
         {
           href: '/ops/approvals',
@@ -76,6 +83,7 @@ export default async function AdminHome() {
     },
     {
       title: 'サービスデスク設定',
+      icon: 'settings',
       items: [
         {
           href: '/catalog/manage',
@@ -95,52 +103,49 @@ export default async function AdminHome() {
 
   return (
     <main id="main" className="shell fs-admin admin-workspace">
-      <div className="page-heading">
-        <div>
-          <h1>管理ホーム</h1>
-          <p className="hint">
-            {orgAdmin
-              ? '組織管理者'
-              : roles.admin
-                ? 'プラットフォーム管理者'
-                : '監査担当者 · 閲覧のみ'}
-          </p>
-        </div>
+      <AdminPageHeader
+        session={session}
+        organizationName={await adminOrganizationName(session)}
+        title="管理ホーム"
+      />
+      <div className="admin-home-panels">
+        {groups.map((group) => {
+          const items = group.items.filter(
+            (item) => item.visible !== false && (roles.admin || item.href === '/ops/access-review'),
+          );
+          if (items.length === 0) return null;
+          return (
+            <section
+              className="fs-admin-section"
+              key={group.title}
+              aria-labelledby={`admin-${group.title}`}
+            >
+              <div className="fs-admin-section-heading">
+                <h2 id={`admin-${group.title}`}>
+                  <FreshserviceIcon name={group.icon} size={18} />
+                  {group.title}
+                </h2>
+              </div>
+              <ul className="fs-admin-grid" role="list">
+                {items.map((item) => (
+                  <li key={item.href}>
+                    <Link className="fs-admin-card" href={item.href} aria-label={item.title}>
+                      <span className="fs-admin-icon" aria-hidden="true">
+                        <FreshserviceIcon name={item.icon} size={20} />
+                      </span>
+                      <span className="fs-admin-card-body">
+                        <strong>{item.title}</strong>
+                        <span>{item.description}</span>
+                      </span>
+                      <FreshserviceIcon name="chevron" size={16} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
       </div>
-
-      {groups.map((group) => {
-        const items = group.items.filter(
-          (item) => item.visible !== false && (roles.admin || item.href === '/ops/access-review'),
-        );
-        if (items.length === 0) return null;
-        return (
-          <section
-            className="fs-admin-section"
-            key={group.title}
-            aria-labelledby={`admin-${group.title}`}
-          >
-            <div className="fs-admin-section-heading">
-              <h2 id={`admin-${group.title}`}>{group.title}</h2>
-            </div>
-            <ul className="fs-admin-grid">
-              {items.map((item) => (
-                <li key={item.href}>
-                  <Link className="fs-admin-card" href={item.href}>
-                    <span className="fs-admin-icon" aria-hidden="true">
-                      <FreshserviceIcon name={item.icon} size={20} />
-                    </span>
-                    <span className="fs-admin-card-body">
-                      <strong>{item.title}</strong>
-                      <span>{item.description}</span>
-                    </span>
-                    <FreshserviceIcon name="chevron" size={16} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        );
-      })}
     </main>
   );
 }

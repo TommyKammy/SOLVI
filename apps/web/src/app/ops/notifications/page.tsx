@@ -1,9 +1,17 @@
+import {
+  AdminNotificationDetails,
+  AdminNotificationDetailButton,
+} from '../../../components/AdminNotificationDetails';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { navigationRoles } from '../../../lib/navigation';
 import { withAdminReturnTo } from '../../../lib/admin-recovery';
-import { AdminBackLink } from '../../../components/AdminWorkspace';
+import {
+  adminOrganizationName,
+  AdminDenied,
+  AdminPageHeader,
+} from '../../../components/AdminWorkspace';
 import { TableRegion } from '../../../components/TableRegion';
 import { NotificationRetryForm } from '../../../components/NotificationRetryForm';
 import { formScope } from '../../../lib/form-scope';
@@ -70,7 +78,7 @@ async function Results({ query, scope }: { query: NotificationQuery; scope: stri
   if (!result.ok) return <Failure status={result.problem.status} first={first} />;
   const data = result.data;
   return (
-    <section aria-label="通知の一覧">
+    <>
       <dl className="notification-counts" aria-label="選択中の組織の通知件数">
         {NOTIFICATION_STATUSES.map((status) => (
           <div key={status}>
@@ -79,132 +87,175 @@ async function Results({ query, scope }: { query: NotificationQuery; scope: stri
           </div>
         ))}
       </dl>
-      <p className="notification-result" role="status">
-        対象 <strong>{data.total}件</strong> · この画面に
-        {data.items.length}件を表示
-      </p>
-      {data.items.length === 0 ? (
-        <div className="notification-message">
-          <h2>
-            {data.total > 0
-              ? 'この取得位置に通知はありません'
-              : query.status === 'all'
-                ? '通知はまだ記録されていません'
-                : 'この状態の通知はありません'}
-          </h2>
-          <p>
-            {data.total > 0
-              ? '通知の状態が更新された可能性があります。先頭から確認してください。'
-              : '状態が変わると、この一覧に反映されます。'}
+      <AdminNotificationDetails>
+        <section aria-label="通知の一覧">
+          <p className="notification-result" role="status">
+            対象 <strong>{data.total}件</strong> · この画面に
+            {data.items.length}件を表示
           </p>
-          <a href={first}>同じ状態の先頭へ</a>
-          {query.status !== 'all' && (
-            <Link href={notificationHref({ status: 'all', direction: 'next' })}>
-              すべての通知を見る
-            </Link>
+          {data.items.length === 0 ? (
+            <div className="notification-message">
+              <h2>
+                {data.total > 0
+                  ? 'この取得位置に通知はありません'
+                  : query.status === 'all'
+                    ? '通知はまだ記録されていません'
+                    : 'この状態の通知はありません'}
+              </h2>
+              <p>
+                {data.total > 0
+                  ? '通知の状態が更新された可能性があります。先頭から確認してください。'
+                  : '状態が変わると、この一覧に反映されます。'}
+              </p>
+              <a href={first}>同じ状態の先頭へ</a>
+              {query.status !== 'all' && (
+                <Link href={notificationHref({ status: 'all', direction: 'next' })}>
+                  すべての通知を見る
+                </Link>
+              )}
+            </div>
+          ) : (
+            <TableRegion label="通知状況の表">
+              <table className="work-table notification-table">
+                <caption className="visually-hidden">
+                  通知の記録状態と処理状況。時刻は日本標準時です。
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">通知</th>
+                    <th scope="col">通知の状態</th>
+                    <th scope="col">処理状況</th>
+                    <th scope="col">試行数</th>
+                    <th scope="col">手動再試行</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.items.map((item, row) => (
+                    <NotificationRetryForm
+                      key={item.id}
+                      summary={item.manualRetry}
+                      action={notificationRetryAction.bind(null, item.id, scope)}
+                      firstHref={first}
+                      description={`${notificationDate(item.createdAt)} · ${NOTIFICATION_EVENTS[item.eventType]} · 試行数 ${item.attempts}`}
+                    >
+                      <th scope="row">
+                        <AdminNotificationDetailButton
+                          row={row}
+                          record={{
+                            title: NOTIFICATION_EVENTS[item.eventType],
+                            facts: [
+                              { label: '作成日時（JST）', value: notificationDate(item.createdAt) },
+                              {
+                                label: '通知の状態',
+                                value: NOTIFICATION_STATUS_LABELS[item.status],
+                              },
+                              { label: '処理状況', value: OUTBOX_STATUS_LABELS[item.outboxStatus] },
+                              { label: '試行数', value: String(item.attempts) },
+                              ...(item.failedAt
+                                ? [
+                                    {
+                                      label: '失敗日時（JST）',
+                                      value: notificationDate(item.failedAt),
+                                    },
+                                  ]
+                                : []),
+                              ...(item.sentAt
+                                ? [
+                                    {
+                                      label: '記録日時（JST）',
+                                      value: notificationDate(item.sentAt),
+                                    },
+                                  ]
+                                : []),
+                              ...(item.nextAttemptAt
+                                ? [
+                                    {
+                                      label: '次回処理予定（JST）',
+                                      value: notificationDate(item.nextAttemptAt),
+                                    },
+                                  ]
+                                : []),
+                            ],
+                          }}
+                        />
+                        <div className="admin-notification-row-meta">
+                          <time dateTime={item.createdAt}>{notificationDate(item.createdAt)}</time>
+                          <span>
+                            {item.channel === 'email'
+                              ? 'メール'
+                              : item.channel === 'webhook'
+                                ? 'Webhook'
+                                : 'その他'}
+                          </span>
+                        </div>
+                      </th>
+                      <td>
+                        <strong className="notification-status" data-status={item.status}>
+                          {NOTIFICATION_STATUS_LABELS[item.status]}
+                        </strong>
+                        {item.sentAt && (
+                          <span className="notification-time">
+                            記録日時{' '}
+                            <time dateTime={item.sentAt}>{notificationDate(item.sentAt)}</time>
+                          </span>
+                        )}
+                        {item.failedAt && (
+                          <span className="notification-time">
+                            失敗日時{' '}
+                            <time dateTime={item.failedAt}>{notificationDate(item.failedAt)}</time>
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span>{OUTBOX_STATUS_LABELS[item.outboxStatus]}</span>
+                        {item.nextAttemptAt && (
+                          <span className="notification-time">
+                            次回処理予定{' '}
+                            <time dateTime={item.nextAttemptAt}>
+                              {notificationDate(item.nextAttemptAt)}
+                            </time>
+                          </span>
+                        )}
+                      </td>
+                      <td>{item.attempts}</td>
+                    </NotificationRetryForm>
+                  ))}
+                </tbody>
+              </table>
+            </TableRegion>
           )}
-        </div>
-      ) : (
-        <TableRegion label="通知状況の表">
-          <table className="work-table notification-table">
-            <caption className="visually-hidden">
-              通知の記録状態と処理状況。時刻は日本標準時です。
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">作成日時・種別</th>
-                <th scope="col">通知の状態</th>
-                <th scope="col">処理状況</th>
-                <th scope="col">試行数</th>
-                <th scope="col">手動再試行</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((item) => (
-                <NotificationRetryForm
-                  key={item.id}
-                  summary={item.manualRetry}
-                  action={notificationRetryAction.bind(null, item.id, scope)}
-                  firstHref={first}
-                  description={`${notificationDate(item.createdAt)} · ${NOTIFICATION_EVENTS[item.eventType]} · 試行数 ${item.attempts}`}
+          {(query.cursor || data.previousCursor || data.nextCursor) && (
+            <nav className="notification-pagination" aria-label="通知一覧のページ">
+              {query.cursor && (
+                <Link href={first} prefetch={false}>
+                  同じ状態の先頭へ
+                </Link>
+              )}
+              {data.previousCursor && (
+                <Link
+                  href={notificationHref({
+                    ...query,
+                    direction: 'previous',
+                    cursor: data.previousCursor,
+                  })}
+                  prefetch={false}
                 >
-                  <td>
-                    <time dateTime={item.createdAt}>{notificationDate(item.createdAt)}</time>
-                    <span className="notification-event">
-                      {NOTIFICATION_EVENTS[item.eventType]}
-                    </span>
-                    <span className="hint">
-                      {item.channel === 'email'
-                        ? 'メール'
-                        : item.channel === 'webhook'
-                          ? 'Webhook'
-                          : 'その他'}
-                    </span>
-                  </td>
-                  <td>
-                    <strong className="notification-status" data-status={item.status}>
-                      {NOTIFICATION_STATUS_LABELS[item.status]}
-                    </strong>
-                    {item.sentAt && (
-                      <span className="notification-time">
-                        記録日時 <time dateTime={item.sentAt}>{notificationDate(item.sentAt)}</time>
-                      </span>
-                    )}
-                    {item.failedAt && (
-                      <span className="notification-time">
-                        失敗日時{' '}
-                        <time dateTime={item.failedAt}>{notificationDate(item.failedAt)}</time>
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <span>{OUTBOX_STATUS_LABELS[item.outboxStatus]}</span>
-                    {item.nextAttemptAt && (
-                      <span className="notification-time">
-                        次回処理予定{' '}
-                        <time dateTime={item.nextAttemptAt}>
-                          {notificationDate(item.nextAttemptAt)}
-                        </time>
-                      </span>
-                    )}
-                  </td>
-                  <td>{item.attempts}</td>
-                </NotificationRetryForm>
-              ))}
-            </tbody>
-          </table>
-        </TableRegion>
-      )}
-      {(query.cursor || data.previousCursor || data.nextCursor) && (
-        <nav className="notification-pagination" aria-label="通知一覧のページ">
-          {query.cursor && (
-            <Link href={first} prefetch={false}>
-              同じ状態の先頭へ
-            </Link>
+                  前の20件
+                </Link>
+              )}
+              {data.nextCursor && (
+                <Link
+                  href={notificationHref({ ...query, direction: 'next', cursor: data.nextCursor })}
+                  prefetch={false}
+                >
+                  次の20件
+                </Link>
+              )}
+            </nav>
           )}
-          {data.previousCursor && (
-            <Link
-              href={notificationHref({
-                ...query,
-                direction: 'previous',
-                cursor: data.previousCursor,
-              })}
-              prefetch={false}
-            >
-              前の20件
-            </Link>
-          )}
-          {data.nextCursor && (
-            <Link
-              href={notificationHref({ ...query, direction: 'next', cursor: data.nextCursor })}
-              prefetch={false}
-            >
-              次の20件
-            </Link>
-          )}
-        </nav>
-      )}
-    </section>
+        </section>
+      </AdminNotificationDetails>
+    </>
   );
 }
 
@@ -214,15 +265,26 @@ export default async function NotificationsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await api.me();
-  const query = parseNotificationQuery(await searchParams);
+  const raw = await searchParams;
+  const query = parseNotificationQuery(raw);
   const first = notificationHref({ status: query.status, direction: 'next' });
   const roles = session.ok ? navigationRoles(session.data) : null;
-  if (!session.ok || !roles?.notifications)
+  if (session.ok && !roles?.notifications) {
+    return (
+      <AdminDenied
+        administration
+        title="通知状況"
+        permissionTitle="通知状況を表示する権限がありません"
+        canOpenHome={Boolean(roles?.admin || roles?.auditor)}
+      />
+    );
+  }
+  if (!session.ok)
     return (
       <main id="main" className="shell notification-list">
         <h1>通知状況</h1>
         <Failure
-          status={session.ok ? 403 : session.problem.status}
+          status={session.problem.status}
           first={first}
           canOpenHome={Boolean(roles?.admin || roles?.auditor)}
         />
@@ -230,15 +292,17 @@ export default async function NotificationsPage({
     );
   return (
     <main id="main" className="shell notification-list admin-workspace">
-      <header className="notification-heading support-page-heading">
-        <div>
-          <AdminBackLink />
-          <h1>通知状況</h1>
-        </div>
-        <a href={first} className="support-action">
-          通知状況を再読み込み
-        </a>
-      </header>
+      <AdminPageHeader
+        title="通知状況"
+        area="notifications"
+        session={session.data}
+        organizationName={await adminOrganizationName(session.data)}
+        actions={
+          <a href={first} className="directory-cta secondary">
+            通知状況を再読み込み
+          </a>
+        }
+      />
       <p className="notification-recording">
         開発環境では送信処理の記録のみ。実際のメール配達は確認できません。
       </p>
