@@ -2510,6 +2510,147 @@ body.fs-ui .knowledge-reader-panel h2 {
   }
 }
 
+.insights-workspace {
+  overflow-wrap: anywhere;
+}
+
+.insights-filters,
+.report-metrics {
+  display: grid;
+  gap: 12px;
+  margin-block: 16px;
+}
+
+.report-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.insights-filters {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(12rem, 1fr);
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+}
+
+.insights-filters .field {
+  min-inline-size: 0;
+}
+
+body.fs-ui .insights-filters :is(input[type='date'], select, button[type='submit']) {
+  min-block-size: 40px;
+}
+
+.insights-filters :is(input[type='date'], select) {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.insights-filters .insights-filter-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.insights-panel {
+  margin-block: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+}
+
+body.fs-ui .insights-panel h2 {
+  margin-block-start: 0;
+}
+
+#report-results,
+.insights-list a[id] {
+  scroll-margin-block-start: 72px;
+}
+
+body.fs-ui .report-metric {
+  display: grid;
+  gap: 4px;
+  min-block-size: 64px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-sm);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.report-metric strong {
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+body.fs-ui a.report-metric[aria-current='page'] {
+  background: var(--side);
+  color: var(--side-ink);
+  border-color: var(--side-line);
+}
+
+body.fs-ui a.report-metric:hover {
+  border-color: var(--fs-brand);
+}
+
+.insights-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insights-list > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding-block: 12px;
+  border-block-start: 1px solid var(--line);
+}
+
+.insights-list :is(p, time) {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.audit-fields {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0 0 16px;
+}
+
+.audit-fields dt {
+  color: var(--muted);
+}
+
+.audit-fields dd {
+  margin: 0;
+}
+
+@media (max-width: 1040px) {
+  .insights-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .insights-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (pointer: coarse) {
+  body.fs-ui .insights-filters :is(input[type='date'], select, button[type='submit']) {
+    min-block-size: 44px;
+  }
+}
+
 .admin-workspace {
   overflow-wrap: anywhere;
 }

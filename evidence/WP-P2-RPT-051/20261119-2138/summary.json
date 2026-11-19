@@ -1,0 +1,204 @@
+{
+  "browser": "157.0.8103.79",
+  "utcDate": "2026-11-19",
+  "journeys": [
+    {
+      "width": 1440,
+      "report": {
+        "counts": {
+          "received": 4,
+          "resolved": 1,
+          "open": 3,
+          "breached": 1
+        },
+        "ticket": "INC-2026-000001",
+        "resolvedTicket": "INC-2026-000004",
+        "group": "検証用サポート 01-1440",
+        "returnFocus": true,
+        "pausedExcluded": true,
+        "dateEmpty": true
+      },
+      "audit": {
+        "approval": "01a1f3d2-3f4f-7000-b100-a1e7611f28f9",
+        "roleBinding": "01a1f3d2-3f6d-7000-8299-ba714c892cc3",
+        "denyAdminAudit": true,
+        "denyAuditorReport": true,
+        "detailReturn": true,
+        "dateEmpty": true,
+        "invalidPeriod": true,
+        "reviewFilter": true,
+        "paging": [
+          25,
+          5
+        ]
+      }
+    },
+    {
+      "width": 375,
+      "report": {
+        "counts": {
+          "received": 4,
+          "resolved": 1,
+          "open": 3,
+          "breached": 1
+        },
+        "ticket": "INC-2026-000005",
+        "resolvedTicket": "INC-2026-000008",
+        "group": "検証用サポート 01-375",
+        "returnFocus": true,
+        "pausedExcluded": true,
+        "dateEmpty": true
+      },
+      "audit": {
+        "approval": "01a1f3d2-56ba-7001-8a2e-6c0bca17e845",
+        "roleBinding": "01a1f3d2-56d3-7000-812c-8779b927fe5e",
+        "denyAdminAudit": true,
+        "denyAuditorReport": true,
+        "detailReturn": true,
+        "dateEmpty": true,
+        "invalidPeriod": true,
+        "reviewFilter": true,
+        "paging": [
+          25,
+          5
+        ]
+      }
+    }
+  ],
+  "scans": [
+    {
+      "name": "report",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "sla-drilldown",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "ticket-detail",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-approval",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-role-detail",
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "sla-drilldown",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-approval",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-role-detail",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "report",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "sla-drilldown",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "ticket-detail",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-approval",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-role-detail",
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "sla-drilldown",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-approval",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "name": "audit-role-detail",
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "security": {
+    "orgIsolationListAndDetail": true,
+    "deniedRoles": 4,
+    "safeProjection": true,
+    "auditViewed": 38
+  }
+}

@@ -22,6 +22,7 @@ export function navigationRoles(session: SessionView) {
     inbox: has('agent', 'org_admin', 'platform_admin', 'approver'),
     changes: has('agent', 'org_admin', 'platform_admin', 'approver', 'auditor'),
     auditor: has('auditor'),
+    auditLog: has('auditor', 'platform_auditor'),
   };
 }
 
@@ -77,6 +78,7 @@ export function withReturnTo(href: string, from: unknown): string {
 
 const ticketListLabels = {
   '/ops/overview': '運営状況',
+  '/ops/reports': 'レポート',
   '/inbox': '業務受信箱',
   '/ops': 'チケット一覧',
 };

@@ -72,7 +72,8 @@ describe('approval rule navigation', () => {
     const auditor = [{ roleCode: 'auditor', organizationId: org }];
     expect(allItems(auditor)).toContain('/ops/approvals/changes');
     expect(allItems(auditor)).not.toContain('/ops/approvals');
-    expect(items(auditor, 'audit')).toEqual(['/ops/approvals/changes']);
+    expect(items(auditor, 'audit')).toEqual(['/ops/audit', '/ops/approvals/changes']);
+    expect(allItems(auditor)).not.toContain('/ops/reports');
     expect(items(auditor, 'admin')).toEqual(['/ops/admin', '/ops/access-review']);
   });
 

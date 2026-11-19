@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { api, login, require, web } from './helpers.mjs';
+import { testDatabase } from './fixtures.mjs';
+
+const { chromium } = require('playwright');
+const db = await testDatabase(process.argv[2]);
+let browser;
+let installed = false;
+try {
+  await db.query(`
+    CREATE FUNCTION qa_rpt051_fail_view() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.event_type = 'audit.viewed' THEN
+        RAISE EXCEPTION 'Synthetic audit write unavailable';
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+    CREATE TRIGGER qa_rpt051_fail_view BEFORE INSERT ON audit_event
+      FOR EACH ROW EXECUTE FUNCTION qa_rpt051_fail_view();
+  `);
+  installed = true;
+  browser = await chromium.launch({ channel: 'chrome' });
+  const auditor = await login('auditor');
+  const today = new Date().toISOString().slice(0, 10);
+  const params = new URLSearchParams({ from: today, to: today, category: 'approval' });
+  const response = await api('/audit/events?' + params, auditor, undefined, 500);
+  assert.equal(response.items, undefined);
+  for (const width of [1440, 375]) {
+    const context = await browser.newContext({
+      viewport: { width, height: width === 375 ? 812 : 900 },
+      isMobile: width === 375,
+      hasTouch: width === 375,
+      locale: 'ja-JP',
+    });
+    await context.addCookies([{ ...auditor, url: web }]);
+    const page = await context.newPage();
+    const result = await page.goto(web + '/ops/audit?' + params);
+    assert.equal(result.status(), 200);
+    const main = page.locator('main');
+    await main.getByRole('heading', { name: '監査ログを取得できませんでした' }).waitFor();
+    assert.equal(await main.getByText('この条件に一致する監査イベントはありません。').count(), 0);
+    assert.equal(await main.locator('.insights-list li').count(), 0);
+    await main.getByRole('link', { name: '再読み込みする' }).waitFor();
+    await context.close();
+    console.log('UNAVAILABLE', width, 'audit API 500, explicit retry, no event rows or empty message');
+  }
+} finally {
+  try {
+    if (installed) {
+      await db.query('DROP TRIGGER qa_rpt051_fail_view ON audit_event; DROP FUNCTION qa_rpt051_fail_view();');
+    }
+  } finally {
+    await browser?.close();
+    await db.end();
+  }
+}

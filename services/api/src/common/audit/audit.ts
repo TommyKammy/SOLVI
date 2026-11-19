@@ -44,6 +44,7 @@ export const AUDIT_EVENT_TYPES = [
   'org.department.head.assigned',
   'org.department.head.removed',
   'audit.export.executed',
+  'audit.viewed',
   'config.changed',
   // 組織切替(02.18 §3 / 脅威 T-20)
   'platform.org_context.switched',

@@ -36,6 +36,7 @@ import {
   startApprovalNoticeLoop,
 } from './modules/catalog/approval-notice-sweep.js';
 import { AuditExportController } from './modules/audit/audit-export.routes.js';
+import { AuditEventsController } from './modules/audit/audit-events.routes.js';
 import { AutoCloseSweeper, startAutoCloseLoop } from './common/close/auto-close.js';
 import { SessionPurger, startSessionPurgeLoop } from './common/session/purge.js';
 import {
@@ -183,6 +184,7 @@ async function bootstrap(): Promise<void> {
   const relationshipChanges = new RelationshipChangeController({ pool: db.authPool() });
   const accessReview = new AccessReviewController({ pool: db.authPool() });
   const auditExport = new AuditExportController({ pool: db.authPool() });
+  const auditEvents = new AuditEventsController({ pool: db.authPool() });
 
   const app = new HttpServer(logger)
     .get('/me/notification-preferences', async (req) => {
@@ -797,7 +799,16 @@ async function bootstrap(): Promise<void> {
       const result = await relations.merge(authenticated, params.id ?? '', await readJsonBody(req));
       return result.body;
     })
-    // ---- 監査の書き出し (AUD-002 / AUD-003 / WP-P1-AUD-018) -----------------
+    // ---- 監査の閲覧・書き出し (AUD-002 / AUD-003) -----------------
+    .get('/audit/events', async (req, res) => {
+      const authenticated = await auth.authenticate(req.headers);
+      res.setHeader('cache-control', 'no-store');
+      return auditEvents.read(
+        authenticated,
+        new URL(req.url ?? '/', 'http://localhost').searchParams,
+        { sourceIp: req.socket.remoteAddress, userAgent: req.headers['user-agent'] },
+      );
+    })
     .get('/audit/export', async (req, res) => {
       const authenticated = await auth.authenticate(req.headers);
       const url = new URL(req.url ?? '/', 'http://localhost');

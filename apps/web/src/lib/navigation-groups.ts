@@ -107,7 +107,7 @@ export function buildNavigationGroups(
   };
 
   const dashboardItems: RailItem[] = roles.staff
-    ? [item('/ops/overview', '運営状況')]
+    ? [item('/ops/overview', '運営状況'), item('/ops/reports', 'レポート')]
     : [item('/portal', '利用者ポータル')];
 
   const ticketItems: RailItem[] = [
@@ -206,14 +206,17 @@ export function buildNavigationGroups(
           },
         ]
       : []),
-    ...(roles.auditor
+    ...(roles.auditLog
       ? [
           {
             id: 'audit',
             label: '監査',
-            href: '/ops/approvals/changes',
+            href: '/ops/audit',
             icon: 'change' as const,
-            items: [item('/ops/approvals/changes', '承認の変更履歴')],
+            items: [
+              item('/ops/audit', '監査ログ'),
+              ...(roles.auditor ? [item('/ops/approvals/changes', '承認の変更履歴')] : []),
+            ],
           },
         ]
       : []),

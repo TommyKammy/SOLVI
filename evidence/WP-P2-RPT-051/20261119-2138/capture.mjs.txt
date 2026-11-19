@@ -1,0 +1,320 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { api, require, web } from './helpers.mjs';
+import { accountsFor, approvalFixture, auditReads, roleFixture, testDatabase, ticketFixture } from './fixtures.mjs';
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const [out, database, run] = process.argv.slice(2);
+assert.match(run, /^\d+$/);
+mkdirSync(join(out, 'screens'), { recursive: true });
+const db = await testDatabase(database);
+const browser = await chromium.launch({ channel: 'chrome' });
+const today = new Date().toISOString().slice(0, 10);
+const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+const summary = { browser: browser.version(), utcDate: today, journeys: [], scans: [] };
+const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+const main = (page) => page.locator('main');
+const link = (page, name) => main(page).getByRole('link', { name, exact: true });
+const button = (page, name) => main(page).getByRole('button', { name, exact: true });
+const heading = (page, name) => main(page).getByRole('heading', { name, exact: true });
+const items = (page) => main(page).locator('.insights-list > li');
+const auditParams = (category = 'all') => new URLSearchParams({ from: today, to: today, category });
+
+async function pageFor(cookie, width, colorScheme = 'light') {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: 'ja-JP',
+    colorScheme,
+    isMobile: width === 375,
+    hasTouch: width === 375,
+  });
+  await context.addCookies([{ ...cookie, url: web }]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(12000);
+  return page;
+}
+
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname);
+  await main(page).locator('h1').waitFor();
+}
+
+async function use(locator, width) {
+  if (width === 375) await locator.tap();
+  else {
+    await locator.focus();
+    await locator.press('Enter');
+  }
+}
+
+async function menu(page, destination, width) {
+  if (width === 375) await page.getByRole('button', { name: 'メニューを開く' }).tap();
+  await use(page.getByRole('navigation', { name: '業務メニュー' })
+    .getByRole('link', { name: destination, exact: true }), width);
+}
+
+async function scan(page, name, width, theme, capture = true) {
+  assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  const form = main(page).locator('.insights-filters');
+  if (await form.count()) {
+    const controls = await form.locator('input[type="date"], select, button[type="submit"]')
+      .evaluateAll((entries) => entries.map((entry) => {
+        const { y, height, width } = entry.getBoundingClientRect();
+        return { y, height, width };
+      }));
+    assert.equal(controls.length, 4);
+    assert.ok(controls.every((control) => control.height === controls[0].height));
+    if (width === 1440) {
+      assert.ok(controls.every((control) => control.y === controls[0].y));
+      assert.ok(controls.slice(0, 2).every((control) => control.width >= 160));
+    }
+  }
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const violations = result.violations.map(({ id, impact, nodes }) => ({
+    id, impact, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+  }));
+  const incomplete = result.incomplete.map(({ id, nodes }) => ({ id, targets: nodes.map(({ target }) => target) }));
+  summary.scans.push({ name, width, theme, overflow, violations, incomplete });
+  if (capture) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: join(out, 'screens', [theme, width, name].join('-') + '.png'),
+      animations: 'disabled', fullPage: true });
+  }
+  console.log('AXE', theme, width, name, overflow, violations.map((v) => v.id).join(',') || 'pass');
+  assert.equal(overflow, 0, name + ' horizontal overflow');
+  assert.equal(violations.length, 0, JSON.stringify(violations));
+}
+
+async function assertMetric(page, metric, count, ids) {
+  const card = main(page).locator('[data-metric="' + metric + '"]');
+  assert.equal(await card.locator('strong').textContent(), count + '件');
+  assert.equal(await card.getAttribute('aria-current'), 'page');
+  assert.equal(await items(page).count(), count);
+  for (const id of ids) await page.locator('#ticket-entry-' + id).waitFor();
+}
+
+async function reportJourney(accounts, fixture, width) {
+  const { group, tickets } = fixture;
+  const page = await pageFor(accounts.agent, width);
+  await enter(page, '/ops/overview');
+  await menu(page, 'レポート', width);
+  await heading(page, 'レポート').waitFor();
+  await page.locator('#report-from').fill(today);
+  await page.locator('#report-to').fill(today);
+  await page.locator('#report-group').selectOption(group.id);
+  await use(button(page, '絞り込む'), width);
+  await page.waitForURL((url) => url.searchParams.get('group') === group.id);
+  await assertMetric(page, 'received', 4, Object.values(tickets).map(({ id }) => id));
+  await scan(page, 'report', width, 'light');
+
+  const entry = 'ticket-entry-' + tickets.breached.id;
+  await use(page.locator('[data-metric="breached"]'), width);
+  await heading(page, '解決期限超過の対象チケット').waitFor();
+  await assertMetric(page, 'breached', 1, [tickets.breached.id]);
+  assert.equal(await page.locator('#ticket-entry-' + tickets.paused.id).count(), 0);
+  const drilldown = new URL(page.url());
+  await scan(page, 'sla-drilldown', width, 'light');
+
+  await use(page.locator('#' + entry), width);
+  await page.waitForURL((url) => url.pathname === '/ops/' + tickets.breached.id);
+  await heading(page, tickets.breached.subject).waitFor();
+  await scan(page, 'ticket-detail', width, 'light', false);
+  await use(link(page, 'レポートに戻る'), width);
+  await page.waitForURL((url) => url.pathname === '/ops/reports' && url.hash === '#' + entry);
+  await assertMetric(page, 'breached', 1, [tickets.breached.id]);
+  assert.equal(new URL(page.url()).search, drilldown.search);
+  await page.waitForFunction((id) => document.activeElement?.id === id, entry);
+
+  await use(page.locator('[data-metric="resolved"]'), width);
+  await heading(page, '解決済みの対象チケット').waitFor();
+  await assertMetric(page, 'resolved', 1, [tickets.resolved.id]);
+  await use(page.locator('#ticket-entry-' + tickets.resolved.id), width);
+  await heading(page, tickets.resolved.subject).waitFor();
+  await use(link(page, 'レポートに戻る'), width);
+  await heading(page, '解決済みの対象チケット').waitFor();
+  await use(page.locator('[data-metric="open"]'), width);
+  await heading(page, '未完了の対象チケット').waitFor();
+  await assertMetric(page, 'open', 3, [tickets.breached.id, tickets.fresh.id, tickets.paused.id]);
+
+  await page.locator('#report-from').fill(yesterday);
+  await page.locator('#report-to').fill(yesterday);
+  await use(button(page, '絞り込む'), width);
+  await main(page).getByText('この条件に該当するチケットはありません。', { exact: true }).waitFor();
+  await page.context().close();
+  return {
+    counts: { received: 4, resolved: 1, open: 3, breached: 1 },
+    ticket: tickets.breached.number, resolvedTicket: tickets.resolved.number,
+    group: group.name, returnFocus: true, pausedExcluded: true, dateEmpty: true,
+  };
+}
+
+async function auditJourney(accounts, requestId, roleAudit, reviewId, width) {
+  const page = await pageFor(accounts.auditor, width);
+  await enter(page, '/ops/approvals/changes');
+  await menu(page, '監査ログ', width);
+  await heading(page, '監査ログ').waitFor();
+  await page.locator('#audit-from').fill(today);
+  await page.locator('#audit-to').fill(today);
+  await page.locator('#audit-category').selectOption('approval');
+  await use(button(page, '絞り込む'), width);
+  const approved = items(page).filter({ hasText: requestId }).getByRole('link', { name: '申請を承認', exact: true });
+  await approved.waitFor();
+  assert.equal(await link(page, '役割を付与').count(), 0);
+  await scan(page, 'audit-approval', width, 'light');
+  await use(approved, width);
+  await heading(page, '申請を承認').waitFor();
+  assert.match(await main(page).locator('dl').innerText(), /承認の段\s+段1/);
+  await use(link(page, 'この対象の履歴に絞る'), width);
+  await link(page, '承認依頼').waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('target'), requestId);
+  assert.equal(await items(page).filter({ hasNotText: requestId }).count(), 0);
+  await use(link(page, '対象の絞り込みを解除する'), width);
+  await page.waitForURL((url) => !url.searchParams.has('target'));
+  await page.locator('#audit-category').selectOption('role');
+  await use(button(page, '絞り込む'), width);
+  const revoked = items(page).filter({ hasText: roleAudit.target }).getByRole('link', { name: '役割を取り消し' });
+  await revoked.waitFor();
+  assert.equal(await link(page, '承認依頼').count(), 0);
+  await use(revoked, width);
+  await heading(page, '役割を取り消し').waitFor();
+  assert.match(await main(page).locator('dl').innerText(), /変更前の役割\s+オペレーター/);
+  assert.ok(!(await main(page).innerText()).includes('SYNTH_PRIVATE_ROLE_'));
+  await scan(page, 'audit-role-detail', width, 'light');
+  await use(link(page, '監査ログ一覧へ戻る'), width);
+  await revoked.waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('from'), today);
+  assert.equal(new URL(page.url()).searchParams.get('category'), 'role');
+  await use(revoked, width);
+  await heading(page, '役割を取り消し').waitFor();
+  await use(link(page, 'この対象の履歴に絞る'), width);
+  await link(page, '役割を付与').waitFor();
+  assert.equal(await items(page).count(), 2);
+
+  await page.locator('#audit-from').fill(yesterday);
+  await page.locator('#audit-to').fill(yesterday);
+  await use(button(page, '絞り込む'), width);
+  await main(page).getByText('この条件に一致する監査イベントはありません。', { exact: true }).waitFor();
+  await page.locator('#audit-from').fill(today);
+  await use(button(page, '絞り込む'), width);
+  await heading(page, '絞り込み条件を確認してください').waitFor();
+  await use(link(page, '条件を解除する'), width);
+  await page.waitForURL((url) => url.pathname === '/ops/audit' && url.search === '');
+  await page.waitForFunction(() =>
+    !document.querySelector('main input[name="target"]') &&
+    document.querySelector('#audit-category')?.value === 'all' &&
+    document.querySelector('#audit-to')?.value === new Date().toISOString().slice(0, 10),
+  );
+  await page.locator('#audit-category').selectOption('review');
+  await use(button(page, '絞り込む'), width);
+  await items(page).filter({ hasText: reviewId })
+    .getByRole('link', { name: 'アクセスレビューを開始' }).waitFor();
+  assert.equal(await link(page, '役割を付与').count(), 0);
+  await page.context().close();
+
+  const admin = await pageFor(accounts.org_admin, width);
+  await enter(admin, '/ops/audit');
+  await main(admin).getByText(/この画面を表示する権限がありません/).waitFor();
+  await admin.context().close();
+  const viewer = await pageFor(accounts.auditor, width);
+  await enter(viewer, '/ops/reports');
+  await main(viewer).getByText(/この画面を表示する権限がありません/).waitFor();
+  await viewer.context().close();
+  return { approval: requestId, roleBinding: roleAudit.target, denyAdminAudit: true,
+    denyAuditorReport: true, detailReturn: true, dateEmpty: true, invalidPeriod: true, reviewFilter: true };
+}
+
+async function darkChecks(accounts, fixture, roleAudit, width) {
+  const agent = await pageFor(accounts.agent, width, 'dark');
+  const p = new URLSearchParams({ from: today, to: today, metric: 'breached', group: fixture.group.id });
+  await enter(agent, '/ops/reports?' + p);
+  await assertMetric(agent, 'breached', 1, [fixture.tickets.breached.id]);
+  await scan(agent, 'sla-drilldown', width, 'dark');
+  await agent.context().close();
+  const auditor = await pageFor(accounts.auditor, width, 'dark');
+  await enter(auditor, '/ops/audit?' + auditParams('approval'));
+  await link(auditor, '申請を承認').first().waitFor();
+  await scan(auditor, 'audit-approval', width, 'dark', false);
+  const detail = auditParams('role');
+  detail.set('event', roleAudit.event);
+  await enter(auditor, '/ops/audit?' + detail);
+  await heading(auditor, '役割を取り消し').waitFor();
+  await scan(auditor, 'audit-role-detail', width, 'dark');
+  await auditor.context().close();
+}
+
+try {
+  const accounts = await accountsFor('acme');
+  const beta = await accountsFor('beta');
+  const betaRole = await roleFixture(db, beta, 'beta-' + run);
+  const roleQuery = auditParams('role');
+  roleQuery.set('target', betaRole.target);
+  const endpoint = '/audit/events?';
+  assert.equal((await api(endpoint + roleQuery, beta.auditor)).items.length, 2);
+  assert.deepEqual((await api(endpoint + roleQuery, accounts.auditor)).items, []);
+  roleQuery.delete('target');
+  roleQuery.set('event', betaRole.event);
+  assert.equal((await api(endpoint + roleQuery, beta.auditor)).items[0].id, betaRole.event);
+  assert.deepEqual((await api(endpoint + roleQuery, accounts.auditor)).items, []);
+  for (const role of ['org_admin', 'agent', 'requester', 'approver']) {
+    await api(endpoint + auditParams(), accounts[role], undefined, 403);
+  }
+  const readsBefore = (await auditReads(db, accounts)).length;
+  const { reviewId } = await api('/access-reviews', accounts.org_admin, {
+    periodLabel: 'RPT-QA-' + run,
+  });
+  for (const width of [1440, 375]) {
+    const suffix = run + '-' + width;
+    const fixture = await ticketFixture(db, accounts, suffix);
+    const requestId = await approvalFixture(accounts, suffix);
+    const roleAudit = await roleFixture(db, accounts, suffix);
+    const report = await reportJourney(accounts, fixture, width);
+    const audit = await auditJourney(accounts, requestId, roleAudit, reviewId, width);
+    await darkChecks(accounts, fixture, roleAudit, width);
+    const filters = auditParams('role');
+    filters.set('target', roleAudit.target);
+    const payload = await api(endpoint + filters, accounts.auditor);
+    assert.equal(payload.items.length, 2);
+    assert.deepEqual(Object.keys(payload.items[0]).sort(),
+      ['actorId','actorType','id','occurredAt','roleAfter','roleBefore','step','subjectId','targetId','type'].sort());
+    assert.ok(!JSON.stringify(payload).includes('SYNTH_PRIVATE_'));
+    summary.journeys.push({ width, report, audit });
+    console.log('JOURNEY', width, 'counts 4/1/3/1; SLA and resolved ticket drilldown and return; approval and role history; empty/invalid and permission views');
+  }
+  // Force a second page using events created by the real role operations.
+  for (let i = 0; i < 13; i++) await roleFixture(db, accounts, run + '-page-' + i);
+  for (const width of [1440, 375]) {
+    const pager = await pageFor(accounts.auditor, width);
+    await enter(pager, '/ops/audit?' + auditParams('role'));
+    assert.equal(await items(pager).count(), 25);
+    const first = await items(pager).getByRole('link').evaluateAll(
+      (entries) => entries.map((entry) => new URL(entry.href).searchParams.get('event')),
+    );
+    await use(link(pager, '次のページ'), width);
+    await pager.waitForURL((url) => url.searchParams.get('page') === '2');
+    const second = await items(pager).getByRole('link').evaluateAll(
+      (entries) => entries.map((entry) => new URL(entry.href).searchParams.get('event')),
+    );
+    assert.equal(second.length, 5);
+    assert.ok(second.every((id) => !first.includes(id)));
+    await use(link(pager, '前のページ'), width);
+    await pager.waitForURL((url) => url.searchParams.get('page') === '1');
+    assert.equal(await items(pager).count(), 25);
+    await pager.context().close();
+    summary.journeys.find((entry) => entry.width === width).audit.paging = [25, second.length];
+    console.log('PAGING', width, 25, second.length);
+  }
+  const reads = (await auditReads(db, accounts)).slice(readsBefore);
+  assert.ok(reads.some((entry) => entry.category === 'approval' && entry.detail && entry.eventCount === 1));
+  assert.ok(reads.some((entry) => entry.category === 'role' && entry.targetFiltered && entry.eventCount === 2));
+  assert.ok(reads.every((entry) => !('target' in entry) && !('event' in entry)));
+  summary.security = { orgIsolationListAndDetail: true, deniedRoles: 4, safeProjection: true, auditViewed: reads.length };
+  console.log('SECURITY', JSON.stringify(summary.security));
+} finally {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+  await browser.close();
+  await db.end();
+}

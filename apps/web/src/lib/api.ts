@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { withAdminReturnTo } from './admin-recovery';
+import type { AuditEventSummary } from './ops-insights';
 import { parseOperationsOverview, type OperationsOverviewCounts } from './operations-overview';
 import {
   parseNotificationList,
@@ -1369,6 +1370,9 @@ export const api = {
       nextCursor: { createdAt: string; id: string } | null;
     }>(`/tickets?${query.toString()}`);
   },
+
+  auditEvents: (query: URLSearchParams) =>
+    call<{ items: AuditEventSummary[]; hasMore: boolean }>('/audit/events?' + query),
 
   getTicket: (id: string) => call<TicketView>(`/tickets/${encodeURIComponent(id)}`),
 

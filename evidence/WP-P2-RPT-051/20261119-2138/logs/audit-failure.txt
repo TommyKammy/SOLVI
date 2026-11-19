@@ -1,0 +1,2 @@
+UNAVAILABLE 1440 audit API 500, explicit retry, no event rows or empty message
+UNAVAILABLE 375 audit API 500, explicit retry, no event rows or empty message
