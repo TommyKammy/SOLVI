@@ -1,0 +1,5 @@
+rtk proxy npm run test:unit -- --reporter=json --outputFile=/tmp/solvi-simui023.zb51b7yy/unit.json
+Files: 122
+Passed: 4897
+Skipped: 26
+Failed: 0

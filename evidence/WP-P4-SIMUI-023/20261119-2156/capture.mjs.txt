@@ -1,0 +1,283 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { api, login, require, web } from './helpers.mjs';
+import { accountsFor, requestFixture, testDatabase } from './fixtures.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const [out, database, run] = process.argv.slice(2);
+assert.match(run, /^\d+$/);
+mkdirSync(join(out, 'screens'), { recursive: true });
+const db = await testDatabase(database);
+const browser = await chromium.launch({ channel: 'chrome' });
+const today = new Date().toISOString().slice(0, 10);
+const summary = { browser: browser.version(), utcDate: today, journeys: [], scans: [] };
+const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+const main = (page) => page.locator('main');
+const link = (page, name) => main(page).getByRole('link', { name, exact: true });
+const button = (page, name) => main(page).getByRole('button', { name, exact: true });
+const heading = (page, name) => main(page).getByRole('heading', { name, exact: true });
+const milestone = (page) => main(page).locator('#ticket-assistance');
+const receipt = (page) => main(page).locator('#simulation-receipt');
+const auditParams = (category, target) => new URLSearchParams({
+  from: today, to: today, category, ...(target ? { target } : {}),
+});
+const choice = (kind) => ({ decision: kind, requestRevision: 1, suggestionVersion: 1 });
+
+async function pageFor(cookie, width, colorScheme = 'light') {
+  const context = await browser.newContext({
+    viewport: { width, height: width === 375 ? 812 : 900 },
+    locale: 'ja-JP', colorScheme, isMobile: width === 375, hasTouch: width === 375,
+  });
+  await context.addCookies([{ ...cookie, url: web }]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(12000);
+  return page;
+}
+async function enter(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  assert.equal(new URL(page.url()).pathname, new URL(path, web).pathname);
+  await main(page).locator('h1').waitFor();
+}
+async function use(locator, width) {
+  if (width === 375) await locator.tap();
+  else {
+    await locator.focus();
+    await locator.press('Enter');
+  }
+}
+
+async function scan(page, name, width, theme = 'light', screenshot = true, region = null) {
+  assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  const violations = result.violations.map(({ id, impact, nodes }) => ({
+    id, impact, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+  }));
+  const incomplete = result.incomplete.map(({ id, nodes }) => ({ id, targets: nodes.map(({ target }) => target) }));
+  summary.scans.push({ name, width, theme, overflow, violations, incomplete });
+  if (screenshot) {
+    const path = join(out, 'screens', [theme, width, name].join('-') + '.png');
+    if (region) await region.screenshot({ path, animations: 'disabled' });
+    else {
+      await page.evaluate(() => scrollTo(0, 0));
+      await page.screenshot({ path, animations: 'disabled', fullPage: true });
+    }
+  }
+  console.log('AXE', theme, width, name, overflow, violations.map((v) => v.id).join(',') || 'pass');
+  assert.equal(overflow, 0, name + ' horizontal overflow');
+  assert.equal(violations.length, 0, JSON.stringify(violations));
+}
+
+async function openProposal(page, fixture, width) {
+  await enter(page, '/ops/' + fixture.ticketId);
+  await heading(page, fixture.title).waitFor();
+  await use(link(page, 'AI支援'), width);
+  await page.waitForFunction(() => document.querySelector('#ticket-assistance')?.open === true);
+  await milestone(page).getByRole('heading', { name: '承認と模擬実行の確認手順' }).waitFor();
+  assert.ok((await milestone(page).innerText()).includes(fixture.title + '（公開版 1、申請内容版 1）'));
+}
+async function reopen(page, path, status) {
+  await enter(page, path + '#ticket-assistance');
+  await page.waitForFunction(() => document.querySelector('#ticket-assistance')?.open === true);
+  await milestone(page).getByText(status, { exact: true }).waitFor();
+}
+
+async function chooseAndSimulate(accounts, fixture, width) {
+  const { requestId, ticketId, title } = fixture;
+  const staff = await pageFor(accounts.agent, width);
+  const proposalPath = '/ops/' + ticketId;
+  const requestPath = '/requests/' + requestId;
+  const apiRequest = '/service-requests/' + requestId;
+  const decidePath = '/tickets/' + ticketId + '/assistance/decision';
+  const pending = await api(apiRequest, accounts.agent);
+  assert.equal(pending.request.ticketId, ticketId);
+  assert.equal(pending.request.state, 'pending');
+  await api(apiRequest + '/simulate', accounts.agent, { expectedVersion: pending.request.version }, 409);
+
+  await openProposal(staff, fixture, width);
+  await scan(staff, 'proposal', width, 'light', true, milestone(staff));
+  await use(button(staff, '提案を採用する'), width);
+  await milestone(staff).getByText('採用済み', { exact: true }).waitFor();
+  await link(staff, '承認・模擬実行を開く').waitFor();
+  assert.equal(await button(staff, '提案を見送る').count(), 0);
+  assert.equal((await api(apiRequest, accounts.agent)).request.state, 'pending');
+  assert.equal((await api(decidePath, accounts.agent, choice('accepted'), 200)).replayed, true);
+  await api(decidePath, accounts.agent, choice('rejected'), 409);
+  await reopen(staff, proposalPath, '採用済み');
+  await use(link(staff, '承認・模擬実行を開く'), width);
+  await staff.waitForURL((u) => u.pathname === requestPath);
+  await heading(staff, title).waitFor();
+  assert.equal(new URL(staff.url()).searchParams.get('returnTo'), proposalPath + '#ticket-assistance');
+  assert.equal(await button(staff, 'ローカルで模擬実行する').count(), 0);
+  assert.equal(await button(staff, '承認する').count(), 0);
+
+  const reviewer = await pageFor(accounts.approver, width);
+  const before = await api(apiRequest, accounts.approver);
+  await enter(reviewer, '/inbox?kind=approval&q=' + encodeURIComponent(before.request.number));
+  const approvalRow = main(reviewer).getByRole('row').filter({ hasText: before.request.number });
+  await use(approvalRow.getByRole('button'), width);
+  await reviewer.waitForURL((u) => u.pathname === requestPath);
+  await heading(reviewer, '承認の判断').waitFor();
+  await scan(reviewer, 'approval', width, 'light', false);
+  await use(button(reviewer, '承認する'), width);
+  await reviewer.waitForURL((u) => u.searchParams.get('saved') === '1');
+  await main(reviewer).getByText('承認済み・模擬実行待ち', { exact: true }).first().waitFor();
+  assert.equal(await button(reviewer, 'ローカルで模擬実行する').count(), 0);
+  assert.equal((await api(apiRequest, accounts.agent)).request.state, 'approved');
+  await reviewer.context().close();
+
+  await staff.reload();
+  await button(staff, 'ローカルで模擬実行する').waitFor();
+  await use(button(staff, 'ローカルで模擬実行する'), width);
+  await heading(staff, '模擬実行の結果').waitFor();
+  await receipt(staff).getByText('0件', { exact: true }).waitFor();
+  const result = await api(apiRequest, accounts.agent);
+  assert.equal(result.request.ticketId, ticketId);
+  assert.equal(result.request.state, 'completed');
+  assert.equal(result.receipt.result.externalChanges, 0);
+  const { id: receiptId } = result.receipt;
+  assert.ok((await receipt(staff).innerText()).includes(receiptId));
+  const retry = await api(apiRequest + '/simulate', accounts.agent, { expectedVersion: result.request.version }, 200);
+  assert.equal(retry.receipt.id, receiptId);
+  assert.equal(retry.replayed, true);
+  await scan(staff, 'receipt', width, 'light', true, receipt(staff));
+  await use(link(staff, 'チケットで提案の判断を確認する'), width);
+  await staff.waitForURL((u) => u.pathname === proposalPath && u.hash === '#ticket-assistance');
+  await link(staff, '模擬実行の結果を開く').waitFor();
+  assert.equal(await link(staff, 'この申請の監査ログを開く').count(), 0);
+  await staff.context().close();
+  return receiptId;
+}
+
+async function auditJourney(accounts, fixture, receiptId, width) {
+  const { requestId, ticketId } = fixture;
+  const viewer = await pageFor(accounts.auditor, width);
+  await enter(viewer, '/ops/audit');
+  await viewer.locator('#audit-from').fill(today);
+  await viewer.locator('#audit-to').fill(today);
+  await viewer.locator('#audit-category').selectOption('assistance');
+  await use(button(viewer, '絞り込む'), width);
+  const auditRow = (label) => main(viewer).locator('.insights-list li').filter({ hasText: requestId })
+    .getByRole('link', { name: label, exact: true });
+  await auditRow('提案を採用').waitFor();
+  await use(auditRow('提案を採用'), width);
+  await heading(viewer, '提案を採用').waitFor();
+  assert.ok((await main(viewer).locator('dl').innerText()).includes(ticketId));
+  await use(link(viewer, 'この対象の履歴に絞る'), width);
+  await viewer.waitForURL((u) => u.searchParams.get('target') === requestId && !u.searchParams.has('event'));
+  await auditRow('提案を採用').waitFor();
+  await viewer.locator('#audit-category').selectOption('all');
+  await use(button(viewer, '絞り込む'), width);
+  await auditRow('承認依頼').waitFor();
+  await auditRow('申請を承認').waitFor();
+  await auditRow('模擬実行の結果を記録').waitFor();
+  await scan(viewer, 'audit-trail', width);
+  await viewer.locator('#audit-category').selectOption('automation');
+  await use(button(viewer, '絞り込む'), width);
+  await viewer.waitForURL((u) => u.searchParams.get('category') === 'automation');
+  assert.equal(await main(viewer).locator('.insights-list li').count(), 1);
+  await use(auditRow('模擬実行の結果を記録'), width);
+  await heading(viewer, '模擬実行の結果を記録').waitFor();
+  const auditDetail = await main(viewer).locator('dl').innerText();
+  assert.ok(auditDetail.includes(ticketId) && auditDetail.includes(receiptId));
+  await scan(viewer, 'audit-receipt', width);
+  await viewer.context().close();
+}
+
+async function rejection(accounts, fixture, width) {
+  const staff = await pageFor(accounts.agent, width);
+  await openProposal(staff, fixture, width);
+  await use(button(staff, '提案を見送る'), width);
+  await milestone(staff).getByText('見送り', { exact: true }).waitFor();
+  await reopen(staff, '/ops/' + fixture.ticketId, '見送り');
+  assert.equal(await link(staff, '承認・模擬実行を開く').count(), 0);
+  assert.equal(await button(staff, '提案を採用する').count(), 0);
+  const log = await api('/audit/events?' + auditParams('assistance', fixture.requestId), accounts.auditor);
+  assert.equal(log.items.length, 1);
+  assert.equal(log.items[0].type, 'ai.suggestion.rejected');
+  assert.equal((await api('/service-requests/' + fixture.requestId, accounts.agent)).request.state, 'pending');
+  await staff.context().close();
+}
+
+async function darkSharedRecord(cookie, fixture, receiptId, width) {
+  const page = await pageFor(cookie, width, 'dark');
+  await reopen(page, '/ops/' + fixture.ticketId, '採用済み');
+  await scan(page, 'shared-proposal', width, 'dark', false);
+  await use(link(page, '模擬実行の結果を開く'), width);
+  await heading(page, '模擬実行の結果').waitFor();
+  assert.ok((await receipt(page).innerText()).includes(receiptId));
+  await scan(page, 'shared-receipt', width, 'dark', true, receipt(page));
+  await use(link(page, 'この申請の監査ログを開く'), width);
+  await page.waitForURL((u) => u.pathname === '/ops/audit' && u.searchParams.get('target') === fixture.requestId);
+  await use(link(page, '模擬実行の結果を記録'), width);
+  await heading(page, '模擬実行の結果を記録').waitFor();
+  assert.ok((await main(page).locator('dl').innerText()).includes(receiptId));
+  await scan(page, 'shared-audit-receipt', width, 'dark');
+  await page.context().close();
+}
+
+try {
+  const acme = await accountsFor('acme');
+  const beta = await accountsFor('beta');
+  const completed = [];
+  for (const width of [1440, 375]) {
+    const fixture = await requestFixture(acme, run + '-' + width);
+    const alternative = await requestFixture(acme, run + '-reject-' + width);
+    const resource = '/tickets/' + fixture.ticketId + '/assistance';
+    const decision = resource + '/decision';
+    for (const role of ['approver', 'auditor', 'requester']) {
+      await api(resource, acme[role], undefined, 403);
+      await api(decision, acme[role], choice('accepted'), 403);
+    }
+    await api(resource, beta.agent, undefined, 404);
+    await api(decision, beta.agent, choice('accepted'), 404);
+    await api(decision, acme.agent, { ...choice('accepted'), requestRevision: 2 }, 409);
+    const receiptId = await chooseAndSimulate(acme, fixture, width);
+    await auditJourney(acme, fixture, receiptId, width);
+    await rejection(acme, alternative, width);
+
+    await api('/audit/events?' + auditParams('all', fixture.requestId), acme.agent, undefined, 403);
+    const other = await api('/audit/events?' + auditParams('all', fixture.requestId), beta.auditor);
+    assert.deepEqual(other.items, []);
+    const { rows } = await db.query(
+      `SELECT event_type, receipt_ref FROM audit_event
+        WHERE target_type='service_request' AND target_id=$1
+          AND event_type IN ('ai.suggestion.accepted','approval.approved','request.simulated')
+        ORDER BY occurred_at, event_id`,
+      [fixture.requestId],
+    );
+    assert.deepEqual(rows.map((row) => row.event_type), ['ai.suggestion.accepted', 'approval.approved', 'request.simulated']);
+    assert.equal(rows.at(-1).receipt_ref, receiptId);
+    const persisted = await db.query(
+      'SELECT count(*)::int AS n FROM local_simulation_receipt WHERE request_id=$1 AND id=$2', [fixture.requestId, receiptId],
+    );
+    assert.equal(persisted.rows[0].n, 1);
+    summary.journeys.push({ width, ...fixture, receiptId, rejectedTicket: alternative.ticketId,
+      approvalBeforeSimulation: true, decisionAndReceiptIdempotent: true, zeroExternalChanges: true,
+      permissions: { rolesDenied: 3, crossOrgTicket: true, crossOrgAudit: true },
+    });
+    completed.push({ fixture, receiptId });
+    console.log('JOURNEY', width, fixture.requestId, fixture.ticketId, receiptId, 'adopt, approve, simulate, audit, reject alternative');
+  }
+  const agent = await api('/auth/me', acme.agent);
+  const rolesPath = '/users/' + agent.userId + '/roles';
+  const roleGrant = { roleCode: 'auditor', reason: '合成セッションで画面間のリンクを確認' };
+  await api(rolesPath, acme.org_admin, roleGrant, 204);
+  try {
+    const dualSession = await login('agent');
+    for (const width of [1440, 375]) {
+      await darkSharedRecord(dualSession, completed[0].fixture, completed[0].receiptId, width);
+    }
+  } finally {
+    await api(rolesPath + '/revoke', acme.org_admin, roleGrant, 204);
+  }
+  summary.sharedTicket = { ...completed[0].fixture, receiptId: completed[0].receiptId, widths: [1440, 375] };
+  console.log('SHARED', summary.sharedTicket.ticketId, summary.sharedTicket.receiptId);
+} finally {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+  await browser.close();
+  await db.end();
+}

@@ -534,6 +534,17 @@ async function bootstrap(): Promise<void> {
         await readJsonBody(req),
       ),
     )
+    .get('/tickets/:id/assistance', async (req, res, params) => {
+      res.setHeader('cache-control', 'no-store');
+      return catalog.ticketAssistance(await auth.authenticate(req.headers), params.id ?? '');
+    })
+    .post('/tickets/:id/assistance/decision', async (req, _res, params) =>
+      catalog.decideAssistance(
+        await auth.authenticate(req.headers),
+        params.id ?? '',
+        await readJsonBody(req),
+      ),
+    )
     .get('/service-requests', async (req) =>
       catalog.list(
         await auth.authenticate(req.headers),

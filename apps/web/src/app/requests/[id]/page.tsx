@@ -6,7 +6,7 @@ import { CatalogValueSummary } from '../../../components/CatalogValueSummary';
 import { CatalogChecklistForm } from '../../../components/CatalogChecklistForm';
 import { formScope } from '../../../lib/form-scope';
 import { RequestForm, RequestActions } from '../../../components/RequestForms';
-import { safeReturnTo } from '../../../lib/navigation';
+import { navigationRoles, safeReturnTo } from '../../../lib/navigation';
 import {
   authorityLabel,
   displayStepState,
@@ -106,6 +106,13 @@ export default async function RequestPage({
   const query = await searchParams;
   const returnTo = safeReturnTo(query.returnTo);
   const backHref = returnTo ?? (own ? '/requests?view=mine' : '/requests?view=approvals');
+  const source = returnTo && new URL(returnTo, 'https://solvi.local');
+  const fromAssistance =
+    staff &&
+    source &&
+    source.pathname === `/ops/${q.ticketId}` &&
+    source.hash === '#ticket-assistance';
+  const canReadAudit = navigationRoles(session).auditLog;
   const fromInbox = new URL(backHref, 'https://solvi.local').pathname === '/inbox';
   const created = own && query.created === '1';
   const canRevoke = !own && (assigned || admin) && q.state === 'approved';
@@ -154,9 +161,11 @@ export default async function RequestPage({
           <Link className="support-back" href={backHref}>
             {fromInbox
               ? '業務受信箱に戻る'
-              : returnTo && !backHref.startsWith('/requests')
-                ? '元の画面に戻る'
-                : '申請一覧に戻る'}
+              : fromAssistance
+                ? 'チケットのAI支援に戻る'
+                : returnTo && !backHref.startsWith('/requests')
+                  ? '元の画面に戻る'
+                  : '申請一覧に戻る'}
           </Link>
           <p className="support-ticket-number request-identifiers">
             {q.number && (
@@ -243,6 +252,7 @@ export default async function RequestPage({
           <RequestActions
             key={`actions-${q.version}`}
             request={data}
+            returnTo={fromAssistance ? backHref : undefined}
             canApprove={canApproveNow}
             canRevoke={canRevoke}
             canSimulate={canSimulate}
@@ -430,8 +440,12 @@ export default async function RequestPage({
         ))}
       </ul>
       {data.receipt && (
-        <section className="form-panel">
-          <h2>模擬実行の結果</h2>
+        <section
+          className="form-panel"
+          id="simulation-receipt"
+          aria-labelledby="simulation-receipt-title"
+        >
+          <h2 id="simulation-receipt-title">模擬実行の結果</h2>
           <p>{data.receipt.result.summary}</p>
           <dl>
             <dt>対象</dt>
@@ -454,6 +468,24 @@ export default async function RequestPage({
               <code style={{ overflowWrap: 'anywhere' }}>{data.receipt.idempotencyKey}</code>
             </p>
           </details>
+          {(fromAssistance || canReadAudit) && (
+            <div className="form-actions ticket-assistance-actions">
+              {fromAssistance && (
+                <Link className="support-action" href={backHref}>
+                  チケットで提案の判断を確認する
+                </Link>
+              )}
+              {canReadAudit && (
+                <Link
+                  className="support-action"
+                  prefetch={false}
+                  href={'/ops/audit?' + new URLSearchParams({ target: q.id })}
+                >
+                  この申請の監査ログを開く
+                </Link>
+              )}
+            </div>
+          )}
         </section>
       )}
     </main>

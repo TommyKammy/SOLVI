@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { api, login, require } from './helpers.mjs';
+const { Client } = require('pg');
+
+export async function testDatabase(database) {
+  assert.match(database, /^solvi_simui023_\d+_test$/);
+  const uri = new URL(process.env.DATABASE_ADMIN_URL);
+  assert.ok(['localhost', '127.0.0.1', '::1'].includes(uri.hostname));
+  uri.pathname = '/' + database;
+  const client = new Client({ connectionString: uri.href });
+  await client.connect();
+  return client;
+}
+
+export async function accountsFor(org) {
+  const roles = ['org_admin', 'auditor', 'agent', 'approver', 'requester'];
+  return Object.fromEntries(await Promise.all(roles.map(async (role) => [role, await login(role, org)])));
+}
+
+export async function requestFixture(accounts, suffix) {
+  const approver = await api('/auth/me', accounts.approver);
+  const { id: itemId } = await api('/catalog-admin', accounts.org_admin, {
+    code: 'simui-' + suffix,
+    title: 'VPN利用の模擬申請 ' + suffix,
+    description: '隔離環境での承認ログ確認',
+    creationKey: randomUUID(),
+    definition: {
+      mode: 'local_simulation',
+      action: 'simulate.access_grant',
+      targetLabel: '合成対象',
+      allowedDurations: [7],
+      maxReasonLength: 2000,
+      approval: { mode: 'fixed', approverId: approver.userId },
+      fields: [{ key: 'check', type: 'text', label: '確認項目', required: true, maxLength: 80 }],
+    },
+  }, 200);
+  await api('/catalog-admin/' + itemId + '/publication', accounts.org_admin, {
+    expectedVersion: 1, state: 'published',
+  }, 200);
+  const { id: requestId, ticketId } = await api('/service-requests', accounts.requester, {
+    itemId, itemVersion: 1, idempotencyKey: randomUUID(), reason: '合成申請の確認',
+    durationDays: 7, approverId: approver.userId, values: { check: '合成データ' },
+  });
+  return { requestId, ticketId, title: 'VPN利用の模擬申請 ' + suffix };
+}

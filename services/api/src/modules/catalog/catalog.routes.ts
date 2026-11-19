@@ -5,6 +5,7 @@ import { Problems, ProblemError, type Logger, type ObjectStorage } from '@solvi/
 import { hasRole, requireRole } from '../../common/authz/authz.js';
 import { uuidv7, recordAuditEvent } from '../../common/audit/audit.js';
 import { TicketService } from '../ticket/ticket.service.js';
+import { decideTicketAssistance, readTicketAssistance } from './ticket-assistance.js';
 import { CollaborationService } from '../ticket/collaboration.service.js';
 import type { AuthenticatedRequest } from '../auth/auth.routes.js';
 import {
@@ -336,7 +337,7 @@ export class CatalogController {
     c: pg.PoolClient,
     auth: AuthenticatedRequest,
     id: string,
-    action: 'submitted' | 'changed' | 'simulated',
+    action: 'submitted' | 'changed',
     revision: number,
   ) {
     await recordAuditEvent(c, {
@@ -350,6 +351,26 @@ export class CatalogController {
       outcome: 'success',
       afterState: { revision, simulation: true },
     });
+  }
+
+  async ticketAssistance(auth: AuthenticatedRequest, ticketId: string) {
+    requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    return this.read(auth, (client) => readTicketAssistance(client, auth, parse(uuid, ticketId)));
+  }
+
+  async decideAssistance(auth: AuthenticatedRequest, ticketId: string, value: unknown) {
+    requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    const choice = parse(
+      z.strictObject({
+        decision: z.enum(['accepted', 'rejected']),
+        requestRevision: z.number().int().positive(),
+        suggestionVersion: z.number().int().positive(),
+      }),
+      value,
+    );
+    return this.run(auth, (client) =>
+      decideTicketAssistance(client, auth, parse(uuid, ticketId), choice),
+    );
   }
   /**
    * ステップ単位の監査イベント(02.17 §2.1 / WP §6.1)。
@@ -2181,7 +2202,18 @@ export class CatalogController {
         organizationId: q.organization_id,
         expectedVersion: q.version,
       });
-      await this.event(c, auth, id, 'simulated', q.revision);
+      await recordAuditEvent(c, {
+        eventType: 'request.simulated',
+        organizationId: q.organization_id,
+        actorType: 'user',
+        actorId: auth.userId,
+        targetType: 'service_request',
+        targetId: id,
+        action: 'request.simulated',
+        outcome: 'success',
+        receiptRef: receiptId,
+        afterState: { revision: q.revision, simulation: true, ticketId: q.ticket_id },
+      });
       return { receipt: { id: receiptId, result }, replayed: false };
     });
   }

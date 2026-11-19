@@ -36,6 +36,16 @@ import {
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://api:3001';
 
+export interface TicketAssistanceView {
+  suggestionVersion: number;
+  requestId: string;
+  requestRevision: number;
+  source: { title: string; version: number };
+  canDecide: boolean;
+  decision: { kind: 'accepted' | 'rejected'; decidedAt: string } | null;
+  receiptId: string | null;
+}
+
 export interface ProblemDetails {
   type?: string;
   title: string;
@@ -1373,6 +1383,24 @@ export const api = {
 
   auditEvents: (query: URLSearchParams) =>
     call<{ items: AuditEventSummary[]; hasMore: boolean }>('/audit/events?' + query),
+
+  ticketAssistance: (id: string) =>
+    call<{ assistance: TicketAssistanceView | null }>(
+      `/tickets/${encodeURIComponent(id)}/assistance`,
+    ),
+
+  decideTicketAssistance: (
+    id: string,
+    choice: {
+      decision: 'accepted' | 'rejected';
+      requestRevision: number;
+      suggestionVersion: number;
+    },
+  ) =>
+    call<{ replayed: boolean }>(`/tickets/${encodeURIComponent(id)}/assistance/decision`, {
+      method: 'POST',
+      body: JSON.stringify(choice),
+    }),
 
   getTicket: (id: string) => call<TicketView>(`/tickets/${encodeURIComponent(id)}`),
 

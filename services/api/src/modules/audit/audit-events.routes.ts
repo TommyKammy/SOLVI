@@ -23,6 +23,8 @@ const eventTypes = {
   ],
   role: ['role.binding.created', 'role.binding.deleted'],
   review: ['access.review.opened', 'access.review.item.decided', 'access.review.completed'],
+  assistance: ['ai.suggestion.accepted', 'ai.suggestion.rejected'],
+  automation: ['request.simulated'],
 } as const;
 
 const roles = new Set([
@@ -102,6 +104,8 @@ interface EventRow {
   before_role: string | null;
   after_role: string | null;
   step_no: string | null;
+  ticket_id: string | null;
+  receipt_ref: string | null;
 }
 
 export class AuditEventsController {
@@ -122,7 +126,7 @@ export class AuditEventsController {
       const { rows } = await client.query<EventRow>(
         'SELECT event_id, event_type, occurred_at, actor_type, actor_id, subject_user_id, target_id,\n' +
           "       before_state->>'roleCode' AS before_role, after_state->>'roleCode' AS after_role,\n" +
-          "       after_state->>'stepNo' AS step_no\n" +
+          "       after_state->>'stepNo' AS step_no, after_state->>'ticketId' AS ticket_id, receipt_ref\n" +
           '  FROM audit_event\n' +
           ' WHERE organization_id = $1::uuid AND event_type = ANY($2::text[])\n' +
           "   AND occurred_at >= ($3::date::timestamp AT TIME ZONE 'UTC')\n" +
@@ -158,6 +162,15 @@ export class AuditEventsController {
             ? row.after_role
             : null,
         step: row.step_no && /^[1-9]\d?$/.test(row.step_no) ? Number(row.step_no) : null,
+        ...((row.event_type === 'request.simulated' ||
+          eventTypes.assistance.some((type) => type === row.event_type)) &&
+        row.ticket_id &&
+        uuid.test(row.ticket_id)
+          ? { ticketId: row.ticket_id }
+          : {}),
+        ...(row.event_type === 'request.simulated' && row.receipt_ref
+          ? { receiptId: row.receipt_ref }
+          : {}),
       }));
       await recordAuditEvent(client, {
         eventType: 'audit.viewed',

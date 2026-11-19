@@ -78,14 +78,14 @@ export async function processServiceRequest(
   form: FormData,
 ): Promise<FormFeedback> {
   const expectedVersion = Number(form.get('expectedVersion'));
-  const result =
-    form.get('operation') === 'simulate'
-      ? await api.simulateRequest(id, { expectedVersion })
-      : await api.decideRequest(id, {
-          expectedVersion,
-          decision: String(form.get('decision')),
-          reason: String(form.get('reason') ?? ''),
-        });
+  const simulate = form.get('operation') === 'simulate';
+  const result = simulate
+    ? await api.simulateRequest(id, { expectedVersion })
+    : await api.decideRequest(id, {
+        expectedVersion,
+        decision: String(form.get('decision')),
+        reason: String(form.get('reason') ?? ''),
+      });
   if (!result.ok)
     return {
       message: result.problem.errors?.[0]?.message ?? result.problem.detail ?? result.problem.title,
@@ -95,7 +95,12 @@ export async function processServiceRequest(
   revalidatePath('/requests');
   revalidatePath(`/requests/${id}`);
   revalidatePath('/ops');
-  redirect(withReturnTo(`/requests/${id}?saved=1`, form.get('returnTo')));
+  redirect(
+    withReturnTo(
+      `/requests/${id}?saved=1${simulate ? '#simulation-receipt' : ''}`,
+      form.get('returnTo'),
+    ),
+  );
 }
 
 /** Progress has its own version; revalidation preserves the revision-keyed request editor. */

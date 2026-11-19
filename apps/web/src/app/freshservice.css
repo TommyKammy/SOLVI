@@ -3331,6 +3331,46 @@ body.fs-ui .update-label.unread {
   text-decoration: none;
 }
 
+.ticket-assistance {
+  margin-block: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--fs-radius-md);
+  overflow-wrap: anywhere;
+  scroll-margin-block-start: 72px;
+}
+
+.ticket-assistance > summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ticket-assistance-status {
+  margin-inline-start: 12px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ticket-assistance-content {
+  padding: 4px 16px 16px;
+}
+
+.ticket-assistance-content h3 {
+  margin-block-start: 0;
+}
+
+#simulation-receipt {
+  scroll-margin-block-start: 72px;
+}
+
+@media (pointer: coarse) {
+  body.fs-ui .ticket-assistance-actions button,
+  body.fs-ui .ticket-assistance-actions .support-action {
+    min-block-size: 48px;
+  }
+}
+
 .fs-ticket-tabs {
   display: flex;
   flex-wrap: wrap;

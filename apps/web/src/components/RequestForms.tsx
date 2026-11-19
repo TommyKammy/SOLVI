@@ -258,11 +258,13 @@ export function RequestActions({
   canApprove,
   canRevoke,
   canSimulate,
+  returnTo,
 }: {
   request: ServiceRequestDetail;
   canApprove: boolean;
   canRevoke: boolean;
   canSimulate: boolean;
+  returnTo?: string;
 }) {
   const [feedback, action, pending] = useActionState(
     processServiceRequest.bind(null, request.request.id),
@@ -282,6 +284,7 @@ export function RequestActions({
         action={action}
       >
         <input type="hidden" name="expectedVersion" value={request.request.version} />
+        {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
         {(canApprove || canRevoke) && (
           <FormField className="field">

@@ -1,7 +1,9 @@
-import { formScope } from '../../../lib/form-scope';
+import { formScope, formScopeError } from '../../../lib/form-scope';
+import type { FormFeedback } from '../../../lib/form-state';
 import { TicketWaitNotice } from '../../../components/TicketWaitNotice';
 import {
   safeReturnTo,
+  navigationRoles,
   ticketBackLabel,
   ticketEntryPrefix,
   ticketListOrigin,
@@ -24,6 +26,7 @@ import { AttachmentList } from '../../../components/AttachmentList';
 import { AttachmentForm } from '../../../components/AttachmentForm';
 import { TicketAssetPanel } from '../../../components/TicketAssetPanel';
 import { HashOpenDetails } from '../../../components/HashOpenDetails';
+import { TicketAssistance } from '../../../components/TicketAssistance';
 import { RelatedChangePanel } from '../../../components/RelatedChangePanel';
 import { RelationList } from '../../../components/RelationList';
 import { RelationForm } from '../../../components/RelationForm';
@@ -187,7 +190,6 @@ export default async function OpsWorkspace({
     );
   }
 
-  const knowledge = await api.knowledgeList('');
   const {
     ticket,
     comments,
@@ -201,9 +203,42 @@ export default async function OpsWorkspace({
   // 関連は別の問い合わせにする。workspace に混ぜると、関連の取得が失敗した
   // ときに本体まで開けなくなる。関連が見えないことは、対応そのものを
   // 止める理由にはならない。
-  const relations = await api.listRelations(id);
+  const [knowledge, relations, assistanceResult] = await Promise.all([
+    api.knowledgeList(''),
+    api.listRelations(id),
+    ticket.kind === 'request' ? api.ticketAssistance(id) : null,
+  ]);
+  const assistance = assistanceResult?.ok ? assistanceResult.data.assistance : null;
+  const assistanceUnavailable =
+    assistanceResult?.ok === false && assistanceResult.problem.status >= 500;
+  const assistanceHref = withReturnTo(`/ops/${id}#ticket-assistance`, returnTo);
   const relationItems = relations.ok ? relations.data.items : [];
   const unresolvedChildren = relations.ok ? relations.data.unresolvedChildren : [];
+
+  async function decideAssistance(previous: FormFeedback, form: FormData): Promise<FormFeedback> {
+    'use server';
+    const attempt = (previous.attempt ?? 0) + 1;
+    const scopeError = await formScopeError(form);
+    if (scopeError) return { message: scopeError, attempt };
+    const decision = form.get('decision');
+    if (!assistance || (decision !== 'accepted' && decision !== 'rejected'))
+      return { message: '提案を開き直し、判断を選んでください。', attempt };
+    const recorded = await api.decideTicketAssistance(id, {
+      decision,
+      requestRevision: assistance.requestRevision,
+      suggestionVersion: assistance.suggestionVersion,
+    });
+    if (!recorded.ok) {
+      return {
+        message:
+          recorded.problem.status >= 500
+            ? '送信結果を確認できませんでした。再読み込みして、判断が保存されているか確認してください。'
+            : (recorded.problem.detail ?? recorded.problem.title),
+        attempt,
+      };
+    }
+    redirect(withReturnTo(`/ops/${id}?saved=1#ticket-assistance`, returnTo));
+  }
 
   async function runTransition(formData: FormData): Promise<void> {
     'use server';
@@ -276,6 +311,7 @@ export default async function OpsWorkspace({
         <div className="fs-ticket-quick-actions">
           <a href="#ticket-reply">返信する</a>
           <a href="#ticket-relations">関連付け</a>
+          {assistance && <a href="#ticket-assistance">AI支援</a>}
         </div>
       </div>
 
@@ -327,6 +363,19 @@ export default async function OpsWorkspace({
         <section className="workspace-primary" id="ticket-detail" aria-label="問い合わせと会話">
           <h2>依頼内容</h2>
           <div className="body-text">{ticket.body}</div>
+
+          {assistance && (
+            <TicketAssistance
+              key={`${formScope(session)}:${assistance.requestId}:${assistance.requestRevision}`}
+              assistance={assistance}
+              action={decideAssistance}
+              scope={formScope(session)}
+              ticketHref={assistanceHref}
+              canReadAudit={navigationRoles(session).auditLog}
+              saved={query.saved === '1'}
+            />
+          )}
+          {assistanceUnavailable && <p role="status">AI支援プレビューを取得できませんでした。</p>}
 
           <h2 id="ticket-conversation">やり取り</h2>
           <CommentThread comments={comments} currentUserId={session.userId} />

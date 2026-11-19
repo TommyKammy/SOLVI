@@ -27,7 +27,7 @@ function actor(roleCode: RoleCode, organizationId = org): AuthenticatedRequest {
   } as AuthenticatedRequest;
 }
 
-function stack() {
+function stack(fields: Record<string, unknown> = {}) {
   const sql = vi
     .fn()
     .mockResolvedValue({ rows: [] })
@@ -47,6 +47,7 @@ function stack() {
                 after_role: 'agent',
                 step_no: null,
                 before_state: { syntheticPrivateMarker: 'do not return' },
+                ...fields,
               },
             ],
           }
@@ -122,5 +123,24 @@ describe('audit view', () => {
     );
     expect(sql).toHaveBeenLastCalledWith('ROLLBACK');
     expect(release).toHaveBeenCalledOnce();
+  });
+
+  it('allows the linked ticket and receipt only for relevant event types', async () => {
+    const fields = { ticket_id: id, receipt_ref: id };
+    const simulation = stack({ ...fields, event_type: 'request.simulated' });
+    const params = new URLSearchParams(query + '&category=automation');
+    expect(parseAuditEventsQuery(params).types).toEqual(['request.simulated']);
+    const run = await simulation.controller.read(actor('auditor'), params);
+    expect(run.items[0]).toMatchObject({ ticketId: id, receiptId: id });
+    const suggestion = stack({ ...fields, event_type: 'ai.suggestion.accepted' });
+    const decision = await suggestion.controller.read(
+      actor('auditor'),
+      new URLSearchParams(query + '&category=assistance'),
+    );
+    expect(decision.items[0]).toMatchObject({ ticketId: id });
+    expect(decision.items[0]).not.toHaveProperty('receiptId');
+    const role = await stack(fields).controller.read(actor('auditor'), new URLSearchParams(query));
+    expect(role.items[0]).not.toHaveProperty('ticketId');
+    expect(role.items[0]).not.toHaveProperty('receiptId');
   });
 });

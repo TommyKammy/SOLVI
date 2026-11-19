@@ -97,6 +97,8 @@ export const auditCategories = {
   approval: '承認',
   role: '権限変更',
   review: 'アクセスレビュー',
+  assistance: 'AI支援',
+  automation: '模擬実行',
 } as const;
 
 export function auditParams(query: RawQuery, now?: Date) {
@@ -132,4 +134,6 @@ export interface AuditEventSummary {
   roleBefore: string | null;
   roleAfter: string | null;
   step: number | null;
+  ticketId?: string;
+  receiptId?: string;
 }

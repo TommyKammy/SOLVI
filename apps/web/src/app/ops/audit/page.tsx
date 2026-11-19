@@ -34,6 +34,9 @@ const labels: Record<string, string> = {
   'access.review.opened': 'アクセスレビューを開始',
   'access.review.item.decided': 'アクセスレビューの判断を記録',
   'access.review.completed': 'アクセスレビューを完了',
+  'ai.suggestion.accepted': '提案を採用',
+  'ai.suggestion.rejected': '提案を見送り',
+  'request.simulated': '模擬実行の結果を記録',
 };
 
 function EventDetail({ item, params }: { item: AuditEventSummary; params: URLSearchParams }) {
@@ -74,6 +77,22 @@ function EventDetail({ item, params }: { item: AuditEventSummary; params: URLSea
             <dt>対象</dt>
             <dd>
               <code>{item.targetId}</code>
+            </dd>
+          </>
+        )}
+        {item.ticketId && (
+          <>
+            <dt>関連チケット ID</dt>
+            <dd>
+              <code>{item.ticketId}</code>
+            </dd>
+          </>
+        )}
+        {item.receiptId && (
+          <>
+            <dt>模擬実行の証跡 ID</dt>
+            <dd>
+              <code>{item.receiptId}</code>
             </dd>
           </>
         )}
@@ -138,7 +157,9 @@ export default async function AuditPage({
             </Link>
           )}
           <h1>監査ログ</h1>
-          <p className="lead">選択中の組織の承認、権限変更、アクセスレビューを確認します。</p>
+          <p className="lead">
+            選択中の組織の承認、権限変更、アクセスレビュー、AI支援、模擬実行を確認します。
+          </p>
         </div>
         {role.auditor && (
           <Link href="/ops/approvals/changes" className="support-action">
