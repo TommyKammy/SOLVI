@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api } from '../../lib/api';
+import { adminReturnTo, withAdminReturnTo } from '../../lib/admin-recovery';
 
 /**
  * 操作する組織を選ぶ画面 (WP-P1-IDM-010)。
@@ -23,10 +24,11 @@ export default async function SelectOrganization({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
+  const returnTo = adminReturnTo(query.returnTo);
 
   // `me` は組織が未選択だと 403 を返す。ここでは専用の経路を使う。
   const result = await api.myOrganizations();
-  if (!result.ok) redirect('/login');
+  if (!result.ok) redirect(withAdminReturnTo('/login', returnTo));
 
   const { selected, organizations } = result.data;
 
@@ -47,12 +49,13 @@ export default async function SelectOrganization({
   async function choose(formData: FormData): Promise<void> {
     'use server';
     const organizationId = String(formData.get('organizationId') ?? '');
+    const destination = adminReturnTo(formData.get('returnTo'));
     const done = await api.selectOrganization(organizationId);
     if (!done.ok) {
-      redirect('/select-organization?error=1');
+      redirect(withAdminReturnTo('/select-organization?error=1', destination));
     }
     revalidatePath('/', 'layout');
-    redirect('/');
+    redirect(destination ?? '/');
   }
 
   // 初回(未選択)と切り替え(選択済み)で言うべきことが違う。
@@ -85,6 +88,7 @@ export default async function SelectOrganization({
       )}
 
       <form action={choose} className="stack" style={{ marginTop: '1.5rem' }}>
+        {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
         {/*
           ラジオボタンにする。選択肢が2〜3件のとき、プルダウンは
           「開く」という一手間を挟むわりに一覧性が上がらない。

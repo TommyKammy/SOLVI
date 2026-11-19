@@ -1,6 +1,8 @@
+import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { adminViewPath } from '../../../lib/admin-recovery';
 import Link from 'next/link';
 import { api, requireSession, type DepartmentNode } from '../../../lib/api';
-import { isOrgAdmin } from '../../../lib/navigation';
+import { isOrgAdmin, navigationRoles } from '../../../lib/navigation';
 import { formatDateTime } from '../../../lib/labels';
 import {
   assignHeadAction,
@@ -35,15 +37,10 @@ export default async function ManageDepartments({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
-  const session = await requireSession();
+  const session = await requireSession(adminViewPath('/ops/departments', raw));
+  const roles = navigationRoles(session);
   if (!isOrgAdmin(session)) {
-    return (
-      <main id="main" className="shell">
-        <h1>部署管理</h1>
-        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
-        <Link href="/portal">利用者ポータルへ戻る</Link>
-      </main>
-    );
+    return <AdminDenied title="部署管理" canOpenHome={roles.admin || roles.auditor} />;
   }
 
   const query = parseDepartmentQuery(raw);
@@ -129,9 +126,10 @@ export default async function ManageDepartments({
   );
 
   return (
-    <main id="main" className="shell">
+    <main id="main" className="shell admin-workspace">
       <div className="directory-heading">
         <div>
+          <AdminBackLink />
           <h1>部署管理</h1>
           <p>部署の階層、メンバー、部署長を管理します。</p>
         </div>

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { api } from '../../lib/api';
+import { adminReturnTo, withAdminReturnTo } from '../../lib/admin-recovery';
 
 /**
  * ログイン画面 (WP-P2-PORTAL-002 / WP-P1-IDM-009)。
@@ -19,6 +20,7 @@ async function login(formData: FormData): Promise<void> {
 
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
+  const returnTo = adminReturnTo(formData.get('returnTo'));
 
   // **組織は入力させない。** 利用者が知っているのは「自分がどの会社の人間か」
   // だけで、その組織IDではない。所属はシステムが役割束縛として持っている。
@@ -26,7 +28,7 @@ async function login(formData: FormData): Promise<void> {
 
   if (!result.ok) {
     // クエリに理由を載せない。載せるとブラウザ履歴と参照元ヘッダに残る。
-    redirect('/login?error=1');
+    redirect(withAdminReturnTo('/login?error=1', returnTo));
   }
 
   // API が発行した Set-Cookie を、そのままブラウザへ渡す。
@@ -49,7 +51,11 @@ async function login(formData: FormData): Promise<void> {
 
   // 兼務者は組織が決まらない。**勝手に片方を選ばない** —
   // 別組織のつもりで書き込む事故を、最初の一歩で防ぐ。
-  redirect(result.data.organizationId ? '/' : '/select-organization');
+  redirect(
+    result.data.organizationId
+      ? (returnTo ?? '/')
+      : withAdminReturnTo('/select-organization', returnTo),
+  );
 }
 
 export default async function LoginPage({
@@ -63,6 +69,7 @@ export default async function LoginPage({
   // 期限切れか失効である。何も言わずにログイン画面へ戻すと、
   // 利用者は自分の操作を疑う(NFR-UX-004)。
   const expired = params.expired !== undefined;
+  const returnTo = adminReturnTo(params.returnTo);
 
   return (
     <main id="main" className="shell">
@@ -73,7 +80,9 @@ export default async function LoginPage({
         <div className="notice" role="status">
           <h2 style={{ marginTop: 0 }}>ログインの有効期限が切れました</h2>
           <p style={{ margin: 0 }}>
-            お手数ですが、もう一度ログインしてください。一時保存した下書きは、同じアカウントでログイン後、元のタブで期限内に復元できます。保存していない入力は、再読込すると失われます。
+            {returnTo
+              ? 'ログインし直すと、元の管理画面を開きます。保存前の入力はもう一度入力してください。'
+              : 'お手数ですが、もう一度ログインしてください。一時保存した下書きは、同じアカウントでログイン後、元のタブで期限内に復元できます。保存していない入力は、再読込すると失われます。'}
           </p>
         </div>
       )}
@@ -90,6 +99,7 @@ export default async function LoginPage({
       )}
 
       <form className="stack" action={login} style={{ marginTop: '1.5rem' }}>
+        {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
         <div className="field">
           <label htmlFor="email">メールアドレス</label>
           <input

@@ -68,12 +68,12 @@ describe('approval rule navigation', () => {
     expect(groups(agent).some((group) => group.id === 'admin')).toBe(false);
   });
 
-  it('gives auditors only the relationship change history entry', () => {
+  it('gives auditors access review and relationship history without administration actions', () => {
     const auditor = [{ roleCode: 'auditor', organizationId: org }];
     expect(allItems(auditor)).toContain('/ops/approvals/changes');
     expect(allItems(auditor)).not.toContain('/ops/approvals');
     expect(items(auditor, 'audit')).toEqual(['/ops/approvals/changes']);
-    expect(groups(auditor).some((group) => group.id === 'admin')).toBe(false);
+    expect(items(auditor, 'admin')).toEqual(['/ops/admin', '/ops/access-review']);
   });
 
   it('keeps the existing admin menu and audit entry stable for roles without approvals', () => {

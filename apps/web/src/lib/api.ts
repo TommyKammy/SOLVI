@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { withAdminReturnTo } from './admin-recovery';
 import { parseOperationsOverview, type OperationsOverviewCounts } from './operations-overview';
 import {
   parseNotificationList,
@@ -2324,12 +2325,12 @@ export interface RelationshipChangeResult {
  * 各画面が個別に判定すると、新しい画面を足した人が書き忘れる。
  * 判定はここ1か所に閉じる。
  */
-export async function requireSession(): Promise<SessionView> {
+export async function requireSession(returnTo?: string | null): Promise<SessionView> {
   const session = await api.me();
   if (session.ok) return session.data;
 
   if (session.problem.type?.endsWith('/organization-not-selected')) {
-    redirect('/select-organization');
+    redirect(withAdminReturnTo('/select-organization', returnTo));
   }
 
   // 5xx は「あなたが誰か分からない」ではなく「こちらの都合で答えられない」。
@@ -2349,7 +2350,7 @@ export async function requireSession(): Promise<SessionView> {
   // 利用者は自分の操作を疑う。
   const jar = await cookies();
   const hadSession = jar.getAll().some((c) => c.name.startsWith('solvi_session'));
-  redirect(hadSession ? '/login?expired=1' : '/login');
+  redirect(withAdminReturnTo(hadSession ? '/login?expired=1' : '/login', returnTo));
 }
 
 export interface AssetView {

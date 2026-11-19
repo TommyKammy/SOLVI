@@ -1,3 +1,6 @@
+import { navigationRoles } from '../../../../lib/navigation';
+import { AdminDenied } from '../../../../components/AdminWorkspace';
+import { adminViewPath } from '../../../../lib/admin-recovery';
 import { ContextLink } from '../../../../components/ContextLink';
 import { GroupMembershipControls } from '../../../../components/GroupMembershipControls';
 import { notFound, redirect } from 'next/navigation';
@@ -33,21 +36,10 @@ export default async function GroupMembers({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const session = await requireSession();
-
-  const canManage = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
-  if (!canManage) {
-    return (
-      <main id="main" className="shell">
-        <h1>グループのメンバー</h1>
-        <p className="empty">この画面を表示する権限がありません。</p>
-        <p>
-          <ContextLink back href="/ops">
-            対応待ちの一覧へ戻る
-          </ContextLink>
-        </p>
-      </main>
-    );
+  const session = await requireSession(adminViewPath('/ops/groups/' + id, query));
+  const roles = navigationRoles(session);
+  if (!roles.admin) {
+    return <AdminDenied title="グループのメンバー" canOpenHome={roles.auditor} />;
   }
 
   const groupList = await api.listGroups(true);
@@ -93,7 +85,7 @@ export default async function GroupMembers({
   }
 
   return (
-    <main id="main" className="shell">
+    <main id="main" className="shell admin-workspace">
       <p>
         <ContextLink back href="/ops/groups">
           グループの一覧へ戻る

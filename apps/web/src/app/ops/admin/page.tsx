@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { requireSession } from '../../../lib/api';
 import { isOrgAdmin, navigationRoles } from '../../../lib/navigation';
 import { FreshserviceIcon, type FreshserviceIconName } from '../../../components/FreshserviceIcon';
+import { AdminDenied } from '../../../components/AdminWorkspace';
+import { adminViewPath } from '../../../lib/admin-recovery';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,51 +16,15 @@ type AdminCard = {
 };
 
 export default async function AdminHome() {
-  const session = await requireSession();
+  const session = await requireSession(adminViewPath('/ops/admin'));
   const roles = navigationRoles(session);
   const orgAdmin = isOrgAdmin(session);
 
-  if (!roles.admin) {
-    return (
-      <main id="main" className="shell fs-admin">
-        <h1>管理</h1>
-        <p className="overview-message" role="alert">
-          管理画面を表示する権限がありません。
-        </p>
-        <Link href="/portal">利用者ポータルへ戻る</Link>
-      </main>
-    );
-  }
+  if (!roles.admin && !roles.auditor) return <AdminDenied title="管理" canOpenHome={false} />;
 
-  const groups: Array<{ title: string; description: string; items: AdminCard[] }> = [
+  const groups: Array<{ title: string; items: AdminCard[] }> = [
     {
-      title: 'アカウント設定',
-      description: 'サービスデスクのカタログ、通知、資産取込を管理します。',
-      items: [
-        {
-          href: '/catalog/manage',
-          title: 'カタログ管理',
-          description: 'サービス項目・フォーム定義・公開状態を管理します。',
-          icon: 'grid',
-        },
-        {
-          href: '/ops/notifications',
-          title: '通知状況',
-          description: '通知の記録・失敗・手動再試行を確認します。',
-          icon: 'bell',
-          visible: roles.notifications,
-        },
-        {
-          href: '/assets/imports',
-          title: '資産CSV取込',
-          description: 'CSVの列対応・差分・不正行を確認して取り込みます。',
-          icon: 'asset',
-        },
-      ],
-    },
-    {
-      title: 'ユーザー管理',
-      description: '利用者、担当グループ、役割のレビューを管理します。',
+      title: '組織と利用者',
       items: [
         {
           href: '/ops/users',
@@ -79,12 +45,11 @@ export default async function AdminHome() {
           description: '問い合わせを受けるキューとメンバーを管理します。',
           icon: 'admin',
         },
-        {
-          href: '/ops/access-review',
-          title: 'アクセスレビュー',
-          description: '現在の役割を1件ずつ見直し、必要なら失効させます。',
-          icon: 'change',
-        },
+      ],
+    },
+    {
+      title: roles.admin ? '承認と運用' : 'アクセスの監査',
+      items: [
         {
           href: '/ops/approvals',
           title: '承認ルール',
@@ -92,23 +57,61 @@ export default async function AdminHome() {
           icon: 'change',
           visible: orgAdmin,
         },
+        {
+          href: '/ops/notifications',
+          title: '通知状況',
+          description: '通知の記録・失敗・手動再試行を確認します。',
+          icon: 'bell',
+          visible: roles.notifications,
+        },
+        {
+          href: '/ops/access-review',
+          title: 'アクセスレビュー',
+          description: roles.admin
+            ? '付与された役割を見直し、判断と理由を記録します。'
+            : 'レビューの進捗と保存済みの判断を閲覧できます。',
+          icon: 'change',
+        },
+      ],
+    },
+    {
+      title: 'サービスデスク設定',
+      items: [
+        {
+          href: '/catalog/manage',
+          title: 'カタログ管理',
+          description: 'サービス項目・フォーム定義・公開状態を管理します。',
+          icon: 'grid',
+        },
+        {
+          href: '/assets/imports',
+          title: '資産CSV取込',
+          description: 'CSVの列対応・差分・不正行を確認して取り込みます。',
+          icon: 'asset',
+        },
       ],
     },
   ];
 
   return (
-    <main id="main" className="shell fs-admin">
+    <main id="main" className="shell fs-admin admin-workspace">
       <div className="page-heading">
         <div>
           <h1>管理</h1>
           <p className="hint">
-            選択中の組織に適用される管理機能です。操作できる範囲は役割によって異なります。
+            {orgAdmin
+              ? '組織管理者'
+              : roles.admin
+                ? 'プラットフォーム管理者'
+                : '監査担当者 · 閲覧のみ'}
           </p>
         </div>
       </div>
 
       {groups.map((group) => {
-        const items = group.items.filter((item) => item.visible !== false);
+        const items = group.items.filter(
+          (item) => item.visible !== false && (roles.admin || item.href === '/ops/access-review'),
+        );
         if (items.length === 0) return null;
         return (
           <section
@@ -118,7 +121,6 @@ export default async function AdminHome() {
           >
             <div className="fs-admin-section-heading">
               <h2 id={`admin-${group.title}`}>{group.title}</h2>
-              <p className="hint">{group.description}</p>
             </div>
             <ul className="fs-admin-grid">
               {items.map((item) => (

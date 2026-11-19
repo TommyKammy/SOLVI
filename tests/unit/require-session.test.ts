@@ -47,9 +47,9 @@ function respond(status: number, body: unknown): void {
 }
 
 /** 行き先を取り出す。redirect しなければ null。 */
-async function destinationOf(): Promise<string | null> {
+async function destinationOf(returnTo?: string): Promise<string | null> {
   try {
-    await requireSession();
+    await requireSession(returnTo);
     return null;
   } catch (error) {
     if (error instanceof RedirectSignal) return error.to;
@@ -98,6 +98,19 @@ describe('認証が要るとき', () => {
   it('組織未選択の判定は 403 の中身で行う(単なる 403 はログイン画面へ)', async () => {
     respond(403, { title: '権限がありません', status: 403 });
     expect(await destinationOf()).toBe('/login');
+  });
+
+  it('keeps a filtered management view through reauthentication and organization selection', async () => {
+    jar.entries = [{ name: 'solvi_session', value: 'stale' }];
+    const source = '/ops/users?q=agent&create=requester';
+    respond(401, { status: 401 });
+    expect(await destinationOf(source)).toBe(
+      '/login?expired=1&returnTo=%2Fops%2Fusers%3Fq%3Dagent',
+    );
+    respond(403, { type: 'https://solvi.example/problems/organization-not-selected', status: 403 });
+    expect(await destinationOf(source)).toBe(
+      '/select-organization?returnTo=%2Fops%2Fusers%3Fq%3Dagent',
+    );
   });
 });
 

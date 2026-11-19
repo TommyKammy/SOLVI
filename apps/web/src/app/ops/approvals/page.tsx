@@ -1,3 +1,5 @@
+import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { adminViewPath } from '../../../lib/admin-recovery';
 import Link from 'next/link';
 import { Fragment } from 'react';
 import {
@@ -6,7 +8,7 @@ import {
   type ApprovalPreviewResult,
   type ApprovalRuleStepView,
 } from '../../../lib/api';
-import { isOrgAdmin } from '../../../lib/navigation';
+import { isOrgAdmin, navigationRoles } from '../../../lib/navigation';
 import { formatDateTime, stateLabel } from '../../../lib/labels';
 import {
   AUTHORITY_LABELS,
@@ -46,15 +48,10 @@ export default async function ApprovalRulesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
-  const session = await requireSession();
+  const session = await requireSession(adminViewPath('/ops/approvals', raw));
+  const roles = navigationRoles(session);
   if (!isOrgAdmin(session)) {
-    return (
-      <main id="main" className="shell">
-        <h1>承認ルール</h1>
-        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
-        <Link href="/portal">利用者ポータルへ戻る</Link>
-      </main>
-    );
+    return <AdminDenied title="承認ルール" canOpenHome={roles.admin || roles.auditor} />;
   }
 
   const { query, preview } = parseApprovalsQuery(raw);
@@ -168,9 +165,10 @@ export default async function ApprovalRulesPage({
   } as const;
 
   return (
-    <main id="main" className="shell directory-shell">
+    <main id="main" className="shell admin-workspace directory-shell">
       <div className="directory-heading">
         <div>
+          <AdminBackLink />
           <h1>承認ルール</h1>
           <p>
             承認の段（固定承認者・上長・部署長）と、組織での使用を管理します。保存済みの版は変更できません。
@@ -401,7 +399,7 @@ export default async function ApprovalRulesPage({
                 type="text"
                 required
                 maxLength={64}
-                pattern="[a-z][a-z0-9-]*"
+                pattern="[a-z][a-z0-9\-]*"
                 aria-describedby="approval-create-code-hint"
                 autoComplete="off"
               />

@@ -6,6 +6,9 @@
 /services/api/src/modules/auth/     @security-reviewer
 /services/api/src/modules/identity/ @security-reviewer
 /packages/connectors/               @security-reviewer
+/apps/web/src/app/login/            @security-reviewer
+/apps/web/src/app/select-organization/ @security-reviewer
+/apps/web/src/lib/admin-recovery.ts  @security-reviewer
 /apps/web/src/lib/glpi/             @security-reviewer
 /apps/web/src/app/api/glpi/         @security-reviewer
 /apps/web/src/components/GLPIPortal.tsx @security-reviewer

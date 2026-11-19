@@ -1,8 +1,10 @@
+import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { adminViewPath } from '../../../lib/admin-recovery';
 import { ContextLink } from '../../../components/ContextLink';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
-import { withReturnTo } from '../../../lib/navigation';
+import { navigationRoles, withReturnTo } from '../../../lib/navigation';
 import {
   groupListContext,
   groupListItems,
@@ -33,22 +35,10 @@ export default async function ManageGroups({
   const query = await searchParams;
   const conditions = groupListQuery(query);
   const destination = groupListUrl(conditions);
-  const session = await requireSession();
-
-  const canManage = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
-  if (!canManage) {
-    // **表示しないことを防御にしない。** APIは権限が無ければ 403 を返す。
-    return (
-      <main id="main" className="shell">
-        <h1>担当グループの管理</h1>
-        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
-        <p>
-          <ContextLink back href="/ops">
-            対応待ちの一覧へ戻る
-          </ContextLink>
-        </p>
-      </main>
-    );
+  const session = await requireSession(adminViewPath('/ops/groups', query));
+  const roles = navigationRoles(session);
+  if (!roles.admin) {
+    return <AdminDenied title="担当グループの管理" canOpenHome={roles.auditor} />;
   }
 
   // 無効化したものも出す。管理画面では「運用から外したもの」も見えないと、
@@ -116,13 +106,8 @@ export default async function ManageGroups({
   }
 
   return (
-    <main id="main" className="shell">
-      <p>
-        <ContextLink back href="/ops">
-          対応待ちの一覧へ戻る
-        </ContextLink>
-      </p>
-
+    <main id="main" className="shell admin-workspace">
+      <AdminBackLink />
       <h1>担当グループの管理</h1>
       <p className="lead">
         問い合わせをまず受けるキューです。担当者はグループのキューから引き受けます。

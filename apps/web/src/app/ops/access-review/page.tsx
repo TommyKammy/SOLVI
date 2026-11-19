@@ -1,5 +1,8 @@
 import Link from 'next/link';
-import { ContextLink } from '../../../components/ContextLink';
+import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { adminViewPath, withAdminReturnTo } from '../../../lib/admin-recovery';
+import { navigationRoles } from '../../../lib/navigation';
+import { DIRECTORY_ROLE_LABELS } from '../../../lib/user-directory';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, requireSession } from '../../../lib/api';
@@ -24,29 +27,24 @@ export default async function AccessReviewPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  const session = await requireSession();
-  const error = typeof query.error === 'string' ? query.error : null;
-
-  const canManage = session.roles.some((r) => ['org_admin', 'platform_admin'].includes(r.roleCode));
-  if (!canManage) {
-    // **表示しないことを防御にしない。** APIは権限が無ければ 403 を返す。
-    return (
-      <main id="main" className="shell">
-        <h1>アクセスレビュー</h1>
-        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
-        <p>
-          <ContextLink back href="/ops">
-            対応待ちの一覧へ戻る
-          </ContextLink>
-        </p>
-      </main>
-    );
+  const returnTo = adminViewPath('/ops/access-review', query);
+  const session = await requireSession(returnTo);
+  const roles = navigationRoles(session);
+  const canManage = roles.admin;
+  if (!canManage && !roles.auditor) {
+    return <AdminDenied title="アクセスレビュー" canOpenHome={false} />;
   }
 
+  const error = typeof query.error === 'string' ? query.error : null;
   const list = await api.listAccessReviews();
   const reviews = list.ok ? list.data.items : [];
   const open = reviews.find((r) => r.completedAt === null);
-  const detail = open ? await api.accessReview(open.id) : null;
+  const selected =
+    typeof query.review === 'string' ? reviews.find((review) => review.id === query.review) : open;
+  const detail = selected ? await api.accessReview(selected.id) : null;
+  const completed = reviews.filter((review) => review.completedAt !== null);
+  const isOpen = Boolean(selected && selected.id === open?.id);
+  const failure = !list.ok ? list.problem : detail && !detail.ok ? detail.problem : null;
 
   async function openReview(formData: FormData): Promise<void> {
     'use server';
@@ -90,165 +88,189 @@ export default async function AccessReviewPage({
   }
 
   return (
-    <main id="main" className="shell">
-      <p>
-        <ContextLink back href="/ops">
-          対応待ちの一覧へ戻る
-        </ContextLink>{' '}
-        ・ <ContextLink href="/ops/users">在籍者の管理へ</ContextLink> ・{' '}
-        <Link href="/ops/approvals/changes">上長・部署長の変更履歴</Link>
-      </p>
+    <main id="main" className="shell admin-workspace">
+      <header className="support-page-heading">
+        <div>
+          <AdminBackLink />
+          <h1>アクセスレビュー</h1>
+          <p className="lead">
+            {canManage
+              ? '付与されている役割を確認し、判断と理由を記録します。'
+              : '監査担当者 · 閲覧のみ'}
+          </p>
+        </div>
+        <Link className="support-action" href="/ops/approvals/changes">
+          上長・部署長の変更履歴
+        </Link>
+      </header>
 
-      <h1>アクセスレビュー</h1>
-      <p className="lead">
-        いま誰がどの役割を持っているかを、1件ずつ見直します。
-        <strong>取り消しの判断は、その場で実際に役割を失効させます。</strong>
-      </p>
-
-      {error ? (
+      {error && (
         <p role="alert" className="error">
           {error}
         </p>
-      ) : null}
-
-      {open === undefined ? (
-        <section>
-          <h2>レビューを開始する</h2>
-          <p>
-            開始すると、<strong>その時点で有効な役割</strong>が対象として固定されます。
-            開始後に与えられた役割は、次の期で見直します。
-          </p>
-          <form action={openReview}>
-            <label htmlFor="periodLabel">期の名前</label>
-            <input
-              id="periodLabel"
-              name="periodLabel"
-              required
-              maxLength={32}
-              pattern="[A-Za-z0-9][A-Za-z0-9_-]{1,31}"
-              placeholder="2026-Q3"
-            />
-            <button type="submit">レビューを開始</button>
-          </form>
+      )}
+      {failure && (
+        <section role="alert" className="admin-permission">
+          <h2>レビューを読み込めませんでした</h2>
+          {failure.status === 401 ? (
+            <Link href={withAdminReturnTo('/login?expired=1', returnTo)}>ログインし直す</Link>
+          ) : (
+            <a href={returnTo ?? '/ops/access-review'}>レビューを再読み込みする</a>
+          )}
         </section>
-      ) : null}
+      )}
 
-      {open !== undefined && detail?.ok ? (
-        <section>
-          <h2>進行中: {open.periodLabel}</h2>
-          <p>
-            開始 {formatDateTime(open.openedAt)} ・ 対象 {open.totalItems} 件 ・{' '}
-            <strong>未判断 {open.pendingItems} 件</strong>
-          </p>
-          <p className="note">
-            プラットフォーム全体の役割(<code>platform_admin</code> ・ <code>platform_auditor</code>
-            )は、この画面の対象外です。組織の文脈を持たないため、
-            <strong>この組織からは件数も見えません</strong>
-            。0件という意味ではありません。別の手続きで確認してください。
-          </p>
-
-          <TableRegion label="レビュー対象">
-            <table>
-              <caption>レビュー対象</caption>
-              <thead>
-                <tr>
-                  <th scope="col">利用者</th>
-                  <th scope="col">役割</th>
-                  <th scope="col">期限</th>
-                  <th scope="col">判断</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.data.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      {item.displayName}
-                      <br />
-                      <small>{item.email}</small>
-                      {item.userId === session.userId ? <small> ・自分</small> : null}
-                    </td>
-                    <td>{item.roleCode}</td>
-                    <td>
-                      {item.validUntilAtOpen ? formatDate(item.validUntilAtOpen) : '期限なし'}
-                    </td>
-                    <td>
-                      {item.decision !== 'pending' ? (
-                        <span>
-                          {item.decision === 'keep' ? '残す' : '取り消した'}
-                          {item.selfReviewed ? '(自分で判断)' : ''}
-                          <br />
-                          <small>{item.reason}</small>
-                        </span>
-                      ) : item.alreadyInactive ? (
-                        // 開いた後に別経路で失効したもの。判断は要らない。
-                        <span>既に無効(判断は不要)</span>
-                      ) : (
-                        <form action={decide}>
-                          <input type="hidden" name="reviewId" value={open.id} />
-                          <input type="hidden" name="itemId" value={item.id} />
-                          <label htmlFor={`reason-${item.id}`}>理由</label>
-                          <input id={`reason-${item.id}`} name="reason" required maxLength={500} />
-                          <button type="submit" name="decision" value="keep">
-                            残す
-                          </button>
-                          <button type="submit" name="decision" value="revoke">
-                            取り消す
-                          </button>
-                        </form>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableRegion>
-
-          <form action={complete}>
-            <input type="hidden" name="reviewId" value={open.id} />
-            <button type="submit" disabled={open.pendingItems > 0}>
-              レビューを完了する
-            </button>
-            {open.pendingItems > 0 ? (
-              <p className="note">
-                未判断が {open.pendingItems} 件あります。すべて判断すると完了できます。
+      {list.ok && canManage && !open && (
+        <section className="admin-panel" aria-labelledby="review-start-title">
+          <h2 id="review-start-title">レビューを開始する</h2>
+          <p>開始時点で有効な役割を、確認対象として固定します。</p>
+          <form className="stack" action={openReview}>
+            <div className="field">
+              <label htmlFor="periodLabel">期の名前（必須）</label>
+              <input
+                id="periodLabel"
+                name="periodLabel"
+                required
+                maxLength={32}
+                pattern="[A-Za-z0-9][A-Za-z0-9_\-]{1,31}"
+                placeholder="2026-Q3"
+                aria-describedby="review-period-hint"
+              />
+              <p id="review-period-hint" className="hint">
+                半角英数字で始め、2〜32文字で入力してください。
               </p>
-            ) : null}
+            </div>
+            <div className="form-actions">
+              <button type="submit">レビューを開始</button>
+            </div>
           </form>
         </section>
-      ) : null}
+      )}
 
-      <section>
-        <h2>これまでの実施記録</h2>
-        {reviews.filter((r) => r.completedAt !== null).length === 0 ? (
-          <p className="empty">完了したレビューはまだありません。</p>
-        ) : (
-          <TableRegion label="完了したアクセスレビュー">
-            <table>
-              <caption>完了したアクセスレビュー</caption>
-              <thead>
-                <tr>
-                  <th scope="col">期</th>
-                  <th scope="col">開始</th>
-                  <th scope="col">完了</th>
-                  <th scope="col">対象</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reviews
-                  .filter((r) => r.completedAt !== null)
-                  .map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.periodLabel}</td>
-                      <td>{formatDate(r.openedAt)}</td>
-                      <td>{formatDate(r.completedAt as string)}</td>
-                      <td>{r.totalItems} 件</td>
+      {list.ok && typeof query.review === 'string' && !selected && (
+        <p role="status">選択したレビューを表示できません。実施記録から選び直してください。</p>
+      )}
+      {open && selected?.id !== open.id && (
+        <p>
+          <Link href="/ops/access-review">進行中のレビューを開く</Link>
+        </p>
+      )}
+
+      {selected && detail?.ok && (
+        <section className="admin-panel" aria-labelledby="review-detail-title">
+          <h2 id="review-detail-title">{selected.periodLabel}</h2>
+          <p role="status">
+            {isOpen ? '進行中' : '完了'} · 対象 {selected.totalItems} 件 · 未判断{' '}
+            {selected.pendingItems} 件
+          </p>
+          <p className="hint">
+            開始 {formatDateTime(selected.openedAt)}
+            {selected.completedAt && <> · 完了 {formatDateTime(selected.completedAt)}</>}
+          </p>
+          <p className="hint">
+            この組織の役割が対象です。プラットフォーム全体の役割は別の手続きで確認します。
+          </p>
+          <ul className="admin-review-items" role="list" aria-label="レビュー対象">
+            {detail.data.items.map((item) => (
+              <li key={item.id}>
+                <div>
+                  <h3>{item.displayName}</h3>
+                  {canManage && (
+                    <p className="admin-review-identity">
+                      {item.email}
+                      {item.userId === session.userId ? ' · 自分' : ''}
+                    </p>
+                  )}
+                  <p>
+                    {DIRECTORY_ROLE_LABELS[item.roleCode] ?? item.roleCode} ·{' '}
+                    {item.validUntilAtOpen ? formatDate(item.validUntilAtOpen) : '期限なし'}
+                  </p>
+                </div>
+                {item.decision !== 'pending' ? (
+                  <div>
+                    <strong>{item.decision === 'keep' ? '維持' : '失効済み'}</strong>
+                    {item.selfReviewed && '（自分で判断）'}
+                    <p>{item.reason}</p>
+                  </div>
+                ) : item.alreadyInactive ? (
+                  <p>既に失効済み</p>
+                ) : isOpen && canManage ? (
+                  <form className="stack" action={decide}>
+                    <input type="hidden" name="reviewId" value={selected.id} />
+                    <input type="hidden" name="itemId" value={item.id} />
+                    <div className="field">
+                      <label htmlFor={'reason-' + item.id}>判断の理由（必須）</label>
+                      <input id={'reason-' + item.id} name="reason" required maxLength={500} />
+                    </div>
+                    <div className="form-actions">
+                      <button type="submit" name="decision" value="keep">
+                        維持する
+                      </button>
+                      <button className="secondary" type="submit" name="decision" value="revoke">
+                        失効させる
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <p>判断待ち</p>
+                )}
+              </li>
+            ))}
+          </ul>
+          {isOpen && canManage && (
+            <form action={complete} className="stack admin-review-complete">
+              <input type="hidden" name="reviewId" value={selected.id} />
+              <div className="form-actions">
+                <button type="submit" disabled={selected.pendingItems > 0}>
+                  レビューを完了する
+                </button>
+                {selected.pendingItems > 0 && (
+                  <span className="hint">すべて判断すると完了できます。</span>
+                )}
+              </div>
+            </form>
+          )}
+        </section>
+      )}
+
+      {list.ok && (
+        <section className="admin-panel">
+          <h2>これまでの実施記録</h2>
+          {completed.length === 0 ? (
+            <p>完了したレビューはまだありません。</p>
+          ) : (
+            <TableRegion label="完了したアクセスレビュー">
+              <table className="tickets admin-history-table">
+                <caption className="visually-hidden">完了したアクセスレビュー</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">期</th>
+                    <th scope="col">開始</th>
+                    <th scope="col">完了</th>
+                    <th scope="col">対象</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {completed.map((review) => (
+                    <tr key={review.id}>
+                      <th scope="row">
+                        <Link
+                          href={'/ops/access-review?' + new URLSearchParams({ review: review.id })}
+                        >
+                          {review.periodLabel}
+                        </Link>
+                      </th>
+                      <td>{formatDate(review.openedAt)}</td>
+                      <td>{formatDate(review.completedAt!)}</td>
+                      <td>{review.totalItems} 件</td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
-          </TableRegion>
-        )}
-      </section>
+                </tbody>
+              </table>
+            </TableRegion>
+          )}
+        </section>
+      )}
     </main>
   );
 }

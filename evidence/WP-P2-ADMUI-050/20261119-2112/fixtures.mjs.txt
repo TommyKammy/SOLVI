@@ -1,0 +1,78 @@
+import assert from "node:assert/strict";
+import { createHash, randomUUID } from "node:crypto";
+import { api, require } from "./helpers.mjs";
+const { Client } = require("pg");
+
+export async function testDatabase(database) {
+  assert.match(database, /^solvi_admui050_\d+_test$/);
+  const uri = new URL(process.env.DATABASE_ADMIN_URL);
+  assert.ok(["localhost", "127.0.0.1", "::1"].includes(uri.hostname));
+  uri.pathname = "/" + database;
+  const client = new Client({ connectionString: uri.href });
+  await client.connect();
+  return client;
+}
+
+export async function expireTestSession(db, cookie, me) {
+  const hash = createHash("sha256").update(cookie.value).digest("hex");
+  const changed = await db.query(
+    "UPDATE session SET idle_expires_at = clock_timestamp() - interval '2 seconds' WHERE user_id = $1 AND organization_id = $2 AND token_hash = $3",
+    [me.userId, me.organizationId, hash],
+  );
+  assert.equal(changed.rowCount, 1);
+}
+
+export async function notificationFixture(db, staff, recipient, suffix) {
+  const me = await api("/auth/me", recipient);
+  const { id: ticketId, number } = await api("/tickets", staff, {
+    kind: "incident",
+    subject: "管理画面の通知検証 " + suffix,
+    body: "隔離DBの合成チケット",
+    impact: "low",
+    urgency: "low",
+  });
+  const assigned = await db.query(
+    "UPDATE ticket SET assignee_id=$1 WHERE id=$2 AND organization_id=$3",
+    [me.userId, ticketId, me.organizationId],
+  );
+  assert.equal(assigned.rowCount, 1);
+  const { rows } = await db.query(
+    "SELECT id FROM outbox_event WHERE organization_id=$1 AND event_type='ticket.created' AND payload->>'ticketId'=$2",
+    [me.organizationId, ticketId],
+  );
+  assert.equal(rows.length, 1);
+  const outboxId = rows[0].id;
+  const notificationId = randomUUID();
+  await db.query(
+    "UPDATE outbox_event SET failed_at=clock_timestamp(),processed_at=NULL,locked_until=NULL,last_error='ADMUI_SYNTHETIC_FAILURE' WHERE id=$1",
+    [outboxId],
+  );
+  const inserted = await db.query(
+    "INSERT INTO notification(id,organization_id,outbox_event_id,channel,recipient_user_id,recipient_address,subject,link_path,status,failed_at,last_error,attempts) SELECT $1,$2,$3,'email',id,primary_email,$6, $4,'failed',clock_timestamp(),'ADMUI_SYNTHETIC_FAILURE',1 FROM app_user WHERE id=$5",
+    [
+      notificationId,
+      me.organizationId,
+      outboxId,
+      "/tickets/" + ticketId,
+      me.userId,
+      "[" + number + "] 受け付けました",
+    ],
+  );
+  assert.equal(inserted.rowCount, 1);
+  return notificationId;
+}
+
+export async function retryCount(db, notificationId) {
+  const { rows } = await db.query(
+    "SELECT count(*)::int AS n FROM notification_retry_request WHERE notification_id=$1",
+    [notificationId],
+  );
+  return rows[0].n;
+}
+
+export async function addViewerOrganization(db, viewerId) {
+  await db.query(
+    "INSERT INTO role_binding(id,user_id,role_id,role_scope,organization_id,source) SELECT $1,$2,r.id,r.scope,o.id,'seed' FROM role r CROSS JOIN organization o WHERE r.code='auditor' AND o.code='beta' ON CONFLICT DO NOTHING",
+    [randomUUID(), viewerId],
+  );
+}

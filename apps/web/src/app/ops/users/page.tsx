@@ -1,3 +1,5 @@
+import { AdminBackLink, AdminDenied } from '../../../components/AdminWorkspace';
+import { adminViewPath } from '../../../lib/admin-recovery';
 import Link from 'next/link';
 import { api, requireSession } from '../../../lib/api';
 import { isOrgAdmin, navigationRoles } from '../../../lib/navigation';
@@ -22,15 +24,10 @@ export default async function ManageUsers({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
-  const session = await requireSession();
-  if (!navigationRoles(session).admin) {
-    return (
-      <main id="main" className="shell directory-shell">
-        <h1>利用者管理</h1>
-        <p className="empty">この画面を表示する権限がありません。組織の管理者へご連絡ください。</p>
-        <Link href="/portal">利用者ポータルへ戻る</Link>
-      </main>
-    );
+  const session = await requireSession(adminViewPath('/ops/users', raw));
+  const roles = navigationRoles(session);
+  if (!roles.admin) {
+    return <AdminDenied title="利用者管理" canOpenHome={roles.admin || roles.auditor} />;
   }
 
   const query = parseDirectoryQuery(raw);
@@ -82,9 +79,10 @@ export default async function ManageUsers({
     typeof raw.count === 'string' && /^\d{1,7}$/.test(raw.count) ? Number(raw.count) : 0;
 
   return (
-    <main id="main" className="shell directory-shell">
+    <main id="main" className="shell admin-workspace directory-shell">
       <div className="directory-heading">
         <div>
+          <AdminBackLink />
           <h1>利用者管理</h1>
           <p>登録・役割・アクセス状況を、選択中の組織で管理します。</p>
         </div>
@@ -472,7 +470,7 @@ export default async function ManageUsers({
                 <p className="hint">この利用者は現在の検索条件に含まれていません。</p>
               )}
               {orgAdmin && (
-                <div className="directory-profile" aria-labelledby="directory-profile-title">
+                <section className="directory-profile" aria-labelledby="directory-profile-title">
                   <h3 id="directory-profile-title">組織プロフィール</h3>
                   {profileError && (
                     <div
@@ -641,7 +639,7 @@ export default async function ManageUsers({
                       </div>
                     </form>
                   )}
-                </div>
+                </section>
               )}
               <UserMemberActions
                 key={`${selected.userId}:${selected.status}:${selected.roleCodes.join(',')}`}

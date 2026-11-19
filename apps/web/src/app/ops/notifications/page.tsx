@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { navigationRoles } from '../../../lib/navigation';
+import { withAdminReturnTo } from '../../../lib/admin-recovery';
+import { AdminBackLink } from '../../../components/AdminWorkspace';
 import { TableRegion } from '../../../components/TableRegion';
 import { NotificationRetryForm } from '../../../components/NotificationRetryForm';
 import { formScope } from '../../../lib/form-scope';
@@ -19,7 +21,15 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-function Failure({ status, first }: { status: number; first: string }) {
+function Failure({
+  status,
+  first,
+  canOpenHome = false,
+}: {
+  status: number;
+  first: string;
+  canOpenHome?: boolean;
+}) {
   return (
     <section className="notification-message" role="alert">
       <h2>
@@ -42,11 +52,12 @@ function Failure({ status, first }: { status: number; first: string }) {
       </p>
       <div className="notification-actions">
         {status === 401 && (
-          <a href="/login" target="_blank" rel="noopener">
+          <a href={withAdminReturnTo('/login?expired=1', first)} target="_blank" rel="noopener">
             別のタブでログインする
           </a>
         )}
         {status !== 403 && <a href={first}>通知状況を再読み込み</a>}
+        {canOpenHome && <Link href="/ops/admin">管理ホームへ戻る</Link>}
         <Link href="/portal">利用者ポータルへ</Link>
       </div>
     </section>
@@ -205,18 +216,28 @@ export default async function NotificationsPage({
   const session = await api.me();
   const query = parseNotificationQuery(await searchParams);
   const first = notificationHref({ status: query.status, direction: 'next' });
-  if (!session.ok || !navigationRoles(session.data).notifications)
+  const roles = session.ok ? navigationRoles(session.data) : null;
+  if (!session.ok || !roles?.notifications)
     return (
       <main id="main" className="shell notification-list">
         <h1>通知状況</h1>
-        <Failure status={session.ok ? 403 : session.problem.status} first={first} />
+        <Failure
+          status={session.ok ? 403 : session.problem.status}
+          first={first}
+          canOpenHome={Boolean(roles?.admin || roles?.auditor)}
+        />
       </main>
     );
   return (
-    <main id="main" className="shell notification-list">
-      <header className="notification-heading">
-        <h1>通知状況</h1>
-        <a href={first}>通知状況を再読み込み</a>
+    <main id="main" className="shell notification-list admin-workspace">
+      <header className="notification-heading support-page-heading">
+        <div>
+          <AdminBackLink />
+          <h1>通知状況</h1>
+        </div>
+        <a href={first} className="support-action">
+          通知状況を再読み込み
+        </a>
       </header>
       <p className="notification-recording">
         開発環境では送信処理の記録のみ。実際のメール配達は確認できません。
