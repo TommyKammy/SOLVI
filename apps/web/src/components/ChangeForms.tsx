@@ -102,161 +102,197 @@ export function ChangePlanForm({
       pending={pending}
       method="post"
       onSubmit={(e) => dispatchForm(e, action)}
-      className="stack form-panel asset-change-form"
+      className="stack service-detail-layout asset-change-form"
     >
       <input type="hidden" name="creationKey" value={creationKey} />
       <input type="hidden" name="commandKey" value={commandKey} />
       <input type="hidden" name="expectedVersion" value={current?.version ?? 1} />
-      <p>通常変更 · ローカルの計画と合成結果を保存します。申請には全計画が必要です。</p>
-      {field('title', '変更のタイトル', false, true)}
-      <FormField className="field">
-        <label htmlFor="chg-ticket">元のチケット（必須）</label>
-        <select
-          id="chg-ticket"
-          name="ticketId"
-          value={values.ticketId}
-          onChange={(e) => set('ticketId', e.target.value)}
-          required
+      <div className="service-panel-stack">
+        <section
+          className="asset-change-panel service-panel-fields"
+          aria-labelledby="change-basics-heading"
         >
-          <option value="">チケットを選択</option>
-          {[
-            ...options.tickets,
-            ...(s?.ticket && !options.tickets.some((t) => t.id === s.ticket.id) ? [s.ticket] : []),
-          ].map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.number} · {t.subject}
-            </option>
-          ))}
-        </select>
-        <p className="hint">
-          候補は最新50件です。チケットの担当者画面から開くとそのチケットを選べます。
-        </p>
-      </FormField>
-      <FormField name="assetIds">
-        <fieldset className="change-asset-fieldset">
-          <legend>対象資産（1〜10件・必須）</legend>
-          <p className="hint">
-            活動中の資産の先頭50件と現在の対象です。保存時の資産版を承認対象に固定します。
-          </p>
-          {candidates.map((a) => (
-            <label key={a.id} className="change-asset-option">
-              <input
-                type="checkbox"
-                name="assetIds"
-                value={a.id}
-                checked={selected.includes(a.id)}
-                disabled={a.state === 'retired' && !selected.includes(a.id)}
-                onChange={(e) =>
-                  setSelected((v) =>
-                    e.target.checked ? [...v, a.id] : v.filter((id) => id !== a.id),
-                  )
-                }
-              />{' '}
-              <span>
-                {a.assetTag} · {a.name}（{assetStateLabel(a.state)} · 版{a.version}）
-              </span>
-            </label>
-          ))}
-        </fieldset>
-      </FormField>
-      <FormField className="field">
-        <label htmlFor="chg-owner">実施担当者（必須）</label>
-        <select
-          id="chg-owner"
-          name="ownerId"
-          value={values.ownerId}
-          onChange={(e) => {
-            set('ownerId', e.target.value);
-            if (values.approverId === e.target.value) set('approverId', '');
-          }}
-          required
-        >
-          {s?.owner && !options.owners.some((o) => o.id === s.owner.id) && (
-            <option value={s.owner.id}>{s.owner.name}（現在は担当対象外・再選択が必要）</option>
-          )}
-          {options.owners.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </select>
-      </FormField>
-      <FormField className="field">
-        <label htmlFor="chg-approver">承認者（申請時に必須）</label>
-        <select
-          id="chg-approver"
-          name="approverId"
-          value={values.approverId}
-          onChange={(e) => set('approverId', e.target.value)}
-        >
-          <option value="">別の承認者を選択</option>
-          {s?.approver && !options.approvers.some((a) => a.id === s.approver?.id) && (
-            <option value={s.approver.id}>
-              {s.approver.name}（現在は承認対象外・再選択が必要）
-            </option>
-          )}
-          {options.approvers
-            .filter((a) => a.id !== values.ownerId && a.id !== current?.createdBy)
-            .map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
+          <h2 id="change-basics-heading">計画の基本情報</h2>
+          {field('title', '変更のタイトル', false, true)}
+          <FormField className="field">
+            <label htmlFor="chg-ticket">元のチケット（必須）</label>
+            <select
+              id="chg-ticket"
+              name="ticketId"
+              value={values.ticketId}
+              onChange={(e) => set('ticketId', e.target.value)}
+              required
+            >
+              <option value="">チケットを選択</option>
+              {[
+                ...options.tickets,
+                ...(s?.ticket && !options.tickets.some((t) => t.id === s.ticket.id)
+                  ? [s.ticket]
+                  : []),
+              ].map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.number} · {t.subject}
+                </option>
+              ))}
+            </select>
+            <p className="hint">
+              候補は最新50件です。チケットの担当者画面から開くとそのチケットを選べます。
+            </p>
+          </FormField>
+          <div className="service-form-pair">
+            <FormField className="field">
+              <label htmlFor="chg-owner">実施担当者（必須）</label>
+              <select
+                id="chg-owner"
+                name="ownerId"
+                value={values.ownerId}
+                onChange={(e) => {
+                  set('ownerId', e.target.value);
+                  if (values.approverId === e.target.value) set('approverId', '');
+                }}
+                required
+              >
+                {s?.owner && !options.owners.some((o) => o.id === s.owner.id) && (
+                  <option value={s.owner.id}>
+                    {s.owner.name}（現在は担当対象外・再選択が必要）
+                  </option>
+                )}
+                {options.owners.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField className="field">
+              <label htmlFor="chg-approver">承認者（申請時に必須）</label>
+              <select
+                id="chg-approver"
+                name="approverId"
+                value={values.approverId}
+                onChange={(e) => set('approverId', e.target.value)}
+              >
+                <option value="">別の承認者を選択</option>
+                {s?.approver && !options.approvers.some((a) => a.id === s.approver?.id) && (
+                  <option value={s.approver.id}>
+                    {s.approver.name}（現在は承認対象外・再選択が必要）
+                  </option>
+                )}
+                {options.approvers
+                  .filter((a) => a.id !== values.ownerId && a.id !== current?.createdBy)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="hint">作成者と実施担当者は自己承認できません。</p>
+            </FormField>
+          </div>
+          <div className="service-form-pair">
+            {['plannedStart', 'plannedEnd'].map((key) => (
+              <FormField className="field" key={key}>
+                <label htmlFor={`chg-${key}`}>
+                  {key === 'plannedStart' ? '予定開始' : '予定終了'}（日本時間・JST）
+                </label>
+                <input
+                  type="datetime-local"
+                  id={`chg-${key}`}
+                  name={key}
+                  value={values[key]}
+                  onChange={(e) => set(key, e.target.value)}
+                />
+              </FormField>
             ))}
-        </select>
-        <p className="hint">作成者と実施担当者は自己承認できません。</p>
-      </FormField>
-      <button type="button" className="secondary" onClick={example} disabled={pending}>
-        計画の合成例を入力する
-      </button>
-      {field('purpose', '目的', true)}
-      {field('impact', '影響', true)}
-      <FormField className="field">
-        <label htmlFor="chg-risk">リスク</label>
-        <select
-          id="chg-risk"
-          name="risk"
-          value={values.risk}
-          onChange={(e) => set('risk', e.target.value)}
+          </div>
+        </section>
+        <section
+          className="asset-change-panel service-panel-fields"
+          aria-labelledby="change-plan-heading"
         >
-          <option value="low">低</option>
-          <option value="medium">中</option>
-          <option value="high">高</option>
-        </select>
-      </FormField>
-      {field('implementationPlan', '実施計画', true)}
-      {field('testPlan', 'テスト計画', true)}
-      {field('backoutPlan', '切戻し計画', true)}
-      {['plannedStart', 'plannedEnd'].map((key) => (
-        <FormField className="field" key={key}>
-          <label htmlFor={`chg-${key}`}>
-            {key === 'plannedStart' ? '予定開始' : '予定終了'}（日本時間・JST）
-          </label>
-          <input
-            type="datetime-local"
-            id={`chg-${key}`}
-            name={key}
-            value={values[key]}
-            onChange={(e) => set(key, e.target.value)}
-          />
-        </FormField>
-      ))}
-      {current && (
-        <p className="hint">
-          保存すると新しい計画版の下書きに戻り、これまでの承認では開始できなくなります。
-        </p>
-      )}
-      {field('reason', current ? '変更理由' : '登録理由', false, true)}
-      <div className="form-actions">
-        <button disabled={pending}>
-          {pending
-            ? '保存しています…'
-            : current
-              ? '計画を保存し再承認の準備をする'
-              : '変更計画を下書きで保存する'}
-        </button>
-        <ContextLink back href={current ? `/changes/${current.id}` : '/changes'}>
-          キャンセルして戻る
-        </ContextLink>
+          <h2 id="change-plan-heading">実施・テスト・切戻しの計画</h2>
+          {field('purpose', '目的', true)}
+          {field('impact', '影響', true)}
+          <FormField className="field">
+            <label htmlFor="chg-risk">リスク</label>
+            <select
+              id="chg-risk"
+              name="risk"
+              value={values.risk}
+              onChange={(e) => set('risk', e.target.value)}
+            >
+              <option value="low">低</option>
+              <option value="medium">中</option>
+              <option value="high">高</option>
+            </select>
+          </FormField>
+          {field('implementationPlan', '実施計画', true)}
+          {field('testPlan', 'テスト計画', true)}
+          {field('backoutPlan', '切戻し計画', true)}
+        </section>
+      </div>
+      <div className="service-panel-stack">
+        <section
+          className="asset-change-panel service-tint"
+          aria-labelledby="change-target-heading"
+        >
+          <h2 id="change-target-heading">対象資産</h2>
+          <FormField name="assetIds">
+            <fieldset className="change-asset-fieldset">
+              <legend>対象資産（1〜10件・必須）</legend>
+              <p className="hint">
+                活動中の資産の先頭50件と現在の対象です。保存時の資産版を承認対象に固定します。
+              </p>
+              {candidates.map((a) => (
+                <label key={a.id} className="change-asset-option">
+                  <input
+                    type="checkbox"
+                    name="assetIds"
+                    value={a.id}
+                    checked={selected.includes(a.id)}
+                    disabled={a.state === 'retired' && !selected.includes(a.id)}
+                    onChange={(e) =>
+                      setSelected((v) =>
+                        e.target.checked ? [...v, a.id] : v.filter((id) => id !== a.id),
+                      )
+                    }
+                  />{' '}
+                  <span>
+                    {a.assetTag} · {a.name}（{assetStateLabel(a.state)} · 版{a.version}）
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          </FormField>
+        </section>
+        <section
+          className="asset-change-panel service-panel-fields"
+          aria-labelledby="change-save-heading"
+        >
+          <h2 id="change-save-heading">計画を保存する</h2>
+          {current && (
+            <p className="hint">
+              保存すると新しい計画版の下書きに戻り、これまでの承認では開始できなくなります。
+            </p>
+          )}
+          {field('reason', current ? '変更理由' : '登録理由', false, true)}
+          <div className="form-actions">
+            <button type="button" className="secondary" onClick={example} disabled={pending}>
+              計画の合成例を入力する
+            </button>
+
+            <button disabled={pending}>
+              {pending
+                ? '保存しています…'
+                : current
+                  ? '計画を保存し再承認の準備をする'
+                  : '変更計画を下書きで保存する'}
+            </button>
+            <ContextLink back href={current ? `/changes/${current.id}` : '/changes'}>
+              キャンセルして戻る
+            </ContextLink>
+          </div>
+        </section>
       </div>
     </FeedbackForm>
   );

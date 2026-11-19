@@ -366,7 +366,7 @@ describe('changes canonical filters, empty states and preserved display', () => 
     expect(html).toContain('type="hidden" name="ticketId" value="selected-ticket"');
     expect(html.indexOf(first.title)).toBeLessThan(html.indexOf(second.title));
     for (const [label, path] of [
-      [first.number + ' · ' + first.title, '/changes/' + first.id],
+      [first.title, '/changes/' + first.id],
       ['通常変更の計画を作成する', '/changes/new'],
     ]) {
       const target = link(html, label);

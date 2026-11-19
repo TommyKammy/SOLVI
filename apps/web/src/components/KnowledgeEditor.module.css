@@ -15,16 +15,20 @@
   margin: 0;
 }
 
-.workflow {
+.workflow,
+.editorPanel {
   min-inline-size: 0;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: var(--fs-radius-md);
-  background: var(--panel);
+  border-radius: 0.75rem;
   overflow-wrap: anywhere;
 }
 
-:global(body.fs-ui) .workflow h2 {
+.workflow {
+  background: var(--panel);
+}
+
+:global(body.fs-ui) :is(.workflow, .editorPanel) h2 {
   margin-block: 0 12px;
   font-size: 1rem;
 }
@@ -81,8 +85,15 @@
   margin-block-start: 8px;
 }
 
-@media (min-width: 990px) {
+@media (min-width: 50rem) {
   .workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(248px, 0.5fr);
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 21rem);
   }
+}
+
+
+.editorPanel form.form {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }

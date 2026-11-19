@@ -1,3 +1,4 @@
+import { ServicePageHeading } from '../../../../components/ServicePageHeading';
 import { ContextLink } from '../../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../../lib/api';
@@ -74,12 +75,16 @@ export default async function EditAssetPage({
     );
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href={`/assets/${id}`}>
-        資産の詳細へ戻る
-      </ContextLink>
-      <h1>資産を編集する</h1>
-      <p>保存時に版が競合したら最新の内容を確認してください。入力は保持されます。</p>
+    <main id="main" className="shell service-workspace">
+      <ServicePageHeading
+        title="資産を編集する"
+        back={
+          <ContextLink className="support-back" back href={`/assets/${id}`}>
+            資産の詳細へ戻る
+          </ContextLink>
+        }
+        description="保存時に版が競合したら最新の内容を確認してください。入力は保持されます。"
+      />
       <AssetForm asset={r.data.asset} options={o.data} />
     </main>
   );

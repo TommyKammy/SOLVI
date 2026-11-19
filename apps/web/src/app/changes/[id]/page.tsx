@@ -70,8 +70,29 @@ export default async function ChangePage({
   ];
   const activeStep = c.state === 'cancelled' ? -1 : steps.findIndex((step) => !step.done);
   const commands = d.availableActions.filter((action) => action !== 'edit');
+  const commandPanel =
+    commands.length > 0 ? (
+      <section aria-label="現在できる操作" className="asset-change-panel change-command-panel">
+        <h2 id="change-next-action" tabIndex={-1}>
+          次の操作
+        </h2>
+        {commands.map((kind) => {
+          const form = (
+            <ChangeCommandForm key={kind} detail={d} kind={kind} commandKey={randomUUID()} />
+          );
+          return ['cancel', 'reject'].includes(kind) ? (
+            <details key={kind} className="asset-change-disclosure">
+              <summary>{changeActionLabel(kind)}</summary>
+              {form}
+            </details>
+          ) : (
+            form
+          );
+        })}
+      </section>
+    ) : null;
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/changes" className="support-back">
@@ -191,160 +212,35 @@ export default async function ChangePage({
           )}
         </div>
       )}
-      <div className={commands.length ? 'asset-change-grid' : undefined}>
-        <section className="asset-change-panel" aria-labelledby="change-plan-title">
-          <h2 id="change-plan-title">承認対象の計画</h2>
-          <dl className="detail">
-            <dt>元のチケット</dt>
-            <dd>
-              {d.ticketCanOpen ? (
-                <a href={`/${staff ? 'ops' : 'tickets'}/${s.ticket.id}`}>
-                  {s.ticket.number} · {s.ticket.subject}
-                </a>
-              ) : (
-                <>
-                  {s.ticket.number} · {s.ticket.subject}
-                </>
-              )}
-            </dd>
-            <dt>実施担当者</dt>
-            <dd>{s.owner.name}</dd>
-            <dt>承認者</dt>
-            <dd>{s.approver?.name ?? '未選択'}</dd>
-            <dt>予定</dt>
-            <dd>
-              {s.plannedStart ? formatDateTime(s.plannedStart) : '未入力'} 〜{' '}
-              {s.plannedEnd ? formatDateTime(s.plannedEnd) : '未入力'}
-            </dd>
-            <dt>リスク</dt>
-            <dd>{{ low: '低', medium: '中', high: '高' }[s.risk]}</dd>
-            {(
-              [
-                ['purpose', '目的'],
-                ['impact', '影響'],
-                ['implementationPlan', '実施計画'],
-                ['testPlan', 'テスト計画'],
-                ['backoutPlan', '切戻し計画'],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} style={{ display: 'contents' }}>
-                <dt>{label}</dt>
-                <dd style={{ whiteSpace: 'pre-wrap' }}>{s[key] || '未入力'}</dd>
-              </div>
-            ))}
-          </dl>
-          <h3>この版で固定した対象資産</h3>
-          <ul className="attachments">
-            {s.assets.map((a) => (
-              <li className="attachment" key={a.id}>
-                {d.assetAccess.some((access) => access.id === a.id && access.canOpen) ? (
-                  <ContextLink href={`/assets/${a.id}`}>
-                    {a.assetTag} · {a.name}
-                  </ContextLink>
+      <div className="service-detail-layout">
+        <div className="service-panel-stack">
+          {!commands.includes('reject') && commandPanel}
+          <section className="asset-change-panel" aria-labelledby="change-plan-title">
+            <h2 id="change-plan-title">承認対象の計画</h2>
+            <dl className="detail">
+              <dt>元のチケット</dt>
+              <dd>
+                {d.ticketCanOpen ? (
+                  <a href={`/${staff ? 'ops' : 'tickets'}/${s.ticket.id}`}>
+                    {s.ticket.number} · {s.ticket.subject}
+                  </a>
                 ) : (
                   <>
-                    {a.assetTag} · {a.name}
+                    {s.ticket.number} · {s.ticket.subject}
                   </>
                 )}
-                <p>
-                  {assetStateLabel(a.state)} · 資産版{a.version}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <p className="hint">
-            計画・対象資産・日時を変更すると旧承認は使えなくなります。承認、予定確定、開始の時点でも現在の対象を確認します。
-          </p>
-        </section>
-        {!!commands.length && (
-          <section aria-label="現在できる操作" className="asset-change-panel change-command-panel">
-            <h2 id="change-next-action" tabIndex={-1}>
-              次の操作
-            </h2>
-            {commands.map((kind) => {
-              const form = (
-                <ChangeCommandForm key={kind} detail={d} kind={kind} commandKey={randomUUID()} />
-              );
-              return ['cancel', 'reject'].includes(kind) ? (
-                <details key={kind} className="asset-change-disclosure">
-                  <summary>{changeActionLabel(kind)}</summary>
-                  {form}
-                </details>
-              ) : (
-                form
-              );
-            })}
-          </section>
-        )}
-      </div>
-      <section className="asset-change-panel" aria-labelledby="change-approval-history">
-        <h2 id="change-approval-history">承認の履歴</h2>
-        {!d.approvals.length ? (
-          <p>まだ申請されていません。</p>
-        ) : (
-          <ul className="attachments">
-            {d.approvals.map((a) => (
-              <li key={a.id} className="attachment">
-                <p>
-                  計画版{a.revision} · {a.approverName} ·{' '}
-                  {a.isCurrent ? '現在の承認対象' : '旧版の履歴'}
-                </p>
-                <p>
-                  {a.decision === 'approved'
-                    ? '承認'
-                    : a.decision === 'rejected'
-                      ? '却下'
-                      : '判断待ち'}{' '}
-                  · 有効期限 {formatDateTime(a.expiresAt)}
-                </p>
-                {a.reason && <p style={{ whiteSpace: 'pre-wrap' }}>{a.reason}</p>}
-                {a.decidedAt && <p>{formatDateTime(a.decidedAt)}</p>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <section className="asset-change-panel" aria-labelledby="change-action-history">
-        <h2 id="change-action-history">操作の履歴</h2>
-        <ul className="attachments">
-          {d.history.map((e) => (
-            <li key={e.version} className="attachment">
-              <p>
-                更新版{e.version} · 計画版{e.revision} · {changeActionLabel(e.action)}
-              </p>
-              <p>
-                {e.beforeState ? `${changeStateLabel(e.beforeState)} → ` : ''}
-                {changeStateLabel(e.afterState)} · {formatDateTime(e.createdAt)} · {e.actorName}
-              </p>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{e.reason || '記録を保存'}</p>
-            </li>
-          ))}
-        </ul>
-        <details>
-          <summary>計画の版履歴</summary>
-          {d.revisions.map((v) => (
-            <section key={v.revision}>
-              <h3>
-                計画版{v.revision} · {v.snapshot.title}
-              </h3>
-              <p>
-                {formatDateTime(v.createdAt)} · {v.actorName} · {v.reason}
-              </p>
-              <p>
-                チケット: {v.snapshot.ticket.number} · 担当者: {v.snapshot.owner.name} · 承認者:{' '}
-                {v.snapshot.approver?.name ?? '未選択'}
-              </p>
-              <p>
-                予定: {v.snapshot.plannedStart ? formatDateTime(v.snapshot.plannedStart) : '未入力'}{' '}
-                〜 {v.snapshot.plannedEnd ? formatDateTime(v.snapshot.plannedEnd) : '未入力'}
-              </p>
-              <ul>
-                {v.snapshot.assets.map((a) => (
-                  <li key={a.id}>
-                    {a.assetTag} · {a.name} · 資産版{a.version}
-                  </li>
-                ))}
-              </ul>
+              </dd>
+              <dt>実施担当者</dt>
+              <dd>{s.owner.name}</dd>
+              <dt>承認者</dt>
+              <dd>{s.approver?.name ?? '未選択'}</dd>
+              <dt>予定</dt>
+              <dd>
+                {s.plannedStart ? formatDateTime(s.plannedStart) : '未入力'} 〜{' '}
+                {s.plannedEnd ? formatDateTime(s.plannedEnd) : '未入力'}
+              </dd>
+              <dt>リスク</dt>
+              <dd>{{ low: '低', medium: '中', high: '高' }[s.risk]}</dd>
               {(
                 [
                   ['purpose', '目的'],
@@ -354,14 +250,126 @@ export default async function ChangePage({
                   ['backoutPlan', '切戻し計画'],
                 ] as const
               ).map(([key, label]) => (
-                <p key={key} style={{ whiteSpace: 'pre-wrap' }}>
-                  {label}: {v.snapshot[key] || '未入力'}
-                </p>
+                <div key={key} style={{ display: 'contents' }}>
+                  <dt>{label}</dt>
+                  <dd style={{ whiteSpace: 'pre-wrap' }}>{s[key] || '未入力'}</dd>
+                </div>
               ))}
-            </section>
-          ))}
-        </details>
-      </section>
+            </dl>
+            <h3>この版で固定した対象資産</h3>
+            <ul className="attachments">
+              {s.assets.map((a) => (
+                <li className="attachment" key={a.id}>
+                  {d.assetAccess.some((access) => access.id === a.id && access.canOpen) ? (
+                    <ContextLink href={`/assets/${a.id}`}>
+                      {a.assetTag} · {a.name}
+                    </ContextLink>
+                  ) : (
+                    <>
+                      {a.assetTag} · {a.name}
+                    </>
+                  )}
+                  <p>
+                    {assetStateLabel(a.state)} · 資産版{a.version}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <p className="hint">
+              計画・対象資産・日時を変更すると旧承認は使えなくなります。承認、予定確定、開始の時点でも現在の対象を確認します。
+            </p>
+          </section>
+          {commands.includes('reject') && commandPanel}
+        </div>
+        <div className="service-panel-stack">
+          <section className="asset-change-panel" aria-labelledby="change-approval-history">
+            <h2 id="change-approval-history">承認の履歴</h2>
+            {!d.approvals.length ? (
+              <p>まだ申請されていません。</p>
+            ) : (
+              <ul className="attachments">
+                {d.approvals.map((a) => (
+                  <li key={a.id} className="attachment">
+                    <p>
+                      計画版{a.revision} · {a.approverName} ·{' '}
+                      {a.isCurrent ? '現在の承認対象' : '旧版の履歴'}
+                    </p>
+                    <p>
+                      {a.decision === 'approved'
+                        ? '承認'
+                        : a.decision === 'rejected'
+                          ? '却下'
+                          : '判断待ち'}{' '}
+                      · 有効期限 {formatDateTime(a.expiresAt)}
+                    </p>
+                    {a.reason && <p style={{ whiteSpace: 'pre-wrap' }}>{a.reason}</p>}
+                    {a.decidedAt && <p>{formatDateTime(a.decidedAt)}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="asset-change-panel" aria-labelledby="change-action-history">
+            <h2 id="change-action-history">操作の履歴</h2>
+            <ul className="attachments">
+              {d.history.map((e) => (
+                <li key={e.version} className="attachment">
+                  <p>
+                    更新版{e.version} · 計画版{e.revision} · {changeActionLabel(e.action)}
+                  </p>
+                  <p>
+                    {e.beforeState ? `${changeStateLabel(e.beforeState)} → ` : ''}
+                    {changeStateLabel(e.afterState)} · {formatDateTime(e.createdAt)} · {e.actorName}
+                  </p>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{e.reason || '記録を保存'}</p>
+                </li>
+              ))}
+            </ul>
+            <details>
+              <summary>計画の版履歴</summary>
+              {d.revisions.map((v) => (
+                <section key={v.revision}>
+                  <h3>
+                    計画版{v.revision} · {v.snapshot.title}
+                  </h3>
+                  <p>
+                    {formatDateTime(v.createdAt)} · {v.actorName} · {v.reason}
+                  </p>
+                  <p>
+                    チケット: {v.snapshot.ticket.number} · 担当者: {v.snapshot.owner.name} · 承認者:{' '}
+                    {v.snapshot.approver?.name ?? '未選択'}
+                  </p>
+                  <p>
+                    予定:{' '}
+                    {v.snapshot.plannedStart ? formatDateTime(v.snapshot.plannedStart) : '未入力'}{' '}
+                    〜 {v.snapshot.plannedEnd ? formatDateTime(v.snapshot.plannedEnd) : '未入力'}
+                  </p>
+                  <ul>
+                    {v.snapshot.assets.map((a) => (
+                      <li key={a.id}>
+                        {a.assetTag} · {a.name} · 資産版{a.version}
+                      </li>
+                    ))}
+                  </ul>
+                  {(
+                    [
+                      ['purpose', '目的'],
+                      ['impact', '影響'],
+                      ['implementationPlan', '実施計画'],
+                      ['testPlan', 'テスト計画'],
+                      ['backoutPlan', '切戻し計画'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <p key={key} style={{ whiteSpace: 'pre-wrap' }}>
+                      {label}: {v.snapshot[key] || '未入力'}
+                    </p>
+                  ))}
+                </section>
+              ))}
+            </details>
+          </section>
+        </div>
+      </div>
     </main>
   );
 }

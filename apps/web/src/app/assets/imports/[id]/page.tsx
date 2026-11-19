@@ -63,7 +63,7 @@ export default async function AssetImportPage({
   const firstSavedRow = d.plan.rows.find((row) => savedAssets.has(row.row));
   const firstSavedAsset = firstSavedRow && savedAssets.get(firstSavedRow.row);
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/assets/imports" className="support-back">

@@ -383,7 +383,7 @@ describe('assets filters, empty states and existing role controls', () => {
     expect(html).not.toMatch(/PRIVATE_LOCATION|PRIVATE_INTERNAL_NOTE|SYNTHETIC-SERIAL/);
     expect(html.indexOf(first.name)).toBeLessThan(html.indexOf(second.name));
     for (const [label, path] of [
-      [first.assetTag + ' · ' + first.name, '/assets/' + first.id],
+      [first.name, '/assets/' + first.id],
       ['新しい資産を登録する', '/assets/new'],
       ['CSV取込と履歴', '/assets/imports'],
     ]) {

@@ -186,7 +186,7 @@ describe('CSV history session and unchanged successful renderer', () => {
       const html = await render();
       expect(html).toContain('<h1>CSV取込と履歴</h1>');
       expect(html).toContain('最新50件のプレビューと確定結果です。CSVにない資産を変更しません。');
-      expect(html.match(/<li class="attachment">/g) ?? []).toHaveLength(50);
+      expect(html.match(/<th scope="row">/g) ?? []).toHaveLength(50);
       const details = links(html).filter((item) =>
         /^\/assets\/imports\/[0-9a-f-]+\?/.test(item.href),
       );

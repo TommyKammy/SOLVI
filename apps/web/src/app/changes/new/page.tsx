@@ -51,12 +51,13 @@ export default async function NewChangePage({
     );
   }
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/changes" className="support-back">
             変更一覧へ戻る
           </ContextLink>
+          <p className="service-heading-meta">通常変更 · 実施担当者</p>
           <h1>通常変更の計画を作成する</h1>
           <p className="lead">元のチケットと対象資産を選び、まず下書きとして保存します。</p>
         </div>

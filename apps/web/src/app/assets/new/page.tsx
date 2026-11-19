@@ -1,3 +1,4 @@
+import { ServicePageHeading } from '../../../components/ServicePageHeading';
 import { ContextLink } from '../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../lib/api';
@@ -42,11 +43,15 @@ export default async function NewAssetPage({
     );
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/assets">
-        資産台帳へ戻る
-      </ContextLink>
-      <h1>新しい資産を登録する</h1>
+    <main id="main" className="shell service-workspace">
+      <ServicePageHeading
+        title="新しい資産を登録する"
+        back={
+          <ContextLink className="support-back" back href="/assets">
+            資産台帳へ戻る
+          </ContextLink>
+        }
+      />
       <AssetForm options={r.data} />
     </main>
   );

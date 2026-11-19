@@ -1,9 +1,9 @@
+import styles from './changes.module.css';
 import { TableRegion } from '../../components/TableRegion';
 import { ContextLink } from '../../components/ContextLink';
 import { api, requireSession } from '../../lib/api';
 import { changeStates, changeStateLabel, jstInput } from '../../lib/change-labels';
 import { formatDateTime } from '../../lib/labels';
-import styles from './changes.module.css';
 export default async function ChangesPage({
   searchParams,
 }: {
@@ -65,13 +65,11 @@ export default async function ChangesPage({
       return '/changes?' + next.toString();
     };
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
+          <p className="service-heading-meta">通常変更 · 合成の実施結果</p>
           <h1>変更管理</h1>
-          <p className="lead">
-            通常変更の計画・承認・予定と合成の実施結果を管理します。日時は日本時間（JST）です。
-          </p>
         </div>
         {d.canCreate && (
           <ContextLink href="/changes/new" className="support-action support-action--primary">
@@ -85,10 +83,16 @@ export default async function ChangesPage({
           から開いた関連変更に絞り込んでいます。条件を解除すると全件を確認できます。
         </p>
       )}
-      <form method="get" className="filters" aria-label="変更の検索">
-        <div className="field">
+      <form method="get" className="filters service-filter" aria-label="変更の検索">
+        <div className="field service-search-field">
           <label htmlFor="change-q">番号・タイトル・元チケットで検索</label>
-          <input id="change-q" name="q" defaultValue={q.get('q') ?? ''} maxLength={200} />
+          <input
+            id="change-q"
+            type="search"
+            name="q"
+            defaultValue={q.get('q') ?? ''}
+            maxLength={200}
+          />
         </div>
         <div className="field">
           <label htmlFor="change-state">現在の状態</label>
@@ -132,64 +136,57 @@ export default async function ChangesPage({
         <button>絞り込む</button>
         <a href="/changes">解除する</a>
       </form>
-      <p role="status">
-        {filtering ? '絞り込み中 · ' : ''}全{d.total}件 · {d.page}ページ目
-      </p>
-      <p>
-        <a href={refresh}>変更一覧を更新する</a>
-      </p>
-      <p>
-        表が画面に収まらない場合は、横にスクロールするとすべての列を確認できます。キーボードでは表にフォーカスして左右矢印キーで移動します。
-      </p>
-      <TableRegion label="変更計画一覧">
-        <table className={`tickets ${styles.table}`}>
-          <caption>変更計画と予定</caption>
-          <colgroup>
-            <col className={styles.titleColumn} />
-            <col className={styles.stateColumn} />
-            <col className={styles.scheduleColumn} />
-            <col className={styles.relatedColumn} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">変更</th>
-              <th scope="col">現在の状態</th>
-              <th scope="col">予定（JST）・担当者</th>
-              <th scope="col">元チケット・対象資産</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.items.map((ch) => (
-              <tr key={ch.id}>
-                <td>
-                  <ContextLink href={`/changes/${ch.id}`}>
-                    {ch.number} · {ch.title}
-                  </ContextLink>
-                </td>
-                <td>
-                  <span className="state" data-state={ch.state}>
-                    {changeStateLabel(ch.state)}
-                  </span>
-                </td>
-                <td>
-                  {ch.plannedStart ? formatDateTime(ch.plannedStart) : '開始未定'}
-                  <br />
-                  {ch.plannedEnd ? formatDateTime(ch.plannedEnd) : '終了未定'}
-                  <br />
-                  {ch.ownerName}
-                </td>
-                <td>
-                  {ch.ticket.number}
-                  <br />
-                  {ch.assets.map((a) => a.assetTag).join(' / ')}
-                </td>
+      <div className="service-list-toolbar">
+        <h2 role="status">
+          {`${filtering ? '絞り込み中' : '変更'} · 全${d.total}件${d.page > 1 ? ` · ${d.page}ページ目` : ''}`}
+        </h2>
+        <div className="service-heading-actions">
+          <a href={refresh}>変更一覧を更新する</a>
+        </div>
+      </div>
+      {d.items.length > 0 && (
+        <TableRegion label="変更計画一覧" className="table-scroll service-table-scroll">
+          <table className={`work-table service-data-table ${styles.table}`}>
+            <caption className="visually-hidden">変更計画と予定</caption>
+            <thead>
+              <tr>
+                <th scope="col">変更番号</th>
+                <th scope="col">計画名</th>
+                <th scope="col">対象資産</th>
+                <th scope="col">状態</th>
+                <th scope="col">予定（JST）・担当者</th>
+                <th scope="col">元チケット</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </TableRegion>
+            </thead>
+            <tbody>
+              {d.items.map((ch) => (
+                <tr key={ch.id}>
+                  <th scope="row">{ch.number}</th>
+                  <td>
+                    <ContextLink href={`/changes/${ch.id}`}>{ch.title}</ContextLink>
+                  </td>
+                  <td>{ch.assets.map((a) => a.assetTag).join(' / ') || '—'}</td>
+                  <td>
+                    <span className="state" data-state={ch.state}>
+                      {changeStateLabel(ch.state)}
+                    </span>
+                  </td>
+                  <td>
+                    {ch.plannedStart ? formatDateTime(ch.plannedStart) : '開始未定'}
+                    <br />
+                    {ch.plannedEnd ? formatDateTime(ch.plannedEnd) : '終了未定'}
+                    <br />
+                    {ch.ownerName}
+                  </td>
+                  <td>{ch.ticket.number}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableRegion>
+      )}
       {!d.items.length && (
-        <p>
+        <p className="service-empty">
           {d.total > 0
             ? 'このページに変更はありません。最初のページへ戻ってください。'
             : filtering

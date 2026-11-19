@@ -32,6 +32,7 @@ export function AssetCsvForm() {
       pending={pending}
       className="stack form-panel asset-change-form"
     >
+      <h2>CSVの入力</h2>
       <ol className="asset-change-steps" role="list" aria-label="CSV取込の手順">
         <li aria-current={inspection ? undefined : 'step'}>CSVを入力</li>
         <li aria-current={inspection ? 'step' : undefined}>列を確認</li>

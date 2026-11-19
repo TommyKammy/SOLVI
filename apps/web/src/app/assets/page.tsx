@@ -1,9 +1,10 @@
+import styles from './assets.module.css';
 import { TableRegion } from '../../components/TableRegion';
 import { ContextLink } from '../../components/ContextLink';
 import Link from 'next/link';
 import { api, requireSession } from '../../lib/api';
 import { assetStateLabel, assetKindLabel } from '../../lib/asset-labels';
-import styles from './assets.module.css';
+import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 export default async function AssetsPage({
   searchParams,
 }: {
@@ -57,7 +58,7 @@ export default async function AssetsPage({
     return '/assets?' + q.toString();
   };
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <h1>{d.canReadAll ? '資産台帳' : '自分の資産'}</h1>
@@ -84,18 +85,24 @@ export default async function AssetsPage({
                 href="/assets/imports/new"
                 className="support-action support-action--primary"
               >
+                <FreshserviceIcon name="plus" size={16} />
                 CSV取込を始める
               </ContextLink>
             )}
           </div>
         )}
       </header>
-      <form method="get" className="filters" aria-label="資産の検索">
-        <div className="field">
-          <label htmlFor="asset-search">タグ・名前・モデル・シリアル・ホスト名・利用者で検索</label>
+      <form method="get" className="filters service-filter" aria-label="資産の検索">
+        <div className="field service-search-field">
+          <label htmlFor="asset-search">資産番号・資産名で検索</label>
+          <span id="asset-search-hint" className="visually-hidden">
+            モデル・シリアル・ホスト名・利用者からも検索できます。
+          </span>
           <input
-            type="text"
+            type="search"
+            placeholder="例　NET-014"
             id="asset-search"
+            aria-describedby="asset-search-hint"
             name="q"
             defaultValue={query.get('q') ?? ''}
             maxLength={200}
@@ -140,41 +147,36 @@ export default async function AssetsPage({
         <button>検索する</button>
         <Link href="/assets">解除する</Link>
       </form>
-      <p role="status">
-        {filtering ? '絞り込み中 · ' : ''}全{d.total}件 · {d.page}ページ目（1ページ{d.pageSize}件）
-      </p>
-      <p>
-        <a href={refresh}>資産一覧を更新する</a>
-      </p>
+      <div className="service-list-toolbar">
+        <h2 role="status">
+          {`${filtering ? '絞り込み中' : d.canReadAll ? '資産' : '自分の資産'} · 全${d.total}件${d.page > 1 ? ` · ${d.page}ページ目（1ページ${d.pageSize}件）` : ''}`}
+        </h2>
+        <div className="service-heading-actions">
+          <a href={refresh}>資産一覧を更新する</a>
+        </div>
+      </div>
       {d.items.length ? (
         <>
-          <p>
-            表が画面に収まらない場合は、横にスクロールするとすべての列を確認できます。キーボードでは表にフォーカスして左右矢印キーで移動します。
-          </p>
-          <TableRegion label="資産一覧">
-            <table className={`tickets ${styles.table}`}>
+          <TableRegion label="資産一覧" className="table-scroll service-table-scroll">
+            <table className={`work-table service-data-table ${styles.table}`}>
               <caption className="visually-hidden">閲覧できる資産</caption>
-              <colgroup>
-                <col className={styles.titleColumn} />
-                <col className={styles.kindColumn} />
-                <col className={styles.stateColumn} />
-                <col className={styles.userColumn} />
-              </colgroup>
               <thead>
                 <tr>
-                  <th scope="col">タグ・資産名</th>
+                  <th scope="col">資産番号</th>
+                  <th scope="col">資産名</th>
                   <th scope="col">種別</th>
                   <th scope="col">状態</th>
+                  <th scope="col">ホスト名</th>
+                  <th scope="col">資産版</th>
                   <th scope="col">利用者</th>
                 </tr>
               </thead>
               <tbody>
                 {d.items.map((a) => (
                   <tr key={a.id}>
+                    <th scope="row">{a.assetTag}</th>
                     <td>
-                      <ContextLink href={`/assets/${a.id}`}>
-                        {a.assetTag} · {a.name}
-                      </ContextLink>
+                      <ContextLink href={`/assets/${a.id}`}>{a.name}</ContextLink>
                     </td>
                     <td>{assetKindLabel(a.kind)}</td>
                     <td>
@@ -182,6 +184,8 @@ export default async function AssetsPage({
                         {assetStateLabel(a.state)}
                       </span>
                     </td>
+                    <td>{a.hostname || '—'}</td>
+                    <td>{a.version}</td>
                     <td>{a.assignedUserName ?? '割当なし'}</td>
                   </tr>
                 ))}
@@ -190,7 +194,7 @@ export default async function AssetsPage({
           </TableRegion>
         </>
       ) : (
-        <p>
+        <p className="service-empty">
           {d.total > 0
             ? 'このページに資産はありません。最初のページへ戻ってください。'
             : filtering

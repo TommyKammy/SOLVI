@@ -46,16 +46,17 @@ export default async function CatalogManagePage({
   const context = catalogListContext(query);
   const clearUrl = catalogListUrl({ ...query, q: '', state: 'all', page: 1 });
   return (
-    <main id="main" className="shell">
+    <main id="main" className="shell service-workspace">
       <header className="support-page-heading">
         <div>
-          <ContextLink className="support-back" back href="/catalog">
-            利用者のカタログへ戻る
-          </ContextLink>
+          <p className="service-heading-meta">サービス管理</p>
           <h1>カタログ管理</h1>
           <p className="lead">項目と承認者を下書きで整え、プレビューして新規受付へ公開します。</p>
         </div>
         <nav className="form-actions" aria-label="カタログ管理の設定">
+          <ContextLink className="support-action" back href="/catalog">
+            利用者のカタログへ戻る
+          </ContextLink>
           <a
             className="support-action"
             href={withReturnTo('/catalog/manage/question-sets', context)}
@@ -80,10 +81,10 @@ export default async function CatalogManagePage({
       <form
         action="/catalog/manage"
         method="get"
-        className="filters"
+        className="filters service-filter"
         aria-label="カタログの表示条件"
       >
-        <div className="field search-field">
+        <div className="field search-field service-search-field">
           <label htmlFor="catalog-query">サービスを検索</label>
           <input id="catalog-query" name="q" type="search" maxLength={100} defaultValue={query.q} />
           <p className="hint">名前・説明・責任者・管理コードから検索します。</p>
@@ -104,65 +105,82 @@ export default async function CatalogManagePage({
       <p role="status">
         全{view.total}件 · 条件に一致するサービス{view.matched}件 · {view.start}〜{view.end}件を表示
       </p>
-      <ul className="attachments">
-        {view.items.map((i) => (
-          <li className="attachment" key={i.id}>
-            <h2>
-              <a href={withReturnTo('/catalog/manage/' + i.id, context)}>{i.title}</a>
-            </h2>
-            <p>
-              {i.active ? '公開中（版' + i.publishedRevision + '）' : '非公開'} · 下書き版
-              {i.draftRevision}
-              {i.active && i.draftRevision !== i.publishedRevision ? ' · 未公開の変更あり' : ''}
-            </p>
-            <p>{i.description}</p>
-            {(i.highRisk === true || (i.active === true && i.publishedHighRisk === true)) && (
-              <p className="notice">
-                <strong>高リスク（2名の承認が必要）</strong>
-                {i.active === true && i.publishedHighRisk === true
-                  ? ' · 公開中の版で指定されています'
-                  : ' · 下書きで指定されています（公開すると適用されます）'}
-              </p>
-            )}
-            <p>
-              担当責任者: {i.ownerName || '未設定'} · 最終更新:{' '}
-              {i.updatedAt ? formatDateTime(i.updatedAt) : '記録なし'}
-            </p>
-            <p>
-              公開前の確認:{' '}
-              {i.readiness
-                ? i.readiness.ready
-                  ? i.readiness.warnings?.length
-                    ? '公開条件を満たしています（確認事項あり）'
-                    : '公開条件を満たしています'
-                  : '設定の見直しが必要'
-                : '未確認'}
-            </p>
-            {i.readiness && (i.readiness.issues.length > 0 || !!i.readiness.warnings?.length) && (
-              <ul>
-                {[...i.readiness.issues, ...(i.readiness.warnings ?? [])].map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
-              </ul>
-            )}
-            {r.data.canCreate && (
-              <a
-                href={withReturnTo(
-                  `/catalog/manage/new?copyFrom=${encodeURIComponent(i.id)}`,
-                  context,
+      {view.items.length > 0 && (
+        <ul
+          className="service-result-list service-manage-list"
+          role="list"
+          aria-label="カタログ管理一覧"
+        >
+          {view.items.map((i) => (
+            <li className="service-list-row service-manage-row" key={i.id}>
+              <div className="service-row-copy">
+                <h2>
+                  <a
+                    className="service-row-title"
+                    href={withReturnTo('/catalog/manage/' + i.id, context)}
+                  >
+                    {i.title}
+                  </a>
+                </h2>
+                <p className="hint">
+                  {i.active ? '公開中（版' + i.publishedRevision + '）' : '非公開'} · 下書き版
+                  {i.draftRevision}
+                  {i.active && i.draftRevision !== i.publishedRevision ? ' · 未公開の変更あり' : ''}
+                </p>
+                <p className="hint">{i.description}</p>
+                {(i.highRisk === true || (i.active === true && i.publishedHighRisk === true)) && (
+                  <p className="notice">
+                    <strong>高リスク（2名の承認が必要）</strong>
+                    {i.active === true && i.publishedHighRisk === true
+                      ? ' · 公開中の版で指定されています'
+                      : ' · 下書きで指定されています（公開すると適用されます）'}
+                  </p>
                 )}
-              >
-                このサービスを複製する
-              </a>
-            )}
-            <p className="hint">管理コード: {i.code}</p>
-          </li>
-        ))}
-      </ul>
+                <p className="hint">
+                  担当責任者: {i.ownerName || '未設定'} · 最終更新:{' '}
+                  {i.updatedAt ? formatDateTime(i.updatedAt) : '記録なし'}
+                </p>
+                <p className="hint">
+                  公開前の確認:{' '}
+                  {i.readiness
+                    ? i.readiness.ready
+                      ? i.readiness.warnings?.length
+                        ? '公開条件を満たしています（確認事項あり）'
+                        : '公開条件を満たしています'
+                      : '設定の見直しが必要'
+                    : '未確認'}
+                </p>
+                {i.readiness &&
+                  (i.readiness.issues.length > 0 || !!i.readiness.warnings?.length) && (
+                    <ul>
+                      {[...i.readiness.issues, ...(i.readiness.warnings ?? [])].map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  )}
+                {r.data.canCreate && (
+                  <a
+                    className="service-row-secondary"
+                    href={withReturnTo(
+                      `/catalog/manage/new?copyFrom=${encodeURIComponent(i.id)}`,
+                      context,
+                    )}
+                  >
+                    このサービスを複製する
+                  </a>
+                )}
+                <p className="hint">管理コード: {i.code}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       {!view.total ? (
-        <p>まだサービスがありません。最初の下書きを作成してください。</p>
+        <p className="service-empty">まだサービスがありません。最初の下書きを作成してください。</p>
       ) : !view.matched ? (
-        <p>条件に一致するサービスがありません。検索語や公開状態を変更してください。</p>
+        <p className="service-empty">
+          条件に一致するサービスがありません。検索語や公開状態を変更してください。
+        </p>
       ) : !view.items.length ? (
         <p>
           このページにサービスがありません。{' '}

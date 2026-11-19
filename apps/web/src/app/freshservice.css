@@ -1475,67 +1475,6 @@ body.fs-ui .fs-knowledge .knowledge-result p {
   margin: 0;
 }
 
-body.fs-ui .fs-knowledge-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: var(--fs-surface);
-}
-body.fs-ui .fs-knowledge-table th {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--fs-border);
-  background: var(--fs-surface-muted);
-  color: var(--fs-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-align: left;
-  white-space: nowrap;
-}
-body.fs-ui .fs-knowledge-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--fs-border);
-  color: var(--fs-text);
-  font-size: 0.8125rem;
-  vertical-align: top;
-}
-body.fs-ui .fs-knowledge-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-body.fs-ui .fs-knowledge-table tbody tr:hover td {
-  background: var(--fs-surface-hover);
-}
-body.fs-ui .fs-knowledge-title {
-  min-width: 260px;
-}
-body.fs-ui .fs-knowledge-title a {
-  color: var(--fs-text);
-  font-weight: 500;
-}
-body.fs-ui .fs-knowledge-title a:hover {
-  color: var(--fs-brand-strong);
-}
-body.fs-ui .fs-knowledge-title .hint {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 4px 0 0;
-}
-body.fs-ui .fs-knowledge-date,
-body.fs-ui .fs-knowledge-tags {
-  color: var(--fs-text-secondary);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-body.fs-ui .fs-knowledge-table td:nth-child(4),
-body.fs-ui .fs-knowledge-table th:nth-child(4) {
-  white-space: nowrap;
-  width: 56px;
-}
-body.fs-ui .fs-knowledge-table td:nth-child(2),
-body.fs-ui .fs-knowledge-table th:nth-child(2) {
-  white-space: nowrap;
-}
 body.fs-ui .knowledge-state {
   display: inline-flex;
   padding: 2px 8px;
@@ -4543,18 +4482,6 @@ body.fs-ui .fs-public-content > main form.stack {
   .fs-portal-action-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  body.fs-ui .fs-knowledge .knowledge-filters {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-  }
-  body.fs-ui .fs-knowledge .knowledge-filter-actions {
-    display: contents;
-  }
-  .knowledge-filter-actions a {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
   body.fs-ui .fs-catalog .catalog-filters {
     flex-direction: column;
     align-items: stretch;
@@ -5740,5 +5667,455 @@ body.fs-ui .comment.internal .visibility-label {
   body.fs-ui input[type='radio'] {
     width: 24px;
     height: 24px;
+  }
+}
+
+/* サービス管理の見出し、絞り込み、一覧。 */
+.service-workspace {
+  overflow-wrap: anywhere;
+}
+
+body.fs-ui .service-workspace :is(.service-page-heading, .support-page-heading, .catalog-heading) {
+  margin-block: 0 1.25rem;
+  padding-block-end: 0.875rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.service-heading-line,
+.service-list-toolbar,
+.service-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+}
+
+.service-heading-line,
+.service-list-toolbar {
+  justify-content: space-between;
+}
+
+.service-heading-line {
+  align-items: end;
+}
+
+.service-list-toolbar,
+.service-heading-actions {
+  align-items: center;
+}
+
+body.fs-ui .service-workspace :is(.service-page-heading, .support-page-heading, .catalog-heading) h1 {
+  margin-block: 0.125rem 0.25rem;
+}
+
+body.fs-ui .service-heading-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+body.fs-ui .service-heading-description {
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+body.fs-ui .service-workspace :is(.service-page-heading, .support-page-heading) .support-back {
+  min-block-size: 1.625rem;
+  margin-block-end: 0.5rem;
+}
+
+body.fs-ui .service-workspace .support-page-heading > a svg {
+  flex: none;
+}
+
+body.fs-ui .service-workspace :is(.support-action, button[type='submit']) > svg {
+  margin-inline-end: 0.375rem;
+}
+
+body.fs-ui .service-workspace .service-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  margin-block: 0 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--panel);
+  box-shadow: none;
+}
+
+.service-filter > .field {
+  flex: 1 1 8rem;
+  min-inline-size: 0;
+  margin: 0;
+}
+
+.service-filter > .service-search-field {
+  flex-basis: min(100%, 21rem);
+}
+
+body.fs-ui .service-filter > :is(a, button) {
+  align-self: end;
+  margin-block: 0;
+}
+
+body.fs-ui .service-filter > a {
+  align-content: center;
+  min-block-size: var(--fs-control-height);
+  padding-inline: 0.375rem;
+}
+
+.service-list-toolbar {
+  margin-block: 1.25rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+body.fs-ui .service-workspace :is(.service-list-toolbar, .knowledge-result) h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 690;
+}
+
+body.fs-ui .service-workspace .knowledge-filters {
+  display: block;
+  margin-block: 0 1.25rem;
+  padding: 0.875rem 1rem;
+  box-shadow: none;
+}
+
+.knowledge-search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+  max-inline-size: 41rem;
+}
+
+body.fs-ui .knowledge-search-controls .field {
+  flex: 1 1 9rem;
+  min-inline-size: 0;
+  margin: 0;
+}
+
+body.fs-ui .knowledge-search-controls button {
+  display: inline-flex;
+  align-items: center;
+  align-self: end;
+  flex: none;
+  margin: 0;
+}
+
+body.fs-ui .service-workspace .knowledge-result {
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+  margin-block: 1.25rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.service-result-list,
+.service-workspace .knowledge-public-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.service-list-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+}
+
+.service-list-row + .service-list-row {
+  border-block-start: 1px solid var(--line);
+}
+
+.service-workspace .knowledge-public-results > .service-list-row {
+  border-block-end: 0;
+}
+
+.service-list-row:is(:hover, :focus-within) {
+  background: var(--panel);
+}
+
+.service-row-copy {
+  min-inline-size: 0;
+}
+
+body.fs-ui .service-row-title {
+  color: var(--side-brand);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.service-row-title::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.625rem;
+}
+
+.service-row-title:focus-visible::after {
+  outline: 2px solid var(--side-brand);
+  outline-offset: -2px;
+}
+
+.service-list-row:hover .service-row-title {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.service-row-icon {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  flex: none;
+  inline-size: 2.375rem;
+  block-size: 2.375rem;
+  border-radius: 0.625rem;
+  background: var(--side-current);
+  color: var(--side-brand);
+}
+
+.service-list-row > svg {
+  color: var(--muted);
+}
+
+.service-request-row {
+  grid-template-columns: auto minmax(0, 1fr) minmax(8rem, auto) auto;
+  align-items: start;
+}
+
+.service-request-row .service-row-copy,
+.service-row-aside {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.service-row-aside {
+  justify-items: end;
+  text-align: end;
+}
+
+.service-row-aside .state {
+  white-space: normal;
+}
+
+.service-request-row > svg {
+  align-self: center;
+}
+
+.service-decision-note {
+  white-space: pre-wrap;
+  font-size: 0.8125rem;
+}
+
+.service-manage-row {
+  display: block;
+}
+
+body.fs-ui .service-manage-row :is(h2, p, ul) {
+  margin-block: 0 0.25rem;
+}
+
+body.fs-ui .service-manage-row h2 {
+  font-size: 1rem;
+}
+
+.service-row-secondary {
+  position: relative;
+  z-index: 1;
+}
+
+.knowledge-public-result .knowledge-public-excerpt {
+  display: block;
+  margin-block: 0.125rem 0.3125rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.knowledge-public-result .knowledge-public-meta {
+  gap: 0.25rem 0.5rem;
+  margin-block-start: 0.3125rem;
+}
+
+.knowledge-audience {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--side-current);
+  color: var(--side-brand);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.knowledge-audience[data-audience='staff'] {
+  background: var(--fs-warning-surface, var(--panel));
+  color: var(--ink);
+}
+
+body.fs-ui .service-workspace .knowledge-empty {
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  box-shadow: none;
+}
+
+body.fs-ui .knowledge-empty h2 {
+  margin: 0;
+}
+
+body.fs-ui .knowledge-article .knowledge-reader-panel {
+  border-radius: 0.75rem;
+  padding: 1rem 1.125rem;
+}
+
+.knowledge-article aside.knowledge-reader-panel {
+  background: var(--panel);
+}
+
+.knowledge-article .knowledge-prose {
+  line-height: 1.8;
+}
+
+body.fs-ui .service-workspace .knowledge-tag-links a {
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  padding-inline: 0.5rem;
+  color: var(--side-brand);
+  text-decoration: none;
+}
+
+body.fs-ui .service-workspace .knowledge-tag-links a:hover {
+  background: var(--side-current);
+}
+
+body.fs-ui .service-empty {
+  padding: 1rem;
+  margin-block: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  color: var(--muted);
+}
+
+.service-table-scroll {
+  border-radius: 0.75rem;
+}
+
+.service-data-table {
+  min-inline-size: 38rem;
+}
+
+body.fs-ui .service-data-table :is(td, th) {
+  white-space: normal;
+}
+
+body.fs-ui .service-data-table th[scope='row'] {
+  border-block-end: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+body.fs-ui .service-data-table tr:last-child th[scope='row'] {
+  border-block-end: 0;
+}
+
+body.fs-ui .service-data-table tr:is(:hover, :focus-within) :is(th[scope='row'], td) {
+  background: var(--panel);
+}
+
+body.fs-ui .service-data-table :is(th, td) a {
+  color: var(--side-brand);
+  font-weight: 650;
+}
+
+body.fs-ui .service-workspace .fs-catalog-card:is(:hover, :focus-visible) {
+  background-color: var(--panel);
+}
+
+@media (min-width: 50rem) {
+  .service-workspace .knowledge-reader-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 21rem);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  body.fs-ui .service-workspace :is(.service-filter, .knowledge-filters, .service-list-row) {
+    padding-inline: 0.75rem;
+  }
+
+  .service-request-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .service-request-row .service-row-aside {
+    grid-column: 2;
+    justify-items: start;
+    text-align: start;
+  }
+
+  .service-request-row > svg {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+.service-detail-layout,
+.service-panel-stack,
+.service-panel-fields {
+  display: grid;
+  align-items: start;
+  gap: 1rem;
+}
+
+.service-detail-layout > *,
+.service-panel-fields .field {
+  min-inline-size: 0;
+  margin: 0;
+}
+
+body.fs-ui .service-workspace form.asset-change-form.service-detail-layout {
+  display: grid;
+  width: 100%;
+  max-inline-size: none;
+}
+
+body.fs-ui .service-detail-layout > form.asset-change-form {
+  margin: 0;
+}
+
+body.fs-ui .service-panel-fields h2 {
+  margin: 0;
+}
+
+.service-detail-layout .service-tint {
+  background: var(--panel);
+}
+
+.service-form-pair {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+@media (min-width: 57rem) {
+  .service-detail-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 1fr);
+    gap: 1.375rem;
+  }
+
+  form.service-detail-layout > :is([role='alert'], .form-feedback) {
+    grid-column: 1 / -1;
   }
 }

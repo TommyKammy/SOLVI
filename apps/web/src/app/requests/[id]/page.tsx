@@ -155,7 +155,7 @@ export default async function RequestPage({
   // 再割当の記録は世代の行だけから作り、時刻の順に出す(申請者にも見える)。
   const reassignments = reassignmentRecords(data.routeGenerations);
   return (
-    <main id="main" className="shell request-review">
+    <main id="main" className="shell service-workspace request-review">
       <header className="support-page-heading">
         <div>
           <Link className="support-back" href={backHref}>

@@ -4,6 +4,7 @@ import { api, requireSession } from '../../../../lib/api';
 import { formatDateTime } from '../../../../lib/labels';
 import { isOrgAdmin, safeReturnTo, withReturnTo } from '../../../../lib/navigation';
 import Link from 'next/link';
+import { ServicePageHeading } from '../../../../components/ServicePageHeading';
 import { CatalogManagement } from '../../../../components/CatalogAdminForm';
 export const dynamic = 'force-dynamic';
 export default async function CatalogEditPage({
@@ -50,23 +51,36 @@ export default async function CatalogEditPage({
   }
   const i = r.data;
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/catalog/manage">
-        カタログ管理へ戻る
-      </ContextLink>
-      <h1>{i.draft.title}</h1>
-      {i.canCreate && (
-        <p>
-          <a
-            href={withReturnTo(
-              `/catalog/manage/new?copyFrom=${encodeURIComponent(i.id)}`,
-              query.returnTo,
+    <main id="main" className="shell service-workspace">
+      <ServicePageHeading
+        title={i.draft.title}
+        back={
+          <ContextLink className="support-back" back href="/catalog/manage">
+            カタログ管理へ戻る
+          </ContextLink>
+        }
+        meta={`カタログ管理 · 下書き版 ${i.draft.revision}`}
+        actions={
+          <>
+            {i.active && (
+              <ContextLink className="support-action" href={'/catalog/' + i.id}>
+                現在の公開フォームを見る
+              </ContextLink>
             )}
-          >
-            このサービスを複製する
-          </a>
-        </p>
-      )}
+            {i.canCreate && (
+              <a
+                className="support-action"
+                href={withReturnTo(
+                  `/catalog/manage/new?copyFrom=${encodeURIComponent(i.id)}`,
+                  query.returnTo,
+                )}
+              >
+                このサービスを複製する
+              </a>
+            )}
+          </>
+        }
+      />
       {saved === '1' && (
         <p role="status" className="success">
           カタログ設定を保存しました。
@@ -84,11 +98,6 @@ export default async function CatalogEditPage({
           {i.active === true && i.publishedHighRisk === true
             ? ' · 公開中の版で指定されています'
             : ' · 下書きで指定されています（公開すると適用されます）'}
-        </p>
-      )}
-      {i.active && (
-        <p>
-          <ContextLink href={'/catalog/' + i.id}>現在の公開フォームを見る</ContextLink>
         </p>
       )}
       {isOrgAdmin(session) && (

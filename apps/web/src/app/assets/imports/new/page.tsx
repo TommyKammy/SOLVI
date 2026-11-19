@@ -44,7 +44,7 @@ export default async function NewAssetImportPage({
     );
   }
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/assets/imports" className="support-back">
@@ -56,7 +56,24 @@ export default async function NewAssetImportPage({
           </p>
         </div>
       </header>
-      <AssetCsvForm />
+      <div className="service-detail-layout">
+        <AssetCsvForm />
+        <aside className="asset-change-panel service-tint" aria-labelledby="asset-csv-guidance">
+          <h2 id="asset-csv-guidance">取込前に確認すること</h2>
+          <p className="hint">
+            取込元と外部IDの組み合わせで資産を識別します。CSVには見出しを付け、UTF-8で100行・24KiB以内にしてください。
+          </p>
+          <p className="hint">
+            PC・サーバー・ネットワーク機器にはモデル、シリアル、ホスト名が必要です。SaaSはサービス名と提供元が必要です。
+          </p>
+          <p className="hint">
+            種別 <code>pc / server / vm / network / mobile / saas</code>
+          </p>
+          <p className="hint">
+            状態 <code>stocked / in_use / repair / retired</code>
+          </p>
+        </aside>
+      </div>
     </main>
   );
 }

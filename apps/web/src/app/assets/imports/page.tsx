@@ -1,4 +1,5 @@
 import { ContextLink } from '../../../components/ContextLink';
+import { TableRegion } from '../../../components/TableRegion';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../lib/api';
 import { formatDateTime } from '../../../lib/labels';
@@ -42,7 +43,7 @@ export default async function AssetImportsPage({
     );
   }
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/assets" className="support-back">
@@ -61,21 +62,36 @@ export default async function AssetImportsPage({
         )}
       </header>
       {r.data.items.length ? (
-        <ul className="attachments">
-          {r.data.items.map((p) => (
-            <li key={p.id} className="attachment">
-              <ContextLink href={`/assets/imports/${p.id}`}>
-                {p.sourceKey} · {formatDateTime(p.createdAt)}
-              </ContextLink>
-              <p>
-                {p.appliedAt ? '確定済み' : '未確定'} · 追加{p.counts.add} / 更新{p.counts.update} /
-                変更なし{p.counts.unchanged} / 不正{p.counts.error}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <TableRegion label="資産CSV取込履歴" className="table-scroll service-table-scroll">
+          <table className="work-table service-data-table">
+            <caption className="visually-hidden">資産CSV取込履歴</caption>
+            <thead>
+              <tr>
+                <th scope="col">取込元・プレビュー日時（JST）</th>
+                <th scope="col">状態と取込件数</th>
+                <th scope="col">確定日時（JST）</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.data.items.map((p) => (
+                <tr key={p.id}>
+                  <th scope="row">
+                    <ContextLink href={`/assets/imports/${p.id}`}>
+                      {p.sourceKey} · {formatDateTime(p.createdAt)}
+                    </ContextLink>
+                  </th>
+                  <td>
+                    {p.appliedAt ? '確定済み' : '未確定'} · 追加{p.counts.add} / 更新
+                    {p.counts.update} / 変更なし{p.counts.unchanged} / 不正{p.counts.error}
+                  </td>
+                  <td>{p.appliedAt ? formatDateTime(p.appliedAt) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableRegion>
       ) : (
-        <p>取込プレビューはまだありません。</p>
+        <p className="service-empty">取込プレビューはまだありません。</p>
       )}
     </main>
   );

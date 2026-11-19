@@ -58,7 +58,7 @@ export default async function CatalogItemPage({
     ? await api.catalogApprovalRoute(item.id)
     : null;
   return (
-    <main id="main" className="shell catalog-application">
+    <main id="main" className="shell service-workspace catalog-application">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/catalog" className="support-back">

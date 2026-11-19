@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { FreshserviceIcon } from '../../components/FreshserviceIcon';
 import { ContextLink } from '../../components/ContextLink';
 import { api, requireSession } from '../../lib/api';
 import { formatDateTime } from '../../lib/labels';
@@ -59,7 +60,7 @@ export default async function RequestsPage({
     return '/requests?' + next.toString();
   };
   return (
-    <main id="main" className="shell">
+    <main id="main" className="shell service-workspace">
       <header className="support-page-heading">
         <div>
           <h1>申請の状況</h1>
@@ -78,8 +79,8 @@ export default async function RequestsPage({
           </Link>
         </div>
       </header>
-      <form method="get" className="filters" aria-label="申請の絞り込み">
-        <div className="field">
+      <form method="get" className="filters service-filter" aria-label="申請の絞り込み">
+        <div className="field service-search-field">
           <label htmlFor="request-q">受付番号・サービス名・申請者で検索</label>
           <input id="request-q" name="q" defaultValue={f.q} maxLength={160} />
         </div>
@@ -106,48 +107,59 @@ export default async function RequestsPage({
         <button>絞り込む</button>
         <Link href="/requests">条件を解除する</Link>
       </form>
-      <p role="status">
-        {filtering ? '絞り込み中 · ' : ''}表示対象 {r.data.total}件 · {r.data.page}
-        ページ目。更新が新しい順に表示します。
-      </p>
-      <p>
-        <a href={refresh}>申請の状況を更新する</a>
-      </p>
-      <ul className="attachments">
-        {r.data.items.map((q) => (
-          <li key={q.id} className="attachment">
-            <h2>
-              <ContextLink href={`/requests/${q.id}`}>
-                {q.number} · {q.title}
-              </ContextLink>
-            </h2>
-            <p>
-              <strong>
-                {q.expired ? '承認期限切れ・再承認が必要' : (labels[q.state] ?? q.state)}
-              </strong>{' '}
-              · 更新 {formatDateTime(q.updatedAt)}
-            </p>
-            <p>
-              申請者: {q.requesterName}
-              {q.own && '（自分）'} · 承認者: {q.approverName}
-            </p>
-            {q.delegated && (
-              <p className="hint" data-delegated="true">
-                {q.approverName}さんの代理で判断できます（委任された承認です）。
-              </p>
-            )}
-            <p>{q.nextAction}</p>
-            {['pending', 'approved'].includes(q.state) && (
-              <p className="hint">承認期限: {formatDateTime(q.expiresAt)}</p>
-            )}
-            {q.decisionReason && ['rejected', 'invalidated'].includes(q.state) && (
-              <p style={{ whiteSpace: 'pre-wrap' }}>判断理由: {q.decisionReason}</p>
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className="service-list-toolbar">
+        <h2 role="status">
+          {filtering ? '絞り込み中 · ' : ''}表示対象 {r.data.total}件 · {r.data.page}ページ目
+        </h2>
+        <div className="service-heading-actions">
+          <a href={refresh}>申請の状況を更新する</a>
+        </div>
+      </div>
+      {r.data.items.length > 0 && (
+        <ul className="service-result-list" role="list" aria-label="申請一覧">
+          {r.data.items.map((q) => (
+            <li key={q.id} className="service-list-row service-request-row">
+              <span className="service-row-icon">
+                <FreshserviceIcon name="ticket" size={18} />
+              </span>
+              <div className="service-row-copy">
+                <ContextLink className="service-row-title" href={`/requests/${q.id}`}>
+                  {q.number} · {q.title}
+                </ContextLink>
+                <span className="hint">
+                  申請者: {q.requesterName}
+                  {q.own && '（自分）'} · 承認者: {q.approverName}
+                </span>
+                {q.delegated && (
+                  <span className="hint" data-delegated="true">
+                    {q.approverName}さんの代理で判断できます（委任された承認です）。
+                  </span>
+                )}
+                <span className="hint">{q.nextAction}</span>
+                {q.decisionReason && ['rejected', 'invalidated'].includes(q.state) && (
+                  <span className="service-decision-note">判断理由: {q.decisionReason}</span>
+                )}
+              </div>
+              <div className="service-row-aside">
+                <span className="state" data-state={q.expired ? 'expired' : q.state}>
+                  <strong>
+                    {q.expired ? '承認期限切れ・再承認が必要' : (labels[q.state] ?? q.state)}
+                  </strong>
+                </span>
+                <time className="hint" dateTime={q.updatedAt}>
+                  {formatDateTime(q.updatedAt)}
+                </time>
+                {['pending', 'approved'].includes(q.state) && (
+                  <span className="hint">承認期限: {formatDateTime(q.expiresAt)}</span>
+                )}
+              </div>
+              <FreshserviceIcon name="chevron" size={16} />
+            </li>
+          ))}
+        </ul>
+      )}
       {!r.data.items.length && (
-        <p>
+        <p className="service-empty">
           {r.data.total > 0
             ? 'このページに申請はありません。最初のページへ戻ってください。'
             : filtering

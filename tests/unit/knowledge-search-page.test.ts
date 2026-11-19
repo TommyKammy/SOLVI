@@ -81,8 +81,8 @@ describe('NFR-UX-002/003/004 knowledge list rendering and URL recovery', () => {
       limit: 20,
       cursor: 'currentCursor',
     });
-    expect(html).toContain('<h1>ナレッジを探す</h1>');
-    expect(html).toContain('<strong>205件</strong>の検索結果');
+    expect(html).toContain('<h1>ナレッジ検索</h1>');
+    expect(html).toContain('検索結果 <strong>205件</strong>');
     expect(html).toContain('この画面に2件を表示');
     expect(html.indexOf('記事 z')).toBeLessThan(html.indexOf('記事 a'));
     expect(html).not.toContain('2ページ');
@@ -163,7 +163,7 @@ describe('NFR-UX-002/003/004 knowledge list rendering and URL recovery', () => {
     });
     const html = await render({ q: 'VPN', manage: '1' });
     expect(api.knowledgeList).toHaveBeenCalledWith('VPN', false, { limit: 20 });
-    expect(html).toContain('<h1>ナレッジを探す</h1>');
+    expect(html).toContain('<h1>ヘルプ記事を探す</h1>');
     expect(html).not.toContain('記事を作成・管理する');
     expect(html).not.toContain('新しい記事を書く');
     // WP-P2-UIX-028 の左ナビでも、管理への入口は担当者だけに出す。

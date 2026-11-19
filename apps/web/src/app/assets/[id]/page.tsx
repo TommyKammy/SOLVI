@@ -57,7 +57,7 @@ export default async function AssetPage({
     p = await searchParams;
   const revisionsByVersion = new Map(d.revisions.map((revision) => [revision.version, revision]));
   return (
-    <main id="main" className="shell asset-change-workflow">
+    <main id="main" className="shell service-workspace asset-change-workflow">
       <header className="support-page-heading">
         <div>
           <ContextLink back href="/assets" className="support-back">

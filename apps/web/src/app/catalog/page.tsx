@@ -27,7 +27,7 @@ export default async function CatalogPage({
   const categories = selection.categories;
 
   return (
-    <main id="main" className="shell service-catalog fs-catalog">
+    <main id="main" className="shell service-workspace service-catalog fs-catalog">
       <section className="fs-page-main" aria-label="サービスカタログ">
         <div className="page-heading catalog-heading">
           <div>

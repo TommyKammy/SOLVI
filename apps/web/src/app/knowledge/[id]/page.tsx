@@ -70,7 +70,7 @@ export default async function ArticlePage({
     retired: '取り下げ済み',
   };
   return (
-    <main id="main" className="shell knowledge-article">
+    <main id="main" className="shell service-workspace knowledge-article">
       <header className="support-page-heading">
         <div>
           <Link className="support-back" href={backHref}>
@@ -103,6 +103,14 @@ export default async function ArticlePage({
             公開中の版を見る（版 {article.publishedVersion}）
           </Link>
         )}
+        {!manage && roles.staff && (
+          <Link
+            className="support-action"
+            href={withReturnTo(`/knowledge/${encodeURIComponent(id)}?manage=1`, backHref)}
+          >
+            記事を管理する
+          </Link>
+        )}
       </header>
       {query.saved === '1' && (
         <p role="status" className="success">
@@ -132,11 +140,13 @@ export default async function ArticlePage({
           <article className="knowledge-reader-panel" aria-labelledby="knowledge-body-title">
             <h2 id="knowledge-body-title">記事の内容</h2>
             <p className="knowledge-prose">{article.body}</p>
-            <div className="knowledge-reader-help">
-              <ContextLink href="/tickets/new?kind=incident">
-                この記事で解決しない場合は障害を報告する
-              </ContextLink>
-            </div>
+            {!roles.staff && (
+              <div className="knowledge-reader-help">
+                <ContextLink href="/tickets/new?kind=incident">
+                  この記事で解決しない場合は障害を報告する
+                </ContextLink>
+              </div>
+            )}
           </article>
           <aside className="knowledge-reader-panel" aria-labelledby="knowledge-info-title">
             <h2 id="knowledge-info-title">この記事の情報</h2>

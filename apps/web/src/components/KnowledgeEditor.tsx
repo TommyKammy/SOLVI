@@ -157,7 +157,10 @@ export function KnowledgeEditor({ article }: { article?: KnowledgeArticle }) {
   const editor = useEditor(article);
   return (
     <div className={styles.workspace}>
-      <EditorForm article={article} editor={editor} busy={editor.pending} />
+      <section className={styles.editorPanel} aria-labelledby="knowledge-draft-heading">
+        <h2 id="knowledge-draft-heading">下書きの内容</h2>
+        <EditorForm article={article} editor={editor} busy={editor.pending} />
+      </section>
       <aside className={styles.workflow} aria-labelledby="knowledge-new-workflow">
         <h2 id="knowledge-new-workflow">公開までの流れ</h2>
         <ol className={styles.steps} role="list">
@@ -268,7 +271,7 @@ export function KnowledgeManagement({
   return (
     <div className={editable ? styles.workspace : undefined}>
       {editable && (
-        <section aria-labelledby="knowledge-edit-heading" className="stack">
+        <section aria-labelledby="knowledge-edit-heading" className={styles.editorPanel}>
           <h2 id="knowledge-edit-heading">記事を編集する</h2>
           <p role="status" aria-live="polite">
             {editor.pending

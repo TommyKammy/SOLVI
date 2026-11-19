@@ -1,3 +1,4 @@
+import { ServicePageHeading } from '../../../../components/ServicePageHeading';
 import { ContextLink } from '../../../../components/ContextLink';
 import { randomUUID } from 'node:crypto';
 import { notFound } from 'next/navigation';
@@ -75,12 +76,16 @@ export default async function EditChangePage({
   );
   if (!options.ok) return readFailure(id, p.returnTo, options.problem.status, 'options');
   return (
-    <main id="main" className="shell">
-      <ContextLink back href={`/changes/${id}`}>
-        変更計画へ戻る
-      </ContextLink>
-      <h1>{d.data.change.number} · 計画を見直す</h1>
-      <p>保存後は下書きに戻ります。対象の現在の版を確認し、別担当者へ再申請してください。</p>
+    <main id="main" className="shell service-workspace">
+      <ServicePageHeading
+        title={`${d.data.change.number} · 計画を見直す`}
+        back={
+          <ContextLink className="support-back" back href={`/changes/${id}`}>
+            変更計画へ戻る
+          </ContextLink>
+        }
+        description="保存後は下書きに戻ります。対象の現在の版を確認し、別担当者へ再申請してください。"
+      />
       <ChangePlanForm
         current={d.data.change}
         options={options.data}

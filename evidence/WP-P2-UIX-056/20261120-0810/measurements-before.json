@@ -1,0 +1,522 @@
+[
+  {
+    "key": "knowledge",
+    "width": 1440,
+    "reference": {
+      "title": "ナレッジ検索",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "ナレッジを探す",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "knowledge-manage",
+    "width": 1440,
+    "reference": {
+      "title": "ナレッジ管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "ナレッジの管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "knowledge-new",
+    "width": 1440,
+    "reference": {
+      "title": "記事を作成する",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 153.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "新しい記事を書く",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "catalog",
+    "width": 1440,
+    "reference": {
+      "title": "サービスカタログ",
+      "size": "32px",
+      "weight": "700",
+      "x": 32,
+      "y": 97,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "サービスカタログ",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "requests",
+    "width": 1440,
+    "reference": {
+      "title": "申請の状況",
+      "size": "32px",
+      "weight": "700",
+      "x": 32,
+      "y": 97,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "申請の状況",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "catalog-manage",
+    "width": 1440,
+    "reference": {
+      "title": "カタログ管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "カタログ管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "catalog-new",
+    "width": 1440,
+    "reference": {
+      "title": "カタログ管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "サービスを作成する",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 121.09375,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "assets",
+    "width": 1440,
+    "reference": {
+      "title": "資産台帳",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 100,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "資産台帳",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "imports",
+    "width": 1440,
+    "reference": {
+      "title": "資産CSV取込履歴",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 134,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "CSV取込と履歴",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "import-new",
+    "width": 1440,
+    "reference": {
+      "title": "資産CSVを取り込む",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 134,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "資産CSVを取り込む",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "changes",
+    "width": 1440,
+    "reference": {
+      "title": "変更管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 119.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "変更管理",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 98,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "change-new",
+    "width": 1440,
+    "reference": {
+      "title": "変更を計画する",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 153.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "通常変更の計画を作成する",
+      "size": "32px",
+      "weight": "700",
+      "x": 256,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "requester-knowledge",
+    "width": 1440,
+    "reference": {
+      "title": "ヘルプ記事を探す",
+      "size": "32px",
+      "weight": "700",
+      "x": 32,
+      "y": 131,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "ナレッジを探す",
+      "size": "32px",
+      "weight": "700",
+      "x": 32,
+      "y": 142,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "knowledge",
+    "width": 375,
+    "reference": {
+      "title": "ナレッジ検索",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "ナレッジを探す",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "knowledge-manage",
+    "width": 375,
+    "reference": {
+      "title": "ナレッジ管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "ナレッジの管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "knowledge-new",
+    "width": 375,
+    "reference": {
+      "title": "記事を作成する",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 143.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "新しい記事を書く",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "catalog",
+    "width": 375,
+    "reference": {
+      "title": "サービスカタログ",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 182,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "サービスカタログ",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "requests",
+    "width": 375,
+    "reference": {
+      "title": "申請の状況",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 182,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "申請の状況",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "catalog-manage",
+    "width": 375,
+    "reference": {
+      "title": "カタログ管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "カタログ管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "catalog-new",
+    "width": 375,
+    "reference": {
+      "title": "カタログ管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "サービスを作成する",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 111.09375,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "assets",
+    "width": 375,
+    "reference": {
+      "title": "資産台帳",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 90,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "資産台帳",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "imports",
+    "width": 375,
+    "reference": {
+      "title": "資産CSV取込履歴",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 124,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "CSV取込と履歴",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "import-new",
+    "width": 375,
+    "reference": {
+      "title": "資産CSVを取り込む",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 124,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "資産CSVを取り込む",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "changes",
+    "width": 375,
+    "reference": {
+      "title": "変更管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 109.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "変更管理",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 88,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "change-new",
+    "width": 375,
+    "reference": {
+      "title": "変更を計画する",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 143.796875,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "通常変更の計画を作成する",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  },
+  {
+    "key": "requester-knowledge",
+    "width": 375,
+    "reference": {
+      "title": "ヘルプ記事を探す",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 216,
+      "overflow": 0
+    },
+    "actual": {
+      "title": "ナレッジを探す",
+      "size": "28px",
+      "weight": "700",
+      "x": 20,
+      "y": 140,
+      "overflow": 0
+    }
+  }
+]

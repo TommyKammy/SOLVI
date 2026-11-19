@@ -1,6 +1,7 @@
 import { ContextLink } from '../../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../../lib/api';
+import { ServicePageHeading } from '../../../../components/ServicePageHeading';
 import { CatalogAdminForm } from '../../../../components/CatalogAdminForm';
 import { isOrgAdmin, safeReturnTo, withReturnTo } from '../../../../lib/navigation';
 import Link from 'next/link';
@@ -80,18 +81,23 @@ export default async function CatalogNewPage({
     };
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/catalog/manage">
-        カタログ管理へ戻る
-      </ContextLink>
-      <div className="support-page-heading">
-        <h1>{initialContent ? 'サービスを複製する' : 'サービスを作成する'}</h1>
-        {isOrgAdmin(session) && (
-          <Link className="support-action" href="/ops/approvals#approval-create">
-            承認ルールを設定する
-          </Link>
-        )}
-      </div>
+    <main id="main" className="shell service-workspace">
+      <ServicePageHeading
+        title={initialContent ? 'サービスを複製する' : 'サービスを作成する'}
+        back={
+          <ContextLink className="support-back" back href="/catalog/manage">
+            カタログ管理へ戻る
+          </ContextLink>
+        }
+        description="サービス情報、質問と表示条件、承認ルールを設定します。"
+        actions={
+          isOrgAdmin(session) && (
+            <Link className="support-action" href="/ops/approvals#approval-create">
+              承認ルールを設定する
+            </Link>
+          )
+        }
+      />
       {initialContent && (
         <p>「{initialContent.title}」の下書き内容から、新しいサービスを作成します。</p>
       )}

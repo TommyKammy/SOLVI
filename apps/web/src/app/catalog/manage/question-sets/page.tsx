@@ -1,3 +1,4 @@
+import { ServicePageHeading } from '../../../../components/ServicePageHeading';
 import { api, requireSession } from '../../../../lib/api';
 import { notFound } from 'next/navigation';
 import { ContextLink } from '../../../../components/ContextLink';
@@ -33,14 +34,16 @@ export default async function QuestionSetsPage({
     );
   }
   return (
-    <main id="main" className="shell">
-      <ContextLink back href="/catalog/manage">
-        カタログ管理へ戻る
-      </ContextLink>
-      <h1>共有項目セット</h1>
-      <p>
-        よく使う質問を保存し、サービスの作成時に挿入できます。セットを更新しても挿入済みのサービスは変わりません。
-      </p>
+    <main id="main" className="shell service-workspace">
+      <ServicePageHeading
+        title="共有項目セット"
+        back={
+          <ContextLink className="support-back" back href="/catalog/manage">
+            カタログ管理へ戻る
+          </ContextLink>
+        }
+        description="よく使う質問を保存し、サービスの作成時に挿入できます。セットを更新しても挿入済みのサービスは変わりません。"
+      />
       {(await searchParams).saved === '1' && (
         <p role="status" className="success">
           共有項目セットを保存しました。

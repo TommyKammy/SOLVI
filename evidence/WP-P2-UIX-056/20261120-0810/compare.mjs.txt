@@ -1,0 +1,104 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { login, require } from './live-helpers.mjs';
+
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const [out, mode = 'before', web = 'http://127.0.0.1:3000', api = 'http://127.0.0.1:3001'] = process.argv.slice(2);
+const mock = pathToFileURL(resolve('docs/planning/assets/ui/SOLVI_Operations_Mockup.html')).href;
+const routes = [
+  ['knowledge', '/knowledge', 'staff-knowledge'],
+  ['knowledge-manage', '/knowledge?manage=1', 'kb-admin'],
+  ['knowledge-new', '/knowledge/new', 'kb-new'],
+  ['catalog', '/catalog', 'catalog'],
+  ['requests', '/requests', 'requests'],
+  ['catalog-manage', '/catalog/manage', 'catalog-admin'],
+  ['catalog-new', '/catalog/manage/new', 'catalog-admin'],
+  ['assets', '/assets', 'assets'],
+  ['imports', '/assets/imports', 'asset-imports'],
+  ['import-new', '/assets/imports/new', 'asset-import-new'],
+  ['changes', '/changes', 'changes'],
+  ['change-new', '/changes/new', 'change-new'],
+  ['requester-knowledge', '/knowledge', 'knowledge', 'requester'],
+  ['requester-catalog', '/catalog', 'catalog', 'requester'],
+  ['requester-requests', '/requests', 'requests', 'requester'],
+];
+const browser = await chromium.launch({ channel: 'chrome' });
+const checks = [];
+mkdirSync(out, {recursive: true});
+try {
+  const cookies = Object.fromEntries(await Promise.all(['org_admin','requester'].map(async role => [role, await login(role, 'acme', api)])));
+  for (const width of [1440, 375]) {
+    for (const role of ['org_admin', 'requester']) {
+      const context = await browser.newContext({ viewport: { width, height: width === 375 ? 812 : 900 }, locale: 'ja-JP', isMobile: width === 375, hasTouch: width === 375 });
+      await context.addCookies([{ ...cookies[role], url: web }]);
+      const page = await context.newPage();
+      const ref = await context.newPage();
+      for (const [key, route, hash, actor = 'org_admin'] of routes.filter(entry => (entry[3] || 'org_admin') === role)) {
+        await ref.goto(mock + '#' + hash);
+        await ref.locator('main h1:visible').waitFor();
+        const response = await page.goto(web + route);
+        assert(response?.ok(), route);
+        await page.locator('main h1:visible').waitFor();
+        await Promise.all([page, ref].map(p => p.evaluate(() => document.fonts.ready.then(() => undefined))));
+        async function measure(target) {
+          return target.locator('main h1:visible').evaluate(h1 => {
+            const css = getComputedStyle(h1);
+            const rect = h1.getBoundingClientRect();
+            return { title: h1.textContent.trim(), size: css.fontSize, weight: css.fontWeight, x: rect.x, y: rect.y, overflow: document.documentElement.scrollWidth - innerWidth };
+          });
+        }
+        const reference = await measure(ref);
+        const actual = await measure(page);
+        const check = {key, width, reference, actual};
+        if (mode === 'after') {
+          assert.equal(actual.overflow, 0, key);
+          assert.equal(actual.size, reference.size, key);
+          assert.equal(actual.weight, reference.weight, key);
+          if (key === 'knowledge' || key === 'requester-knowledge') {
+            const search = page.locator('.knowledge-search-controls');
+            const [input, button] = await Promise.all([
+              search.locator('input[type=search]').boundingBox(),
+              search.getByRole('button').boundingBox(),
+            ]);
+            assert.equal(input.y + input.height, button.y + button.height, key + ' search alignment');
+          }
+          if (['change-new', 'import-new'].includes(key)) {
+            const columns = page.locator('.service-detail-layout');
+            const [left, right] = await columns.locator(':scope > :is(div, form, aside)').evaluateAll(elements =>
+              elements.slice(-2).map(element => element.getBoundingClientRect().toJSON()));
+            assert.equal(right.x > left.x, width === 1440, key + ' panels');
+            if (width === 375) assert(right.top >= left.bottom, key + ' stacked panels');
+          }
+          const results = await new AxeBuilder({ page }).include('main').withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+          check.violations = results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({target:n.target, failureSummary:n.failureSummary})) }));
+          check.incomplete = results.incomplete.map(v => v.id);
+        }
+        checks.push(check);
+        await page.screenshot({path:join(out, width + '-' + key + '-solvi.png'), animations:'disabled'});
+        await ref.screenshot({path:join(out, width + '-' + key + '-mock.png'), animations:'disabled'});
+        if (mode === 'after' && width === 1440 && key === 'knowledge') {
+          const link = page.locator('.knowledge-public-result').first();
+          const refLink = ref.locator('.kb-result').first();
+          if (await link.count()) {
+            await link.hover();
+            await refLink.hover();
+            const color = locator => locator.evaluate(element => getComputedStyle(element).backgroundColor);
+            assert.equal(await color(link), await color(refLink));
+            check.hover = await color(link);
+            await page.mouse.move(0, 0);
+            await link.locator('a').focus();
+            assert.equal(await color(link), check.hover);
+            await page.screenshot({path:join(out,'1440-knowledge-focused.png')});
+          }
+        }
+      }
+      await context.close();
+    }
+  }
+} finally {
+  writeFileSync(join(out,'measurements.json'), JSON.stringify(checks,null,2)+'\n');
+  await browser.close();
+}
