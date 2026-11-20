@@ -134,13 +134,10 @@ export default async function OpsQueue({
     <main id="main" className="shell ops-shell ops-queue">
       <HashOpenDetails />
       <TicketReturnFocus />
-      <div className="page-heading queue-heading">
-        <div>
-          <h1 id={ticketListHeadingId} tabIndex={-1}>
-            チケット一覧
-          </h1>
-          <p className="hint">担当・状況・期限から、次に対応する問い合わせを確認します。</p>
-        </div>
+      <h1 id={ticketListHeadingId} className="work-page-title" tabIndex={-1}>
+        チケット一覧
+      </h1>
+      <div className="work-page-tools work-page-tools--end">
         <div className="queue-utilities">
           <Link href="/ops/overview">運営状況</Link>
           <Link href="/inbox">業務受信箱</Link>

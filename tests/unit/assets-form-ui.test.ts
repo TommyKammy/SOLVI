@@ -341,7 +341,7 @@ describe.each(['new', 'edit'] as const)('%s form-options fixed guidance and navi
 describe('asset form unchanged successful props and markup', () => {
   it('passes exact new options to AssetForm without fetching a detail', async () => {
     const html = await render('new');
-    expect(html).toContain('<h1>新しい資産を登録する</h1>');
+    expect(html).toContain('<h1 class="work-page-title">新しい資産を登録する</h1>');
     expect(link(html, '資産台帳へ戻る').href).toBe('/assets');
     expect(vi.mocked(AssetForm).mock.calls[0][0]).toEqual({ options });
     expect(vi.mocked(AssetForm).mock.calls[0][0].options).toBe(options);
@@ -351,7 +351,7 @@ describe('asset form unchanged successful props and markup', () => {
   it('passes exact edit asset/options/version and preserves existing ContextLink', async () => {
     navigation.params = new URLSearchParams({ returnTo: '/assets?assignment=mine&page=2' });
     const html = await render('edit');
-    expect(html).toContain('<h1>資産を編集する</h1>');
+    expect(html).toContain('<h1 class="work-page-title">資産を編集する</h1>');
     expect(html).toContain(
       '保存時に版が競合したら最新の内容を確認してください。入力は保持されます。',
     );

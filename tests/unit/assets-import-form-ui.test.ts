@@ -169,7 +169,7 @@ describe('CSV entry session and successful access guard', () => {
     async (data) => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(data)));
       const html = await render({ saved: '1', unknown: 'PRIVATE_QUERY' });
-      expect(html).toContain('<h1>資産CSVを取り込む</h1>');
+      expect(html).toContain('<h1 class="work-page-title">資産CSVを取り込む</h1>');
       expect(html).toContain(
         '合成データで試すローカル取込です。列を選び、差分を確認してから確定します。',
       );

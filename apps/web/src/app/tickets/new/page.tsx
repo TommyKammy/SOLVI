@@ -18,13 +18,15 @@ export default async function NewTicketPage({
   const returnTo = safeReturnTo(params.returnTo) ?? '/portal';
   return (
     <main id="main" className="shell support-ticket-report">
-      <header className="support-page-heading">
-        <div>
+      <header className="support-page-heading work-page-tools">
+        <div className="work-page-copy">
           <Link className="support-back" href={returnTo}>
             <FreshserviceIcon name="arrow-left" size={16} />
             {returnTo === '/portal' ? 'ポータルに戻る' : '元の画面へ戻る'}
           </Link>
-          <h1>{kind === 'incident' ? '障害を報告する' : 'IT サービスを依頼する'}</h1>
+          <h1 className="work-page-title">
+            {kind === 'incident' ? '障害を報告する' : 'IT サービスを依頼する'}
+          </h1>
           <p className="lead">
             {kind === 'incident'
               ? '発生していることを、分かる範囲でお知らせください。'

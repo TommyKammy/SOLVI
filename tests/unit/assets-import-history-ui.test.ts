@@ -184,8 +184,8 @@ describe('CSV history session and unchanged successful renderer', () => {
       const data = { canManage, items };
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(data)));
       const html = await render();
-      expect(html).toContain('<h1>CSV取込と履歴</h1>');
-      expect(html).toContain('最新50件のプレビューと確定結果です。CSVにない資産を変更しません。');
+      expect(html).toContain('<h1 class="work-page-title">CSV取込と履歴</h1>');
+      expect(html).toContain('資産CSV取込履歴（最新50件）');
       expect(html.match(/<th scope="row">/g) ?? []).toHaveLength(50);
       const details = links(html).filter((item) =>
         /^\/assets\/imports\/[0-9a-f-]+\?/.test(item.href),

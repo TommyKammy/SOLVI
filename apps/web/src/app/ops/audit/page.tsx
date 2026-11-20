@@ -145,8 +145,9 @@ export default async function AuditPage({
 
   return (
     <main id="main" className="shell insights-workspace">
-      <header className="support-page-heading">
-        <div>
+      <h1 className="work-page-title">監査ログ</h1>
+      {(event || role.auditor) && (
+        <div className="work-page-tools">
           {event && (
             <Link
               className="support-back"
@@ -156,17 +157,13 @@ export default async function AuditPage({
               監査ログ一覧へ戻る
             </Link>
           )}
-          <h1>監査ログ</h1>
-          <p className="lead">
-            選択中の組織の承認、権限変更、アクセスレビュー、AI支援、模擬実行を確認します。
-          </p>
+          {role.auditor && (
+            <Link href="/ops/approvals/changes" className="support-action">
+              上長・部署長の変更履歴
+            </Link>
+          )}
         </div>
-        {role.auditor && (
-          <Link href="/ops/approvals/changes" className="support-action">
-            上長・部署長の変更履歴
-          </Link>
-        )}
-      </header>
+      )}
       <form
         key={params.toString()}
         method="get"

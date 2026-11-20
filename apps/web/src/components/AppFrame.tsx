@@ -41,6 +41,27 @@ const sidebarSections = [
 const DETAIL_ID =
   /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|\d+)$/i;
 
+const workSubpages = [
+  { path: /^\/ops\/[^/]+\/merge$/, parent: '/ops', label: '問い合わせの統合' },
+  {
+    path: /^\/ops\/approvals\/changes$/,
+    parent: '/ops/approvals',
+    label: '上長・部署長の変更履歴',
+  },
+  { path: /^\/catalog\/manage\/new$/, parent: '/catalog/manage', label: 'サービスを作成する' },
+  {
+    path: /^\/catalog\/manage\/question-sets$/,
+    parent: '/catalog/manage',
+    label: '共有項目セット',
+  },
+  { path: /^\/assets\/imports\/new$/, parent: '/assets/imports', label: '資産CSVを取り込む' },
+  { path: /^\/assets\/imports\/[^/]+$/, parent: '/assets/imports', label: 'CSV取込結果' },
+  { path: /^\/assets\/[^/]+\/edit$/, parent: '/assets', label: '資産を編集する' },
+  { path: /^\/changes\/[^/]+\/edit$/, parent: '/changes', label: '変更計画を編集する' },
+  { path: /^\/settings\/notifications$/, label: 'メール通知の設定' },
+  { path: /^\/settings\/delegations$/, label: '承認の委任' },
+];
+
 function matchesPath(pathname: string, target: string): boolean {
   if (pathname === target) return true;
   if (!pathname.startsWith(`${target}/`)) return false;
@@ -163,11 +184,10 @@ export function AppFrame({
   const ticketId = pathname.match(/^\/ops\/([^/]+)$/)?.[1];
   const returnTo = safeReturnTo(searchParams.get('returnTo'));
   const origin = ticketId && DETAIL_ID.test(ticketId) ? ticketListOrigin(returnTo) : null;
-  const current = findCurrent(
-    origin?.pathname ?? pathname,
-    origin?.searchParams ?? searchParams,
-    groups,
-  );
+  const subpage = workSubpages.find(({ path }) => path.test(pathname));
+  const current =
+    findCurrent(origin?.pathname ?? pathname, origin?.searchParams ?? searchParams, groups) ??
+    (subpage?.parent ? findCurrent(subpage.parent, searchParams, groups) : null);
   const currentHref = current?.item?.href;
   const sections = [
     ...sidebarSections,
@@ -273,9 +293,18 @@ export function AppFrame({
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const currentDetail = (() => {
-    if (!current) return null;
+  const currentLabel = (() => {
     if (origin) return '問い合わせ詳細';
+    if (subpage) {
+      if (pathname === '/catalog/manage/new' && searchParams.has('copyFrom')) {
+        return 'サービスを複製する';
+      }
+      return subpage.label;
+    }
+    if (pathname === '/tickets/new') {
+      return searchParams.get('kind') === 'incident' ? '障害を報告する' : 'ITサービスを依頼する';
+    }
+    if (!current) return 'SOLVI';
     if (current.item) {
       const target = matchTarget(current.item);
       if (pathname === target.path) return current.item.label;
@@ -283,8 +312,9 @@ export function AppFrame({
     }
     const groupTarget = normalizedPath(current.group.href);
     if (pathname !== groupTarget && matchesPath(pathname, groupTarget)) return '詳細';
-    return null;
+    return current.group.label;
   })();
+  const parentLabel = (origin && current?.item?.label) || current?.group.label;
 
   const portalView = isPortalViewPath(pathname) && isPortalView(searchParams.getAll('portal'));
   if (pathname === '/portal' || portalView || (isSupportPath(pathname) && !staff)) {
@@ -358,7 +388,13 @@ export function AppFrame({
                         <Link
                           href={entry.href}
                           className="fs-side-link"
-                          aria-current={active ? (origin ? 'location' : 'page') : undefined}
+                          aria-current={
+                            active
+                              ? origin || pathname !== matchTarget(entry).path
+                                ? 'location'
+                                : 'page'
+                              : undefined
+                          }
                           aria-label={count ? `${entry.label} ${count.value}件` : undefined}
                           onClick={() => setMobileOpen(false)}
                         >
@@ -407,28 +443,21 @@ export function AppFrame({
             </button>
 
             <div className="fs-topbar-location">
-              <div className="fs-breadcrumb">
-                {current ? (
+              <nav className="fs-breadcrumb" aria-label="パンくず">
+                {current && parentLabel !== currentLabel && (
                   <>
                     <Link
                       href={(origin && returnTo) || current.group.href}
                       scroll={!origin?.hash.startsWith('#' + ticketEntryPrefix)}
                     >
-                      {(origin && current.item?.label) || current.group.label}
+                      {parentLabel}
                     </Link>
-                    {currentDetail && currentDetail !== current.group.label && (
-                      <>
-                        <FreshserviceIcon name="chevron" size={14} />
-                        <span aria-current="page">{currentDetail}</span>
-                      </>
-                    )}
+                    <FreshserviceIcon name="chevron" size={14} />
                   </>
-                ) : (
-                  <span aria-current="page">SOLVI</span>
                 )}
-              </div>
+                <span aria-current="page">{currentLabel}</span>
+              </nav>
             </div>
-            <span className="fs-mobile-wordmark">SOLVI</span>
           </div>
 
           <form

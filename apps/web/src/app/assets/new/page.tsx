@@ -45,6 +45,7 @@ export default async function NewAssetPage({
   return (
     <main id="main" className="shell service-workspace">
       <ServicePageHeading
+        pageIntro
         title="新しい資産を登録する"
         back={
           <ContextLink className="support-back" back href="/assets">

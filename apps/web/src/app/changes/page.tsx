@@ -66,17 +66,14 @@ export default async function ChangesPage({
     };
   return (
     <main id="main" className="shell service-workspace asset-change-workflow">
-      <header className="support-page-heading">
-        <div>
-          <p className="service-heading-meta">通常変更 · 合成の実施結果</p>
-          <h1>変更管理</h1>
-        </div>
-        {d.canCreate && (
+      <h1 className="work-page-title">変更管理</h1>
+      {d.canCreate && (
+        <div className="work-page-tools work-page-tools--end">
           <ContextLink href="/changes/new" className="support-action support-action--primary">
             通常変更の計画を作成する
           </ContextLink>
-        )}
-      </header>
+        </div>
+      )}
       {(q.has('assetId') || q.has('ticketId')) && (
         <p role="status">
           {q.has('assetId') ? '資産' : 'チケット'}
@@ -153,7 +150,7 @@ export default async function ChangesPage({
                 <th scope="col">変更番号</th>
                 <th scope="col">計画名</th>
                 <th scope="col">対象資産</th>
-                <th scope="col">状態</th>
+                <th scope="col">状態・合成の実施結果</th>
                 <th scope="col">予定（JST）・担当者</th>
                 <th scope="col">元チケット</th>
               </tr>

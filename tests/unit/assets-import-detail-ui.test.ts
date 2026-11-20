@@ -320,7 +320,7 @@ describe('CSV detail session and unchanged successful renderer', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ ...detail, canManage })));
       const html = await render();
       const text = plainText(html);
-      expect(html).toContain('<h1>CSV取込プレビュー</h1>');
+      expect(html).toContain('<h1 class="work-page-title">CSV取込プレビュー</h1>');
       expect(text).toContain('synthetic-source · 2026年10月9日 09:00 · 合成作成者');
       expect(text).toContain('取込理由 合成の取込理由');
       expect(html).toContain('aria-label="取込行の内訳"');
@@ -380,7 +380,7 @@ describe('CSV detail session and unchanged successful renderer', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ ...detail, receipt })));
     const html = await render();
     const text = plainText(html);
-    expect(html).toContain('<h1>CSV取込の確定結果</h1>');
+    expect(html).toContain('<h1 class="work-page-title">CSV取込の確定結果</h1>');
     expect(text).toContain('確定済み · 2026年10月9日 10:00 · 合成確定者');
     expect(text).toMatch(/保存: 追加1 \/ 更新1 \/ 変更なし1 \/ 隔離1/);
     expect(new URL(link(html, 'SYN-1').href, 'https://solvi.local').pathname).toBe(

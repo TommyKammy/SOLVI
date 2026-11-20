@@ -416,7 +416,6 @@ body.fs-ui .fs-theme button:focus-visible {
   min-inline-size: 0;
 }
 
-.fs-mobile-wordmark,
 body.fs-ui .fs-topbar-actions .fs-mobile-search {
   display: none;
 }
@@ -822,11 +821,6 @@ body.fs-ui .page-heading {
 
 body.fs-ui .page-heading h1 {
   margin-bottom: 2px;
-}
-
-body.fs-ui .queue-heading h1 {
-  font-size: var(--fs-page-title);
-  line-height: 1.4;
 }
 
 body.fs-ui .record-number {
@@ -2818,23 +2812,6 @@ body.fs-ui .insights-panel h2 {
 
 .insights-list a[id] {
   scroll-margin-block-start: 72px;
-}
-
-.report-heading {
-  padding-block-end: 1rem;
-  border-block-end: 1px solid var(--line);
-  margin-block-end: var(--fs-view-gap);
-}
-
-body.fs-ui .report-heading p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 650;
-}
-
-body.fs-ui .report-heading h1 {
-  margin-block: 0.125rem 0.25rem;
 }
 
 body.fs-ui .report-scope {
@@ -4830,13 +4807,12 @@ body.fs-ui .fs-public-content > main form.stack {
   .fs-topbar-actions {
     gap: 0.375rem;
   }
-  .fs-mobile-wordmark {
-    display: block;
-    font-size: 1rem;
-    font-weight: 760;
-  }
-  .fs-topbar-location {
+  .fs-breadcrumb > :not([aria-current='page']) {
     display: none;
+  }
+  .fs-breadcrumb {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   body.fs-ui .fs-topbar-actions .fs-mobile-search {
     display: grid;
@@ -4889,15 +4865,6 @@ body.fs-ui .fs-public-content > main form.stack {
   display: grid;
   align-content: start;
   gap: 1.5rem;
-}
-
-.home-heading {
-  padding-block-end: 1.375rem;
-  border-block-end: 1px solid var(--line);
-}
-
-body.fs-ui .home-heading h1 {
-  margin: 0;
 }
 
 body.fs-ui .home-date {
@@ -5356,9 +5323,6 @@ body.fs-ui .home-empty a {
 @media (max-width: 34rem) {
   .fs-home {
     gap: 1rem;
-  }
-  .home-heading {
-    padding-block-end: 1rem;
   }
   .home-panel--group {
     padding-inline: 0.875rem;
@@ -5943,12 +5907,6 @@ body.fs-ui .service-heading-meta {
   font-weight: 650;
 }
 
-body.fs-ui .service-heading-description {
-  color: var(--muted);
-  margin: 0;
-  font-size: 0.875rem;
-}
-
 body.fs-ui .service-workspace :is(.service-page-heading, .support-page-heading) .support-back {
   min-block-size: 1.625rem;
   margin-block-end: 0.5rem;
@@ -6347,4 +6305,35 @@ body.fs-ui .service-panel-fields h2 {
   form.service-detail-layout > :is([role='alert'], .form-feedback) {
     grid-column: 1 / -1;
   }
+}
+
+/* 業務画面のページ名はパンくずで示し、本文上部には操作と状態を置く。 */
+body.fs-ui .fs-content .work-page-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--fs-action-gap);
+  margin-block: 0 0.75rem;
+  padding-block: 0;
+  border-block: 0;
+}
+body.fs-ui .fs-content .work-page-tools--end {
+  justify-content: flex-end;
+}
+.fs-content .work-page-copy,
+.fs-content .work-page-tools > .service-heading-line {
+  display: contents;
+}
+.fs-content .work-page-copy > p {
+  display: none;
+}
+body.fs-ui .fs-content .work-page-tools .support-back,
+body.fs-ui .fs-content .work-page-tools > .admin-context-banner,
+body.fs-ui .fs-content .work-page-tools > .inbox-as-of {
+  margin-block: 0;
+}
+
+body.fs-ui .fs-content .work-page-title:focus-visible {
+  font-size: 1rem;
 }

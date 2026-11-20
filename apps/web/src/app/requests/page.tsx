@@ -68,9 +68,9 @@ export default async function RequestsPage({
   };
   return (
     <main id="main" className="shell service-workspace">
-      <header className="support-page-heading">
-        <div>
-          <h1>申請の状況</h1>
+      <header className="support-page-heading work-page-tools work-page-tools--end">
+        <div className="work-page-copy">
+          <h1 className="work-page-title">申請の状況</h1>
           <p className="lead">
             申請の進捗と、いま誰が対応するかを確認します。実際の権限・外部サービスは変更しません。
           </p>

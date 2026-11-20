@@ -34,9 +34,9 @@ export default async function CatalogPage({
   return (
     <main id="main" className="shell service-workspace service-catalog fs-catalog">
       <section className="fs-page-main" aria-label="サービスカタログ">
-        <div className="page-heading catalog-heading">
-          <div>
-            <h1>サービスカタログ</h1>
+        <div className="page-heading catalog-heading work-page-tools work-page-tools--end">
+          <div className="work-page-copy">
+            <h1 className="work-page-title">サービスカタログ</h1>
             <p className="hint">必要なサービスを探し、申請内容の入力へ進めます。</p>
           </div>
           <nav className="catalog-utilities" aria-label="カタログの関連画面">

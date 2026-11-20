@@ -104,10 +104,10 @@ export default async function DelegationsPage({
 
   return (
     <main id="main" className="shell directory-shell">
-      <div className="directory-heading">
-        <div>
+      <div className="directory-heading work-page-tools work-page-tools--end">
+        <div className="work-page-copy">
           <p className="eyebrow">自分の設定</p>
-          <h1>承認の委任（代理承認）</h1>
+          <h1 className="work-page-title">承認の委任（代理承認）</h1>
           <p>
             休暇などで自分が承認できない期間に、自分宛ての承認を別の人へ任せられます。委任できるのは自分宛ての承認だけです。
           </p>

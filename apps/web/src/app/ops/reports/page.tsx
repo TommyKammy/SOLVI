@@ -312,14 +312,8 @@ export default async function ReportPage({
   if (!navigationRoles(session).staff) return <AdminDenied title="レポート" canOpenHome={false} />;
 
   const scope = parseReportQuery(await searchParams);
-  const [groupsResult, organizations] = await Promise.all([
-    api.listGroups(true),
-    api.myOrganizations(),
-  ]);
+  const groupsResult = await api.listGroups(true);
   const groups = groupsResult.ok ? groupsResult.data.items : [];
-  const organization = organizations.ok
-    ? organizations.data.organizations.find((item) => item.id === session.organizationId)?.name
-    : undefined;
   const groupName = groups.find((item) => item.id === scope.group)?.name;
   const groupValid = !scope.group || ['mine', 'ungrouped'].includes(scope.group) || !!groupName;
   const scopeLabel = !scope.group
@@ -351,10 +345,7 @@ export default async function ReportPage({
 
   return (
     <main id="main" className="shell insights-workspace report-workspace">
-      <header className="report-heading">
-        {organization && <p>{organization}</p>}
-        <h1>レポート</h1>
-      </header>
+      <h1 className="work-page-title">レポート</h1>
 
       <form key={from} method="get" className="insights-filters" aria-label="レポートの集計条件">
         <div className="field">

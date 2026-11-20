@@ -4,23 +4,22 @@ export function ServicePageHeading({
   title,
   back,
   meta,
-  description,
   actions,
+  pageIntro = false,
 }: {
   title: ReactNode;
   back?: ReactNode;
   meta?: ReactNode;
-  description?: ReactNode;
   actions?: ReactNode;
+  pageIntro?: boolean;
 }) {
   return (
-    <header className="service-page-heading">
+    <header className={pageIntro ? 'service-page-heading work-page-tools' : 'service-page-heading'}>
       {back}
       <div className="service-heading-line">
-        <div>
+        <div className={pageIntro ? 'work-page-copy' : undefined}>
           {meta && <p className="service-heading-meta">{meta}</p>}
-          <h1>{title}</h1>
-          {description && <p className="service-heading-description">{description}</p>}
+          <h1 className={pageIntro ? 'work-page-title' : undefined}>{title}</h1>
         </div>
         {actions && <div className="service-heading-actions">{actions}</div>}
       </div>

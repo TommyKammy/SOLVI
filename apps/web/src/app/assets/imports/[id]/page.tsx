@@ -64,12 +64,14 @@ export default async function AssetImportPage({
   const firstSavedAsset = firstSavedRow && savedAssets.get(firstSavedRow.row);
   return (
     <main id="main" className="shell service-workspace asset-change-workflow">
-      <header className="support-page-heading">
+      <header className="work-page-tools">
         <div>
           <ContextLink back href="/assets/imports" className="support-back">
             取込履歴へ戻る
           </ContextLink>
-          <h1>{d.receipt ? 'CSV取込の確定結果' : 'CSV取込プレビュー'}</h1>
+          <h1 className="work-page-title">
+            {d.receipt ? 'CSV取込の確定結果' : 'CSV取込プレビュー'}
+          </h1>
           <p className="lead">
             {d.sourceKey} · {formatDateTime(d.createdAt)} · {d.creatorName}
           </p>

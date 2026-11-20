@@ -81,18 +81,15 @@ export default async function InboxPage({
   return (
     <main id="main" className="shell ops-shell inbox-page">
       <TicketReturnFocus />
-      <header className="page-heading">
-        <div>
-          <h1 id={ticketListHeadingId} tabIndex={-1}>
-            業務受信箱
-          </h1>
-          <p className="lead">担当チケット、承認依頼、担当する変更を確認します。</p>
-        </div>
+      <h1 id={ticketListHeadingId} className="work-page-title" tabIndex={-1}>
+        業務受信箱
+      </h1>
+      <div className="work-page-tools work-page-tools--end">
         <p className="hint inbox-as-of">
           <time dateTime={d.asOf}>{formatDateTime(d.asOf)}</time>
           <span>（JST）</span>
         </p>
-      </header>
+      </div>
       <dl className="inbox-summary" aria-label="現在の業務件数">
         <div>
           <dt>{f.unassigned === '1' ? '担当・未割当チケット' : '担当チケット'}</dt>

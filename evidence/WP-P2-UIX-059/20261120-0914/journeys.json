@@ -1,0 +1,50 @@
+[
+  {
+    "role": "org_admin",
+    "width": 1440,
+    "checks": [
+      "portal/catalog",
+      "portal/requests",
+      "portal/knowledge",
+      "navigate-to-inbox",
+      "report-date-filter",
+      "ticket-subject-and-reply",
+      "ticket-list-return-focus",
+      "permission-recovery"
+    ]
+  },
+  {
+    "role": "requester",
+    "width": 1440,
+    "checks": [
+      "portal/catalog",
+      "portal/requests",
+      "portal/knowledge",
+      "own-assets"
+    ]
+  },
+  {
+    "role": "org_admin",
+    "width": 375,
+    "checks": [
+      "portal/catalog",
+      "portal/requests",
+      "portal/knowledge",
+      "navigate-to-inbox",
+      "report-date-filter",
+      "ticket-subject-and-reply",
+      "ticket-list-return-focus",
+      "permission-recovery"
+    ]
+  },
+  {
+    "role": "requester",
+    "width": 375,
+    "checks": [
+      "portal/catalog",
+      "portal/requests",
+      "portal/knowledge",
+      "own-assets"
+    ]
+  }
+]

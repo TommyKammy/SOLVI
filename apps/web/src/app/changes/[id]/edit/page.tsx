@@ -78,14 +78,18 @@ export default async function EditChangePage({
   return (
     <main id="main" className="shell service-workspace">
       <ServicePageHeading
+        pageIntro
         title={`${d.data.change.number} · 計画を見直す`}
         back={
           <ContextLink className="support-back" back href={`/changes/${id}`}>
             変更計画へ戻る
           </ContextLink>
         }
-        description="保存後は下書きに戻ります。対象の現在の版を確認し、別担当者へ再申請してください。"
       />
+      <p className="hint">
+        {d.data.change.number} ·
+        保存後は下書きに戻ります。対象の現在の版を確認し、別担当者へ再申請してください。
+      </p>
       <ChangePlanForm
         current={d.data.change}
         options={options.data}

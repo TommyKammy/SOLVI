@@ -44,14 +44,11 @@ export default async function AssetImportsPage({
   }
   return (
     <main id="main" className="shell service-workspace asset-change-workflow">
-      <header className="support-page-heading">
-        <div>
-          <ContextLink back href="/assets" className="support-back">
-            資産台帳へ戻る
-          </ContextLink>
-          <h1>CSV取込と履歴</h1>
-          <p className="lead">最新50件のプレビューと確定結果です。CSVにない資産を変更しません。</p>
-        </div>
+      <h1 className="work-page-title">CSV取込と履歴</h1>
+      <div className="work-page-tools">
+        <ContextLink back href="/assets" className="support-back">
+          資産台帳へ戻る
+        </ContextLink>
         {r.data.canManage && (
           <ContextLink
             href="/assets/imports/new"
@@ -60,11 +57,11 @@ export default async function AssetImportsPage({
             資産CSVを取り込む
           </ContextLink>
         )}
-      </header>
+      </div>
       {r.data.items.length ? (
         <TableRegion label="資産CSV取込履歴" className="table-scroll service-table-scroll">
           <table className="work-table service-data-table">
-            <caption className="visually-hidden">資産CSV取込履歴</caption>
+            <caption className="visually-hidden">資産CSV取込履歴（最新50件）</caption>
             <thead>
               <tr>
                 <th scope="col">取込元・プレビュー日時（JST）</th>

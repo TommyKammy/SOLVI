@@ -1,0 +1,92 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { login, require } from './live-helpers.mjs';
+
+const web = process.env.SOLVI_UI_BASE ?? 'http://127.0.0.1:3000';
+const backend = process.env.SOLVI_API_BASE ?? 'http://127.0.0.1:3001';
+for (const base of [web, backend]) assert.match(base, /^http:\/\/127\.0\.0\.1:\d+$/);
+const browser = await require('playwright').chromium.launch({ channel: 'chrome' });
+const results = [];
+const saved = new Map();
+
+async function loadPage(page, path) {
+  const response = await page.goto(web + path);
+  assert.equal(response.status(), 200, path);
+  await page.getByRole('main').waitFor();
+}
+
+try {
+  for (const width of [1440, 375]) {
+    for (const role of ['org_admin', 'requester']) {
+      const mobile = width === 375;
+      const context = await browser.newContext({viewport:{width,height:mobile?812:900}, isMobile:mobile, hasTouch:mobile});
+      try {
+        if (!saved.has(role)) saved.set(role, await login(role, 'acme', backend));
+        await context.addCookies([{ ...saved.get(role), url: web }]);
+        const page = await context.newPage();
+        const click = mobile ? 'tap' : 'click';
+        const checks = [];
+        await loadPage(page, '/portal');
+        await page.getByRole('heading', { level: 1 }).waitFor();
+        for (const [path, label] of [['/catalog', 'サービスカタログ'], ['/requests', '申請の状況'], ['/knowledge', 'ヘルプ記事を探す']]) {
+          const link = page.locator('.fs-support-nav a[href^="' + path + '"][href*="portal=1"]').first();
+          await link[click]();
+          await page.waitForURL(url => url.pathname === path && url.searchParams.get('portal') === '1');
+          await page.getByRole('main').getByRole('heading', { level: 1, name: label }).waitFor();
+          const h1 = page.locator('main h1').first();
+          assert.ok((await h1.boundingBox()).height > 20, role + ' portal heading ' + path);
+          assert.equal(await page.locator('.fs-breadcrumb').count(), 0);
+          checks.push('portal' + path);
+          await loadPage(page, '/portal');
+        }
+        if (role === 'org_admin') {
+          await loadPage(page, '/ops/overview');
+          if (mobile) await page.getByRole('button',{name:'メニューを開く'}).tap();
+          const menu = page.getByRole('navigation',{name:'業務メニュー'});
+          await menu.getByRole('link',{name:/業務受信箱/})[click]();
+          await page.waitForURL(/\/inbox/);
+          await page.getByRole('navigation',{name:'パンくず'}).getByText('業務受信箱',{exact:true}).waitFor();
+          assert.equal(await page.getByText('担当チケット、承認依頼、担当する変更を確認します。').count(), 0);
+          await page.getByRole('main').getByText('承認依頼', {exact:true}).first().waitFor();
+          checks.push('navigate-to-inbox');
+          await loadPage(page, '/ops/reports');
+          await page.locator('#report-from').fill('2026-11-01');
+          await page.locator('#report-to').fill('2026-11-20');
+          await page.getByRole('button',{name:'絞り込む',exact:true})[click]();
+          await page.waitForURL(url => url.searchParams.get('from') === '2026-11-01' && url.searchParams.get('to') === '2026-11-20');
+          checks.push('report-date-filter');
+          await loadPage(page, '/ops');
+          const href = await page.locator('main a[href^="/ops/"]').evaluateAll(anchors => anchors
+            .map(a=>a.getAttribute('href')).find(href=>/^\/ops\/[0-9a-f]{8}-[0-9a-f-]{27}/i.test(href)));
+          assert.ok(href, 'seeded ticket link');
+          {
+            await loadPage(page, href);
+            const heading = page.locator('.fs-ticket-heading h1');
+            assert.ok((await heading.boundingBox()).height > 20);
+            assert.ok((await heading.textContent()).trim());
+            await page.getByRole('link', {name:'返信する', exact:true}).first().waitFor();
+            checks.push('ticket-subject-and-reply');
+          }
+          await loadPage(page, '/ops#ticket-entry-missing');
+          await page.waitForFunction(() => document.activeElement?.id === 'ticket-list-heading');
+          checks.push('ticket-list-return-focus');
+          await loadPage(page, '/ops/audit');
+          await page.getByText('この画面を表示する権限がありません。', { exact:false }).first().waitFor();
+          checks.push('permission-recovery');
+        } else {
+          await loadPage(page, '/assets');
+          const heading = page.getByRole('main').getByRole('heading', {name:'自分の資産',level:1});
+          assert.ok((await heading.boundingBox()).height > 20);
+          checks.push('own-assets');
+        }
+        console.log(role, width, checks.join(' '));
+        results.push({role,width,checks});
+      } finally {
+        await context.close();
+      }
+    }
+  }
+} finally {
+  await browser.close();
+  await writeFile(process.argv[2], JSON.stringify(results, null, 2) + '\n');
+}

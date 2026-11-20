@@ -600,7 +600,8 @@ button.danger {
 }
 
 /* 見出しを支援技術にだけ渡す。表の意味を音声で伝えるために使う。 */
-.visually-hidden {
+.visually-hidden,
+.fs-content .work-page-title:not(:focus-visible) {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2293,19 +2294,6 @@ textarea {
   min-width: 0;
   padding-top: 20px;
 }
-.ops-queue .queue-heading {
-  align-items: flex-start;
-  gap: 12px;
-}
-.ops-queue .queue-heading h1 {
-  margin: 0;
-  font-size: 1.625rem;
-  line-height: 1.4;
-}
-.ops-queue .queue-heading .hint {
-  margin: 4px 0 0;
-  font-size: 0.8125rem;
-}
 .queue-utilities {
   display: flex;
   flex-wrap: wrap;
@@ -2460,9 +2448,6 @@ textarea {
   margin: 8px 0 16px;
 }
 @media (max-width: 1199px) {
-  .ops-queue .queue-heading {
-    flex-wrap: wrap;
-  }
   .ops-queue .ticket-filters-compact {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

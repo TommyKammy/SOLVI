@@ -1,0 +1,1035 @@
+[
+  {
+    "name": "inbox",
+    "path": "/inbox",
+    "width": 1440,
+    "navigation": "業務受信箱",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "業務受信箱"
+    },
+    "firstY": 129.796875,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "reports",
+    "path": "/ops/reports",
+    "width": 1440,
+    "navigation": "レポート",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "レポート"
+    },
+    "firstY": 114,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "admin",
+    "path": "/ops/admin",
+    "width": 1440,
+    "navigation": "管理ホーム",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "管理ホーム"
+    },
+    "firstY": 98,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "audit",
+    "path": "/ops/audit",
+    "width": 1440,
+    "navigation": "監査ログ",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "監査ログ"
+    },
+    "firstY": 154,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "overview",
+    "path": "/ops/overview",
+    "width": 1440,
+    "navigation": "運営状況",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "運営状況"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "tickets",
+    "path": "/ops",
+    "width": 1440,
+    "navigation": "チケット一覧",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "チケット一覧"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "users",
+    "path": "/ops/users",
+    "width": 1440,
+    "navigation": "利用者管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "利用者管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "departments",
+    "path": "/ops/departments",
+    "width": 1440,
+    "navigation": "部署管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "部署管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "groups",
+    "path": "/ops/groups",
+    "width": 1440,
+    "navigation": "担当グループ",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "担当グループの管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "approvals",
+    "path": "/ops/approvals",
+    "width": 1440,
+    "navigation": "承認ルール",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "承認ルール"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "notifications",
+    "path": "/ops/notifications",
+    "width": 1440,
+    "navigation": "通知状況",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "通知状況"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "access",
+    "path": "/ops/access-review",
+    "width": 1440,
+    "navigation": "アクセスレビュー",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "アクセスレビュー"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "approval-history",
+    "path": "/ops/approvals/changes",
+    "width": 1440,
+    "navigation": "上長・部署長の変更履歴",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "上長・部署長の変更履歴"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "catalog",
+    "path": "/catalog",
+    "width": 1440,
+    "navigation": "サービスカタログ",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "サービスカタログ"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "catalog-manage",
+    "path": "/catalog/manage",
+    "width": 1440,
+    "navigation": "カタログ管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "カタログ管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "catalog-new",
+    "path": "/catalog/manage/new",
+    "width": 1440,
+    "navigation": "サービスを作成する",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "サービスを作成する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "question-sets",
+    "path": "/catalog/manage/question-sets",
+    "width": 1440,
+    "navigation": "共有項目セット",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "共有項目セット"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "knowledge",
+    "path": "/knowledge",
+    "width": 1440,
+    "navigation": "ナレッジ検索",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "ナレッジ検索"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "knowledge-manage",
+    "path": "/knowledge?manage=1",
+    "width": 1440,
+    "navigation": "ナレッジ管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "ナレッジ管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "knowledge-new",
+    "path": "/knowledge/new",
+    "width": 1440,
+    "navigation": "記事を作成",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "新しい記事を書く"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "requests",
+    "path": "/requests",
+    "width": 1440,
+    "navigation": "申請状況",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "申請の状況"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "assets",
+    "path": "/assets",
+    "width": 1440,
+    "navigation": "資産台帳",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "資産台帳"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "asset-new",
+    "path": "/assets/new",
+    "width": 1440,
+    "navigation": "資産を登録",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "新しい資産を登録する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "asset-imports",
+    "path": "/assets/imports",
+    "width": 1440,
+    "navigation": "CSV取込",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "CSV取込と履歴"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "asset-import-new",
+    "path": "/assets/imports/new",
+    "width": 1440,
+    "navigation": "資産CSVを取り込む",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "資産CSVを取り込む"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "changes",
+    "path": "/changes",
+    "width": 1440,
+    "navigation": "変更管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "変更管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "change-new",
+    "path": "/changes/new",
+    "width": 1440,
+    "navigation": "変更を計画",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "通常変更の計画を作成する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "ticket-new",
+    "path": "/tickets/new?kind=incident",
+    "width": 1440,
+    "navigation": "障害を報告する",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "障害を報告する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "preferences",
+    "path": "/settings/notifications",
+    "width": 1440,
+    "navigation": "メール通知の設定",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "メール通知の設定"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "delegations",
+    "path": "/settings/delegations",
+    "width": 1440,
+    "navigation": "承認の委任",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "承認の委任（代理承認）"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "inbox",
+    "path": "/inbox",
+    "width": 375,
+    "navigation": "業務受信箱",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "業務受信箱"
+    },
+    "firstY": 119.796875,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "reports",
+    "path": "/ops/reports",
+    "width": 375,
+    "navigation": "レポート",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "レポート"
+    },
+    "firstY": 104,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "admin",
+    "path": "/ops/admin",
+    "width": 375,
+    "navigation": "管理ホーム",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "管理ホーム"
+    },
+    "firstY": 88,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "audit",
+    "path": "/ops/audit",
+    "width": 375,
+    "navigation": "監査ログ",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "監査ログ"
+    },
+    "firstY": 148,
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "overview",
+    "path": "/ops/overview",
+    "width": 375,
+    "navigation": "運営状況",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "運営状況"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "tickets",
+    "path": "/ops",
+    "width": 375,
+    "navigation": "チケット一覧",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "チケット一覧"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodeCount": 192
+        }
+      ]
+    }
+  },
+  {
+    "name": "users",
+    "path": "/ops/users",
+    "width": 375,
+    "navigation": "利用者管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "利用者管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "departments",
+    "path": "/ops/departments",
+    "width": 375,
+    "navigation": "部署管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "部署管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "groups",
+    "path": "/ops/groups",
+    "width": 375,
+    "navigation": "担当グループ",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "担当グループの管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "approvals",
+    "path": "/ops/approvals",
+    "width": 375,
+    "navigation": "承認ルール",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "承認ルール"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "notifications",
+    "path": "/ops/notifications",
+    "width": 375,
+    "navigation": "通知状況",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "通知状況"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "access",
+    "path": "/ops/access-review",
+    "width": 375,
+    "navigation": "アクセスレビュー",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "アクセスレビュー"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "approval-history",
+    "path": "/ops/approvals/changes",
+    "width": 375,
+    "navigation": "上長・部署長の変更履歴",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "上長・部署長の変更履歴"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "catalog",
+    "path": "/catalog",
+    "width": 375,
+    "navigation": "サービスカタログ",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "サービスカタログ"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "catalog-manage",
+    "path": "/catalog/manage",
+    "width": 375,
+    "navigation": "カタログ管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "カタログ管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "catalog-new",
+    "path": "/catalog/manage/new",
+    "width": 375,
+    "navigation": "サービスを作成する",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "サービスを作成する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "question-sets",
+    "path": "/catalog/manage/question-sets",
+    "width": 375,
+    "navigation": "共有項目セット",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "共有項目セット"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "knowledge",
+    "path": "/knowledge",
+    "width": 375,
+    "navigation": "ナレッジ検索",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "ナレッジ検索"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "knowledge-manage",
+    "path": "/knowledge?manage=1",
+    "width": 375,
+    "navigation": "ナレッジ管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "ナレッジ管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "knowledge-new",
+    "path": "/knowledge/new",
+    "width": 375,
+    "navigation": "記事を作成",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "新しい記事を書く"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "requests",
+    "path": "/requests",
+    "width": 375,
+    "navigation": "申請状況",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "申請の状況"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "assets",
+    "path": "/assets",
+    "width": 375,
+    "navigation": "資産台帳",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "資産台帳"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "asset-new",
+    "path": "/assets/new",
+    "width": 375,
+    "navigation": "資産を登録",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "新しい資産を登録する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "asset-imports",
+    "path": "/assets/imports",
+    "width": 375,
+    "navigation": "CSV取込",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "CSV取込と履歴"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "asset-import-new",
+    "path": "/assets/imports/new",
+    "width": 375,
+    "navigation": "資産CSVを取り込む",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "資産CSVを取り込む"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "changes",
+    "path": "/changes",
+    "width": 375,
+    "navigation": "変更管理",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "変更管理"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "change-new",
+    "path": "/changes/new",
+    "width": 375,
+    "navigation": "変更を計画",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "通常変更の計画を作成する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "ticket-new",
+    "path": "/tickets/new?kind=incident",
+    "width": 375,
+    "navigation": "障害を報告する",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "障害を報告する"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "preferences",
+    "path": "/settings/notifications",
+    "width": 375,
+    "navigation": "メール通知の設定",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "メール通知の設定"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  },
+  {
+    "name": "delegations",
+    "path": "/settings/delegations",
+    "width": 375,
+    "navigation": "承認の委任",
+    "css": {
+      "position": "absolute",
+      "height": 1,
+      "display": "block",
+      "text": "承認の委任（代理承認）"
+    },
+    "horizontalOverflow": 0,
+    "axe": {
+      "violations": [],
+      "incomplete": []
+    }
+  }
+]

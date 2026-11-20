@@ -1,0 +1,60 @@
+after 1440 inbox 業務受信箱 1 129.796875
+after 1440 reports レポート 1 114
+after 1440 admin 管理ホーム 1 98
+after 1440 audit 監査ログ 1 154
+after 1440 overview 運営状況 1
+after 1440 tickets チケット一覧 1
+after 1440 users 利用者管理 1
+after 1440 departments 部署管理 1
+after 1440 groups 担当グループ 1
+after 1440 approvals 承認ルール 1
+after 1440 notifications 通知状況 1
+after 1440 access アクセスレビュー 1
+after 1440 approval-history 上長・部署長の変更履歴 1
+after 1440 catalog サービスカタログ 1
+after 1440 catalog-manage カタログ管理 1
+after 1440 catalog-new サービスを作成する 1
+after 1440 question-sets 共有項目セット 1
+after 1440 knowledge ナレッジ検索 1
+after 1440 knowledge-manage ナレッジ管理 1
+after 1440 knowledge-new 記事を作成 1
+after 1440 requests 申請状況 1
+after 1440 assets 資産台帳 1
+after 1440 asset-new 資産を登録 1
+after 1440 asset-imports CSV取込 1
+after 1440 asset-import-new 資産CSVを取り込む 1
+after 1440 changes 変更管理 1
+after 1440 change-new 変更を計画 1
+after 1440 ticket-new 障害を報告する 1
+after 1440 preferences メール通知の設定 1
+after 1440 delegations 承認の委任 1
+after 375 inbox 業務受信箱 1 119.796875
+after 375 reports レポート 1 104
+after 375 admin 管理ホーム 1 88
+after 375 audit 監査ログ 1 148
+after 375 overview 運営状況 1
+after 375 tickets チケット一覧 1
+after 375 users 利用者管理 1
+after 375 departments 部署管理 1
+after 375 groups 担当グループ 1
+after 375 approvals 承認ルール 1
+after 375 notifications 通知状況 1
+after 375 access アクセスレビュー 1
+after 375 approval-history 上長・部署長の変更履歴 1
+after 375 catalog サービスカタログ 1
+after 375 catalog-manage カタログ管理 1
+after 375 catalog-new サービスを作成する 1
+after 375 question-sets 共有項目セット 1
+after 375 knowledge ナレッジ検索 1
+after 375 knowledge-manage ナレッジ管理 1
+after 375 knowledge-new 記事を作成 1
+after 375 requests 申請状況 1
+after 375 assets 資産台帳 1
+after 375 asset-new 資産を登録 1
+after 375 asset-imports CSV取込 1
+after 375 asset-import-new 資産CSVを取り込む 1
+after 375 changes 変更管理 1
+after 375 change-new 変更を計画 1
+after 375 ticket-new 障害を報告する 1
+after 375 preferences メール通知の設定 1
+after 375 delegations 承認の委任 1

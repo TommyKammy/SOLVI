@@ -8,16 +8,12 @@ export default async function NewKnowledge() {
   if (!navigationRoles(session).staff) redirect('/knowledge');
   return (
     <main id="main" className="shell service-workspace knowledge-article">
-      <header className="support-page-heading">
-        <div>
-          <ContextLink className="support-back" back href="/knowledge?manage=1">
-            記事の管理に戻る
-          </ContextLink>
-          <p className="service-heading-meta">担当者</p>
-          <h1>新しい記事を書く</h1>
-          <p className="lead">内容と閲覧範囲を確認し、下書きからレビューへ進みます。</p>
-        </div>
-      </header>
+      <h1 className="work-page-title">新しい記事を書く</h1>
+      <div className="work-page-tools">
+        <ContextLink className="support-back" back href="/knowledge?manage=1">
+          記事の管理に戻る
+        </ContextLink>
+      </div>
       <KnowledgeEditor />
     </main>
   );

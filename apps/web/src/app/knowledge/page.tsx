@@ -100,6 +100,7 @@ export default async function KnowledgePage({
     <main id="main" className="shell knowledge-search fs-knowledge service-workspace">
       <section className="fs-page-main" aria-label="ナレッジ検索結果">
         <ServicePageHeading
+          pageIntro={staff}
           title={query.manage ? 'ナレッジ管理' : staff ? 'ナレッジ検索' : 'ヘルプ記事を探す'}
           back={
             !staff && (
@@ -107,9 +108,6 @@ export default async function KnowledgePage({
                 ポータルへ戻る
               </Link>
             )
-          }
-          meta={
-            staff && (query.manage ? '担当者 · 記事の編集と公開状況' : '担当者が閲覧できる記事')
           }
           actions={
             staff && (

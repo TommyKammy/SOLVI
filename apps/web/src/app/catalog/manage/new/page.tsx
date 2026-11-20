@@ -83,13 +83,13 @@ export default async function CatalogNewPage({
   return (
     <main id="main" className="shell service-workspace">
       <ServicePageHeading
+        pageIntro
         title={initialContent ? 'サービスを複製する' : 'サービスを作成する'}
         back={
           <ContextLink className="support-back" back href="/catalog/manage">
             カタログ管理へ戻る
           </ContextLink>
         }
-        description="サービス情報、質問と表示条件、承認ルールを設定します。"
         actions={
           isOrgAdmin(session) && (
             <Link className="support-action" href="/ops/approvals#approval-create">

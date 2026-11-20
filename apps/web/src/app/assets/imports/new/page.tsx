@@ -45,21 +45,19 @@ export default async function NewAssetImportPage({
   }
   return (
     <main id="main" className="shell service-workspace asset-change-workflow">
-      <header className="support-page-heading">
-        <div>
-          <ContextLink back href="/assets/imports" className="support-back">
-            取込履歴へ戻る
-          </ContextLink>
-          <h1>資産CSVを取り込む</h1>
-          <p className="lead">
-            合成データで試すローカル取込です。列を選び、差分を確認してから確定します。CSVにない資産の削除・廃止は行いません。
-          </p>
-        </div>
-      </header>
+      <h1 className="work-page-title">資産CSVを取り込む</h1>
+      <div className="work-page-tools">
+        <ContextLink back href="/assets/imports" className="support-back">
+          取込履歴へ戻る
+        </ContextLink>
+      </div>
       <div className="service-detail-layout">
         <AssetCsvForm />
         <aside className="asset-change-panel service-tint" aria-labelledby="asset-csv-guidance">
           <h2 id="asset-csv-guidance">取込前に確認すること</h2>
+          <p className="hint">
+            合成データで試すローカル取込です。列を選び、差分を確認してから確定します。CSVにない資産の削除・廃止は行いません。
+          </p>
           <p className="hint">
             取込元と外部IDの組み合わせで資産を識別します。CSVには見出しを付け、UTF-8で100行・24KiB以内にしてください。
           </p>

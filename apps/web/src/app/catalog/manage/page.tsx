@@ -47,12 +47,8 @@ export default async function CatalogManagePage({
   const clearUrl = catalogListUrl({ ...query, q: '', state: 'all', page: 1 });
   return (
     <main id="main" className="shell service-workspace">
-      <header className="support-page-heading">
-        <div>
-          <p className="service-heading-meta">サービス管理</p>
-          <h1>カタログ管理</h1>
-          <p className="lead">項目と承認者を下書きで整え、プレビューして新規受付へ公開します。</p>
-        </div>
+      <h1 className="work-page-title">カタログ管理</h1>
+      <div className="work-page-tools work-page-tools--end">
         <nav className="form-actions" aria-label="カタログ管理の設定">
           <ContextLink className="support-action" back href="/catalog">
             利用者のカタログへ戻る
@@ -77,7 +73,7 @@ export default async function CatalogManagePage({
             </a>
           )}
         </nav>
-      </header>
+      </div>
       <form
         action="/catalog/manage"
         method="get"

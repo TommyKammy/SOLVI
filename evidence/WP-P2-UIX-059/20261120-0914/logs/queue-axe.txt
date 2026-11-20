@@ -1,0 +1,2 @@
+{"version":"before","violations":[],"incomplete":[{"id":"color-contrast","nodes":192}],"table":{"visible":335,"content":1040}}
+{"version":"after","violations":[],"incomplete":[{"id":"color-contrast","nodes":192}],"table":{"visible":335,"content":1040}}

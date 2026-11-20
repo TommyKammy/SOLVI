@@ -270,10 +270,10 @@ export default async function OperationsOverview({
   return (
     <main id="main" className="shell operations-overview fs-home">
       <TicketReturnFocus />
-      <header className="home-heading">
-        <h1 id={ticketListHeadingId} tabIndex={-1}>
-          運営状況
-        </h1>
+      <h1 id={ticketListHeadingId} className="work-page-title" tabIndex={-1}>
+        運営状況
+      </h1>
+      <header>
         <p className="home-date">
           <time dateTime={assessedAt.toISOString()}>
             {new Intl.DateTimeFormat('ja-JP', {

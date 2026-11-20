@@ -1,0 +1,140 @@
+[
+  {
+    "name": "inbox",
+    "path": "/inbox",
+    "width": 1440,
+    "navigation": "業務受信箱",
+    "css": {
+      "position": "static",
+      "height": 45,
+      "display": "block",
+      "text": "業務受信箱"
+    },
+    "firstY": 187.890625,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "reports",
+    "path": "/ops/reports",
+    "width": 1440,
+    "navigation": "レポート",
+    "css": {
+      "position": "static",
+      "height": 45,
+      "display": "block",
+      "text": "レポート"
+    },
+    "firstY": 205.59375,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "admin",
+    "path": "/ops/admin",
+    "width": 1440,
+    "navigation": "管理ホーム",
+    "css": {
+      "position": "static",
+      "height": 45,
+      "display": "block",
+      "text": "管理ホーム"
+    },
+    "firstY": 205.59375,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "audit",
+    "path": "/ops/audit",
+    "width": 1440,
+    "navigation": "監査ログ",
+    "css": {
+      "position": "static",
+      "height": 45,
+      "display": "block",
+      "text": "監査ログ"
+    },
+    "firstY": 189.890625,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "knowledge",
+    "path": "/knowledge",
+    "width": 1440,
+    "navigation": "ナレッジ検索",
+    "css": {
+      "position": "static",
+      "height": 45,
+      "display": "block",
+      "text": "ナレッジ検索"
+    },
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "inbox",
+    "path": "/inbox",
+    "width": 375,
+    "navigation": "業務受信箱",
+    "css": {
+      "position": "static",
+      "height": 39,
+      "display": "block",
+      "text": "業務受信箱"
+    },
+    "firstY": 235.171875,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "reports",
+    "path": "/ops/reports",
+    "width": 375,
+    "navigation": "レポート",
+    "css": {
+      "position": "static",
+      "height": 39,
+      "display": "block",
+      "text": "レポート"
+    },
+    "firstY": 189.984375,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "admin",
+    "path": "/ops/admin",
+    "width": 375,
+    "navigation": "管理ホーム",
+    "css": {
+      "position": "static",
+      "height": 39,
+      "display": "block",
+      "text": "管理ホーム"
+    },
+    "firstY": 189.984375,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "audit",
+    "path": "/ops/audit",
+    "width": 375,
+    "navigation": "監査ログ",
+    "css": {
+      "position": "static",
+      "height": 39,
+      "display": "block",
+      "text": "監査ログ"
+    },
+    "firstY": 249.375,
+    "horizontalOverflow": 0
+  },
+  {
+    "name": "knowledge",
+    "path": "/knowledge",
+    "width": 375,
+    "navigation": "ナレッジ検索",
+    "css": {
+      "position": "static",
+      "height": 39,
+      "display": "block",
+      "text": "ナレッジ検索"
+    },
+    "horizontalOverflow": 0
+  }
+]

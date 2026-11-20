@@ -317,7 +317,9 @@ describe('assets filters, empty states and existing role controls', () => {
       });
       vi.mocked(api.assets).mockResolvedValue({ ok: true, data: data({ canManage, canReadAll }) });
       const html = await render();
-      expect(html).toContain(`<h1>${canReadAll ? '資産台帳' : '自分の資産'}</h1>`);
+      expect(html).toContain(
+        canReadAll ? '<h1 class="work-page-title">資産台帳</h1>' : '<h1>自分の資産</h1>',
+      );
       expect(html.includes('新しい資産を登録する')).toBe(canManage);
       expect(html.includes('CSV取込と履歴')).toBe(canReadAll);
       expect(html.includes('id="asset-filter-user"')).toBe(canReadAll);

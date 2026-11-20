@@ -61,13 +61,8 @@ export default async function RelationshipChangesPage({
 
   return (
     <main id="main" className="shell directory-shell">
-      <div className="directory-heading">
-        <div>
-          <h1>上長・部署長の変更履歴</h1>
-          <p>
-            上長・主部署・部署長の設定と変更を、期間を指定して新しい順に表示します。アクセスレビューで確認するための画面です。
-          </p>
-        </div>
+      <h1 className="work-page-title">上長・部署長の変更履歴</h1>
+      <div className="directory-heading work-page-tools work-page-tools--end">
         <div className="directory-heading-actions">
           <Link className="directory-cta secondary" href="/ops/access-review">
             アクセスレビュー

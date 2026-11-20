@@ -72,9 +72,9 @@ async function Settings() {
 export default function NotificationPreferencesPage() {
   return (
     <main className="shell notification-preferences">
-      <header className="notification-preference-heading">
+      <header className="notification-preference-heading work-page-copy">
         <p className="eyebrow">自分の設定</p>
-        <h1>メール通知の設定</h1>
+        <h1 className="work-page-title">メール通知の設定</h1>
         <p>操作中の組織で、自分が受け取る任意のチケット通知を設定します。</p>
       </header>
       <Suspense

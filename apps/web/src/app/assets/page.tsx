@@ -59,15 +59,17 @@ export default async function AssetsPage({
   };
   return (
     <main id="main" className="shell service-workspace asset-change-workflow">
-      <header className="support-page-heading">
-        <div>
-          <h1>{d.canReadAll ? '資産台帳' : '自分の資産'}</h1>
-          <p className="lead">
-            {d.canReadAll
-              ? '組織の資産と利用状況を管理します。'
-              : '現在自分に割り当てられている資産を表示します。'}
-          </p>
-        </div>
+      <header
+        className={d.canReadAll ? 'work-page-tools work-page-tools--end' : 'support-page-heading'}
+      >
+        {d.canReadAll ? (
+          <h1 className="work-page-title">資産台帳</h1>
+        ) : (
+          <div>
+            <h1>自分の資産</h1>
+            <p className="lead">現在自分に割り当てられている資産を表示します。</p>
+          </div>
+        )}
         {(d.canReadAll || d.canManage) && (
           <div className="form-actions">
             {d.canManage && (

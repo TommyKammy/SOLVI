@@ -36,14 +36,15 @@ export default async function QuestionSetsPage({
   return (
     <main id="main" className="shell service-workspace">
       <ServicePageHeading
+        pageIntro
         title="共有項目セット"
         back={
           <ContextLink className="support-back" back href="/catalog/manage">
             カタログ管理へ戻る
           </ContextLink>
         }
-        description="よく使う質問を保存し、サービスの作成時に挿入できます。セットを更新しても挿入済みのサービスは変わりません。"
       />
+      <p className="hint">セットを更新しても挿入済みのサービスは変わりません。</p>
       {(await searchParams).saved === '1' && (
         <p role="status" className="success">
           共有項目セットを保存しました。

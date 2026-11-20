@@ -77,14 +77,17 @@ export default async function EditAssetPage({
   return (
     <main id="main" className="shell service-workspace">
       <ServicePageHeading
+        pageIntro
         title="資産を編集する"
         back={
           <ContextLink className="support-back" back href={`/assets/${id}`}>
             資産の詳細へ戻る
           </ContextLink>
         }
-        description="保存時に版が競合したら最新の内容を確認してください。入力は保持されます。"
       />
+      <p className="hint">
+        保存時に版が競合したら最新の内容を確認してください。入力は保持されます。
+      </p>
       <AssetForm asset={r.data.asset} options={o.data} />
     </main>
   );

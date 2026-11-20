@@ -94,7 +94,7 @@ export default async function MergeTicket({
         </ContextLink>
       </p>
 
-      <h1>重複した問い合わせを統合する</h1>
+      <h1 className="work-page-title">重複した問い合わせを統合する</h1>
       <p className="lead">
         {sourceTicket.number} {sourceTicket.subject}
       </p>

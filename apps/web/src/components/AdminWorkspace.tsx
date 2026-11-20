@@ -48,19 +48,15 @@ export function AdminPageHeader({
 
   return (
     <>
-      <header className="admin-page-header">
-        <div>
-          <p className="admin-page-meta">
-            {organizationName ? `${organizationName} · ${role}` : role}
-          </p>
-          <h1>{title}</h1>
+      <h1 className="work-page-title">{title}</h1>
+      <div className="work-page-tools">
+        <div className="admin-context-banner">
+          {organizationName && <span>{organizationName}</span>}
+          <span>表示役割</span>
+          <strong>{role}</strong>
+          {!roles.admin && <span>閲覧のみ</span>}
         </div>
         {actions && <div className="admin-heading-actions">{actions}</div>}
-      </header>
-      <div className="admin-context-banner">
-        <span>表示役割</span>
-        <strong>{role}</strong>
-        {!roles.admin && <span>閲覧のみ</span>}
       </div>
       {area && (
         <nav className="admin-feature-tabs" aria-label="管理機能">

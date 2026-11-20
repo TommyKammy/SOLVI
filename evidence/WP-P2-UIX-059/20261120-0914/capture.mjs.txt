@@ -1,0 +1,95 @@
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { login, require } from './live-helpers.mjs';
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const mode = process.argv[2];
+const out = process.argv[3];
+await mkdir(out, { recursive: true });
+
+const web = process.env.SOLVI_UI_BASE ?? 'http://127.0.0.1:3000';
+const backend = process.env.SOLVI_API_BASE ?? 'http://127.0.0.1:3001';
+for (const base of [web, backend]) assert.match(base, /^http:\/\/127\.0\.0\.1:\d+$/);
+const pages = [
+  ['inbox', '/inbox', '業務受信箱', '.inbox-summary'],
+  ['reports', '/ops/reports', 'レポート', '.insights-filters'],
+  ['admin', '/ops/admin', '管理ホーム', '.admin-context-banner'],
+  ['audit', '/ops/audit', '監査ログ', '.insights-filters', 'auditor'],
+  ['overview', '/ops/overview', '運営状況'],
+  ['tickets', '/ops', 'チケット一覧'],
+  ['users', '/ops/users', '利用者管理'],
+  ['departments', '/ops/departments', '部署管理'],
+  ['groups', '/ops/groups', '担当グループ'],
+  ['approvals', '/ops/approvals', '承認ルール'],
+  ['notifications', '/ops/notifications', '通知状況'],
+  ['access', '/ops/access-review', 'アクセスレビュー'],
+  ['approval-history', '/ops/approvals/changes', '上長・部署長の変更履歴'],
+  ['catalog', '/catalog', 'サービスカタログ'],
+  ['catalog-manage', '/catalog/manage', 'カタログ管理'],
+  ['catalog-new', '/catalog/manage/new', 'サービスを作成する'],
+  ['question-sets', '/catalog/manage/question-sets', '共有項目セット'],
+  ['knowledge', '/knowledge', 'ナレッジ検索'],
+  ['knowledge-manage', '/knowledge?manage=1', 'ナレッジ管理'],
+  ['knowledge-new', '/knowledge/new', '記事を作成'],
+  ['requests', '/requests', '申請状況'],
+  ['assets', '/assets', '資産台帳'],
+  ['asset-new', '/assets/new', '資産を登録'],
+  ['asset-imports', '/assets/imports', 'CSV取込'],
+  ['asset-import-new', '/assets/imports/new', '資産CSVを取り込む'],
+  ['changes', '/changes', '変更管理'],
+  ['change-new', '/changes/new', '変更を計画'],
+  ['ticket-new', '/tickets/new?kind=incident', '障害を報告する'],
+  ['preferences', '/settings/notifications', 'メール通知の設定'],
+  ['delegations', '/settings/delegations', '承認の委任'],
+];
+const references = new Set(['inbox', 'reports', 'admin', 'audit', 'knowledge']);
+const browser = await chromium.launch({ channel: 'chrome' });
+const results = [];
+try {
+  for (const width of [1440, 375]) {
+    const context = await browser.newContext({ viewport: { width, height: width === 375 ? 812 : 900 },
+      isMobile: width === 375, hasTouch: width === 375, colorScheme: 'light' });
+    try {
+      const page = await context.newPage();
+      const auditor = await login('auditor', 'acme', backend);
+      const admin = await login('org_admin', 'acme', backend);
+      for (const [name, path, expected, first, role] of pages) {
+        if (mode === 'before' && !references.has(name)) continue;
+        await context.addCookies([{ ...(role === 'auditor' ? auditor : admin), url: web }]);
+        const response = await page.goto(web + path, { waitUntil: 'domcontentloaded' });
+        assert.equal(response.status(), 200, path);
+        const heading = page.locator('main h1').first();
+        await heading.waitFor({ state: 'attached' });
+        const location = page.locator('.fs-breadcrumb [aria-current=page]');
+        const navigation = await location.count() ? (await location.textContent()).trim() : '';
+        const css = await heading.evaluate(el => { const s = getComputedStyle(el);
+          return { position: s.position, height: el.offsetHeight, display: s.display, text: el.textContent.trim() };
+        });
+        const firstY = first ? (await page.locator(first).first().boundingBox())?.y : undefined;
+        const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+        let axe;
+        if (mode !== 'before') {
+          assert.equal(navigation, expected, path);
+          await location.waitFor({ state: 'visible' });
+          assert.equal(horizontalOverflow, 0, path);
+          assert.equal(css.position, 'absolute', path);
+          assert.equal(css.height, 1, path);
+          assert.notEqual(css.display, 'none', path);
+          assert.equal(await page.getByRole('main').getByRole('heading', { level: 1 }).count(), 1, path);
+          const report = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+          axe = { violations: report.violations.map(({id,nodes}) => ({id, targets:nodes.map(({target})=>target)})),
+            incomplete: report.incomplete.map(({id,nodes}) => ({id, targets:nodes.map(({target})=>target)})) };
+        }
+        if (references.has(name)) await page.screenshot({ path: out + '/' + width + '-' + name + '.png', animations: 'disabled' });
+        results.push({ name, path, width, navigation, css, firstY, horizontalOverflow, axe });
+        console.log(mode, width, name, navigation, css.height, firstY ?? '', axe?.violations.map(({id})=>id).join(',') ?? '');
+      }
+    } finally {
+      await context.close();
+    }
+  }
+} finally {
+  await browser.close();
+  await writeFile(out + '/summary.json', JSON.stringify(results, null, 2) + '\n');
+}

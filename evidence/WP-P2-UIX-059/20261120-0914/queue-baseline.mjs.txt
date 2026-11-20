@@ -1,0 +1,33 @@
+import { login, require } from './live-helpers.mjs';
+const { chromium } = require('playwright');
+const { AxeBuilder } = require('@axe-core/playwright');
+const browser = await chromium.launch({ channel: 'chrome' });
+try {
+  for (const port of [3292, 3290]) {
+    const web = 'http://127.0.0.1:' + port;
+    const context = await browser.newContext({
+      viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, colorScheme: 'light',
+    });
+    try {
+      await context.addCookies([{ ...await login('org_admin', 'acme', 'http://127.0.0.1:3001'), url: web }]);
+      const page = await context.newPage();
+      await page.goto(web + '/ops');
+      const report = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+      const clip = await page.locator('main table.tickets').evaluate(table => {
+        const el = table.closest('.table-scroll');
+        return el ? { visible: el.clientWidth, content: el.scrollWidth } : null;
+      });
+      console.log(JSON.stringify({
+        version: port === 3292 ? 'before' : 'after',
+        violations: report.violations.map(({ id }) => id),
+        incomplete: report.incomplete.map(({ id, nodes }) => ({ id, nodes: nodes.length })),
+        table: clip,
+      }));
+    } finally {
+      await context.close();
+    }
+  }
+} finally {
+  await browser.close();
+}

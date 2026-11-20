@@ -81,7 +81,7 @@ describe('NFR-UX-002/003/004 knowledge list rendering and URL recovery', () => {
       limit: 20,
       cursor: 'currentCursor',
     });
-    expect(html).toContain('<h1>ナレッジ検索</h1>');
+    expect(html).toContain('<h1 class="work-page-title">ナレッジ検索</h1>');
     expect(html).toContain('検索結果 <strong>205件</strong>');
     expect(html).toContain('この画面に2件を表示');
     expect(html.indexOf('記事 z')).toBeLessThan(html.indexOf('記事 a'));
