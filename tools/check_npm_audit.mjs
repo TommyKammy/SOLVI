@@ -26,19 +26,7 @@ const BLOCKING = new Set(['high', 'critical']);
  * 開発依存に限った、期限付きの例外。
  * 追加・延長はセキュリティ関連の変更として人間のレビューを受ける(AGENTS.md §1.16)。
  */
-export const DEV_EXCEPTIONS = [
-  {
-    id: 'GHSA-fc5q-39xc-vjpf',
-    package: 'picomatch',
-    range: '<=4.0.7',
-    expires: '2026-12-18',
-    reason:
-      'picomatch の ReDoS(CVE-2026-112366)。2026-11-18 時点で修正版が無い' +
-      '(first_patched_version が null、最新は 4.0.7、修正PR micromatch/picomatch#194 は未マージ)。' +
-      '経路は vitest / vite / tinyglobby / typescript-eslint の開発依存のみで、' +
-      '本番依存の監査は 0 件。攻撃にはツールへ任意のグロブを渡す必要がある。',
-  },
-];
+export const DEV_EXCEPTIONS = [];
 
 /** npm audit の JSON から、アドバイザリ単位の一覧を作る。 */
 function advisoriesOf(report) {
