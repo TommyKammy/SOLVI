@@ -5,9 +5,9 @@ title: "CI Quality GateとClean-host"
 category: "06_WorkPackages"
 type: "workpackage"
 status: "baseline"
-version: "0.2.0"
+version: "0.2.1"
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-11-21"
 owner: "SOLVI Product Team"
 tags: ["workpackage", "p1"]
 source_of_truth: true
@@ -49,6 +49,7 @@ requirement_ids: ["NFR-MNT-001", "NFR-SEC-004", "NFR-SEC-005", "NFR-SEC-008"]
 - `tools/`
 - `package.json`
 - `Makefile`
+- `apps/web/src/components/AdminNotificationDetails.tsx`、`services/api/src/modules/knowledge/knowledge.routes.ts`（2026-11-21のFormat失敗に対する整形のみ）
 
 ## 5. Out of Scope
 
@@ -146,3 +147,4 @@ CIの各ジョブは失敗理由が一目でわかるようにする。警告の
 | Date | Actor | Commit/PR | Result | Evidence | Notes |
 |---|---|---|---|---|---|
 | 2026-07-27 | Claude (Codex) | `1b7002a` | Partially done | `evidence/WP-P1-CI-006/20260727-1023/verification.md` | ワークフロー5ジョブを定義し、禁止依存検査・skip検査を新規実装。意図的な違反を3種注入して検出を実証済み。**未完了**: GitHub Actions上での実行(リモートリポジトリ未作成)。Gate 1のG1-6判定前に実PRでの動作確認が必要。 |
+| 2026-11-21 | Codex | CI保守 | 上記2ファイルを整形し、`tools/check_npm_audit.mjs` から監査結果に現れないpicomatch例外1件を削除。Migrationなし。切戻しは当該コミットのrevert | `npm run format:check`・`npm run check:audit` 成功、`node_modules/.bin/vitest run tests/unit/check-npm-audit.test.ts` 9件成功。CI証跡は保守PRのChecks | 開発依存の許可例外は0件。Secretスキャンを含むCI全体をGitHub Actionsで確認する |

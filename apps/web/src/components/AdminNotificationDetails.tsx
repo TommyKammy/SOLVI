@@ -39,7 +39,11 @@ export function AdminNotificationDetails({ children }: { children: ReactNode }) 
       <div className={selection ? 'admin-split' : undefined}>
         {children}
         {selection && (
-          <section id={panelId} className="admin-panel admin-detail-panel" aria-labelledby={headingId}>
+          <section
+            id={panelId}
+            className="admin-panel admin-detail-panel"
+            aria-labelledby={headingId}
+          >
             <div className="directory-detail-heading">
               <h2 id={headingId} tabIndex={-1} ref={headingRef}>
                 {selection.record.title}
