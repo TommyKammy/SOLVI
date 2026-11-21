@@ -100,7 +100,8 @@ export class KnowledgeController {
     });
   }
   async list(auth: AuthenticatedRequest, query: URLSearchParams) {
-    if (query.get('manage') === '1') requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    if (query.get('manage') === '1')
+      requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
     const organizationOnly = query.getAll('audience').includes('organization');
     const conditions = new URLSearchParams(query);
     if (organizationOnly) conditions.delete('manage');

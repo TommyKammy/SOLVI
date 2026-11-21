@@ -5,9 +5,9 @@ title: "SOLVI Vault Manifest"
 category: "ROOT"
 type: "manifest"
 status: "accepted"
-version: "0.15.20"
+version: "0.15.21"
 created: "2026-07-27"
-updated: "2026-11-20"
+updated: "2026-11-21"
 owner: "SOLVI Product Team"
 tags: ["manifest"]
 source_of_truth: true
@@ -41,7 +41,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | Markdown | 337 |
 | 画像・SVG | 8 |
 | HTML | 2 |
-| 合計サイズ | 8,414,653 bytes |
+| 合計サイズ | 8,415,317 bytes |
 
 ## ファイル一覧
 
@@ -158,7 +158,7 @@ find . -type f ! -path './.git/*' ! -path './.claude/*' ! -name '.DS_Store' ! -n
 | `06_WorkPackages/P1_Foundation/WP-P1-AUD-018.md` | 4738 | `ccbe72af328e3d25aa8909b338cc1490f2bf568e2c018836235cc385df35deb0` |
 | `06_WorkPackages/P1_Foundation/WP-P1-AUD-019.md` | 4639 | `ef96218472c161ef5a871c91b25015c94f69709bead41e6bc063ee69b8284b18` |
 | `06_WorkPackages/P1_Foundation/WP-P1-BCK-007.md` | 5578 | `1e191b7b466b790bf0d530a608cd76f36e784daf2c646cf388c22ca131200a70` |
-| `06_WorkPackages/P1_Foundation/WP-P1-CI-006.md` | 5997 | `33807f2709556905b1e9b411a3a894d0be0e727be8d222c6d728326602bee2c2` |
+| `06_WorkPackages/P1_Foundation/WP-P1-CI-006.md` | 6661 | `b2df1703976abd4e3f71800f3095f9350ac0f345ecf465fea95d700d38c7c6a3` |
 | `06_WorkPackages/P1_Foundation/WP-P1-DATA-002.md` | 6910 | `7844008954ea126c43c206e4100aed405390c16d1a96d23f5e983f503fe77b3a` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-003.md` | 7433 | `ff34752fd20d984a151d09127706c80ab3eac35f1b329608e0fe402c29e835d4` |
 | `06_WorkPackages/P1_Foundation/WP-P1-IDM-009.md` | 9801 | `5f299631b2b213a10cada05323d6622b14f987ce7945f279de36b9a22242e089` |
