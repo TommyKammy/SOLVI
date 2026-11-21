@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="bold" viewBox="0 0 24 24"><path d="M6 4h7a4 4 0 0 1 0 8H6zm0 8h8a4 4 0 0 1 0 8H6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="italic" viewBox="0 0 24 24"><path d="M11 4h7m-5 16H6m9-16-6 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-14-2 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="h2" viewBox="0 0 24 24"><path d="M3 6v12m8-12v12M3 12h8m4-1c1-4 7-3 6 1-.5 2-5 4-6 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="h3" viewBox="0 0 24 24"><path d="M3 6v12m8-12v12M3 12h8m4-8h6l-4 5c6-1 6 7-2 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ordered" viewBox="0 0 24 24"><path d="M3 4h1v5m-1 0h3m-4 6c0-3 5-3 4 0l-4 4h4m4-13h11m-11 6h11m-11 6h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="bullet" viewBox="0 0 24 24"><path d="M4 6h1m-1 6h1m-1 6h1M9 6h12M9 12h12M9 18h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="codeblock" viewBox="0 0 24 24"><path d="M3 4h18v16H3zm6 5-3 3 3 3m6-6 3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="table" viewBox="0 0 24 24"><path d="M3 4h18v16H3zM3 9h18M3 15h18M11 9v11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="undo" viewBox="0 0 24 24"><path d="m8 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="redo" viewBox="0 0 24 24"><path d="m16 4 5 5-5 5m4-5H10a6 6 0 0 0 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="source" viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="template" viewBox="0 0 24 24"><path d="M3 4h18v16H3zM3 9h18M9 9v11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="legacy" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM8 11h8m-8 4h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="save" viewBox="0 0 24 24"><path d="M3 3h15l3 3v15H3zM7 3v6h9V3M7 21v-8h10v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="review" viewBox="0 0 24 24"><path d="M4 4h16v13h-9l-6 4v-4H4zm4 6 3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="apply" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="cancel" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="grip" viewBox="0 0 24 24"><path d="M9 5h.1M15 5h.1M9 12h.1M15 12h.1M9 19h.1M15 19h.1" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="m5 15 7-7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="row-before" viewBox="0 0 24 24"><path d="M3 12h18v8H3zM3 16h18M12 2v7m-3-3h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="row-after" viewBox="0 0 24 24"><path d="M3 3h18v8H3zM3 7h18m-9 7v7m-3-3h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="row-delete" viewBox="0 0 24 24"><path d="M3 4h18v8H3zM3 8h18m-13 10h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="column-before" viewBox="0 0 24 24"><path d="M12 3h8v18h-8zM16 3v18M2 12h7m-3-3v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="column-after" viewBox="0 0 24 24"><path d="M3 3h8v18H3zM7 3v18m7-9h7m-3-3v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="column-delete" viewBox="0 0 24 24"><path d="M3 3h8v18H3zM7 3v18m7-9h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>

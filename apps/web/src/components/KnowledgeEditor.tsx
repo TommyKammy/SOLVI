@@ -1,5 +1,6 @@
 'use client';
 import { useActionState, useState, type FormEvent } from 'react';
+import dynamic from 'next/dynamic';
 import { FeedbackForm, FormField } from './FeedbackForm';
 import { ContextLink } from './ContextLink';
 import { saveArticle, changeArticle } from '../app/knowledge/actions';
@@ -7,6 +8,8 @@ import type { KnowledgeArticle } from '../lib/api';
 import type { FormFeedback } from '../lib/form-state';
 import { formatDateTime } from '../lib/labels';
 import styles from './KnowledgeEditor.module.css';
+
+const RichEditor = dynamic(() => import('./knowledge-rich/RichEditor'), { ssr: false });
 
 type EditorValues = Pick<KnowledgeArticle, 'title' | 'body' | 'tags' | 'audience'>;
 type Versions = Array<{ number: number; title: string; createdAt: string }>;
@@ -26,7 +29,25 @@ function useEditor(article?: KnowledgeArticle) {
     tags: article?.tags ?? '',
     audience: article?.audience ?? 'organization',
   });
-  return { feedback, action, pending, values, setValues };
+  const [rich, setRich] = useState(!article || !!article.bodyDocV1);
+  const [document, setDocument] = useState({ json: '', dirty: false });
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [composing, setComposing] = useState(false);
+  return {
+    feedback,
+    action,
+    pending,
+    values,
+    setValues,
+    rich,
+    setRich,
+    document,
+    setDocument,
+    setSourceOpen,
+    setComposing,
+    editing: sourceOpen || composing,
+    saveBlocked: rich && (!document.json || sourceOpen || composing),
+  };
 }
 
 function preventBlockedSubmission(blocked: boolean) {
@@ -62,7 +83,7 @@ function EditorForm({
       feedback={feedback}
       pending={pending}
       action={action}
-      onSubmitCapture={preventBlockedSubmission(busy)}
+      onSubmitCapture={preventBlockedSubmission(busy || editor.saveBlocked)}
       className={`stack form-panel ${styles.form}`}
     >
       <input type="hidden" name="expectedVersion" value={article?.version ?? 1} />
@@ -83,28 +104,46 @@ function EditorForm({
           maxLength={200}
         />
       </FormField>
-      <FormField className="field">
-        <label htmlFor="article-body">
-          内容・手順{' '}
-          <span className={styles.requirement} aria-hidden="true">
-            必須
+      {editor.rich ? (
+        <FormField className="field" name="body">
+          <RichEditor
+            initialDoc={article?.bodyDocV1}
+            plain={values.body}
+            disabled={busy}
+            allowTemplate={!article}
+            onSource={editor.setSourceOpen}
+            onComposition={editor.setComposing}
+            onDocument={(json: string, dirty: boolean) => editor.setDocument({ json, dirty })}
+          />
+          <input type="hidden" name="bodyDocV1" value={editor.document.json} />
+        </FormField>
+      ) : (
+        <FormField className="field">
+          <label htmlFor="article-body">
+            内容・手順{' '}
+            <span className={styles.requirement} aria-hidden="true">
+              必須
+            </span>
+          </label>
+          <textarea
+            id="article-body"
+            name="body"
+            value={values.body}
+            onChange={(e) => setValues({ ...values, body: e.target.value })}
+            disabled={busy}
+            rows={8}
+            aria-describedby="article-body-hint"
+            required
+            maxLength={20000}
+          />
+          <span className="hint" id="article-body-hint">
+            現在の本文はプレーンテキストです。
           </span>
-        </label>
-        <textarea
-          id="article-body"
-          name="body"
-          value={values.body}
-          onChange={(e) => setValues({ ...values, body: e.target.value })}
-          disabled={busy}
-          rows={8}
-          aria-describedby="article-body-hint"
-          required
-          maxLength={20000}
-        />
-        <span className="hint" id="article-body-hint">
-          見出しや手順は文章で記載してください。HTML は表示用の文章として扱います。
-        </span>
-      </FormField>
+          <button type="button" disabled={busy} onClick={() => editor.setRich(true)}>
+            書式付き編集に切り替える
+          </button>
+        </FormField>
+      )}
       <FormField className="field">
         <label htmlFor="article-tags">検索のためのタグ</label>
         <input
@@ -141,7 +180,9 @@ function EditorForm({
         保存すると下書きになります。公開中の版と閲覧範囲は、再公開まで維持されます。
       </p>
       <div className="form-actions">
-        <button disabled={busy}>{pending ? '保存しています…' : '下書きを保存する'}</button>
+        <button disabled={busy || editor.saveBlocked}>
+          {pending ? '保存しています…' : '下書きを保存する'}
+        </button>
         <ContextLink
           back
           href={article ? `/knowledge/${article.id}?manage=1` : '/knowledge?manage=1'}
@@ -257,7 +298,10 @@ export function KnowledgeManagement({
   const editable = article.state === 'draft' || article.state === 'published';
   const dirty =
     editable &&
-    (editor.values.title !== article.title ||
+    (editor.editing ||
+      editor.document.dirty ||
+      (editor.rich && !article.bodyDocV1) ||
+      editor.values.title !== article.title ||
       editor.values.body !== displayedBody(article.body) ||
       editor.values.tags !== article.tags ||
       editor.values.audience !== article.audience);

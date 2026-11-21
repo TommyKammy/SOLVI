@@ -1,0 +1,26 @@
+[
+  {
+    "engine": "chromium",
+    "version": "157.0.8103.79",
+    "htmlRoundTrips": 3,
+    "publishedVersion": 3,
+    "restoredVersion": 4,
+    "citationVersion": 3,
+    "legacyConversion": true,
+    "guardedRollback": true,
+    "axeEditorViolations": [],
+    "pageErrors": []
+  },
+  {
+    "engine": "webkit",
+    "version": "26.5",
+    "htmlRoundTrips": 3,
+    "publishedVersion": 3,
+    "restoredVersion": 4,
+    "citationVersion": 3,
+    "legacyConversion": true,
+    "guardedRollback": true,
+    "axeEditorViolations": [],
+    "pageErrors": []
+  }
+]

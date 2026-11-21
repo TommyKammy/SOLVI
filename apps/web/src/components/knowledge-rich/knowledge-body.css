@@ -1,0 +1,22 @@
+.knowledge-rich table,
+.knowledge-rich-content table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+:is(.knowledge-rich, .knowledge-rich-content) :is(th, td) {
+  border: 1px solid GrayText;
+  padding: 0.4rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+:is(.knowledge-rich, .knowledge-rich-content) :is(th, td) p {
+  min-height: 1.5em;
+  margin: 0;
+}
+.knowledge-rich-content {
+  overflow-wrap: anywhere;
+}
+.knowledge-rich-content :is(p, h2, h3, pre) {
+  white-space: pre-wrap;
+}
