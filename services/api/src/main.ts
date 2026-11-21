@@ -61,12 +61,12 @@ const SERVICE_VERSION = process.env.SOLVI_VERSION ?? 'dev';
 /** 本文サイズの上限。上限が無いと、大きな本文だけでプロセスを潰せる。 */
 const MAX_BODY_BYTES = 64 * 1024;
 
-async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+async function readJsonBody(req: IncomingMessage, maxBytes = MAX_BODY_BYTES): Promise<unknown> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     size += (chunk as Buffer).length;
-    if (size > MAX_BODY_BYTES) {
+    if (size > maxBytes) {
       req.destroy();
       throw new Error('リクエスト本文が大きすぎます');
     }
@@ -612,7 +612,7 @@ async function bootstrap(): Promise<void> {
     .post('/knowledge', async (req, res) => {
       const result = await knowledge.create(
         await auth.authenticate(req.headers),
-        await readJsonBody(req),
+        await readJsonBody(req, 512 * 1024),
       );
       res.writeHead(201, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
@@ -621,7 +621,7 @@ async function bootstrap(): Promise<void> {
       knowledge.save(
         await auth.authenticate(req.headers),
         params.id ?? '',
-        await readJsonBody(req),
+        await readJsonBody(req, 512 * 1024),
       ),
     )
     .post('/knowledge/:id/actions', async (req, _res, params) =>

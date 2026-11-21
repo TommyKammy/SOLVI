@@ -1,3 +1,4 @@
+import { KnowledgeBody } from '../../../components/KnowledgeBody';
 import { ContextLink } from '../../../components/ContextLink';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -134,7 +135,7 @@ export default async function ArticlePage({
               <h2 id="knowledge-review-title">
                 {article.state === 'review' ? 'レビュー対象の内容' : '取り下げた版の内容'}
               </h2>
-              <p className="knowledge-prose">{article.body}</p>
+              <KnowledgeBody article={article} />
               {article.tags && <p className="hint">タグ {article.tags}</p>}
             </article>
           )}
@@ -149,7 +150,7 @@ export default async function ArticlePage({
         <div className="knowledge-reader-layout">
           <article className="knowledge-reader-panel" aria-labelledby="knowledge-body-title">
             <h2 id="knowledge-body-title">記事の内容</h2>
-            <p className="knowledge-prose">{article.body}</p>
+            <KnowledgeBody article={article} />
             {!staff && (
               <div className="knowledge-reader-help">
                 <ContextLink href="/tickets/new?kind=incident">

@@ -1,5 +1,6 @@
 import type pg from 'pg';
 import { z } from 'zod';
+import { readKnowledgeBody, type JSONContent } from '@solvi/shared/knowledge-schema';
 import { Problems } from '@solvi/shared';
 import { hasRole, requireRole } from '../../common/authz/authz.js';
 import { recordAuditEvent, uuidv7 } from '../../common/audit/audit.js';
@@ -17,7 +18,8 @@ import {
 
 const contentSchema = z.object({
   title: z.string().trim().min(1).max(200),
-  body: z.string().trim().min(1).max(20000),
+  body: z.string().trim().min(1).max(20000).optional(),
+  bodyDocV1: z.unknown().optional(),
   tags: z.string().trim().max(500).default(''),
   audience: z.enum(['organization', 'staff']),
 });
@@ -43,10 +45,33 @@ function parse<T extends z.ZodTypeAny>(schema: T, input: unknown): z.output<T> {
     );
   return r.data;
 }
+type Content = Omit<z.infer<typeof contentSchema>, 'body' | 'bodyDocV1'> & {
+  body: string;
+  bodyDocV1?: JSONContent | null;
+};
+function snapshot(input: z.infer<typeof contentSchema>): Content {
+  if (input.bodyDocV1 === undefined) {
+    if (!input.body)
+      throw Problems.validation([{ field: 'body', message: '本文を入力してください' }]);
+    return { ...input, body: input.body, bodyDocV1: null };
+  }
+  if (process.env.KNOWLEDGE_RICH_WRITES === 'off')
+    throw Problems.conflict('書式付き本文の保存は休止中です');
+  try {
+    const { doc: bodyDocV1, body } = readKnowledgeBody(input.bodyDocV1);
+    if (!body.trim()) throw Error('本文は1〜20,000文字で入力してください');
+    return { ...input, bodyDocV1, body };
+  } catch (error) {
+    throw Problems.validation([
+      { field: 'body', message: error instanceof Error ? error.message : '本文の形式が不正です' },
+    ]);
+  }
+}
 function canEdit(auth: AuthenticatedRequest): boolean {
   return hasRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
 }
-const select = (manage: boolean) => `${knowledgeArticleSelect(manage)} ${knowledgeArticleFrom}`;
+const select = (manage: boolean) =>
+  `${knowledgeArticleSelect(manage)}, v.body_doc_v1 AS "bodyDocV1" ${knowledgeArticleFrom}`;
 
 export class KnowledgeController {
   constructor(private readonly pool: pg.Pool) {}
@@ -100,7 +125,8 @@ export class KnowledgeController {
     });
   }
   async list(auth: AuthenticatedRequest, query: URLSearchParams) {
-    if (query.get('manage') === '1') requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
+    if (query.get('manage') === '1')
+      requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
     const organizationOnly = query.getAll('audience').includes('organization');
     const conditions = new URLSearchParams(query);
     if (organizationOnly) conditions.delete('manage');
@@ -176,12 +202,14 @@ export class KnowledgeController {
             )
           ).rows
         : [];
-      return { article: r.rows[0], versions };
+      const article = r.rows[0];
+      if (article.bodyDocV1 === null) delete article.bodyDocV1;
+      return { article, versions };
     });
   }
   async create(auth: AuthenticatedRequest, input: unknown) {
     requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
-    const c = parse(contentSchema, input);
+    const c = snapshot(parse(contentSchema, input));
     return this.run(auth, async (client) => {
       const id = uuidv7();
       await client.query(
@@ -198,21 +226,40 @@ export class KnowledgeController {
     auth: AuthenticatedRequest,
     id: string,
     version: number,
-    c: z.infer<typeof contentSchema>,
+    c: Content,
   ): Promise<void> {
     await client.query(
-      'INSERT INTO knowledge_version(article_id,organization_id,number,title,body,tags,audience,author_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
-      [id, auth.authz.organizationId, version, c.title, c.body, c.tags, c.audience, auth.userId],
+      'INSERT INTO knowledge_version(article_id,organization_id,number,title,body,tags,audience,author_id,body_doc_v1) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [
+        id,
+        auth.authz.organizationId,
+        version,
+        c.title,
+        c.body,
+        c.tags,
+        c.audience,
+        auth.userId,
+        c.bodyDocV1 ?? null,
+      ],
     );
   }
   async save(auth: AuthenticatedRequest, id: string, input: unknown) {
     requireRole(auth.authz, 'agent', 'org_admin', 'platform_admin');
-    const c = parse(updateSchema, input);
+    const parsed = parse(updateSchema, input);
+    const c = snapshot(parsed);
     return this.run(auth, async (client) => {
       const a = await this.lock(client, id, auth.authz.organizationId);
-      if (a.version !== c.expectedVersion) throw Problems.stale('記事');
+      if (a.version !== parsed.expectedVersion) throw Problems.stale('記事');
       if (a.state === 'retired')
         throw Problems.conflict('取り下げ済みの記事は過去版から下書きに戻してください');
+      if (!c.bodyDocV1) {
+        const current = await client.query(
+          'SELECT body_doc_v1 IS NOT NULL AS rich FROM knowledge_version WHERE article_id=$1 AND number=$2',
+          [id, a.version],
+        );
+        if (current.rows[0]?.rich)
+          throw Problems.conflict('書式付き記事はリッチテキストエディタで編集してください');
+      }
       const version = a.version + 1;
       await this.insertVersion(client, auth, id, version, c);
       await client.query(
@@ -238,7 +285,7 @@ export class KnowledgeController {
             { field: 'restoreVersion', message: '復元する版を指定してください' },
           ]);
         const old = await client.query(
-          'SELECT title,body,tags,audience FROM knowledge_version WHERE article_id=$1 AND number=$2',
+          'SELECT title,body,tags,audience,body_doc_v1 AS "bodyDocV1" FROM knowledge_version WHERE article_id=$1 AND number=$2',
           [id, c.restoreVersion],
         );
         if (!old.rows[0]) throw Problems.notFound('記事の版');
@@ -258,7 +305,7 @@ export class KnowledgeController {
       // snapshot to prevent a stale editor saving through a concurrent publication.
       if (c.action !== 'restore') {
         const current = await client.query(
-          'SELECT title,body,tags,audience FROM knowledge_version WHERE article_id=$1 AND number=$2',
+          'SELECT title,body,tags,audience,body_doc_v1 AS "bodyDocV1" FROM knowledge_version WHERE article_id=$1 AND number=$2',
           [id, a.version],
         );
         version += 1;

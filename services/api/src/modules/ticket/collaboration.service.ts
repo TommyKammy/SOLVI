@@ -335,7 +335,7 @@ export class CollaborationService {
     if (comment.ticketId !== ticketId || !comment.citation?.available)
       throw Problems.notFound('記事の引用版');
     const { rows } = await this.client.query(
-      `SELECT cv.title,cv.body,cv.tags,cv.audience,cv.number FROM ticket_comment tc JOIN ticket author_ticket ON author_ticket.id=tc.ticket_id AND author_ticket.organization_id=tc.organization_id ${citationJoinSql} WHERE tc.id=$1 AND tc.ticket_id=$2 AND tc.organization_id=$4 AND ${citationVisibleSql}`,
+      `SELECT cv.title,cv.body,cv.body_doc_v1 AS "bodyDocV1",cv.tags,cv.audience,cv.number FROM ticket_comment tc JOIN ticket author_ticket ON author_ticket.id=tc.ticket_id AND author_ticket.organization_id=tc.organization_id ${citationJoinSql} WHERE tc.id=$1 AND tc.ticket_id=$2 AND tc.organization_id=$4 AND ${citationVisibleSql}`,
       [
         commentId,
         ticketId,
@@ -344,6 +344,7 @@ export class CollaborationService {
       ],
     );
     if (!rows[0]) throw Problems.notFound('記事の引用版');
+    if (rows[0].bodyDocV1 === null) delete rows[0].bodyDocV1;
     return { articleId: comment.citation.articleId, version: comment.citation.version, ...rows[0] };
   }
 

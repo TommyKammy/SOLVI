@@ -16,12 +16,23 @@ export async function saveArticle(
     tags: String(form.get('tags') ?? ''),
     audience: String(form.get('audience') ?? 'organization'),
   };
+  const rich = form.get('bodyDocV1');
+  let payload: Record<string, unknown> = content;
+  if (typeof rich === 'string') {
+    try {
+      if (rich.length > 160000) throw Error();
+      const { body: _plain, ...fields } = content;
+      payload = { ...fields, bodyDocV1: JSON.parse(rich) };
+    } catch {
+      return { message: '書式付き本文を確認してください', attempt: (previous.attempt ?? 0) + 1 };
+    }
+  }
   const result = id
     ? await api.knowledgeSave(id, {
-        ...content,
+        ...payload,
         expectedVersion: Number(form.get('expectedVersion')),
       })
-    : await api.knowledgeCreate(content);
+    : await api.knowledgeCreate(payload);
   if (!result.ok)
     return {
       message:

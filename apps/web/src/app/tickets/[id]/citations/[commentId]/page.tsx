@@ -1,3 +1,4 @@
+import { KnowledgeBody } from '../../../../../components/KnowledgeBody';
 import { ContextLink } from '../../../../../components/ContextLink';
 import { notFound } from 'next/navigation';
 import { api, requireSession } from '../../../../../lib/api';
@@ -78,8 +79,8 @@ export default async function CitationPage({
         返信で引用した版 {article.version}{' '}
         を表示しています。記事の最新の版とは異なる場合があります。
       </p>
-      <article className="form-panel" style={{ whiteSpace: 'pre-wrap' }}>
-        {article.body}
+      <article className="form-panel">
+        <KnowledgeBody article={article} />
       </article>
       <p>
         <ContextLink href={`/knowledge/${article.articleId}`}>

@@ -278,6 +278,13 @@ describe('knowledge management exact editing boundary', () => {
     render(article, false, true);
     expect(control('audience').value).toBe('staff');
     expect(hooks.forms).toHaveLength(1);
+    // New articles cannot submit until the rich editor has supplied its document.
+    expect(blocked(0)).toBe(true);
+    const rich = controls(hooks.forms[0]!.children).find(
+      (props) => 'onDocument' in props,
+    ) as Control & { onDocument: (json: string, dirty: boolean) => void };
+    rich.onDocument(JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] }), false);
+    render(article, false, true);
     expect(blocked(0)).toBe(false);
   });
 });

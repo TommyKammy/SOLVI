@@ -1,3 +1,4 @@
+import type { JSONContent } from '@solvi/shared/knowledge-schema';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { withAdminReturnTo } from './admin-recovery';
@@ -1514,7 +1515,13 @@ export const api = {
     ),
 
   citationContent: async (ticketId: string, commentId: string) => {
-    type Detail = { articleId: string; version: number; title: string; body: string };
+    type Detail = {
+      articleId: string;
+      version: number;
+      title: string;
+      body: string;
+      bodyDocV1?: JSONContent | null;
+    };
     let ticket: string;
     let comment: string;
     try {
@@ -1928,6 +1935,7 @@ export const api = {
 };
 
 export interface KnowledgeArticle {
+  bodyDocV1?: JSONContent | null;
   id: string;
   state: 'draft' | 'review' | 'published' | 'retired';
   version: number;
