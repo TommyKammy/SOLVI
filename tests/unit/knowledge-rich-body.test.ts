@@ -30,6 +30,23 @@ describe('versioned knowledge body', () => {
     expect(result.body).toBe('確認\n手順\n  x\n  y');
     expect(readKnowledgeBody(result.doc)).toEqual(result);
   });
+  it('enforces the JSON size limit on the document that will be saved', () => {
+    const linkedDoc = (href: string) =>
+      doc({
+        type: 'paragraph',
+        content: [{ ...text('参照'), marks: [{ type: 'link', attrs: { href } }] }],
+      });
+    const href = 'https://example.test/';
+    const base = readKnowledgeBody(linkedDoc(href)).doc;
+    const atLimit = href + 'a'.repeat(160000 - JSON.stringify(base).length);
+    const saved = readKnowledgeBody(linkedDoc(atLimit));
+    expect(JSON.stringify(saved.doc).length).toBe(160000);
+    expect(readKnowledgeBody(saved.doc)).toEqual(saved);
+
+    const overLimit = linkedDoc(atLimit + 'a');
+    expect(JSON.stringify(overLimit).length).toBeLessThan(160000);
+    expect(() => readKnowledgeBody(overLimit)).toThrow(/容量/);
+  });
   it.each([
     { type: 'heading', attrs: { level: 1 } },
     { type: 'paragraph', attrs: { style: 'other' } },

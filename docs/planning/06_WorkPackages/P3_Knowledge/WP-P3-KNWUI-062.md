@@ -100,3 +100,7 @@ P1〜P6を検証し、マージ前に人間がMigration・API・依存差分を�
 | P6 | 書込休止時の読取、旧形式のみのdown/up、新形式保存後のdown拒否 |
 
 Chromium・WebKitともHTML3往復、保存と再読込、公開・復元・引用を確認。セキュリティ影響はHTML・JSONの入力境界と依存追加。日本語IME実機は利用者指定で未判定。マージ前の人間レビューが残る。[結果・画像・実行コマンド](../../../../evidence/WP-P3-KNWUI-062/README.md)
+
+2026-11-21、P2・P4の再保存時の容量検証を修正した。`packages/shared/src/knowledge-schema.mjs` で入力と保存直前のJSONの両方に160,000 UTF-16単位の上限を適用する。回帰テストは `tests/unit/knowledge-rich-body.test.ts`。この記録と `MANIFEST.md` も更新した。
+
+`node_modules/.bin/vitest run tests/unit/knowledge-rich-body.test.ts` は修正前に新規ケースが失敗し、修正後に9件成功した。使い捨てPostgreSQLとHTTP APIでも、リンク800件を含む本文で正規化後160,000単位の作成・取得・再保存を確認した。160,001単位では作成・更新とも400となり、更新拒否後も記事は版2、監査は作成・保存の2件だった。追加Migrationは不要。マージ前の人間レビューは継続する。

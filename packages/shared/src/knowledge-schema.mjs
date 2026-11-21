@@ -61,6 +61,7 @@ const nodeAttrs = {
   codeBlock: { language: [null] },
 };
 const linkAttrs = { href: allowedURL, target: [null], rel: [null], class: [null], title: [null] };
+const MAX_DOC_JSON_LENGTH = 160000;
 
 function fields(value, keys) {
   if (
@@ -80,7 +81,7 @@ function attributes(attrs, rules) {
   }
 }
 export function readKnowledgeBody(doc) {
-  if (doc?.type !== 'doc' || JSON.stringify(doc).length > 160000)
+  if (doc?.type !== 'doc' || JSON.stringify(doc).length > MAX_DOC_JSON_LENGTH)
     throw Error('本文の形式または容量が不正です');
   function check(n, depth) {
     fields(n, ['type', 'text', 'attrs', 'marks', 'content']);
@@ -125,7 +126,10 @@ export function readKnowledgeBody(doc) {
     leaf.type.name === 'hardBreak' ? '\n' : '',
   );
   if (body.length > 20000) throw Error('本文は20,000文字までです');
-  return { doc: parsed.toJSON(), body };
+  const normalized = parsed.toJSON();
+  if (JSON.stringify(normalized).length > MAX_DOC_JSON_LENGTH)
+    throw Error('正規化後の本文が容量上限を超えています');
+  return { doc: normalized, body };
 }
 
 export function validateDoc(input) {
